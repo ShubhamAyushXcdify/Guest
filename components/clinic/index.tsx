@@ -200,7 +200,7 @@ function ClinicForm({ defaultValues, onSubmit }: { defaultValues?: Partial<Clini
       </div>
       <DataTable
         columns={columns}
-        data={clinics}
+        data={clinics || []}
         searchColumn="name"
         searchPlaceholder="Search clinics..."
         page={1}

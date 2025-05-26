@@ -59,9 +59,9 @@ export default function StockAdjustmentPage() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
-        <InventoryBreadcrumb currentPage="Stock Adjustment" pageSlug="stock-adjustment" />
+      
 
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Stock Adjustment</h1>
 
@@ -252,7 +252,7 @@ export default function StockAdjustmentPage() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </>
   )
 }
 
