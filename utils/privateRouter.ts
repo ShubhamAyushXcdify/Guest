@@ -1,9 +1,9 @@
 "use client";
-import { RootContext } from "@/src/context/RootContext";
+import { RootContext } from "@/context/RootContext";
 import { usePathname, useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
 import React from "react";
-import { RootContextType } from "../context/RootContext";
+import { RootContextType } from "@/context/RootContext";
 import { getJwtToken, getUserId, getWorkspaceId } from "./clientCookie";
 // import { useHasPermission } from "./auth";
 // import { Resource } from "../components/settings/rbac/rbac";
@@ -64,7 +64,7 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
             console.log(
               "redirecting to login from privateRouter because no jwtToken or userId or workspaceId"
             );
-            router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+            router.push(`/?redirect=${encodeURIComponent(pathname)}`);
           }
         }, 1000);
         return () => clearTimeout(timeout);
@@ -74,7 +74,7 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
         const timeout = setTimeout(() => {
           if (pathname !== "/login") {
             console.log(`Redirecting to login from privateRouter because Authorized ${authorized}`);
-            router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+            router.push(`/?redirect=${encodeURIComponent(pathname)}`);
           }
         }, 1000);
 

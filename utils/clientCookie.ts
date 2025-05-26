@@ -18,7 +18,7 @@ export const setUserId = (id: any): void => {
 }
 
 export const getUserId = (): string | undefined => {
-  return Cookies.get('userId');
+  return Cookies.get('userId') || undefined;
 };
 
 export const removeUserId = (): void => {

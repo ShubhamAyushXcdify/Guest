@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus } from "lucide-react";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
+import withAuth from "@/utils/privateRouter";
 
 // Clinic type based on provided schema
 export type Clinic = {
@@ -176,7 +177,7 @@ function ClinicForm({ defaultValues, onSubmit }: { defaultValues?: Partial<Clini
   );
 }
 
-export default function Clinic() {
+ function Clinic() {
   // For now, use empty array for clinics
   const { data: clinics, isLoading, isError } = useGetClinic();
   const [openNew, setOpenNew] = useState(false);
@@ -211,3 +212,6 @@ export default function Clinic() {
     </div>
   );
 }   
+
+
+export default withAuth(Clinic);
