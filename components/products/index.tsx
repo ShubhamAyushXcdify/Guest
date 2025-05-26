@@ -1,0 +1,188 @@
+'use client'
+import React, { useState } from "react";
+import { DataTable } from "../ui/data-table";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { ColumnDef } from "@tanstack/react-table";
+import { Edit, Plus, Trash2 } from "lucide-react";
+import { useGetProducts } from "@/queries/products/get-products";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
+import NewProduct from "./newProduct";
+import ProductDetails from "./productsDetails";
+import { useDeleteProduct } from "@/queries/products/delete-products";
+import { toast } from "../ui/use-toast";
+import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
+
+// Product type based on the provided API schema
+export type Product = {
+  id: string;
+  clinicId: string;
+  name: string;
+  genericName: string;
+  category: string;
+  productType: string;
+  manufacturer: string;
+  ndcNumber: string;
+  strength: string;
+  dosageForm: string;
+  unitOfMeasure: string;
+  requiresPrescription: boolean;
+  controlledSubstanceSchedule: string;
+  storageRequirements: string;
+  isActive: boolean;
+};
+
+const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
+
+export default function Products() {
+  const { data: products, isLoading, isError } = useGetProducts();
+  const [openNew, setOpenNew] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [openDetails, setOpenDetails] = useState(false);
+  const deleteProduct = useDeleteProduct();
+  
+  // State for delete confirmation dialog
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleProductClick = (productId: string) => {
+    setSelectedProductId(productId);
+    setOpenDetails(true);
+  };
+
+  const openDeleteDialog = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteProduct.mutateAsync({ id: productToDelete.id });
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete product",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const columns: ColumnDef<Product>[] = [
+    { accessorKey: "name", header: "Name" },
+    { accessorKey: "genericName", header: "Generic Name" },
+    { accessorKey: "category", header: "Category" },
+    { accessorKey: "productType", header: "Product Type" },
+    { accessorKey: "manufacturer", header: "Manufacturer" },
+    { accessorKey: "strength", header: "Strength" },
+    { 
+      accessorKey: "requiresPrescription", 
+      header: "Rx Required", 
+      cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "outline"}>{getValue() ? "Yes" : "No"}</Badge>
+    },
+    { 
+      accessorKey: "isActive", 
+      header: "Status", 
+      cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "destructive"}>{getValue() ? "Active" : "Inactive"}</Badge>
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-center">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex gap-2 justify-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleProductClick(row.original.id);
+            }}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-red-500 hover:text-red-700 hover:bg-red-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteDialog(row.original);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+      meta: { className: "text-center" },
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Products</h1>
+        <Sheet open={openNew} onOpenChange={setOpenNew}>
+          <SheetTrigger asChild>
+            <Button onClick={() => setOpenNew(true)}>
+              <Plus className="mr-2 h-4 w-4" />Add Product
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+            <SheetHeader>
+              <SheetTitle>New Product</SheetTitle>
+            </SheetHeader>
+            <NewProduct onSuccess={() => setOpenNew(false)} />
+          </SheetContent>
+        </Sheet>
+      </div>
+      
+      <DataTable
+        columns={columns}
+        data={products || []}
+        searchColumn="name"
+        searchPlaceholder="Search products..."
+        page={1}
+        pageSize={10}
+        totalPages={1}
+        onPageChange={() => {}}
+        onPageSizeChange={() => {}}
+        onEditButtonClick={handleProductClick}
+      />
+      
+      {/* Product Details Sheet */}
+      <Sheet open={openDetails} onOpenChange={setOpenDetails}>
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+          <SheetHeader>
+            <SheetTitle>Product Details</SheetTitle>
+          </SheetHeader>
+          {selectedProductId && (
+            <ProductDetails 
+              productId={selectedProductId}
+              onSuccess={() => setOpenDetails(false)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteProduct}
+        title="Delete Product"
+        itemName={productToDelete?.name}
+        isDeleting={isDeleting}
+      />
+    </div>
+  );
+}
