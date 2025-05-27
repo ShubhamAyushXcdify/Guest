@@ -176,8 +176,14 @@ export function Sidebar() {
                         onOpenChange={() => toggleGroup(group.title)}
                     >
                         <SidebarGroupLabel>
-                            <CollapsibleTrigger className="flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations">
-                                <div className="flex items-center gap-2">
+                            <CollapsibleTrigger className={cn(
+                                "flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
+                                state === "collapsed" && "justify-center"
+                            )}>
+                                <div className={cn(
+                                    "flex items-center gap-2",
+                                    state === "collapsed" && "justify-center"
+                                )}>
                                     <group.icon className="h-4 w-4" />
                                     {state !== "collapsed" && <span>{group.title}</span>}
                                 </div>
@@ -190,7 +196,10 @@ export function Sidebar() {
                             </CollapsibleTrigger>
                         </SidebarGroupLabel>
                         <CollapsibleContent>
-                            <div className="mt-2 space-y-1 pl-3">
+                            <div className={cn(
+                                "mt-2 space-y-1",
+                                state === "collapsed" ? "pl-0" : "pl-3"
+                            )}>
                                 {group.items.map((item) => (
                                     <NavItem
                                         key={item.href}
@@ -213,12 +222,12 @@ export function Sidebar() {
         <>
             <Sheet open={openMobile} onOpenChange={setOpenMobile}>
                 <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                    <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] text-white">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Toggle navigation menu</span>
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-72 sm:max-w-none bg-gradient-to-b from-purple-600 to-indigo-600 text-white">
+                <SheetContent side="left" className="w-72 sm:max-w-none bg-gradient-to-b from-[var(--theme-primary)] to-[var(--theme-secondary)] text-white">
                     <div className="flex items-center gap-2 text-lg font-bold text-white px-4 pt-2 pb-2">
                         <PawPrint className="h-6 w-6" />
                         <span>PawTrack Admin</span>
@@ -227,7 +236,7 @@ export function Sidebar() {
                 </SheetContent>
             </Sheet>
             <aside className={cn(
-                "hidden md:flex flex-col justify-between bg-gradient-to-b from-indigo-700 to-indigo-900 text-white min-h-screen shadow-xl transition-all duration-200",
+                "hidden md:flex flex-col justify-between bg-gradient-to-b from-[var(--theme-primary)] to-[var(--theme-secondary)] text-white min-h-screen shadow-xl transition-all duration-200",
                 state === "collapsed" ? "w-16" : "w-64"
             )}>
                 <div>
@@ -235,37 +244,37 @@ export function Sidebar() {
                         "flex items-center gap-3 px-6 py-4 h-16",
                         state === "collapsed" && "justify-center px-2"
                     )}>
-                        <PawPrint className="h-7 w-7 text-indigo-300" />
+                        <PawPrint className="h-7 w-7 text-[var(--theme-accent)]" />
                         {state !== "collapsed" && (
                             <span className="text-xl font-bold tracking-tight">PawTrack</span>
                         )}
                     </div>
 
-                    <Separator className="mb-6 bg-indigo-600/40" />
+                    <Separator className="mb-6 bg-white/10" />
 
                     {renderNavItems()}
                 </div>
 
                 <div className="mt-auto mb-6">
-                    <Separator className="my-4 bg-indigo-600/40" />
+                    <Separator className="my-4 bg-white/10" />
                     <div className="px-3">
                         <div className={cn(
-                            "flex items-center gap-3 p-3 rounded-lg bg-indigo-800/50 hover:bg-indigo-800 transition-colors",
+                            "flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors",
                             state === "collapsed" && "justify-center"
                         )}>
-                            <Avatar className="h-10 w-10 ring-2 ring-indigo-400/30 rounded-full flex items-center justify-center">
+                            <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)]/30 rounded-full flex items-center justify-center">
                                 <AvatarImage src="/placeholder-user.jpg" alt="User" className="rounded-full" />
                                 <AvatarFallback className="text-white">AD</AvatarFallback>
                             </Avatar>
                             {state !== "collapsed" && (
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">Admin User</p>
-                                    <p className="text-xs text-indigo-300 truncate">admin@example.com</p>
+                                    <p className="text-xs text-white/70 truncate">admin@example.com</p>
                                 </div>
                             )}
                             {state !== "collapsed" && (
                                 <Link href="/">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-indigo-700">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
                                         <LogOut className="h-4 w-4" />
                                         <span className="sr-only">Log out</span>
                                     </Button>

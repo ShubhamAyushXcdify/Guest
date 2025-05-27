@@ -1,9 +1,9 @@
-import { AppLayout } from "@/components/app-layout"
+
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function OrderHistoryLoading() {
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
         <Skeleton className="h-8 w-64 mb-6" />
 
@@ -43,6 +43,6 @@ export default function OrderHistoryLoading() {
           <Skeleton className="h-10 w-32" />
         </div>
       </div>
-    </AppLayout>
+    </>
   )
 }

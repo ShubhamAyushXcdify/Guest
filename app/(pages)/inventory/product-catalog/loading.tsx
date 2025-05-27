@@ -1,9 +1,9 @@
-import { AppLayout } from "@/components/app-layout"
+
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Loading() {
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <Skeleton className="h-8 w-64" />
@@ -45,6 +45,6 @@ export default function Loading() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   )
 }

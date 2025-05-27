@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { AppLayout } from "@/components/app-layout"
 import { InventoryBreadcrumb } from "@/components/inventory/inventory-breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"

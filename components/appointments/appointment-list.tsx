@@ -5,11 +5,33 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, Search } from "lucide-react"
-
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
+import { Combobox } from "@/components/ui/combobox"
 
 export default function AppointmentList( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [selectedProvider, setSelectedProvider] = useState("")
+  const [selectedStatus, setSelectedStatus] = useState("")
+
+  // Provider options
+  const providerOptions = [
+    { value: "", label: "All Providers" },
+    { value: "Dr. Sarah Johnson", label: "Dr. Sarah Johnson" },
+    { value: "Dr. Michael Chen", label: "Dr. Michael Chen" },
+  ]
+
+  // Status options
+  const statusOptions = [
+    { value: "", label: "All Statuses" },
+    { value: "Scheduled", label: "Scheduled" },
+    { value: "In Room", label: "In Room" },
+    { value: "In Progress", label: "In Progress" },
+    { value: "Completed", label: "Completed" },
+    { value: "Cancelled", label: "Cancelled" },
+  ]
 
   // Mock appointment data
   const appointments = [
@@ -87,13 +109,21 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
     },
   ]
 
-  // Filter appointments based on active tab
+  // Filter appointments based on active tab and selected filters
   const filteredAppointments = appointments.filter((appointment) => {
+    // Filter by tab
     if (activeTab === "all") return true
     if (activeTab === "scheduled") return appointment.status === "Scheduled"
     if (activeTab === "checked-in") return appointment.status === "In Room"
     if (activeTab === "completed") return appointment.status === "Completed"
     if (activeTab === "cancelled") return appointment.status === "Cancelled"
+
+    // Filter by provider
+    if (selectedProvider && appointment.provider !== selectedProvider) return false
+
+    // Filter by status
+    if (selectedStatus && appointment.status !== selectedStatus) return false
+
     return true
   })
 
@@ -114,6 +144,74 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
     }
   }
 
+  const columns: ColumnDef<any>[] = [
+    {
+      accessorKey: "time",
+      header: "Time",
+    },
+    {
+      accessorKey: "patient",
+      header: "Patient",
+    },
+    {
+      accessorKey: "owner",
+      header: "Owner",
+    },
+    {
+      accessorKey: "visitType",
+      header: "Visit Type",
+    },
+    {
+      accessorKey: "provider",
+      header: "Provider",
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge className={getStatusBadgeClass(row.original.status)}>
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <div className="flex space-x-2">
+          <Button variant="secondary" size="sm" onClick={() => onAppointmentClick(row.original.id.toString())}>
+            View
+          </Button>
+          {row.original.status === "Scheduled" && (
+            <Button variant="outline" size="sm" className="theme-button-outline">
+              Check In
+            </Button>
+          )}
+          {row.original.status === "In Room" && (
+            <Button variant="outline" size="sm" className="theme-button-outline">
+              Check Out
+            </Button>
+          )}
+          {row.original.status === "In Progress" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-gray-200 text-gray-500 border-gray-300 opacity-50"
+              disabled
+            >
+              SOAP
+            </Button>
+          )}
+          {row.original.status === "Completed" && (
+            <Button variant="outline" size="sm" className="theme-button-outline">
+              SOAP
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ]
+
   return (
     <div className="p-6">
       {/* Filters */}
@@ -129,18 +227,31 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
             </Button>
           </div>
           <div className="relative">
-            <Button variant="outline" className="w-full justify-between">
-              Provider: All <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
+            <Combobox
+              options={providerOptions}
+              value={selectedProvider}
+              onValueChange={setSelectedProvider}
+              placeholder="Select Provider"
+              searchPlaceholder="Search providers..."
+              emptyText="No providers found."
+            />
           </div>
           <div className="relative">
-            <Button variant="outline" className="w-full justify-between">
-              Status: All <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
+            <Combobox
+              options={statusOptions}
+              value={selectedStatus}
+              onValueChange={setSelectedStatus}
+              placeholder="Select Status"
+              searchPlaceholder="Search statuses..."
+              emptyText="No statuses found."
+            />
           </div>
         </div>
         <div className="mt-4 flex justify-end">
-          <Button>Filter</Button>
+          <Button onClick={() => {
+            setSelectedProvider("")
+            setSelectedStatus("")
+          }}>Clear Filters</Button>
         </div>
       </div>
 
@@ -198,157 +309,18 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
         </button>
       </div>
 
-      {/* Appointments Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-          <thead className="bg-gray-50 dark:bg-slate-700">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Time
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Patient
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Owner
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Visit Type
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Provider
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-            {filteredAppointments.map((appointment) => (
-              <tr key={appointment.id} className="hover:bg-gray-50 dark:hover:bg-slate-750">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                  {appointment.time}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                  {appointment.patient}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                  {appointment.owner}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                  {appointment.visitType}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                  {appointment.provider}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Badge className={getStatusBadgeClass(appointment.status)}>{appointment.status}</Badge>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 space-x-2">
-                  <Button variant="secondary" size="sm">
-                    View
-                  </Button>
-                  {appointment.status === "Scheduled" && (
-                    <Button variant="outline" size="sm" className="theme-button-outline">
-                      Check In
-                    </Button>
-                  )}
-                  {appointment.status === "In Room" && (
-                    <Button variant="outline" size="sm" className="theme-button-outline">
-                      Check Out
-                    </Button>
-                  )}
-                  {appointment.status === "In Progress" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-gray-200 text-gray-500 border-gray-300 opacity-50"
-                      disabled
-                    >
-                      SOAP
-                    </Button>
-                  )}
-                  {appointment.status === "Completed" && (
-                    <Button variant="outline" size="sm" className="theme-button-outline">
-                      SOAP
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-center mt-6">
-        <nav className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <Button
-            variant={currentPage === 1 ? "default" : "outline"}
-            size="sm"
-            onClick={() => setCurrentPage(1)}
-            className={currentPage === 1 ? "theme-button text-white" : ""}
-          >
-            1
-          </Button>
-          <Button
-            variant={currentPage === 2 ? "default" : "outline"}
-            size="sm"
-            onClick={() => setCurrentPage(2)}
-            className={currentPage === 2 ? "theme-button text-white" : ""}
-          >
-            2
-          </Button>
-          <Button
-            variant={currentPage === 3 ? "default" : "outline"}
-            size="sm"
-            onClick={() => setCurrentPage(3)}
-            className={currentPage === 3 ? "theme-button text-white" : ""}
-          >
-            3
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(currentPage + 1)}
-            disabled={currentPage === 3}
-          >
-            Next
-          </Button>
-        </nav>
-      </div>
+      {/* DataTable */}
+      <DataTable
+        columns={columns}
+        data={filteredAppointments}
+        searchColumn="patient"
+        searchPlaceholder="Search appointments..."
+        page={currentPage}
+        pageSize={pageSize}
+        totalPages={Math.ceil(filteredAppointments.length / pageSize)}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   )
 }
