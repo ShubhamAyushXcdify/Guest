@@ -228,12 +228,12 @@ export function Sidebar() {
         <>
             <Sheet open={openMobile} onOpenChange={setOpenMobile}>
                 <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-gradient-to-r from-[var(--theme-primary)] to-[var(--theme-secondary)] text-white">
+                    <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Toggle navigation menu</span>
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-72 sm:max-w-none bg-gradient-to-b from-[var(--theme-primary)] to-[var(--theme-secondary)] text-white">
+                <SheetContent side="left" className="w-72 sm:max-w-none bg-gradient-to-b from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white">
                     <div className="flex items-center gap-2 text-lg font-bold text-white px-4 pt-2 pb-2">
                         <PawPrint className="h-6 w-6" />
                         <span>PawTrack Admin</span>
@@ -242,7 +242,7 @@ export function Sidebar() {
                 </SheetContent>
             </Sheet>
             <aside className={cn(
-                "hidden md:flex flex-col justify-between bg-gradient-to-b from-[var(--theme-primary)] to-[var(--theme-secondary)] text-white min-h-screen shadow-xl transition-all duration-200",
+                "hidden md:flex flex-col justify-between bg-gradient-to-b from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white min-h-screen shadow-xl transition-all duration-200",
                 state === "collapsed" ? "w-16" : "w-64"
             )}>
                 <div>
@@ -250,7 +250,7 @@ export function Sidebar() {
                         "flex items-center gap-3 px-6 py-4 h-16",
                         state === "collapsed" && "justify-center px-2"
                     )}>
-                        <PawPrint className="h-7 w-7 text-[var(--theme-accent)]" />
+                        <PawPrint className="h-7 w-7 " />
                         {state !== "collapsed" && (
                             <span className="text-xl font-bold tracking-tight">PawTrack</span>
                         )}
