@@ -160,9 +160,9 @@ export default function SuppliersPage() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
-        <InventoryBreadcrumb currentPage="Suppliers" pageSlug="suppliers" />
+      
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Suppliers</h1>
@@ -292,7 +292,7 @@ export default function SuppliersPage() {
           </SheetContent>
         </Sheet>
       </div>
-    </AppLayout>
+    </>
   )
 }
 

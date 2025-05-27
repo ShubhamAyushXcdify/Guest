@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState }  from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, Search } from "lucide-react"
 
-export default function AppointmentList() {
+
+export default function AppointmentList( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
 

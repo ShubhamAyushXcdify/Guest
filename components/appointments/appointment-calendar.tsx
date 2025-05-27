@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export default function AppointmentCalendar() {
+export default function AppointmentCalendar( {onAppointmentClick}: {onAppointmentClick: (id: string | number) => void} ) {
   const [viewMode, setViewMode] = useState("week")
   const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -226,6 +226,7 @@ export default function AppointmentCalendar() {
                     {appts.map((appt) => (
                       <div
                         key={appt.id}
+                        onClick={() => onAppointmentClick(appt.id)}
                         className={`p-1 text-xs rounded border mb-1 cursor-pointer ${getAppointmentStyle(appt.type)}`}
                       >
                         <div className="font-medium">{appt.patient}</div>

@@ -151,7 +151,7 @@ function Clinic() {
       </div>
       <DataTable
         columns={columns}
-        data={(clinics ?? []) as Clinic[]}
+        data={clinics || []}
         searchColumn="name"
         searchPlaceholder="Search clinics..."
         page={1}

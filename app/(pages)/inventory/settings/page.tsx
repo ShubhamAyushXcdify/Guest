@@ -54,10 +54,8 @@ export default function InventorySettingsPage() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
-        <InventoryBreadcrumb currentPage="Settings" pageSlug="settings" />
-
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Inventory Settings</h1>
 
         <Tabs defaultValue="reorder-points" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -287,7 +285,7 @@ export default function InventorySettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
+    </>
   )
 }
 

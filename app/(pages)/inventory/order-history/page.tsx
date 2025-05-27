@@ -61,7 +61,7 @@ export default function OrderHistoryPage() {
   ]
 
   // Get status badge color
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "Ordered":
         return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
@@ -75,9 +75,9 @@ export default function OrderHistoryPage() {
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
-        <InventoryBreadcrumb currentPage="Order History" pageSlug="order-history" />
+       
 
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Order History</h1>
 
@@ -292,6 +292,6 @@ export default function OrderHistoryPage() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   )
 }
