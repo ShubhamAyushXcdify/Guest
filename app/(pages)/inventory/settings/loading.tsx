@@ -1,10 +1,10 @@
 import { InventoryBreadcrumb } from "@/components/inventory/inventory-breadcrumb"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AppLayout } from "@/components/app-layout"
+
 
 export default function InventorySettingsLoading() {
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
         <InventoryBreadcrumb currentPage="Settings" pageSlug="settings" />
 
@@ -44,6 +44,6 @@ export default function InventorySettingsLoading() {
           <Skeleton className="h-10 w-40" />
         </div>
       </div>
-    </AppLayout>
+    </>
   )
 }

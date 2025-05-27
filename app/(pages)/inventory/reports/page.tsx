@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { FileText, Download } from "lucide-react"
-import { AppLayout } from "@/components/app-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"

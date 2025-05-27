@@ -1,10 +1,10 @@
-import { AppLayout } from "@/components/app-layout"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function StockAdjustmentLoading() {
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
         <div className="mb-6">
           <Skeleton className="h-8 w-64" />
@@ -71,6 +71,6 @@ export default function StockAdjustmentLoading() {
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
+    </>
   )
 }

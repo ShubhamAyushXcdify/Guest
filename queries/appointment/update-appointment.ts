@@ -1,0 +1,42 @@
+import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
+const updateAppointment = async ({ id, data }: { id: string; data: any }) => {
+  try {
+    const url = `/api/appointment/${id}`;
+    
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw result;
+    }
+    return result;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export const useUpdateAppointment = ({ onSuccess, onError }: {
+  onSuccess?: () => void;
+  onError?: (error: any) => void;
+}) => {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: updateAppointment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointment'] })
+      onSuccess?.()
+    },
+    onError: (error: any) => {
+      onError?.(error)
+    }
+  })
+} 

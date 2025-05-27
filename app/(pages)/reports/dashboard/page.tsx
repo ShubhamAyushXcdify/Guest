@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { AppLayout } from "@/components/app-layout"
 import ReportsSidebar from "@/components/reports-sidebar"
 import { DateRangeSelector } from "@/components/reports/date-range-selector"
 import { MetricCard } from "@/components/reports/metric-card"

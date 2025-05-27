@@ -8,9 +8,16 @@ import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import withAuth from "@/utils/privateRouter";
+import NewClinic from "./newClinic";
+import ClinicDetails from "./clinicDetails";
+import { useDeleteClinic } from "@/queries/clinic/delete-clinic";
+import { toast } from "../ui/use-toast";
+import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Clinic type based on provided schema
 export type Clinic = {
@@ -35,152 +42,96 @@ export type Clinic = {
 
 type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
 
-const columns: ColumnDef<Clinic>[] = [
-  { accessorKey: "name", header: "Name" },
-  { accessorKey: "city", header: "City" },
-  { accessorKey: "state", header: "State" },
-  { accessorKey: "country", header: "Country" },
-  { accessorKey: "phone", header: "Phone" },
-  { accessorKey: "email", header: "Email" },
-  { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
-  {
-    id: "actions",
-    header: () => <div className="text-center">Actions</div>,
-    cell: ({ row }) => (
-      <div className="flex gap-2 justify-center">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-          </SheetTrigger>
-          <SheetContent side="right">
-            <SheetHeader>
-              <SheetTitle>Edit Clinic</SheetTitle>
-            </SheetHeader>
-            {/* Update form here */}
-            <ClinicForm defaultValues={row.original} onSubmit={() => {}} />
-          </SheetContent>
-        </Sheet>
-      </div>
-    ),
-    meta: { className: "text-center" },
-  },
-];
-
-function ClinicForm({ defaultValues, onSubmit }: { defaultValues?: Partial<ClinicFormValues>, onSubmit: (values: ClinicFormValues) => void }) {
-  const form = useForm<ClinicFormValues>({ defaultValues });
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField name="name" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Name</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="addressLine1" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Address Line 1</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="addressLine2" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Address Line 2</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="city" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>City</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="state" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>State</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="postalCode" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Postal Code</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="country" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Country</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="phone" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Phone</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="email" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Email</FormLabel>
-            <FormControl><Input {...field} type="email" /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="website" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Website</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="taxId" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Tax ID</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="licenseNumber" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>License Number</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Subscription Status</FormLabel>
-            <FormControl><Input {...field} /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <FormField name="subscriptionExpiresAt" control={form.control} render={({ field }) => (
-          <FormItem>
-            <FormLabel>Subscription Expires At</FormLabel>
-            <FormControl><Input {...field} type="datetime-local" /></FormControl>
-            <FormMessage />
-          </FormItem>
-        )} />
-        <SheetFooter>
-          <Button type="submit">Save</Button>
-        </SheetFooter>
-      </form>
-    </Form>
-  );
-}
-
- function Clinic() {
-  // For now, use empty array for clinics
+function Clinic() {
+  const router = useRouter();
   const { data: clinics, isLoading, isError } = useGetClinic();
   const [openNew, setOpenNew] = useState(false);
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [openDetails, setOpenDetails] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const deleteClinic = useDeleteClinic();
+  const queryClient = useQueryClient();
+
+  const handleEditClinicClick = (clinicId: string) => {
+    setSelectedClinicId(clinicId);
+    setOpenDetails(true);
+  };
+
+  const handleDeleteClinic = async () => {
+    if (!clinicToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteClinic.mutateAsync({ id: clinicToDelete.id });
+    } catch (error) {
+      // Handle error
+    } finally {
+      setIsDeleting(false);
+      setClinicToDelete(null);
+    }
+  };
+
+  const openDeleteDialog = (clinic: Clinic) => {
+    setClinicToDelete(clinic);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleRowClick = (clinic: Clinic) => {
+    router.push(`/clinic/${clinic.id}`);
+  };
+
+  const columns: ColumnDef<Clinic>[] = [
+    { 
+      accessorKey: "name", 
+      header: "Name",
+      cell: ({ row }) => (
+        <div 
+          className="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
+          onClick={() => handleRowClick(row.original)}
+        >
+          {row.original.name}
+        </div>
+      )
+    },
+    { accessorKey: "city", header: "City" },
+    { accessorKey: "state", header: "State" },
+    { accessorKey: "country", header: "Country" },
+    { accessorKey: "phone", header: "Phone" },
+    { accessorKey: "email", header: "Email" },
+    { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
+    {
+      id: "actions",
+      header: () => <div className="text-center">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex gap-2 justify-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditClinicClick(row.original.id);
+            }}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="text-red-500 hover:text-red-700 hover:bg-red-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteDialog(row.original);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+      meta: { className: "text-center" },
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -194,7 +145,7 @@ function ClinicForm({ defaultValues, onSubmit }: { defaultValues?: Partial<Clini
             <SheetHeader>
               <SheetTitle>New Clinic</SheetTitle>
             </SheetHeader>
-            <ClinicForm onSubmit={() => { setOpenNew(false); }} />
+            <NewClinic onSuccess={() => { setOpenNew(false); }} />
           </SheetContent>
         </Sheet>
       </div>
@@ -209,9 +160,31 @@ function ClinicForm({ defaultValues, onSubmit }: { defaultValues?: Partial<Clini
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
       />
+
+      <Sheet open={openDetails} onOpenChange={setOpenDetails}>
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+          <SheetHeader>
+            <SheetTitle>Clinic Details</SheetTitle>
+          </SheetHeader>
+          {selectedClinicId && (
+            <ClinicDetails 
+              clinicId={selectedClinicId}
+              onSuccess={() => setOpenDetails(false)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteClinic}
+        title="Delete Clinic"
+        itemName={clinicToDelete?.name}
+        isDeleting={isDeleting}
+      />
     </div>
   );
-}   
-
+}
 
 export default withAuth(Clinic);

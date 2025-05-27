@@ -1,10 +1,10 @@
-import { AppLayout } from "@/components/app-layout"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function SuppliersLoading() {
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <Skeleton className="h-8 w-48" />
@@ -54,6 +54,6 @@ export default function SuppliersLoading() {
             ))}
         </div>
       </div>
-    </AppLayout>
+    </>
   )
 }

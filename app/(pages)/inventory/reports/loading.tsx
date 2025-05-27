@@ -1,10 +1,10 @@
-import { AppLayout } from "@/components/app-layout"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
 
 export default function Loading() {
   return (
-    <AppLayout>
+    <>
       <div className="p-6">
         <div className="flex items-center mb-2">
           <Skeleton className="h-9 w-32" />
@@ -74,6 +74,6 @@ export default function Loading() {
           </div>
         </div>
       </div>
-    </AppLayout>
+    </>
   )
 }

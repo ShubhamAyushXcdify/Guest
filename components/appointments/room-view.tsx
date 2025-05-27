@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, User, CheckCircle2 } from "lucide-react"
 
-export default function RoomView() {
+export default function RoomView( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
   const [colorTheme, setColorTheme] = useState("purple")
   const [mounted, setMounted] = useState(false)
 

@@ -1,10 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import { AppLayout } from "@/components/app-layout"
 import ReportsSidebar from "@/components/reports-sidebar"
 
 export default function ReportingDashboardLoading() {
   return (
-    <AppLayout sidebar={<ReportsSidebar />}>
+    <div className="flex">
+      <ReportsSidebar />
       <div className="p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <Skeleton className="h-8 w-64" />
@@ -36,6 +36,6 @@ export default function ReportingDashboardLoading() {
           <Skeleton className="h-[250px] w-full" />
         </div>
       </div>
-    </AppLayout>
+    </div>
   )
 }
