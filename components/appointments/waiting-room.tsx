@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
-export default function WaitingRoom() {
+export default function WaitingRoom( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
   // Mock waiting room data
   const waitingRoomStats = {
     currentWaitTime: "23 min",
