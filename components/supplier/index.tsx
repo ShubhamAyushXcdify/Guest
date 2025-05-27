@@ -1,106 +1,107 @@
 'use client'
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "../ui/sheet";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "../ui/form";
-import { Input } from "../ui/input";
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import { Badge } from "../ui/badge";
-import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import { useGetClinic } from "@/queries/clinic/get-clinic";
+import { useGetSupplier } from "@/queries/suppliers/get-supplier";
 import withAuth from "@/utils/privateRouter";
-import NewClinic from "./newClinic";
-import ClinicDetails from "./clinicDetails";
-import { useDeleteClinic } from "@/queries/clinic/delete-clinic";
+import NewSupplier from "./newSupplier";
+import { useDeleteSupplier } from "@/queries/suppliers/delete-supplier";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import SupplierDetails from "./supplierDetails";
 
-// Clinic type based on provided schema
-export type Clinic = {
+// Supplier type based on provided schema
+export type Supplier = {
   id: string;
+  clinicId: string;
   name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
   addressLine1: string;
   addressLine2: string;
   city: string;
   state: string;
   postalCode: string;
-  country: string;
-  phone: string;
-  email: string;
-  website: string;
-  taxId: string;
-  licenseNumber: string;
-  subscriptionStatus: string;
-  subscriptionExpiresAt: string;
+  accountNumber: string;
+  paymentTerms: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
+type SupplierFormValues = Omit<Supplier, "id" | "createdAt" | "updatedAt">;
 
-function Clinic() {
+function Supplier() {
   const router = useRouter();
-  const { data: clinics, isLoading, isError } = useGetClinic();
+  const { data: suppliers, isLoading, isError } = useGetSupplier();
   const [openNew, setOpenNew] = useState(false);
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const deleteClinic = useDeleteClinic();
+  const deleteSupplier = useDeleteSupplier();
   const queryClient = useQueryClient();
 
-  const handleEditClinicClick = (clinicId: string) => {
-    setSelectedClinicId(clinicId);
+  const handleEditSupplierClick = (supplierId: string) => {
+    setSelectedSupplierId(supplierId);
     setOpenDetails(true);
   };
 
-  const handleDeleteClinic = async () => {
-    if (!clinicToDelete) return;
+  const handleDeleteSupplier = async () => {
+    if (!supplierToDelete) return;
     
     setIsDeleting(true);
     try {
-      await deleteClinic.mutateAsync({ id: clinicToDelete.id });
+      await deleteSupplier.mutateAsync({ id: supplierToDelete.id });
+      toast({
+        title: "Success",
+        description: "Supplier deleted successfully",
+      });
     } catch (error) {
-      // Handle error
+      toast({
+        title: "Error",
+        description: "Failed to delete supplier",
+        variant: "destructive",
+      });
     } finally {
       setIsDeleting(false);
-      setClinicToDelete(null);
+      setSupplierToDelete(null);
     }
   };
 
-  const openDeleteDialog = (clinic: Clinic) => {
-    setClinicToDelete(clinic);
+  const openDeleteDialog = (supplier: Supplier) => {
+    setSupplierToDelete(supplier);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleRowClick = (clinic: Clinic) => {
-    router.push(`/clinic/${clinic.id}`);
+  const handleRowClick = (supplier: Supplier) => {
+    router.push(`/supplier/${supplier.id}`);
   };
 
-  const columns: ColumnDef<Clinic>[] = [
-    { 
-      accessorKey: "name", 
-      header: "Name",
-      cell: ({ row }) => (
-        <div 
-          className="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
-          onClick={() => handleRowClick(row.original)}
-        >
-          {row.original.name}
-        </div>
-      )
-    },
+  const columns: ColumnDef<Supplier>[] = [
+    { accessorKey: "name", header: "Name" },
+    { accessorKey: "contactPerson", header: "Contact Person" },
+    { accessorKey: "email", header: "Email" },
+    { accessorKey: "phone", header: "Phone" },
     { accessorKey: "city", header: "City" },
     { accessorKey: "state", header: "State" },
-    { accessorKey: "country", header: "Country" },
-    { accessorKey: "phone", header: "Phone" },
-    { accessorKey: "email", header: "Email" },
-    { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
+    { 
+      accessorKey: "isActive", 
+      header: "Status",
+      cell: ({ getValue }) => (
+        <Badge variant={getValue() ? "default" : "destructive"}>
+          {getValue() ? "Active" : "Inactive"}
+        </Badge>
+      )
+    },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -111,7 +112,7 @@ function Clinic() {
             size="icon" 
             onClick={(e) => {
               e.stopPropagation();
-              handleEditClinicClick(row.original.id);
+              handleEditSupplierClick(row.original.id);
             }}
           >
             <Edit className="h-4 w-4" />
@@ -136,24 +137,24 @@ function Clinic() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Clinics</h1>
+        <h1 className="text-2xl font-bold">Suppliers</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Clinic</Button>
+            <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Supplier</Button>
           </SheetTrigger>
           <SheetContent side="right" className="overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>New Clinic</SheetTitle>
+              <SheetTitle>New Supplier</SheetTitle>
             </SheetHeader>
-            <NewClinic onSuccess={() => { setOpenNew(false); }} />
+            <NewSupplier onSuccess={() => { setOpenNew(false); }} />
           </SheetContent>
         </Sheet>
       </div>
       <DataTable
         columns={columns}
-        data={(clinics ?? []) as Clinic[]}
+        data={(suppliers ?? []) as unknown as Supplier[]}
         searchColumn="name"
-        searchPlaceholder="Search clinics..."
+        searchPlaceholder="Search suppliers..."
         page={1}
         pageSize={10}
         totalPages={1}
@@ -164,11 +165,11 @@ function Clinic() {
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
         <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
           <SheetHeader>
-            <SheetTitle>Clinic Details</SheetTitle>
+            <SheetTitle>Supplier Details</SheetTitle>
           </SheetHeader>
-          {selectedClinicId && (
-            <ClinicDetails 
-              clinicId={selectedClinicId}
+          {selectedSupplierId && (
+            <SupplierDetails 
+              supplierId={selectedSupplierId}
               onSuccess={() => setOpenDetails(false)}
             />
           )}
@@ -178,13 +179,13 @@ function Clinic() {
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleDeleteClinic}
-        title="Delete Clinic"
-        itemName={clinicToDelete?.name}
+        onConfirm={handleDeleteSupplier}
+        title="Delete Supplier"
+        itemName={supplierToDelete?.name}
         isDeleting={isDeleting}
       />
     </div>
   );
 }
 
-export default withAuth(Clinic);
+export default withAuth(Supplier); 
