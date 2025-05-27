@@ -9,98 +9,81 @@ import { Badge } from "../ui/badge";
 import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import { useGetClinic } from "@/queries/clinic/get-clinic";
+import { useGetRoomByClinicId } from "@/queries/rooms/get-room-by-clinic-id";
 import withAuth from "@/utils/privateRouter";
-import NewClinic from "./newClinic";
-import ClinicDetails from "./clinicDetails";
-import { useDeleteClinic } from "@/queries/clinic/delete-clinic";
+import { useDeleteRoom } from "@/queries/rooms/delete-room";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import NewRoom from "./newRoom";
+import RoomDetails from "./roomDetails";
 
-// Clinic type based on provided schema
-export type Clinic = {
+// Room type based on API response
+export type Room = {
   id: string;
+  clinicId: string;
   name: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-  phone: string;
-  email: string;
-  website: string;
-  taxId: string;
-  licenseNumber: string;
-  subscriptionStatus: string;
-  subscriptionExpiresAt: string;
-  createdAt: string;
-  updatedAt: string;
+  roomType: string | null;
+  isActive: boolean;
 };
 
-type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
+type RoomFormValues = Omit<Room, "id" | "createdAt" | "updatedAt">;
 
-function Clinic() {
-  const router = useRouter();
-  const { data: clinics, isLoading, isError } = useGetClinic();
+type RoomProps = {
+  clinicId?: string;
+};
+
+function Room({ clinicId }: RoomProps) {
+  const { data: result, isLoading, isError } = useGetRoomByClinicId(clinicId || '');
   const [openNew, setOpenNew] = useState(false);
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
+  const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const deleteClinic = useDeleteClinic();
-  const queryClient = useQueryClient();
+  const deleteRoom = useDeleteRoom({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Room deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete room",
+        variant: "destructive",
+      });
+    }
+  });
 
-  const handleEditClinicClick = (clinicId: string) => {
-    setSelectedClinicId(clinicId);
+  const handleEditRoomClick = (roomId: string) => {
+    setSelectedRoomId(roomId);
     setOpenDetails(true);
   };
 
-  const handleDeleteClinic = async () => {
-    if (!clinicToDelete) return;
+  const handleDeleteRoom = async () => {
+    if (!roomToDelete) return;
     
     setIsDeleting(true);
     try {
-      await deleteClinic.mutateAsync({ id: clinicToDelete.id });
+      await deleteRoom.mutateAsync(roomToDelete.id);
     } catch (error) {
       // Handle error
     } finally {
       setIsDeleting(false);
-      setClinicToDelete(null);
+      setRoomToDelete(null);
     }
   };
 
-  const openDeleteDialog = (clinic: Clinic) => {
-    setClinicToDelete(clinic);
+  const openDeleteDialog = (room: Room) => {
+    setRoomToDelete(room);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleRowClick = (clinic: Clinic) => {
-    router.push(`/clinic/${clinic.id}`);
-  };
-
-  const columns: ColumnDef<Clinic>[] = [
-    { 
-      accessorKey: "name", 
-      header: "Name",
-      cell: ({ row }) => (
-        <div 
-          className="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline"
-          onClick={() => handleRowClick(row.original)}
-        >
-          {row.original.name}
-        </div>
-      )
-    },
-    { accessorKey: "city", header: "City" },
-    { accessorKey: "state", header: "State" },
-    { accessorKey: "country", header: "Country" },
-    { accessorKey: "phone", header: "Phone" },
-    { accessorKey: "email", header: "Email" },
-    { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
+  const columns: ColumnDef<Room>[] = [
+    { accessorKey: "name", header: "Name" },
+    { accessorKey: "roomType", header: "Room Type" },
+    { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -111,7 +94,7 @@ function Clinic() {
             size="icon" 
             onClick={(e) => {
               e.stopPropagation();
-              handleEditClinicClick(row.original.id);
+              handleEditRoomClick(row.original.id);
             }}
           >
             <Edit className="h-4 w-4" />
@@ -136,24 +119,24 @@ function Clinic() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Clinics</h1>
+        <h1 className="text-2xl font-bold">Rooms</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Clinic</Button>
+            <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Room</Button>
           </SheetTrigger>
           <SheetContent side="right" className="overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>New Clinic</SheetTitle>
+              <SheetTitle>New Room</SheetTitle>
             </SheetHeader>
-            <NewClinic onSuccess={() => { setOpenNew(false); }} />
+            <NewRoom clinicId={clinicId} onSuccess={() => { setOpenNew(false); }} />
           </SheetContent>
         </Sheet>
       </div>
       <DataTable
         columns={columns}
-        data={clinics || []}
+        data={result ?? []}
         searchColumn="name"
-        searchPlaceholder="Search clinics..."
+        searchPlaceholder="Search rooms..."
         page={1}
         pageSize={10}
         totalPages={1}
@@ -164,11 +147,11 @@ function Clinic() {
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
         <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
           <SheetHeader>
-            <SheetTitle>Clinic Details</SheetTitle>
+            <SheetTitle>Room Details</SheetTitle>
           </SheetHeader>
-          {selectedClinicId && (
-            <ClinicDetails 
-              clinicId={selectedClinicId}
+          {selectedRoomId && (
+            <RoomDetails 
+              roomId={selectedRoomId}
               onSuccess={() => setOpenDetails(false)}
             />
           )}
@@ -178,13 +161,13 @@ function Clinic() {
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleDeleteClinic}
-        title="Delete Clinic"
-        itemName={clinicToDelete?.name}
+        onConfirm={handleDeleteRoom}
+        title="Delete Room"
+        itemName={roomToDelete?.name}
         isDeleting={isDeleting}
       />
     </div>
   );
 }
 
-export default withAuth(Clinic);
+export default withAuth(Room);
