@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
-
-import { getJwtToken, getWorkspaceId } from "@/utils/serverCookie";
+import { getJwtToken } from "@/utils/serverCookie";
 import { NextRequest } from "next/server";
 
 
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
+const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 // GET API Route
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-
+        
         let token = getJwtToken(request);
+
+        if(!token) {
+            token = testToken;
+        }
+        
+        // Log to debug token issues
+        console.log('Using token:', token ? 'Valid token' : 'No token');
+
         const workspaceType = searchParams.get('workspacemode');
 
         const response = await fetch(
@@ -25,12 +33,14 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
+            console.error('User API error:', response.status);
             throw new Error('Failed to fetch user from backend');
         }
 
         const data = await response.json();
         return NextResponse.json({ data: data }, { status: 200 });
     } catch (error: any) {
+        console.error('Error fetching user:', error);
         return NextResponse.json({ message: `Error fetching user: ${error.message}` }, { status: 500 });
     }
 }

@@ -6,7 +6,8 @@ const getUsers = async (pageNumber = 1, pageSize = 10, search = '') => {
     if (!response.ok) {
         throw new Error('Failed to fetch user data');
     }
-    return response.json();
+    const data = await response.json();
+    return data.data || data; // Handle both response formats
 };
 
 export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
@@ -14,7 +15,7 @@ export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', enabled 
         queryKey: ["users", pageNumber, pageSize, search],
         queryFn: async () => {
             const res = await getUsers(pageNumber, pageSize, search);
-            return res.data as User[];
+            return Array.isArray(res) ? res : [];
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,
