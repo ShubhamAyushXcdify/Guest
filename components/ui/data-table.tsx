@@ -52,11 +52,6 @@ const MemoizedTableRow = memo(
   }) => {
     const isEditing = editingRow?.includes(row.index);
     
-    const handleDoubleClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onEditButtonClick?.(row.id);
-    };
-
     // Focus the first input element when row enters edit mode
     useEffect(() => {
       if (isEditing) {
@@ -73,8 +68,7 @@ const MemoizedTableRow = memo(
         data-state={row.getIsSelected() && "selected"}
         data-editing={isEditing ? "true" : undefined}
         data-row-id={row.id}
-        className="hover:bg-muted/30 h-4 cursor-pointer"
-        onDoubleClick={handleDoubleClick}
+        className="hover:bg-muted/30 h-4"
       >
         {row.getVisibleCells().map((cell: Cell<any, unknown>) => (
           <TableCell key={cell.id} className={cn("text-sm py-0", (cell.column.columnDef.meta as any)?.className)}>

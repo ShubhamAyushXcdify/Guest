@@ -13,7 +13,29 @@ import { User } from ".";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt">;
 
-const USER_ROLES = ["admin", "user", "manager"];
+// const roles = [
+//   { id: "admin", name: "Admin", value: "admin" },
+//   { id: "clinicAdmin", name: "Clinic Admin", value: "clinicAdmin" },
+//   { id: "veterinarian", name: "Veterinarian", value: "veterinarian" },
+//   { id: "receptionist", name: "Receptionist", value: "receptionist" },
+//   { id: "supplier", name: "Supplier", value: "supplier" },
+//   { id: "patient", name: "Patient", value: "patient" },
+//   { id: "client", name: "Client", value: "client" }
+// ];
+
+
+const USER_ROLES = [
+  "admin", 
+  "clinicAdmin",
+  "veterinarian",  
+  "receptionist", 
+  "technician",
+  "supplier",
+  "patient",
+  "client"
+
+  
+];
 
 interface NewUserProps {
   onSuccess?: () => void;
@@ -66,22 +88,6 @@ export default function NewUser({ onSuccess }: NewUserProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full max-w-md mx-auto">
         <div className="grid grid-cols-1 gap-4">
-          <FormField name="email" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl><Input {...field} type="email" /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="passwordHash" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl><Input {...field} type="password" /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
           <FormField name="firstName" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>First Name</FormLabel>
@@ -94,6 +100,22 @@ export default function NewUser({ onSuccess }: NewUserProps) {
             <FormItem>
               <FormLabel>Last Name</FormLabel>
               <FormControl><Input {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          
+          <FormField name="email" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl><Input {...field} type="email" /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          
+          <FormField name="passwordHash" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl><Input {...field} type="password" /></FormControl>
               <FormMessage />
             </FormItem>
           )} />
@@ -113,7 +135,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
                 <SelectContent>
                   {USER_ROLES.map((role) => (
                     <SelectItem key={role} value={role}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                      {role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                     </SelectItem>
                   ))}
                 </SelectContent>

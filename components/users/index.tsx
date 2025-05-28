@@ -72,9 +72,9 @@ export default function Users() {
   };
 
   const columns: ColumnDef<User>[] = [
-    { accessorKey: "email", header: "Email" },
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
+    { accessorKey: "email", header: "Email" },
     { accessorKey: "role", header: "Role" },
     { 
       accessorKey: "isActive", 
@@ -142,7 +142,6 @@ export default function Users() {
         totalPages={1}
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
-        onEditButtonClick={handleUserClick}
       />
       
       {/* User Details Sheet */}
