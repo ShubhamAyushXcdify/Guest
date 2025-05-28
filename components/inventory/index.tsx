@@ -5,9 +5,12 @@ import { Plus, Package, AlertTriangle, Clock, ShoppingCart, ArrowLeft, Settings 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
+import { OrderModal } from "./order-modal"
 
 export default function Inventory() {
   const [mounted, setMounted] = useState(false)
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
+  
 
   // Ensure we only access localStorage on the client side
   useEffect(() => {
@@ -42,7 +45,10 @@ export default function Inventory() {
             <Button className="theme-button-outline" asChild>
               <Link href="/inventory/stock-adjustment">Adjust Stock</Link>
             </Button>
-            <Button className="theme-button text-white">
+            <Button 
+              className="theme-button text-white"
+              onClick={() => setIsOrderModalOpen(true)}
+            >
               <Plus className="mr-2 h-4 w-4" /> Order
             </Button>
           </div>
@@ -221,6 +227,11 @@ export default function Inventory() {
           </div>
         </div>
       </div>
+
+      <OrderModal 
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+      />
     </>
   )
 }
