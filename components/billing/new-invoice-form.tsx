@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 
-export default function NewInvoiceForm({ isOpen, onClose, colorTheme = "purple" }) {
+export default function NewInvoiceForm({ open, onClose }: { open: boolean, onClose: () => void }) {
   const [items, setItems] = useState([{ id: 1, description: "", quantity: 1, price: 0 }])
 
   const addItem = () => {
@@ -17,11 +17,11 @@ export default function NewInvoiceForm({ isOpen, onClose, colorTheme = "purple" 
     setItems([...items, { id: newId, description: "", quantity: 1, price: 0 }])
   }
 
-  const removeItem = (id) => {
+  const removeItem = (id: number) => {
     setItems(items.filter((item) => item.id !== id))
   }
 
-  const updateItem = (id, field, value) => {
+  const updateItem = (id: number, field: string, value: any) => {
     setItems(items.map((item) => (item.id === id ? { ...item, [field]: value } : item)))
   }
 
@@ -38,7 +38,7 @@ export default function NewInvoiceForm({ isOpen, onClose, colorTheme = "purple" 
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className={`text-xl font-bold theme-text-primary`}>New Invoice</DialogTitle>
@@ -206,4 +206,4 @@ export default function NewInvoiceForm({ isOpen, onClose, colorTheme = "purple" 
       </DialogContent>
     </Dialog>
   )
-}
+} 

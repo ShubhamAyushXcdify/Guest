@@ -36,8 +36,8 @@ export default function PatientSidebar() {
   const navItems = [
     { name: "Dashboard", icon: Home, href: "/dashboard", active: false },
     { name: "Appointments", icon: Calendar, href: "/appointments", active: false },
-    { name: "Patients", icon: Users, href: "/patients", active: window.location.pathname.includes("/patients") },
-    { name: "Inventory", icon: Package, href: "/inventory", active: window.location.pathname.includes("/inventory") },
+    { name: "Patients", icon: Users, href: "/patients", active: false },
+    { name: "Inventory", icon: Package, href: "/inventory", active: false },
     { name: "Prescriptions", icon: Pill, href: "/prescriptions", active: false },
     { name: "Billing", icon: FileText, href: "/billing", active: false },
     { name: "Reports", icon: PieChart, href: "/reports", active: false },

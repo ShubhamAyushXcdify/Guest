@@ -20,6 +20,7 @@ import { Plus } from "lucide-react"
 export function NewPrescriptionForm() {
   const [open, setOpen] = useState(false)
   const [colorTheme, setColorTheme] = useState("purple")
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState({
     patient: "",
     medication: "",
@@ -31,18 +32,24 @@ export function NewPrescriptionForm() {
 
   // Ensure we only access localStorage on the client side
   useEffect(() => {
+    setMounted(true)
     const savedColorTheme = localStorage.getItem("pawtrack-color-theme") || "purple"
     setColorTheme(savedColorTheme)
   }, [])
 
-  const handleChange = (field, value) => {
+  // Don't render until after component has mounted on the client
+  if (!mounted) return <Button className="theme-button text-white">
+    <Plus className="mr-2 h-4 w-4" /> New Prescription
+  </Button>
+
+  const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     console.log("Form submitted:", formData)
     setOpen(false)
@@ -177,4 +184,4 @@ export function NewPrescriptionForm() {
       </DialogContent>
     </Dialog>
   )
-}
+} 
