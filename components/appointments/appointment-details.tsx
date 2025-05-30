@@ -14,6 +14,12 @@ import { Input } from "@/components/ui/input"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { useGetClinic } from "@/queries/clinic/get-clinic"
+import { useGetPatients, Patient } from "@/queries/patients/get-patients"
+import { useGetClients, Client } from "@/queries/clients/get-client"
+import { useGetUsers } from "@/queries/users/get-users"
+import { useGetRoom } from "@/queries/rooms/get-room"
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -34,35 +40,6 @@ const appointmentSchema = z.object({
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>
 
-// Mock data for dropdowns - replace with actual data from your API
-const mockData = {
-  clinics: [
-    { value: "clinic1", label: "Main Clinic" },
-    { value: "clinic2", label: "Branch Clinic" }
-  ],
-  patients: [
-    { value: "patient1", label: "Max (Dog)" },
-    { value: "patient2", label: "Bella (Cat)" }
-  ],
-  clients: [
-    { value: "client1", label: "John Doe" },
-    { value: "client2", label: "Jane Smith" }
-  ],
-  veterinarians: [
-    { value: "vet1", label: "Dr. Smith" },
-    { value: "vet2", label: "Dr. Johnson" }
-  ],
-  rooms: [
-    { value: "room1", label: "Exam Room 1" },
-    { value: "room2", label: "Exam Room 2" }
-  ],
-  appointmentTypes: [
-    { value: "checkup", label: "Check-up" },
-    { value: "vaccination", label: "Vaccination" },
-    { value: "surgery", label: "Surgery" }
-  ]
-}
-
 interface AppointmentDetailsProps {
   appointmentId: string
   onClose: () => void
@@ -72,6 +49,66 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
+
+  // Fetch data from APIs
+  const { data: clinicsResponse } = useGetClinic(1, 100)
+  const { data: patientsResponse } = useGetPatients(1, 100)
+  const { data: clientsResponse } = useGetClients(1, 100)
+  const { data: usersResponse } = useGetUsers(1, 100)
+  const { data: roomsResponse } = useGetRoom(1, 100)
+
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Appointment updated successfully",
+      })
+      setIsEditing(false)
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update appointment",
+        variant: "destructive",
+      })
+    }
+  })
+
+  // Transform data for comboboxes
+  const clinicOptions = (clinicsResponse?.items || []).map(clinic => ({
+    value: clinic.id,
+    label: clinic.name
+  }))
+
+  const patientOptions = (patientsResponse?.items || []).map((patient: Patient) => ({
+    value: patient.id,
+    label: `${patient.name} (${patient.species})`
+  }))
+
+  const clientOptions = (clientsResponse?.items || []).map((client: Client) => ({
+    value: client.id,
+    label: `${client.firstName} ${client.lastName}`
+  }))
+
+  const veterinarianOptions = (usersResponse?.items || [])
+    .filter(user => user.roleName === "Veterinarian")
+    .map(vet => ({
+      value: vet.id,
+      label: `Dr. ${vet.firstName} ${vet.lastName}`
+    }))
+
+  const roomOptions = (roomsResponse?.items || []).map(room => ({
+    value: room.id,
+    label: room.name
+  }))
+
+  const appointmentTypeOptions = [
+    { value: "Checkup", label: "Check-up" },
+    { value: "Vaccination", label: "Vaccination" },
+    { value: "Surgery", label: "Surgery" },
+    { value: "Consultation", label: "Consultation" },
+    { value: "Follow-up", label: "Follow-up" }
+  ]
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -95,17 +132,22 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   // Update form values when appointment data is loaded
   useEffect(() => {
     if (appointment) {
-      form.reset(appointment)
+      form.reset({
+        ...appointment,
+        appointmentDate: appointment.appointmentDate.split('T')[0], // Convert to YYYY-MM-DD format
+      })
     }
   }, [appointment, form])
 
   const onSubmit = (data: AppointmentFormValues) => {
-    // TODO: Implement update appointment mutation
-    toast({
-      title: "Success",
-      description: "Appointment updated successfully",
+    updateAppointmentMutation.mutate({
+      id: appointmentId,
+      data: {
+        id: appointmentId,
+        ...data,
+        appointmentDate: new Date(data.appointmentDate).toISOString(), // Convert back to ISO string
+      }
     })
-    setIsEditing(false)
   }
 
   const getStatusBadgeClass = (status: string) => {
@@ -149,42 +191,48 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Clinic</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {mockData.clinics.find(c => c.value === appointment?.clinicId)?.label}
+                {appointment?.clinic?.name}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Patient</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {mockData.patients.find(p => p.value === appointment?.patientId)?.label}
+                  {appointment?.patient?.name}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {mockData.clients.find(c => c.value === appointment?.clientId)?.label}
+                  {appointment?.client?.firstName} {appointment?.client?.lastName}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Veterinarian</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {mockData.veterinarians.find(v => v.value === appointment?.veterinarianId)?.label}
+                  {appointment?.veterinarian?.firstName}{appointment?.veterinarian?.lastName}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Room</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {mockData.rooms.find(r => r.value === appointment?.roomId)?.label}
+                {appointment?.room?.name}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Appointment Type</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {mockData.appointmentTypes.find(t => t.value === appointment?.appointmentType)?.label}
+                {appointment?.appointmentType}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Date</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{appointment?.appointmentDate}</p>
+                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                  {appointment?.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : ''}
+                </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Time</h3>
@@ -225,7 +273,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormLabel>Clinic</FormLabel>
                       <FormControl>
                         <Combobox
-                          options={mockData.clinics}
+                          options={clinicOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select clinic"
@@ -244,7 +292,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormLabel>Patient</FormLabel>
                       <FormControl>
                         <Combobox
-                          options={mockData.patients}
+                          options={patientOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select patient"
@@ -263,7 +311,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormLabel>Client</FormLabel>
                       <FormControl>
                         <Combobox
-                          options={mockData.clients}
+                          options={clientOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select client"
@@ -282,7 +330,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormLabel>Veterinarian</FormLabel>
                       <FormControl>
                         <Combobox
-                          options={mockData.veterinarians}
+                          options={veterinarianOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select veterinarian"
@@ -301,7 +349,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormLabel>Room</FormLabel>
                       <FormControl>
                         <Combobox
-                          options={mockData.rooms}
+                          options={roomOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select room"
@@ -320,7 +368,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormLabel>Appointment Type</FormLabel>
                       <FormControl>
                         <Combobox
-                          options={mockData.appointmentTypes}
+                          options={appointmentTypeOptions}
                           value={field.value}
                           onValueChange={field.onChange}
                           placeholder="Select appointment type"

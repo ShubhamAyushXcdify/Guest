@@ -13,12 +13,9 @@ export async function GET(request: NextRequest) {
 
         let token = getJwtToken(request);
         const workspaceType = searchParams.get('workspacemode');
-        const pageNumber = searchParams.get('pageNumber') || '1';
-        const pageSize = searchParams.get('pageSize') || '10';
-        const search = searchParams.get('search') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Clinic?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
+            `${apiUrl}/api/Appointment`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -52,7 +49,7 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
 
-        const response = await fetch(`${apiUrl}/api/Clinic`, {
+        const response = await fetch(`${apiUrl}/api/Appointment`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -68,9 +65,9 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            console.error('Create clinic error:', errorData);
+            console.error('Create Appointment error:', errorData);
             return NextResponse.json(
-                { message: errorData?.message || 'Failed to create clinic' },
+                { message: errorData?.message || 'Failed to create Appointment' },
                 { status: response.status }
             );
         }
@@ -78,9 +75,9 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error creating clinic:', error);
+        console.error('Error creating Appointment:', error);
         return NextResponse.json(
-            { message: 'Error creating clinic' },
+            { message: 'Error creating Appointment' },
             { status: 500 }
         );
     }
