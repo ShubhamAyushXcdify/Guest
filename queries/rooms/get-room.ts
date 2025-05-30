@@ -19,19 +19,21 @@ interface RoomResponse {
     hasNextPage: boolean;
 }
 
-const getRoom = async (pageNumber = 1, pageSize = 10, search = '') => {
-    const response = await fetch(`/api/room?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
+const getRoom = async (pageNumber = 1, pageSize = 10, search = '', clinicId = '') => {
+    let url = `/api/room?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`;
+    if (clinicId) url += `&clinicId=${clinicId}`;
+    const response = await fetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch room data');
     }
     return response.json();
 };
 
-export const useGetRoom = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
+export const useGetRoom = (pageNumber = 1, pageSize = 10, search = '', clinicId = '', enabled = true) => {
     return useQuery({
-        queryKey: ["room", pageNumber, pageSize, search],
+        queryKey: ["room", pageNumber, pageSize, search, clinicId],
         queryFn: async () => {
-            const res = await getRoom(pageNumber, pageSize, search)
+            const res = await getRoom(pageNumber, pageSize, search, clinicId)
             return res.data as RoomResponse
         },
         refetchOnWindowFocus: false,

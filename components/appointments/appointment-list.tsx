@@ -15,6 +15,23 @@ import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 
+interface Appointment {
+  id: string;
+  veterinarian?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  patient?: {
+    name?: string;
+  };
+  client?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  status: string;
+  appointmentType?: string;
+}
+
 export default function AppointmentList( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -23,8 +40,9 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   const [selectedStatus, setSelectedStatus] = useState("")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // Replace mock data with API call
+
   const { data: appointments = [], isLoading } = useGetAppointments()
   const deleteAppointmentMutation = useDeleteAppointment({
     onSuccess: () => {
@@ -97,13 +115,23 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   const allCount = enrichedAppointments.length;
 
   // Provider options
-  // You might want to dynamically generate these options from the fetched appointments
-  // based on the available providers in the data, rather than hardcoding.
-  const providerOptions = [
-    { value: "", label: "All Providers" },
-    { value: "Dr. Sarah Johnson", label: "Dr. Sarah Johnson" },
-    { value: "Dr. Michael Chen", label: "Dr. Michael Chen" },
-  ]
+  const providerOptions = useMemo(() => {
+    const uniqueProviders = new Set<string>()
+    appointments.forEach((appointment: Appointment) => {
+      const providerName = `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim()
+      if (providerName) {
+        uniqueProviders.add(providerName)
+      }
+    })
+    
+    return [
+      { value: "", label: "All Providers" },
+      ...Array.from(uniqueProviders).map(provider => ({
+        value: provider,
+        label: provider
+      }))
+    ]
+  }, [appointments])
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.
@@ -118,19 +146,42 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
 
   // Filter appointments based on active tab and selected filters
   const filteredAppointments = useMemo(() => {
-    if (activeTab === "all") return enrichedAppointments;
-    if (activeTab === "scheduled")
-      return enrichedAppointments.filter(
+    let filtered = enrichedAppointments
+
+    // Apply status filter based on active tab
+    if (activeTab === "all") {
+      filtered = enrichedAppointments
+    } else if (activeTab === "scheduled") {
+      filtered = enrichedAppointments.filter(
         (a) => a.status === "scheduled" || a.status === "confirmed"
-      );
-    if (activeTab === "checked-in")
-      return enrichedAppointments.filter((a) => a.status === "in_progress");
-    if (activeTab === "completed")
-      return enrichedAppointments.filter((a) => a.status === "completed");
-    if (activeTab === "cancelled")
-      return enrichedAppointments.filter((a) => a.status === "cancelled");
-    return enrichedAppointments;
-  }, [enrichedAppointments, activeTab]);
+      )
+    } else if (activeTab === "checked-in") {
+      filtered = enrichedAppointments.filter((a) => a.status === "in_progress")
+    } else if (activeTab === "completed") {
+      filtered = enrichedAppointments.filter((a) => a.status === "completed")
+    } else if (activeTab === "cancelled") {
+      filtered = enrichedAppointments.filter((a) => a.status === "cancelled")
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(appointment => 
+        appointment.patient?.toLowerCase().includes(query) ||
+        appointment.owner?.toLowerCase().includes(query) ||
+        appointment.appointmentType?.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply provider filter
+    if (selectedProvider) {
+      filtered = filtered.filter(appointment => 
+        `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim() === selectedProvider
+      )
+    }
+
+    return filtered
+  }, [enrichedAppointments, activeTab, searchQuery, selectedProvider])
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -353,10 +404,16 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
     <div className="p-6">
       {/* Filters */}
       <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input type="text" placeholder="Search appointments..." className="pl-9" />
+            <Input 
+              type="text" 
+              placeholder="Search appointments..." 
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           <div className="relative">
             <Button variant="outline" className="w-full justify-between">
@@ -377,7 +434,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
         <div className="mt-4 flex justify-end">
           <Button onClick={() => {
             setSelectedProvider("")
-            setSelectedStatus("")
+            setSearchQuery("")
           }}>Clear Filters</Button>
         </div>
       </div>
