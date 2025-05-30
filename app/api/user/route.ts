@@ -17,10 +17,8 @@ export async function GET(request: NextRequest) {
             token = testToken;
         }
         
-        // Log to debug token issues
-        console.log('Using token:', token ? 'Valid token' : 'No token');
-
-        const workspaceType = searchParams.get('workspacemode');
+        console.log('Fetching users with params:', searchParams.toString());
+        console.log('Using token (masked):', token ? token.substring(0, 10) + '...' : 'No token');
 
         const response = await fetch(
             `${apiUrl}/api/User`,
@@ -38,7 +36,8 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-        return NextResponse.json({ data: data }, { status: 200 });
+        console.log('User API response:', data);
+        return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
         console.error('Error fetching user:', error);
         return NextResponse.json({ message: `Error fetching user: ${error.message}` }, { status: 500 });

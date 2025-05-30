@@ -12,9 +12,12 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
 
         let token = getJwtToken(request);
+        const pageNumber = searchParams.get('pageNumber') || '1';
+        const pageSize = searchParams.get('pageSize') || '10';
+        const search = searchParams.get('search') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Room`,
+            `${apiUrl}/api/Room?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,9 +67,9 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            console.error('Create clinic error:', errorData);
+            console.error('Create room error:', errorData);
             return NextResponse.json(
-                { message: errorData?.message || 'Failed to create clinic' },
+                { message: errorData?.message || 'Failed to create room' },
                 { status: response.status }
             );
         }
@@ -74,9 +77,9 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error creating clinic:', error);
+        console.error('Error creating room:', error);
         return NextResponse.json(
-            { message: 'Error creating clinic' },
+            { message: 'Error creating room' },
             { status: 500 }
         );
     }

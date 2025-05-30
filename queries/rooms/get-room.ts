@@ -1,14 +1,22 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-type Room = {
+export type Room = {
     id: string;
-    name: string;
     clinicId: string;
-    capacity: number;
-    status: string;
-    description: string;
+    name: string;
+    roomType: string;
+    isActive: boolean;
     createdAt: string;
-    updatedAt: string;
+}
+
+interface RoomResponse {
+    items: Room[];
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
 }
 
 const getRoom = async (pageNumber = 1, pageSize = 10, search = '') => {
@@ -24,7 +32,7 @@ export const useGetRoom = (pageNumber = 1, pageSize = 10, search = '', enabled =
         queryKey: ["room", pageNumber, pageSize, search],
         queryFn: async () => {
             const res = await getRoom(pageNumber, pageSize, search)
-            return res.data as Room[]
+            return res.data as RoomResponse
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

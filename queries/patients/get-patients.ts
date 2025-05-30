@@ -4,6 +4,19 @@ export interface Patient {
   id: string;
   clinicId: string;
   clientId: string;
+  clientFirstName: string;
+  clientLastName: string;
+  clientEmail: string;
+  clientPhonePrimary: string;
+  clientPhoneSecondary: string;
+  clientAddressLine1: string;
+  clientAddressLine2: string;
+  clientCity: string;
+  clientState: string;
+  clientPostalCode: string;
+  clientEmergencyContactName: string;
+  clientEmergencyContactPhone: string;
+  clientNotes: string;
   name: string;
   species: string;
   breed: string;
@@ -20,12 +33,18 @@ export interface Patient {
   medicalConditions: string;
   behavioralNotes: string;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface GetPatientsResponse {
-  data: Patient[];
+interface PatientResponse {
+  items: Patient[];
   totalCount: number;
-  pageCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 }
 
 const getPatients = async (pageNumber = 1, pageSize = 10, search = '') => {
@@ -37,11 +56,8 @@ const getPatients = async (pageNumber = 1, pageSize = 10, search = '') => {
     throw new Error('Failed to fetch patients data');
   }
   
-  const result = await response.json() as GetPatientsResponse;
-  console.log("API response:", result);
-  
-  // Return the data structure as is, since it's already in the correct format
-  return result;
+  const data = await response.json();
+  return data.data as PatientResponse;
 };
 
 export function useGetPatients(
@@ -55,3 +71,5 @@ export function useGetPatients(
     placeholderData: keepPreviousData,
   });
 }
+
+

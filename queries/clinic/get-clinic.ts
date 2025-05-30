@@ -15,9 +15,19 @@ type Clinic = {
     taxId: string;
     licenseNumber: string;
     subscriptionStatus: string;
-    subscriptionExpiresAt: string;
-    createdAt: string;
-    updatedAt: string;
+    subscriptionExpiresAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+}
+
+interface ClinicResponse {
+    items: Clinic[];
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
 }
 
 const getClinic = async (pageNumber = 1, pageSize = 10, search = '') => {
@@ -33,7 +43,7 @@ export const useGetClinic = (pageNumber = 1, pageSize = 10, search = '', enabled
         queryKey: ["clinic", pageNumber, pageSize, search],
         queryFn: async () => {
             const res = await getClinic(pageNumber, pageSize, search)
-            return res.data as Clinic[]
+            return res.data as ClinicResponse
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

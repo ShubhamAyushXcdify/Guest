@@ -1,5 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 
+interface AppointmentResponse {
+  items: any[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 const getAppointments = async () => {
   try {
     const url = `/api/appointment`;
@@ -15,7 +25,8 @@ const getAppointments = async () => {
     if (!response.ok) {
       throw result;
     }
-    return result;
+    // Return the items array from the response
+    return result.data.items;
   } catch (error) {
     throw error;
   }

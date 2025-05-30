@@ -5,25 +5,20 @@ import { NextRequest } from "next/server";
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
-// GET API Route - Get all patients
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        const pageNumber = searchParams.get('pageNumber') || '1';
-        const pageSize = searchParams.get('pageSize') || '10';
-        const search = searchParams.get('search') || '';
 
         let token = getJwtToken(request);
+        const pageNumber = searchParams.get('pageNumber') || '1';
+        const pageSize = searchParams.get('pageSize') || '10';
+        const clinicId = searchParams.get('clinicId') || '';
+        const patientId = searchParams.get('patientId') || '';
+        const medicalRecordId = searchParams.get('medicalRecordId') || '';
 
-        if(!token) {
-            token = testToken;
-        }
-
-        console.log(`Fetching patients with parameters: pageNumber=${pageNumber}, pageSize=${pageSize}, search=${search}`);
-
-        // Only pass pagination and search parameters in the URL, not specific filter fields
         const response = await fetch(
-            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
+            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&patientId=${patientId}&medicalRecordId=${medicalRecordId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -33,22 +28,13 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to fetch patients from backend');
+            throw new Error('Failed to fetch features from backend');
         }
 
-        // Get the direct array of patients from the backend
         const data = await response.json();
-        console.log('Backend response:', data);
-        
-        // Return the proper structure for the frontend
-        return NextResponse.json({ 
-            data: Array.isArray(data) ? data : [], 
-            totalCount: data.length || 0,
-            pageCount: Math.ceil((data.length || 0) / parseInt(pageSize))
-        }, { status: 200 });
+        return NextResponse.json({ data: data }, { status: 200 });
     } catch (error: any) {
-        console.error('Error in patients API route:', error);
-        return NextResponse.json({ message: `Error fetching patients: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ message: `Error fetching features: ${error.message}` }, { status: 500 });
     }
 }
 

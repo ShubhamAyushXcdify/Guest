@@ -1,13 +1,19 @@
 "use client"
 
-import { useState }  from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
+import { useGetAppointments } from "@/queries/appointment/get-appointment"
+import { useDeleteAppointment } from "@/queries/appointment/delete-appointment"
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+import { toast } from "@/components/ui/use-toast"
+import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 
 export default function AppointmentList( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
   const [activeTab, setActiveTab] = useState("all")
@@ -15,8 +21,84 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   const [pageSize, setPageSize] = useState(10)
   const [selectedProvider, setSelectedProvider] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // Replace mock data with API call
+  const { data: appointments = [], isLoading } = useGetAppointments()
+  const deleteAppointmentMutation = useDeleteAppointment({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Appointment deleted successfully",
+      })
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete appointment",
+        variant: "destructive",
+      })
+    }
+  })
+
+  // Add update mutation
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Appointment status updated successfully",
+      })
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update appointment status",
+        variant: "destructive",
+      })
+    }
+  })
+
+  // --- Start: Data Enrichment ---
+  // The API now provides nested user data, so we directly enrich the appointments
+  const enrichedAppointments = useMemo(() => {
+    // Ensure appointments is an array before mapping
+    if (!Array.isArray(appointments)) {
+      return [];
+    }
+
+    return appointments.map(appointment => {
+      const patientName = appointment.patient?.name || 'N/A';
+      const ownerName = `${appointment.client?.firstName || ''} ${appointment.client?.lastName || ''}`.trim() || 'N/A';
+      const providerName = `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim() || 'N/A';
+
+      return {
+        ...appointment,
+        patient: patientName,
+        owner: ownerName,
+        provider: providerName,
+      };
+    });
+  }, [appointments]); // Re-run when appointments data changes
+  // --- End: Data Enrichment ---
+
+  const scheduledCount = enrichedAppointments.filter(
+    (a) => a.status === "scheduled" || a.status === "confirmed"
+  ).length;
+  const checkedInCount = enrichedAppointments.filter(
+    (a) => a.status === "in_progress"
+  ).length;
+  const completedCount = enrichedAppointments.filter(
+    (a) => a.status === "completed"
+  ).length;
+  const cancelledCount = enrichedAppointments.filter(
+    (a) => a.status === "cancelled"
+  ).length;
+  const allCount = enrichedAppointments.length;
 
   // Provider options
+  // You might want to dynamically generate these options from the fetched appointments
+  // based on the available providers in the data, rather than hardcoding.
   const providerOptions = [
     { value: "", label: "All Providers" },
     { value: "Dr. Sarah Johnson", label: "Dr. Sarah Johnson" },
@@ -24,6 +106,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   ]
 
   // Status options
+  // You might want to dynamically generate these options based on the fetched appointments.
   const statusOptions = [
     { value: "", label: "All Statuses" },
     { value: "Scheduled", label: "Scheduled" },
@@ -33,99 +116,21 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
     { value: "Cancelled", label: "Cancelled" },
   ]
 
-  // Mock appointment data
-  const appointments = [
-    {
-      id: 1,
-      time: "8:30 AM",
-      patient: "Bella (Cat)",
-      owner: "Sarah Johnson",
-      visitType: "Vaccination",
-      provider: "Dr. Sarah Johnson",
-      status: "In Room",
-    },
-    {
-      id: 2,
-      time: "9:15 AM",
-      patient: "Max (Dog)",
-      owner: "John Smith",
-      visitType: "Check-up",
-      provider: "Dr. Michael Chen",
-      status: "Completed",
-    },
-    {
-      id: 3,
-      time: "10:00 AM",
-      patient: "Charlie (Dog)",
-      owner: "Robert Thompson",
-      visitType: "Dental",
-      provider: "Dr. Sarah Johnson",
-      status: "Completed",
-    },
-    {
-      id: 4,
-      time: "11:30 AM",
-      patient: "Daisy (Rabbit)",
-      owner: "Emily Wilson",
-      visitType: "Nail Trim",
-      provider: "Dr. Michael Chen",
-      status: "Completed",
-    },
-    {
-      id: 5,
-      time: "1:00 PM",
-      patient: "Oscar (Cat)",
-      owner: "Maria Rodriguez",
-      visitType: "Surgery",
-      provider: "Dr. Sarah Johnson",
-      status: "In Progress",
-    },
-    {
-      id: 6,
-      time: "2:30 PM",
-      patient: "Rocky (Dog)",
-      owner: "James Miller",
-      visitType: "Wound Check",
-      provider: "Dr. Michael Chen",
-      status: "Scheduled",
-    },
-    {
-      id: 7,
-      time: "3:15 PM",
-      patient: "Luna (Cat)",
-      owner: "Sarah Wilson",
-      visitType: "Check-up",
-      provider: "Dr. Sarah Johnson",
-      status: "Scheduled",
-    },
-    {
-      id: 8,
-      time: "4:00 PM",
-      patient: "Cooper (Dog)",
-      owner: "David Brown",
-      visitType: "Allergy Consult",
-      provider: "Dr. Michael Chen",
-      status: "Scheduled",
-    },
-  ]
-
   // Filter appointments based on active tab and selected filters
-  const filteredAppointments = appointments.filter((appointment) => {
-    // Filter by tab
-    if (activeTab === "all") return true
-    if (activeTab === "scheduled") return appointment.status === "Scheduled"
-    if (activeTab === "checked-in") return appointment.status === "In Room"
-    if (activeTab === "completed") return appointment.status === "Completed"
-    if (activeTab === "cancelled") return appointment.status === "Cancelled"
-
-    // Filter by provider
-    if (selectedProvider && appointment.provider !== selectedProvider) return false
-
-    // Filter by status
-    if (selectedStatus && appointment.status !== selectedStatus) return false
-
-    return true
-  })
+  const filteredAppointments = useMemo(() => {
+    if (activeTab === "all") return enrichedAppointments;
+    if (activeTab === "scheduled")
+      return enrichedAppointments.filter(
+        (a) => a.status === "scheduled" || a.status === "confirmed"
+      );
+    if (activeTab === "checked-in")
+      return enrichedAppointments.filter((a) => a.status === "in_progress");
+    if (activeTab === "completed")
+      return enrichedAppointments.filter((a) => a.status === "completed");
+    if (activeTab === "cancelled")
+      return enrichedAppointments.filter((a) => a.status === "cancelled");
+    return enrichedAppointments;
+  }, [enrichedAppointments, activeTab]);
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -146,7 +151,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
 
   const columns: ColumnDef<any>[] = [
     {
-      accessorKey: "time",
+      accessorKey: "startTime",
       header: "Time",
     },
     {
@@ -158,7 +163,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
       header: "Owner",
     },
     {
-      accessorKey: "visitType",
+      accessorKey: "appointmentType",
       header: "Visit Type",
     },
     {
@@ -182,16 +187,132 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
           <Button variant="secondary" size="sm" onClick={() => onAppointmentClick(row.original.id.toString())}>
             View
           </Button>
-          {row.original.status === "Scheduled" && (
-            <Button variant="outline" size="sm" className="theme-button-outline">
-              Check In
-            </Button>
+          {/* For scheduled or confirmed: show Check In and Cancel */}
+          {(row.original.status === "scheduled" || row.original.status === "confirmed") && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="theme-button-outline"
+                onClick={() => updateAppointmentMutation.mutate({
+                  id: row.original.id.toString(),
+                  data: {
+                    id: row.original.id,
+                    clinicId: row.original.clinicId,
+                    patientId: row.original.patientId,
+                    clientId: row.original.clientId,
+                    veterinarianId: row.original.veterinarianId,
+                    roomId: row.original.roomId,
+                    appointmentDate: row.original.appointmentDate,
+                    startTime: row.original.startTime,
+                    endTime: row.original.endTime,
+                    appointmentType: row.original.appointmentType,
+                    reason: row.original.reason,
+                    status: "in_progress",
+                    notes: row.original.notes,
+                    createdBy: row.original.createdBy,
+                  }
+                })}
+                disabled={updateAppointmentMutation.isPending}
+              >
+                Check In
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => updateAppointmentMutation.mutate({
+                  id: row.original.id.toString(),
+                  data: {
+                    id: row.original.id,
+                    clinicId: row.original.clinicId,
+                    patientId: row.original.patientId,
+                    clientId: row.original.clientId,
+                    veterinarianId: row.original.veterinarianId,
+                    roomId: row.original.roomId,
+                    appointmentDate: row.original.appointmentDate,
+                    startTime: row.original.startTime,
+                    endTime: row.original.endTime,
+                    appointmentType: row.original.appointmentType,
+                    reason: row.original.reason,
+                    status: "cancelled",
+                    notes: row.original.notes,
+                    createdBy: row.original.createdBy,
+                  }
+                })}
+                disabled={updateAppointmentMutation.isPending}
+              >
+                Cancel
+              </Button>
+            </>
           )}
-          {row.original.status === "In Room" && (
-            <Button variant="outline" size="sm" className="theme-button-outline">
-              Check Out
-            </Button>
+          {/* For in_progress: show Check Out and Cancel */}
+          {row.original.status === "in_progress" && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="theme-button-outline"
+                onClick={() => updateAppointmentMutation.mutate({
+                  id: row.original.id.toString(),
+                  data: {
+                    id: row.original.id,
+                    clinicId: row.original.clinicId,
+                    patientId: row.original.patientId,
+                    clientId: row.original.clientId,
+                    veterinarianId: row.original.veterinarianId,
+                    roomId: row.original.roomId,
+                    appointmentDate: row.original.appointmentDate,
+                    startTime: row.original.startTime,
+                    endTime: row.original.endTime,
+                    appointmentType: row.original.appointmentType,
+                    reason: row.original.reason,
+                    status: "completed",
+                    notes: row.original.notes,
+                    createdBy: row.original.createdBy,
+                  }
+                })}
+                disabled={updateAppointmentMutation.isPending}
+              >
+                Check Out
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => updateAppointmentMutation.mutate({
+                  id: row.original.id.toString(),
+                  data: {
+                    id: row.original.id,
+                    clinicId: row.original.clinicId,
+                    patientId: row.original.patientId,
+                    clientId: row.original.clientId,
+                    veterinarianId: row.original.veterinarianId,
+                    roomId: row.original.roomId,
+                    appointmentDate: row.original.appointmentDate,
+                    startTime: row.original.startTime,
+                    endTime: row.original.endTime,
+                    appointmentType: row.original.appointmentType,
+                    reason: row.original.reason,
+                    status: "cancelled",
+                    notes: row.original.notes,
+                    createdBy: row.original.createdBy,
+                  }
+                })}
+                disabled={updateAppointmentMutation.isPending}
+              >
+                Cancel
+              </Button>
+            </>
           )}
+          {/* Keep Delete button */}
+           <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => deleteAppointmentMutation.mutate(row.original.id.toString())}
+            disabled={deleteAppointmentMutation.isPending}
+          >
+            Delete
+          </Button>
+          {/* Keep SOAP buttons */}
           {row.original.status === "In Progress" && (
             <Button
               variant="outline"
@@ -211,6 +332,22 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
       ),
     },
   ]
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteAppointmentMutation.mutateAsync(id)
+      toast({
+        title: "Success",
+        description: "Appointment deleted successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete appointment",
+        variant: "destructive",
+      })
+    }
+  }
 
   return (
     <div className="p-6">
@@ -236,16 +373,6 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               emptyText="No providers found."
             />
           </div>
-          <div className="relative">
-            <Combobox
-              options={statusOptions}
-              value={selectedStatus}
-              onValueChange={setSelectedStatus}
-              placeholder="Select Status"
-              searchPlaceholder="Search statuses..."
-              emptyText="No statuses found."
-            />
-          </div>
         </div>
         <div className="mt-4 flex justify-end">
           <Button onClick={() => {
@@ -265,7 +392,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
-          All (28)
+          All ({allCount})
         </button>
         <button
           onClick={() => setActiveTab("scheduled")}
@@ -275,7 +402,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
-          Scheduled (14)
+          Scheduled ({scheduledCount})
         </button>
         <button
           onClick={() => setActiveTab("checked-in")}
@@ -285,7 +412,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
-          Checked In (8)
+          Checked In ({checkedInCount})
         </button>
         <button
           onClick={() => setActiveTab("completed")}
@@ -295,7 +422,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
-          Completed (6)
+          Completed ({completedCount})
         </button>
         <button
           onClick={() => setActiveTab("cancelled")}
@@ -305,7 +432,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           }`}
         >
-          Cancelled
+          Cancelled ({cancelledCount})
         </button>
       </div>
 
@@ -321,6 +448,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
         onPageChange={setCurrentPage}
         onPageSizeChange={setPageSize}
       />
+
     </div>
   )
 }
