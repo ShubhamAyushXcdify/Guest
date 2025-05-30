@@ -46,7 +46,8 @@ export function ClinicSelect({
     return () => clearTimeout(timer);
   }, [searchQuery]);
   
-  const { data: clinics, isLoading, isError, refetch } = useGetClinics(debouncedSearch);
+  const { data: clinicsData, isLoading, isError, refetch } = useGetClinics(debouncedSearch);
+  const clinics = clinicsData?.items || [];
 
   useEffect(() => {
     if (open) {

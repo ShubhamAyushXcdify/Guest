@@ -25,7 +25,11 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
   const router = useRouter();
   
   const { data: product, isLoading } = useGetProductById(productId);
-  const { data: clinics } = useGetClinic();
+  const { data: clinicData } = useGetClinic();
+  
+  // Extract clinic items from the paginated response
+  const clinics = clinicData?.items || [];
+  
   const updateProduct = useUpdateProduct();
   
   const form = useForm<Product>({
@@ -81,7 +85,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {clinics?.map((clinic) => (
+                  {clinics.map((clinic) => (
                     <SelectItem key={clinic.id} value={clinic.id}>
                       {clinic.name}
                     </SelectItem>

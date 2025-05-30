@@ -19,8 +19,8 @@ type SupplierDetailsProps = {
 
 export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetailsProps) {
   const router = useRouter();
-  const { data: clinics } = useGetClinic();
-  
+  const { data: clinicsData } = useGetClinic();
+  const clinics = clinicsData?.items || [];  
   const { data: supplier, isLoading } = useGetSupplierById(supplierId);
   const updateSupplier = useUpdateSupplier();
   

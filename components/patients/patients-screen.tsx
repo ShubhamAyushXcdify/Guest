@@ -29,8 +29,9 @@ export const PatientsScreen = () => {
     debouncedSearchQuery
   )
   
-  // Debug log for patients data
-  console.log("Patients data:", patientsData);
+  // Extract patients from the paginated response
+  const patients = patientsData?.items || []
+  const totalPages = patientsData?.totalPages || 1
 
   const handleSearch = (searchTerm: string) => {
     setSearchQuery(searchTerm)
@@ -81,10 +82,14 @@ export const PatientsScreen = () => {
           <div className="flex items-center justify-center h-64">
             <p className="text-destructive">Error loading patients. Please try again.</p>
           </div>
+        ) : patients.length === 0 ? (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-muted-foreground">No patients found. Add a patient to get started.</p>
+          </div>
         ) : (
           <PatientsTable
-            patients={patientsData?.data || []}
-            totalPages={patientsData?.pageCount || 1}
+            patients={patients}
+            totalPages={totalPages}
             currentPage={page}
             pageSize={pageSize}
             onPageChange={handlePageChange}

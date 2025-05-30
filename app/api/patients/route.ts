@@ -16,9 +16,10 @@ export async function GET(request: NextRequest) {
         const clinicId = searchParams.get('clinicId') || '';
         const patientId = searchParams.get('patientId') || '';
         const medicalRecordId = searchParams.get('medicalRecordId') || '';
+        const search = searchParams.get('search') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&patientId=${patientId}&medicalRecordId=${medicalRecordId}`,
+            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&patientId=${patientId}&medicalRecordId=${medicalRecordId}&search=${search}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -28,13 +29,13 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to fetch features from backend');
+            throw new Error('Failed to fetch patients from backend');
         }
 
         const data = await response.json();
-        return NextResponse.json({ data: data }, { status: 200 });
+        return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
-        return NextResponse.json({ message: `Error fetching features: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ message: `Error fetching patients: ${error.message}` }, { status: 500 });
     }
 }
 

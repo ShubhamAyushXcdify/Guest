@@ -16,7 +16,8 @@ type NewSupplierProps = {
 
 export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   const router = useRouter();
-  const { data: clinics } = useGetClinic();
+  const { data: clinicsData } = useGetClinic();
+  const clinics = clinicsData?.items || [];
   
   const createSupplier = useCreateSupplier({
     onSuccess: () => {

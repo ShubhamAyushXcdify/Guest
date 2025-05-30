@@ -28,7 +28,14 @@ export type User = {
 };
 
 export default function Users() {
-  const { data: users, isLoading, isError } = useGetUsers();
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  
+  const { data: usersData, isLoading, isError } = useGetUsers(pageNumber, pageSize, search);
+  const users = usersData?.items || [];
+  const totalPages = usersData?.totalPages || 1;
+  
   const [openNew, setOpenNew] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -59,6 +66,7 @@ export default function Users() {
         title: "Success",
         description: "User deleted successfully",
       });
+      setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -69,6 +77,20 @@ export default function Users() {
       setIsDeleting(false);
       setUserToDelete(null);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setPageNumber(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(Number(newPageSize));
+    setPageNumber(1); // Reset to first page when changing page size
+  };
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPageNumber(1); // Reset to first page when searching
   };
 
   const columns: ColumnDef<User>[] = [
@@ -127,22 +149,35 @@ export default function Users() {
             <SheetHeader>
               <SheetTitle>New User</SheetTitle>
             </SheetHeader>
-            <NewUser onSuccess={() => setOpenNew(false)} />
+            <NewUser onSuccess={() => {
+              setOpenNew(false);
+            }} />
           </SheetContent>
         </Sheet>
       </div>
       
-      <DataTable
-        columns={columns}
-        data={users || []}
-        searchColumn="email"
-        searchPlaceholder="Search users..."
-        page={1}
-        pageSize={10}
-        totalPages={1}
-        onPageChange={() => {}}
-        onPageSizeChange={() => {}}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <p>Loading users...</p>
+        </div>
+      ) : isError ? (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-red-500">Error loading users</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={users as User[]}
+          searchColumn="email"
+          searchPlaceholder="Search users..."
+          page={pageNumber}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          onSearch={handleSearch}
+        />
+      )}
       
       {/* User Details Sheet */}
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
@@ -153,7 +188,9 @@ export default function Users() {
           {selectedUserId && (
             <UserDetails 
               userId={selectedUserId}
-              onSuccess={() => setOpenDetails(false)}
+              onSuccess={() => {
+                setOpenDetails(false);
+              }}
             />
           )}
         </SheetContent>

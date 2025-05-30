@@ -162,7 +162,8 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
                   Back to Owner Selection
                 </Button>
                 <ClientForm 
-                  onSuccess={handleClientCreated} 
+                  onSuccess={handleClientCreated}
+                  nestedForm={true}
                 />
               </div>
             )}

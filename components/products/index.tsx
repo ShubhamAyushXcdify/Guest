@@ -5,7 +5,7 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import { useGetProducts } from "@/queries/products/get-products";
+import { useGetProducts, PaginatedResponse } from "@/queries/products/get-products";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewProduct from "./newProduct";
 import ProductDetails from "./productsDetails";
@@ -35,7 +35,16 @@ export type Product = {
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
 
 export default function Products() {
-  const { data: products, isLoading, isError } = useGetProducts();
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  
+  const { data: productsData, isLoading, isError } = useGetProducts(pageNumber, pageSize, search);
+  
+  // Extract product items from the paginated response
+  const products = productsData?.items || [];
+  const totalPages = productsData?.totalPages || 1;
+  
   const [openNew, setOpenNew] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -66,6 +75,7 @@ export default function Products() {
         title: "Success",
         description: "Product deleted successfully",
       });
+      setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -76,6 +86,20 @@ export default function Products() {
       setIsDeleting(false);
       setProductToDelete(null);
     }
+  };
+  
+  const handlePageChange = (page: number) => {
+    setPageNumber(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(Number(newPageSize));
+    setPageNumber(1); // Reset to first page when changing page size
+  };
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPageNumber(1); // Reset to first page when searching
   };
 
   const columns: ColumnDef<Product>[] = [
@@ -146,18 +170,33 @@ export default function Products() {
         </Sheet>
       </div>
       
-      <DataTable
-        columns={columns}
-        data={products || []}
-        searchColumn="name"
-        searchPlaceholder="Search products..."
-        page={1}
-        pageSize={10}
-        totalPages={1}
-        onPageChange={() => {}}
-        onPageSizeChange={() => {}}
-        onEditButtonClick={handleProductClick}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <p>Loading products...</p>
+        </div>
+      ) : isError ? (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-red-500">Error loading products</p>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="flex items-center justify-center h-32">
+          <p>No products found. Click "Add Product" to create one.</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={products as Product[]}
+          searchColumn="name"
+          searchPlaceholder="Search products..."
+          page={pageNumber}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          onSearch={handleSearch}
+          onEditButtonClick={handleProductClick}
+        />
+      )}
       
       {/* Product Details Sheet */}
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>

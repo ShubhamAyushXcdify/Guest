@@ -12,10 +12,12 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
 
         let token = getJwtToken(request);
-        const workspaceType = searchParams.get('workspacemode');
+        const pageNumber = searchParams.get('pageNumber') || '1';
+        const pageSize = searchParams.get('pageSize') || '10';
+        const search = searchParams.get('search') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Supplier`,
+            `${apiUrl}/api/Supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -25,13 +27,13 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to fetch features from backend');
+            throw new Error('Failed to fetch suppliers from backend');
         }
 
         const data = await response.json();
-        return NextResponse.json({ data: data }, { status: 200 });
+        return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
-        return NextResponse.json({ message: `Error fetching features: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ message: `Error fetching suppliers: ${error.message}` }, { status: 500 });
     }
 }
 

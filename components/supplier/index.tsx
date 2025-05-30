@@ -40,7 +40,16 @@ type SupplierFormValues = Omit<Supplier, "id" | "createdAt" | "updatedAt">;
 
 function Supplier() {
   const router = useRouter();
-  const { data: suppliers, isLoading, isError } = useGetSupplier();
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  
+  const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search);
+  
+  // Extract suppliers from the paginated response
+  const suppliers = supplierData?.items || [];
+  const totalPages = supplierData?.totalPages || 1;
+  
   const [openNew, setOpenNew] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -65,6 +74,7 @@ function Supplier() {
         title: "Success",
         description: "Supplier deleted successfully",
       });
+      setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -84,6 +94,20 @@ function Supplier() {
 
   const handleRowClick = (supplier: Supplier) => {
     router.push(`/supplier/${supplier.id}`);
+  };
+  
+  const handlePageChange = (page: number) => {
+    setPageNumber(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(Number(newPageSize));
+    setPageNumber(1); // Reset to first page when changing page size
+  };
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPageNumber(1); // Reset to first page when searching
   };
 
   const columns: ColumnDef<Supplier>[] = [
@@ -150,17 +174,33 @@ function Supplier() {
           </SheetContent>
         </Sheet>
       </div>
-      <DataTable
-        columns={columns}
-        data={(suppliers ?? []) as unknown as Supplier[]}
-        searchColumn="name"
-        searchPlaceholder="Search suppliers..."
-        page={1}
-        pageSize={10}
-        totalPages={1}
-        onPageChange={() => {}}
-        onPageSizeChange={() => {}}
-      />
+      
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <p>Loading suppliers...</p>
+        </div>
+      ) : isError ? (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-red-500">Error loading suppliers</p>
+        </div>
+      ) : suppliers.length === 0 ? (
+        <div className="flex items-center justify-center h-32">
+          <p>No suppliers found. Click "Add Supplier" to create one.</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={suppliers as Supplier[]}
+          searchColumn="name"
+          searchPlaceholder="Search suppliers..."
+          page={pageNumber}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          onSearch={handleSearch}
+        />
+      )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
         <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">

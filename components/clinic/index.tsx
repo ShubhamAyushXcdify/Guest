@@ -44,7 +44,16 @@ type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
 
 function Clinic() {
   const router = useRouter();
-  const { data: clinics, isLoading, isError } = useGetClinic();
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  
+  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, search);
+  
+  // Extract the clinics from the paginated response
+  const clinics = clinicData?.items || [];
+  const totalPages = clinicData?.totalPages || 1;
+  
   const [openNew, setOpenNew] = useState(false);
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -70,6 +79,7 @@ function Clinic() {
     } finally {
       setIsDeleting(false);
       setClinicToDelete(null);
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -80,6 +90,20 @@ function Clinic() {
 
   const handleRowClick = (clinic: Clinic) => {
     router.push(`/clinic/${clinic.id}`);
+  };
+  
+  const handlePageChange = (page: number) => {
+    setPageNumber(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(Number(newPageSize));
+    setPageNumber(1); // Reset to first page when changing page size
+  };
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPageNumber(1); // Reset to first page when searching
   };
 
   const columns: ColumnDef<Clinic>[] = [
@@ -149,17 +173,33 @@ function Clinic() {
           </SheetContent>
         </Sheet>
       </div>
-      <DataTable
-        columns={columns}
-        data={clinics || []}
-        searchColumn="name"
-        searchPlaceholder="Search clinics..."
-        page={1}
-        pageSize={10}
-        totalPages={1}
-        onPageChange={() => {}}
-        onPageSizeChange={() => {}}
-      />
+      
+      {isLoading ? (
+        <div className="flex items-center justify-center h-32">
+          <p>Loading clinics...</p>
+        </div>
+      ) : isError ? (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-red-500">Error loading clinics</p>
+        </div>
+      ) : clinics.length === 0 ? (
+        <div className="flex items-center justify-center h-32">
+          <p>No clinics found. Click "Add Clinic" to create one.</p>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={clinics as Clinic[]}
+          searchColumn="name"
+          searchPlaceholder="Search clinics..."
+          page={pageNumber}
+          pageSize={pageSize}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          onSearch={handleSearch}
+        />
+      )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
         <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">

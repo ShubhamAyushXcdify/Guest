@@ -10,6 +10,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
+        const pageNumber = searchParams.get('pageNumber') || '1';
+        const pageSize = searchParams.get('pageSize') || '10';
+        const search = searchParams.get('search') || '';
         
         let token = getJwtToken(request);
 
@@ -21,7 +24,7 @@ export async function GET(request: NextRequest) {
         console.log('Using token (masked):', token ? token.substring(0, 10) + '...' : 'No token');
 
         const response = await fetch(
-            `${apiUrl}/api/User`,
+            `${apiUrl}/api/User?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
