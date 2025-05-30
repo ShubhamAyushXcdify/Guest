@@ -37,8 +37,8 @@ export interface Patient {
   updatedAt: string;
 }
 
-interface PatientResponse {
-  items: Patient[];
+export interface PaginatedResponse<T> {
+  items: T[];
   totalCount: number;
   pageNumber: number;
   pageSize: number;
@@ -56,8 +56,7 @@ const getPatients = async (pageNumber = 1, pageSize = 10, search = '') => {
     throw new Error('Failed to fetch patients data');
   }
   
-  const data = await response.json();
-  return data.data as PatientResponse;
+  return response.json() as Promise<PaginatedResponse<Patient>>;
 };
 
 export function useGetPatients(

@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-type Clinic = {
+export type Clinic = {
     id: string;
     name: string;
     addressLine1: string;
@@ -20,8 +20,8 @@ type Clinic = {
     updatedAt: string | null;
 }
 
-interface ClinicResponse {
-    items: Clinic[];
+export interface PaginatedResponse<T> {
+    items: T[];
     totalCount: number;
     pageNumber: number;
     pageSize: number;
@@ -30,20 +30,24 @@ interface ClinicResponse {
     hasNextPage: boolean;
 }
 
+export interface ApiResponse<T> {
+    data: T;
+}
+
 const getClinic = async (pageNumber = 1, pageSize = 10, search = '') => {
     const response = await fetch(`/api/clinic?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
     if (!response.ok) {
         throw new Error('Failed to fetch clinic data');
     }
-    return response.json();
+    const result = await response.json() as ApiResponse<PaginatedResponse<Clinic>>;
+    return result.data;
 };
 
 export const useGetClinic = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
     return useQuery({
         queryKey: ["clinic", pageNumber, pageSize, search],
         queryFn: async () => {
-            const res = await getClinic(pageNumber, pageSize, search)
-            return res.data as ClinicResponse
+            return getClinic(pageNumber, pageSize, search);
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

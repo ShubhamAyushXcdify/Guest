@@ -36,9 +36,6 @@ export function PatientsTable({
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   
-  // Debug: Log patients in the table component
-  console.log("Patients in table:", patients)
-  
   const deletePatientMutation = useDeletePatient()
 
   const handleDeleteClick = (patient: Patient) => {

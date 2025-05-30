@@ -48,7 +48,8 @@ export function ClientSelect({
     return () => clearTimeout(timer);
   }, [searchQuery]);
   
-  const { data: clients, isLoading, isError, refetch } = useGetClients(debouncedSearch);
+  const { data: clientsData, isLoading, isError, refetch } = useGetClients(1, 20, debouncedSearch);
+  const clients = clientsData?.items || [];
 
   useEffect(() => {
     if (open) {

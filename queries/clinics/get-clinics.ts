@@ -12,6 +12,16 @@ export interface Clinic {
   isActive: boolean;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 // Function to fetch clinics from the API
 const getClinics = async (search = '') => {
   const response = await fetch(
@@ -24,7 +34,7 @@ const getClinics = async (search = '') => {
   }
   
   const data = await response.json();
-  return data as Clinic[];
+  return data as PaginatedResponse<Clinic>;
 };
 
 // React Query hook to fetch clinics

@@ -22,7 +22,10 @@ interface NewProductProps {
 
 export default function NewProduct({ onSuccess }: NewProductProps) {
   const router = useRouter();
-  const { data: clinics } = useGetClinic();
+  const { data: clinicData } = useGetClinic();
+  
+  // Extract clinic items from the paginated response
+  const clinics = clinicData?.items || [];
   
   const createProduct = useCreateProduct({
     onSuccess: () => {
@@ -89,7 +92,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {clinics?.map((clinic) => (
+                  {clinics.map((clinic) => (
                     <SelectItem key={clinic.id} value={clinic.id}>
                       {clinic.name}
                     </SelectItem>

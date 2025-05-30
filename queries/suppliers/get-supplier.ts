@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-type Supplier = {
+export type Supplier = {
     id: string;
     name: string;
     addressLine1: string;
@@ -17,20 +17,29 @@ type Supplier = {
     updatedAt: string;
 }
 
+export interface PaginatedResponse<T> {
+    items: T[];
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
 const getSupplier = async (pageNumber = 1, pageSize = 10, search = '') => {
     const response = await fetch(`/api/supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
     if (!response.ok) {
         throw new Error('Failed to fetch supplier data');
     }
-    return response.json();
+    return response.json() as Promise<PaginatedResponse<Supplier>>;
 };
 
 export const useGetSupplier = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
     return useQuery({
         queryKey: ["supplier", pageNumber, pageSize, search],
         queryFn: async () => {
-            const res = await getSupplier(pageNumber, pageSize, search)
-            return res.data as Supplier[]
+            return getSupplier(pageNumber, pageSize, search);
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

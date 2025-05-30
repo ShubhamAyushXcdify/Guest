@@ -9,15 +9,18 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
-        console.log(request);
-        let token = null
-
+        const pageNumber = searchParams.get('pageNumber') || '1';
+        const pageSize = searchParams.get('pageSize') || '10';
+        const search = searchParams.get('search') || '';
+        
+        // Get token from cookie or use test token as fallback
+        let token = getJwtToken(request);
         if(!token) {
             token = testToken;
         }
 
         const response = await fetch(
-            `${apiUrl}/api/Product`,
+            `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -27,13 +30,13 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to fetch features from backend');
+            throw new Error('Failed to fetch products from backend');
         }
 
         const data = await response.json();
-        return NextResponse.json({ data: data }, { status: 200 });
+        return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
-        return NextResponse.json({ message: `Error fetching features: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ message: `Error fetching products: ${error.message}` }, { status: 500 });
     }
 }
 
