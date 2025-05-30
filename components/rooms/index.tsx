@@ -9,13 +9,13 @@ import { Badge } from "../ui/badge";
 import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import { useGetRoomByClinicId } from "@/queries/rooms/get-room-by-clinic-id";
 import withAuth from "@/utils/privateRouter";
 import { useDeleteRoom } from "@/queries/rooms/delete-room";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import NewRoom from "./newRoom";
 import RoomDetails from "./roomDetails";
+import { useGetRoom } from "@/queries/rooms";
 
 // Room type based on API response
 export type Room = {
@@ -33,7 +33,7 @@ type RoomProps = {
 };
 
 function Room({ clinicId }: RoomProps) {
-  const { data: result, isLoading, isError } = useGetRoomByClinicId(clinicId || '');
+  const { data: result, isLoading, isError } = useGetRoom(1, 10, '', clinicId || '');
   const [openNew, setOpenNew] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -134,12 +134,12 @@ function Room({ clinicId }: RoomProps) {
       </div>
       <DataTable
         columns={columns}
-        data={result ?? []}
+        data={result?.items ?? []}
         searchColumn="name"
         searchPlaceholder="Search rooms..."
-        page={1}
-        pageSize={10}
-        totalPages={1}
+        page={result?.pageNumber ?? 1}
+        pageSize={result?.pageSize ?? 10}
+        totalPages={result?.totalPages ?? 1}
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
       />
