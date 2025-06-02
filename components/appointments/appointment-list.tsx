@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
@@ -14,6 +14,8 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import useAppointmentFilter from "./hooks/useAppointmentFilter"
+import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
 
 interface Appointment {
   id: string;
@@ -32,7 +34,7 @@ interface Appointment {
   appointmentType?: string;
 }
 
-export default function AppointmentList( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
+export default function AppointmentList({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -41,9 +43,11 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
 
 
-  const { data: appointments = [], isLoading } = useGetAppointments()
+  const { data: appointments = [], isLoading } = useGetAppointments(searchParams)
+
   const deleteAppointmentMutation = useDeleteAppointment({
     onSuccess: () => {
       toast({
@@ -123,7 +127,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
         uniqueProviders.add(providerName)
       }
     })
-    
+
     return [
       { value: "", label: "All Providers" },
       ...Array.from(uniqueProviders).map(provider => ({
@@ -166,7 +170,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(appointment => 
+      filtered = filtered.filter(appointment =>
         appointment.patient?.toLowerCase().includes(query) ||
         appointment.owner?.toLowerCase().includes(query) ||
         appointment.appointmentType?.toLowerCase().includes(query)
@@ -175,7 +179,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
 
     // Apply provider filter
     if (selectedProvider) {
-      filtered = filtered.filter(appointment => 
+      filtered = filtered.filter(appointment =>
         `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim() === selectedProvider
       )
     }
@@ -355,7 +359,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
             </>
           )}
           {/* Keep Delete button */}
-           <Button
+          <Button
             variant="secondary"
             size="sm"
             onClick={() => deleteAppointmentMutation.mutate(row.original.id.toString())}
@@ -403,24 +407,25 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   return (
     <div className="p-6">
       {/* Filters */}
-      <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              type="text" 
-              placeholder="Search appointments..." 
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="relative">
-            <Button variant="outline" className="w-full justify-between">
-              Date: Today <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-          <div className="relative">
+      <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-3 mb-6">
+        <div className="flex items-center gap-3 ">
+          <DatePickerWithRangeV2
+            date={{
+              from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
+              to: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined
+            }}
+            setDate={async (date) => {
+              try {
+                if (date?.from && date?.to) {
+                  handleDate(date.from.toISOString(), date.to.toISOString());
+                }
+              } catch (error) {
+                console.error('Error updating date range:', error);
+              }
+            }}
+            className="h-full"
+          />
+          <div className="w-[400px]">
             <Combobox
               options={providerOptions}
               value={selectedProvider}
@@ -430,12 +435,16 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               emptyText="No providers found."
             />
           </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button onClick={() => {
-            setSelectedProvider("")
-            setSearchQuery("")
-          }}>Clear Filters</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedProvider("")
+              setSearchQuery("")
+              removeAllFilters()
+            }}
+          >
+            <XIcon className="w-4 h-4" /> Clear Filters
+          </Button>
         </div>
       </div>
 
@@ -443,51 +452,46 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
       <div className="flex overflow-x-auto mb-6 bg-white dark:bg-slate-800 rounded-lg">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "all"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "all"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           All ({allCount})
         </button>
         <button
           onClick={() => setActiveTab("scheduled")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "scheduled"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "scheduled"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Scheduled ({scheduledCount})
         </button>
         <button
           onClick={() => setActiveTab("checked-in")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "checked-in"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "checked-in"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Checked In ({checkedInCount})
         </button>
         <button
           onClick={() => setActiveTab("completed")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "completed"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "completed"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Completed ({completedCount})
         </button>
         <button
           onClick={() => setActiveTab("cancelled")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "cancelled"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "cancelled"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Cancelled ({cancelledCount})
         </button>
