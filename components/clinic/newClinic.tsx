@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { useCreateClinic } from "@/queries/clinic/create-clinic";
 import { toast } from "../ui/use-toast";
 import { Clinic } from "./index";
+import { DatePicker } from "../ui/datePicker";
 
 type NewClinicProps = {
   onSuccess?: () => void;
@@ -72,7 +73,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
-        <div className="grid grid-cols-1 gap-8">
+        <div className="grid grid-cols-2 gap-8">
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
@@ -180,7 +181,12 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
           <FormField name="subscriptionExpiresAt" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Subscription Expires At</FormLabel>
-              <FormControl><Input {...field} type="datetime-local" /></FormControl>
+              <FormControl>
+                <DatePicker 
+                  value={field.value ? new Date(field.value) : null}
+                  onChange={(date) => field.onChange(date ? date.toISOString() : "")}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />

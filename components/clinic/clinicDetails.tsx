@@ -6,10 +6,11 @@ import { Button } from "../ui/button";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useUpdateClinic } from "@/queries/clinic/update-clinic";
 import { toast } from "../ui/use-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Switch } from "../ui/switch";
 import { Clinic } from ".";
 import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id";
+import { DatePicker } from "../ui/datePicker";
 
 type ClinicDetailsProps = {
   clinicId: string;
@@ -18,18 +19,37 @@ type ClinicDetailsProps = {
 
 export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProps) {
   const router = useRouter();
+  const [isFormReady, setIsFormReady] = useState(false);
   
   const { data: clinic, isLoading } = useGetClinicById(clinicId);
   const updateClinic = useUpdateClinic();
   
   const form = useForm<Clinic>({
-    defaultValues: clinic,
+    defaultValues: {
+      id: "",
+      name: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      phone: "",
+      email: "",
+      website: "",
+      taxId: "",
+      licenseNumber: "",
+      subscriptionStatus: "",
+      subscriptionExpiresAt: "",
+      // Add any other default fields here
+    }
   });
   
   // Update form values when clinic data is loaded
   useEffect(() => {
     if (clinic) {
       form.reset(clinic);
+      setIsFormReady(true);
     }
   }, [clinic, form]);
   
@@ -57,6 +77,10 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
       });
     }
   };
+  
+  if (!isFormReady) {
+    return <div>Preparing form...</div>;
+  }
   
   return (
     <Form {...form}>
@@ -196,7 +220,10 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
             <FormItem>
               <FormLabel>Subscription Expires At</FormLabel>
               <FormControl>
-                <Input {...field} type="datetime-local" />
+                <DatePicker 
+                  value={field.value ? new Date(field.value) : null}
+                  onChange={(date) => field.onChange(date ? date.toISOString() : "")}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

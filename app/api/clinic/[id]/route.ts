@@ -42,54 +42,6 @@ export async function GET(
     }
 }
 
-export async function PUT(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    try {
-        const token = getJwtToken(request);
-
-        if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/Clinic/${params.id}`, {
-            method: 'PUT',
-            body: JSON.stringify(body),
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to update clinic: ${response.status}`);
-        }
-
-        // Check if there's content before trying to parse JSON
-        const contentType = response.headers.get("content-type");
-        let data = null;
-
-        if (contentType && contentType.includes("application/json")) {
-            data = await response.json().catch(() => null);
-        }
-
-        return NextResponse.json({
-            message: 'Clinic updated successfully',
-            data: data || body
-        }, { status: 200 });
-    } catch (error) {
-        console.error('Error updating clinic:', error);
-        return NextResponse.json(
-            { message: 'Error updating clinic', error: error instanceof Error ? error.message : 'Unknown error' },
-            { status: 500 }
-        );
-    }
-}
 
 export async function DELETE(
     request: NextRequest,

@@ -165,7 +165,7 @@ function Clinic() {
           <SheetTrigger asChild>
             <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Clinic</Button>
           </SheetTrigger>
-          <SheetContent side="right" className="overflow-y-auto">
+          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
             <SheetHeader>
               <SheetTitle>New Clinic</SheetTitle>
             </SheetHeader>
