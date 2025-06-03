@@ -10,32 +10,13 @@ import { useCreateUser } from "@/queries/users/create-user";
 import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { User } from ".";
+import { Role, useGetRole } from "@/queries/roles/get-role";
+import { useGetClinic } from "@/queries/clinic/get-clinic";
+import React from "react";
 
-type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt">;
-
-// const roles = [
-//   { id: "admin", name: "Admin", value: "admin" },
-//   { id: "clinicAdmin", name: "Clinic Admin", value: "clinicAdmin" },
-//   { id: "veterinarian", name: "Veterinarian", value: "veterinarian" },
-//   { id: "receptionist", name: "Receptionist", value: "receptionist" },
-//   { id: "supplier", name: "Supplier", value: "supplier" },
-//   { id: "patient", name: "Patient", value: "patient" },
-//   { id: "client", name: "Client", value: "client" }
-// ];
-
-
-const USER_ROLES = [
-  "admin", 
-  "clinicAdmin",
-  "veterinarian",  
-  "receptionist", 
-  "technician",
-  "supplier",
-  "patient",
-  "client"
-
-  
-];
+type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
+  clinicId?: string;
+};
 
 interface NewUserProps {
   onSuccess?: () => void;
@@ -73,12 +54,33 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       lastName: "",
       role: "",
       isActive: true,
+      clinicId: "",
     },
   });
   
+  const { data: rolesData } = useGetRole();
+  const { data: clinicData } = useGetClinic();
+  
+  const selectedRole = rolesData?.data?.find((role: Role) => role.value === form.watch("role"));
+  const showClinicField = selectedRole?.isClinicRequired;
+
+
   const handleSubmit = async (values: UserFormValues) => {
     try {
-      await createUser.mutateAsync(values);
+      // Find the selected role again to ensure we have the correct id and name at submission time
+      const roleToSend = rolesData?.data?.find((role: Role) => role.value === values.role);
+
+      // Create the payload, excluding the original 'role' value and adding 'roleId' and 'roleName'
+      const { role, ...rest } = values; // Exclude the 'role' field
+      const payload = {
+        ...rest, // Include all other fields from values
+        isActive: true,
+        roleId: roleToSend?.id, // Add the roleId
+        role: roleToSend?.name, // Add the roleName
+      };
+
+      await createUser.mutateAsync(payload as any); // Added 'as any' temporarily for type compatibility, you might need to adjust your mutation's expected type
+
     } catch (error) {
       // Error is handled in onError callback
     }
@@ -133,9 +135,9 @@ export default function NewUser({ onSuccess }: NewUserProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {USER_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  {rolesData?.data.map((role: Role) => (
+                    <SelectItem key={role.id} value={role.value}>
+                      {role.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -143,21 +145,32 @@ export default function NewUser({ onSuccess }: NewUserProps) {
               <FormMessage />
             </FormItem>
           )} />
-        
-          <FormField name="isActive" control={form.control} render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Active</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
+
+          {showClinicField && (
+            <FormField name="clinicId" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Clinic</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select clinic" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {clinicData?.items.map((clinic) => (
+                      <SelectItem key={clinic.id} value={clinic.id}>
+                        {clinic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
         </div>
         
         <div className="flex justify-end mt-6">
