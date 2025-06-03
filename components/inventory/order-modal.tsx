@@ -14,6 +14,10 @@ import { Input } from "@/components/ui/input"
 import { toast, useToast } from "@/components/ui/use-toast"
 import { useCreatePurchaseOrder } from '@/queries/order/create-purchase-order'
 import { useCreatePurchaseOrderItem } from '@/queries/order/create-purchase-order-item'
+import { useGetClinic } from '@/queries/clinic/get-clinic'
+import { useGetSupplier } from '@/queries/suppliers/get-supplier'
+import { useGetProducts } from '@/queries/products/get-products'
+
 
 // Define the form schemas
 const purchaseOrderSchema = z.object({
@@ -64,6 +68,7 @@ const mockData = {
     { value: "order1", label: "PO-2024-001" },
     { value: "order2", label: "PO-2024-002" }
   ]
+
 }
 
 interface OrderModalProps {
@@ -109,6 +114,24 @@ function OrderModal({ isOpen, onClose, purchaseOrderId }: OrderModalProps) {
       createdBy: "" // This should be set from your auth context
     },
   })
+
+  const { data: clinicsData, isLoading: isLoadingClinics } = useGetClinic()
+  const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier()
+
+  const clinicOptions = clinicsData?.items?.map(clinic => ({
+    value: clinic.id,
+    label: clinic.name
+  })) || []
+
+  const supplierOptions = suppliersData?.items?.map(supplier => ({
+    value: supplier.id,
+    label: supplier.name
+  })) || []
+
+  const productOptions = useGetProducts().data?.items?.map(product => ({
+    value: product.id,
+    label: product.name
+  })) || []
 
   const { mutate: createPurchaseOrder, isPending: isCreatingOrder } = useCreatePurchaseOrder(
     (data: any) => {
@@ -217,7 +240,7 @@ function OrderModal({ isOpen, onClose, purchaseOrderId }: OrderModalProps) {
                         <FormLabel>Product</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={mockData.products}
+                            options={productOptions}
                             value={field.value}
                             onValueChange={field.onChange}
                             placeholder="Select product"
@@ -343,7 +366,7 @@ function OrderModal({ isOpen, onClose, purchaseOrderId }: OrderModalProps) {
                           <FormLabel>Clinic</FormLabel>
                           <FormControl>
                             <Combobox
-                              options={mockData.clinics}
+                              options={clinicOptions}
                               value={field.value}
                               onValueChange={field.onChange}
                               placeholder="Select clinic"
@@ -362,7 +385,7 @@ function OrderModal({ isOpen, onClose, purchaseOrderId }: OrderModalProps) {
                           <FormLabel>Supplier</FormLabel>
                           <FormControl>
                             <Combobox
-                              options={mockData.suppliers}
+                              options={supplierOptions}
                               value={field.value}
                               onValueChange={field.onChange}
                               placeholder="Select supplier"
