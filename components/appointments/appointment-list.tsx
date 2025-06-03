@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
@@ -14,8 +14,27 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import useAppointmentFilter from "./hooks/useAppointmentFilter"
+import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
 
-export default function AppointmentList( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
+interface Appointment {
+  id: string;
+  veterinarian?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  patient?: {
+    name?: string;
+  };
+  client?: {
+    firstName?: string;
+    lastName?: string;
+  };
+  status: string;
+  appointmentType?: string;
+}
+
+export default function AppointmentList({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -23,9 +42,12 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   const [selectedStatus, setSelectedStatus] = useState("")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
 
-  // Replace mock data with API call
-  const { data: appointments = [], isLoading } = useGetAppointments()
+
+  const { data: appointments = [], isLoading } = useGetAppointments(searchParams)
+
   const deleteAppointmentMutation = useDeleteAppointment({
     onSuccess: () => {
       toast({
@@ -97,13 +119,23 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   const allCount = enrichedAppointments.length;
 
   // Provider options
-  // You might want to dynamically generate these options from the fetched appointments
-  // based on the available providers in the data, rather than hardcoding.
-  const providerOptions = [
-    { value: "", label: "All Providers" },
-    { value: "Dr. Sarah Johnson", label: "Dr. Sarah Johnson" },
-    { value: "Dr. Michael Chen", label: "Dr. Michael Chen" },
-  ]
+  const providerOptions = useMemo(() => {
+    const uniqueProviders = new Set<string>()
+    appointments.forEach((appointment: Appointment) => {
+      const providerName = `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim()
+      if (providerName) {
+        uniqueProviders.add(providerName)
+      }
+    })
+
+    return [
+      { value: "", label: "All Providers" },
+      ...Array.from(uniqueProviders).map(provider => ({
+        value: provider,
+        label: provider
+      }))
+    ]
+  }, [appointments])
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.
@@ -118,19 +150,42 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
 
   // Filter appointments based on active tab and selected filters
   const filteredAppointments = useMemo(() => {
-    if (activeTab === "all") return enrichedAppointments;
-    if (activeTab === "scheduled")
-      return enrichedAppointments.filter(
+    let filtered = enrichedAppointments
+
+    // Apply status filter based on active tab
+    if (activeTab === "all") {
+      filtered = enrichedAppointments
+    } else if (activeTab === "scheduled") {
+      filtered = enrichedAppointments.filter(
         (a) => a.status === "scheduled" || a.status === "confirmed"
-      );
-    if (activeTab === "checked-in")
-      return enrichedAppointments.filter((a) => a.status === "in_progress");
-    if (activeTab === "completed")
-      return enrichedAppointments.filter((a) => a.status === "completed");
-    if (activeTab === "cancelled")
-      return enrichedAppointments.filter((a) => a.status === "cancelled");
-    return enrichedAppointments;
-  }, [enrichedAppointments, activeTab]);
+      )
+    } else if (activeTab === "checked-in") {
+      filtered = enrichedAppointments.filter((a) => a.status === "in_progress")
+    } else if (activeTab === "completed") {
+      filtered = enrichedAppointments.filter((a) => a.status === "completed")
+    } else if (activeTab === "cancelled") {
+      filtered = enrichedAppointments.filter((a) => a.status === "cancelled")
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(appointment =>
+        appointment.patient?.toLowerCase().includes(query) ||
+        appointment.owner?.toLowerCase().includes(query) ||
+        appointment.appointmentType?.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply provider filter
+    if (selectedProvider) {
+      filtered = filtered.filter(appointment =>
+        `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim() === selectedProvider
+      )
+    }
+
+    return filtered
+  }, [enrichedAppointments, activeTab, searchQuery, selectedProvider])
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -304,7 +359,7 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
             </>
           )}
           {/* Keep Delete button */}
-           <Button
+          <Button
             variant="secondary"
             size="sm"
             onClick={() => deleteAppointmentMutation.mutate(row.original.id.toString())}
@@ -352,18 +407,25 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
   return (
     <div className="p-6">
       {/* Filters */}
-      <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input type="text" placeholder="Search appointments..." className="pl-9" />
-          </div>
-          <div className="relative">
-            <Button variant="outline" className="w-full justify-between">
-              Date: Today <ChevronDown className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-          <div className="relative">
+      <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-3 mb-6">
+        <div className="flex items-center gap-3 ">
+          <DatePickerWithRangeV2
+            date={{
+              from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
+              to: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined
+            }}
+            setDate={async (date) => {
+              try {
+                if (date?.from && date?.to) {
+                  handleDate(date.from.toISOString(), date.to.toISOString());
+                }
+              } catch (error) {
+                console.error('Error updating date range:', error);
+              }
+            }}
+            className="h-full"
+          />
+          <div className="w-[400px]">
             <Combobox
               options={providerOptions}
               value={selectedProvider}
@@ -373,12 +435,16 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
               emptyText="No providers found."
             />
           </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button onClick={() => {
-            setSelectedProvider("")
-            setSelectedStatus("")
-          }}>Clear Filters</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedProvider("")
+              setSearchQuery("")
+              removeAllFilters()
+            }}
+          >
+            <XIcon className="w-4 h-4" /> Clear Filters
+          </Button>
         </div>
       </div>
 
@@ -386,51 +452,46 @@ export default function AppointmentList( {onAppointmentClick}: {onAppointmentCli
       <div className="flex overflow-x-auto mb-6 bg-white dark:bg-slate-800 rounded-lg">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "all"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "all"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           All ({allCount})
         </button>
         <button
           onClick={() => setActiveTab("scheduled")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "scheduled"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "scheduled"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Scheduled ({scheduledCount})
         </button>
         <button
           onClick={() => setActiveTab("checked-in")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "checked-in"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "checked-in"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Checked In ({checkedInCount})
         </button>
         <button
           onClick={() => setActiveTab("completed")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "completed"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "completed"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Completed ({completedCount})
         </button>
         <button
           onClick={() => setActiveTab("cancelled")}
-          className={`px-6 py-3 text-sm font-medium ${
-            activeTab === "cancelled"
+          className={`px-6 py-3 text-sm font-medium ${activeTab === "cancelled"
               ? "theme-active text-white"
               : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          }`}
+            }`}
         >
           Cancelled ({cancelledCount})
         </button>

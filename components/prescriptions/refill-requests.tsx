@@ -16,12 +16,19 @@ import { StatusBadge } from "./status-badge"
 export function RefillRequests() {
   const [open, setOpen] = useState(false)
   const [colorTheme, setColorTheme] = useState("purple")
+  const [mounted, setMounted] = useState(false)
 
   // Ensure we only access localStorage on the client side
   useEffect(() => {
+    setMounted(true)
     const savedColorTheme = localStorage.getItem("pawtrack-color-theme") || "purple"
     setColorTheme(savedColorTheme)
   }, [])
+
+  // Don't render full component until after client-side hydration
+  if (!mounted) return <Button variant="outline" className="theme-button-outline">
+    Refill Requests
+  </Button>
 
   // Sample refill request data
   const refillRequests = [
@@ -144,4 +151,4 @@ export function RefillRequests() {
       </DialogContent>
     </Dialog>
   )
-}
+} 

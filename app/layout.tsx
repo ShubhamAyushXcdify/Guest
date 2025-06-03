@@ -1,6 +1,6 @@
 import type React from "react"
 import "@/app/globals.css"
-import MainLayout from "@/components/layout/mainLayout"
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import localFont from "next/font/local";
 import QueryWrapper from "@/components/layout/queryWrapper";
 const geistSans = localFont({
@@ -22,15 +22,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body  className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          <QueryWrapper>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <QueryWrapper>
+          <NuqsAdapter>
             {children}
-          </QueryWrapper>
+          </NuqsAdapter>
+        </QueryWrapper>
       </body>
     </html>
   )
 }
 
 export const metadata = {
-      generator: 'v0.dev'
-    };
+  generator: 'v0.dev'
+};

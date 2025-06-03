@@ -8,11 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
-export default function ProcessPayment({ isOpen, onClose, colorTheme = "purple" }) {
+export default function ProcessPayment({ open, onClose }: { open: boolean, onClose: () => void }) {
   const [paymentMethod, setPaymentMethod] = useState("credit-card")
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className={`text-xl font-bold theme-text-primary`}>Process Payment</DialogTitle>
@@ -105,4 +105,4 @@ export default function ProcessPayment({ isOpen, onClose, colorTheme = "purple" 
       </DialogContent>
     </Dialog>
   )
-}
+} 

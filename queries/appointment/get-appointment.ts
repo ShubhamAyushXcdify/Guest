@@ -1,3 +1,4 @@
+import { appointmentSearchParamsParser, appointmentSearchParamsSerializer, AppointmentSearchParamsType } from "@/components/appointments/hooks/useAppointmentFilter";
 import { useQuery } from "@tanstack/react-query";
 
 interface AppointmentResponse {
@@ -10,10 +11,13 @@ interface AppointmentResponse {
   hasNextPage: boolean;
 }
 
-const getAppointments = async () => {
+const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
   try {
-    const url = `/api/appointment`;
-    
+    let url = `/api/appointment`;
+    const serialize = appointmentSearchParamsSerializer({ ...searchParams });
+    if (serialize) {
+      url += `?${serialize}`;
+    }
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -32,9 +36,9 @@ const getAppointments = async () => {
   }
 }
 
-export const useGetAppointments = () => {
+export const useGetAppointments = (searchParams: AppointmentSearchParamsType) => {
   return useQuery({
     queryKey: ['appointment'],
-    queryFn: getAppointments,
+    queryFn: () => getAppointments(searchParams),
   })
 } 
