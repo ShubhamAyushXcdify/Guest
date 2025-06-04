@@ -32,7 +32,7 @@ export const useCreateRoom = ({ onSuccess, onError }: {
   return useMutation({
     mutationFn: createRoom,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['room'] })
+        queryClient.invalidateQueries({ queryKey: ['room'] })
       onSuccess?.()
     },
     onError: (error: any) => {

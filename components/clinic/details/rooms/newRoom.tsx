@@ -1,13 +1,12 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useCreateRoom } from "@/queries/rooms/create-room";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Room } from "./index";
-import { Switch } from "../ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type NewRoomProps = {
   clinicId?: string;
@@ -49,7 +48,10 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
   
   const handleSubmit = async (values: Omit<Room, "id" | "createdAt">) => {
     try {
-      await createRoom.mutateAsync(values);
+      await createRoom.mutateAsync({
+        ...values,
+        isActive: true
+      });
     } catch (error) {
       // Error is handled in onError callback
     }
@@ -93,20 +95,6 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
                   <SelectItem value="recovery">Recovery</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="isActive" control={form.control} render={({ field }) => (
-            <FormItem className="flex items-center gap-2">
-              <FormLabel>Active</FormLabel>
-              <FormControl>
-                <input
-                  type="checkbox"
-                  checked={field.value}
-                  onChange={e => field.onChange(e.target.checked)}
-                />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )} />

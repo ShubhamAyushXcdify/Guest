@@ -37,6 +37,27 @@ const pathMappings: PathMapping = {
   // Add more path mappings as needed
 }
 
+// Function to format segment names for display
+const formatSegmentName = (segment: string, index: number, segments: string[]): string => {
+  // Check if this might be a clinic ID (UUIDs are typically 36 chars)
+  if (segment.length > 30 && segment.includes('-')) {
+    // If previous segment is "clinic", don't repeat "Clinic" word
+    if (index > 0 && segments[index-1].toLowerCase() === "clinic") {
+      // Return nothing - we'll filter this out
+      return "";
+    }
+    return "Clinic";
+  }
+  
+  // For tabs within the clinic section
+  if (['rooms', 'slots', 'doctors', 'users'].includes(segment)) {
+    return segment.charAt(0).toUpperCase() + segment.slice(1);
+  }
+  
+  // Default capitalization for other segments
+  return segment.charAt(0).toUpperCase() + segment.slice(1);
+}
+
 export function BreadcrumbNav() {
   const pathname = usePathname()
   const router = useRouter()
@@ -48,11 +69,12 @@ export function BreadcrumbNav() {
   const segments = pathname.split('/').filter(Boolean)
   const visibleSegments = segments.map((segment, index) => {
     const path = '/' + segments.slice(0, index + 1).join('/')
+    const name = formatSegmentName(segment, index, segments)
     return {
-      name: segment.charAt(0).toUpperCase() + segment.slice(1),
+      name,
       path
     }
-  })
+  }).filter(segment => segment.name !== "") // Filter out empty segment names
 
   return (
     <Breadcrumb className="text-sm text-muted-foreground">
@@ -62,7 +84,7 @@ export function BreadcrumbNav() {
         </BreadcrumbItem>
 
         {visibleSegments.map((segment, index) => {
-          const isLast = index === visibleSegments.length - 1
+          const isLast = index === visibleSegments.length - 1;
           
           return (
             <React.Fragment key={segment.path}>
@@ -77,9 +99,9 @@ export function BreadcrumbNav() {
                 )}
               </BreadcrumbItem>
             </React.Fragment>
-          )
+          );
         })}
       </BreadcrumbList>
     </Breadcrumb>
-  )
+  );
 } 

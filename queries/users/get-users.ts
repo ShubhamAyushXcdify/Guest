@@ -25,8 +25,19 @@ export interface UserResponse {
   hasNextPage: boolean;
 }
 
-const getUsers = async (pageNumber = 1, pageSize = 10, search = ''): Promise<UserResponse> => {
-  const response = await fetch(`/api/user?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
+const getUsers = async (pageNumber = 1, pageSize = 10, search = '', clinicId = '', roleId = ''): Promise<UserResponse> => {
+  const queryParams = new URLSearchParams({
+    pageNumber: pageNumber.toString(),
+    pageSize: pageSize.toString(),
+  });
+  
+  if (search) queryParams.append('search', search);
+  if (clinicId) queryParams.append('clinicId', clinicId);
+  if (roleId) queryParams.append('roleId', roleId);
+  
+  const url = `/api/user?${queryParams.toString()}`;
+  
+  const response = await fetch(url);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch user data');
@@ -36,10 +47,10 @@ const getUsers = async (pageNumber = 1, pageSize = 10, search = ''): Promise<Use
   return data as UserResponse;
 };
 
-export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
+export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', clinicId = '', enabled = true, roleId = '') => {
   return useQuery({
-    queryKey: ["users", pageNumber, pageSize, search],
-    queryFn: () => getUsers(pageNumber, pageSize, search),
+    queryKey: ["users", pageNumber, pageSize, search, clinicId, roleId],
+    queryFn: () => getUsers(pageNumber, pageSize, search, clinicId, roleId),
     refetchOnWindowFocus: false,
     placeholderData: keepPreviousData,
     enabled

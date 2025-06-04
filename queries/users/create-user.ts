@@ -32,6 +32,7 @@ export const useCreateUser = ({ onSuccess, onError }: {
     mutationFn: createUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['doctors'] });
       onSuccess?.();
     },
     onError: (error: any) => {
