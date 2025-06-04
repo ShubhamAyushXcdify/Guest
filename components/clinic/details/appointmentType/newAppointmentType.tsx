@@ -3,24 +3,23 @@ import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useCreateRoom } from "@/queries/rooms/create-room";
+import { useCreateAppointmentType } from "@/queries/appointmentType/create-appointmentType";
 import { toast } from "@/components/ui/use-toast";
-import { Room } from "./index";
-import { Combobox } from "@/components/ui/combobox";
+import { AppointmentType } from "@/queries/appointmentType/get-appointmentType";
 
-type NewRoomProps = {
+type NewAppointmentTypeProps = {
   clinicId?: string;
   onSuccess?: () => void;
 };
 
-export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
+export default function NewAppointmentType({ clinicId, onSuccess }: NewAppointmentTypeProps) {
   const router = useRouter();
   
-  const createRoom = useCreateRoom({
+  const createAppointmentType = useCreateAppointmentType({
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Room created successfully",
+        description: "Appointment type created successfully",
       });
       if (onSuccess) {
         onSuccess();
@@ -28,36 +27,26 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
         router.push("/clinic");
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: "Failed to create room",
+        description: "Failed to create appointment type",
         variant: "destructive",
       });
     },
   });
   
-  const form = useForm<Omit<Room, "id" | "createdAt">>({
+  const form = useForm<Omit<AppointmentType, "appointmentTypeId">>({
     defaultValues: {
       name: "",
       clinicId: clinicId || "",
-      roomType: "",
-      isActive: true,
     },
   });
-
-  const roomTypeOptions = [
-    { value: "examination", label: "Examination" },
-    { value: "surgery", label: "Surgery" },
-    { value: "isolation", label: "Isolation" },
-    { value: "recovery", label: "Recovery" },
-  ];
   
-  const handleSubmit = async (values: Omit<Room, "id" | "createdAt">) => {
+  const handleSubmit = async (values: Omit<AppointmentType, "appointmentTypeId">) => {
     try {
-      await createRoom.mutateAsync({
-        ...values,
-        isActive: true
+      await createAppointmentType.mutateAsync({
+        ...values
       });
     } catch (error) {
       // Error is handled in onError callback
@@ -66,7 +55,7 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full pt-4">
         <div className="grid grid-cols-1 gap-8">
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>
@@ -85,31 +74,14 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
               </FormItem>
             )} />
           )}
-          
-          <FormField name="roomType" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Room Type</FormLabel>
-              <FormControl>
-                <Combobox
-                  options={roomTypeOptions}
-                  value={field.value || ""}
-                  onValueChange={field.onChange}
-                  placeholder="Select a room type"
-                  searchPlaceholder="Search room types..."
-                  emptyText="No room types found"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
         </div>
         
         <div className="flex justify-end mt-6">
           <Button type="submit">
-            Create Room
+            Create Appointment Type
           </Button>
         </div>
       </form>
     </Form>
   );
-} 
+}

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import React from "react";
+import { Combobox } from "@/components/ui/combobox";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt">;
 
@@ -55,6 +56,13 @@ export default function NewUser({ clinicId, onSuccess }: NewUserProps) {
   });
   
   const { data: rolesData } = useGetRole();
+  
+  const roleOptions = React.useMemo(() => {
+    return rolesData?.data?.map((role: Role) => ({
+      value: role.value,
+      label: role.name
+    })) || [];
+  }, [rolesData?.data]);
   
   const handleSubmit = async (values: UserFormValues) => {
     try {
@@ -116,23 +124,16 @@ export default function NewUser({ clinicId, onSuccess }: NewUserProps) {
           <FormField name="role" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value || ""}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {rolesData?.data?.map((role: Role) => (
-                    <SelectItem key={role.id} value={role.value}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Combobox
+                  options={roleOptions}
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                  placeholder="Select role"
+                  searchPlaceholder="Search roles..."
+                  emptyText="No roles found"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />

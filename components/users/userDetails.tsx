@@ -11,10 +11,10 @@ import { Switch } from "../ui/switch";
 import { User } from ".";
 import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import clinic from "../clinic";
+import { Combobox } from "../ui/combobox";
 
 interface UserDetailsProps {
   userId: string;
@@ -139,27 +139,21 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
           <FormField name="roleId" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select 
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  // Reset clinicId when role changes
-                  form.setValue("clinicId", "");
-                }}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {rolesData?.data.map((role:any) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Combobox
+                  options={rolesData?.data?.map((role: any) => ({
+                    value: role.id,
+                    label: role.name
+                  })) || []}
+                  value={field.value?.toString()}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // Reset clinicId when role changes
+                    form.setValue("clinicId", "");
+                  }}
+                  placeholder="Select role"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />
@@ -168,23 +162,17 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
             <FormField name="clinicId" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinic</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select clinic" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clinicData?.items.map((clinic) => (
-                      <SelectItem key={clinic.id} value={clinic.id}>
-                        {clinic.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Combobox
+                    options={clinicData?.items?.map((clinic) => ({
+                      value: clinic.id,
+                      label: clinic.name
+                    })) || []}
+                    value={field.value?.toString()}
+                    onValueChange={field.onChange}
+                    placeholder="Select clinic"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />

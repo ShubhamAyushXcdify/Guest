@@ -10,8 +10,8 @@ import { useForm } from "react-hook-form";
 import { User } from ".";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Role, useGetRole } from "@/queries/roles/get-role";
+import { Combobox } from "@/components/ui/combobox";
 
 interface UserDetailsProps {
   userId: string;
@@ -28,7 +28,7 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
   const { data: rolesData } = useGetRole();
   
   // Initialize form with empty values that will be updated when data is loaded
-  const form = useForm<User & { password: string }>({
+  const form = useForm<User & { password: string } & { roleId: string }>({
     defaultValues: {
       id: userId,
       email: "",
@@ -37,6 +37,7 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
       firstName: "",
       lastName: "",
       role: "",
+      roleId: "",
       isActive: true
     }
   });
@@ -51,20 +52,16 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
         lastName: user.lastName || "",
         email: user.email || "",
         role: user.role || "",
+        roleId: user.roleId || "",
         password: "", // Initialize empty password field
         isActive: true
       };
       
       form.reset(defaultValues);
       
-      // Find and set the selected role if not already set
+      // Set the roleId if not already set
       if (rolesData?.data && user.roleId) {
-        const matchingRole = rolesData.data.find((role: Role) => 
-          role.id === user.roleId || role.name === user.role
-        );
-        if (matchingRole) {
-          form.setValue('role', matchingRole.value);
-        }
+        form.setValue('roleId', user.roleId);
       }
     }
   }, [user, form, rolesData]);
@@ -77,10 +74,10 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
     return <div>User not found</div>;
   }
   
-  const handleSubmit = async (values: User & { password: string }) => {
+  const handleSubmit = async (values: User & { password: string } & { roleId: string }) => {
     try {
-      // Find the selected role to get the roleId
-      const selectedRole = rolesData?.data?.find((role: Role) => role.value === values.role || role.name === values.role);
+      // Find the selected role to get additional role information
+      const selectedRole = rolesData?.data?.find((role: Role) => role.id === values.roleId);
       
       // Only include the specific fields needed for update
       const payload = {
@@ -89,7 +86,8 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
         passwordHash: values.password && isPasswordDirty ? values.password : user.passwordHash || "",
         firstName: values.firstName,
         lastName: values.lastName,
-        role: values.role ? (values.role.charAt(0).toUpperCase() + values.role.slice(1)) : "",
+        roleId: values.roleId,
+        role: selectedRole?.name || "",
         clinicId: clinicId || user.clinicId || "",
         isActive: true
       };
@@ -161,29 +159,29 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
             </FormItem>
           )} />
           
-          <FormField name="role" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value || ""}
-              >
+          <FormField 
+            control={form.control}
+            name="roleId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Role</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
+                  <Combobox
+                    options={rolesData?.data?.map((role: Role) => ({
+                      value: role.id,
+                      label: role.name
+                    })) || []}
+                    value={field.value?.toString()}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                    }}
+                    placeholder="Select role"
+                  />
                 </FormControl>
-                <SelectContent>
-                  {rolesData?.data?.map((role: Role) => (
-                    <SelectItem key={role.id} value={role.value}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         
         <div className="flex justify-end mt-6">

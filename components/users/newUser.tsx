@@ -13,6 +13,7 @@ import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import React from "react";
+import { Combobox } from "../ui/combobox";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
   clinicId?: string;
@@ -64,6 +65,19 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const selectedRole = rolesData?.data?.find((role: Role) => role.value === form.watch("role"));
   const showClinicField = selectedRole?.isClinicRequired;
 
+  const roleOptions = React.useMemo(() => {
+    return rolesData?.data?.map((role: Role) => ({
+      value: role.value,
+      label: role.name
+    })) || [];
+  }, [rolesData?.data]);
+
+  const clinicOptions = React.useMemo(() => {
+    return clinicData?.items?.map((clinic) => ({
+      value: clinic.id,
+      label: clinic.name
+    })) || [];
+  }, [clinicData?.items]);
 
   const handleSubmit = async (values: UserFormValues) => {
     try {
@@ -125,23 +139,16 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           <FormField name="role" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {rolesData?.data.map((role: Role) => (
-                    <SelectItem key={role.id} value={role.value}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Combobox
+                  options={roleOptions}
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                  placeholder="Select role"
+                  searchPlaceholder="Search roles..."
+                  emptyText="No roles found"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />
@@ -150,23 +157,16 @@ export default function NewUser({ onSuccess }: NewUserProps) {
             <FormField name="clinicId" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinic</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select clinic" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clinicData?.items.map((clinic) => (
-                      <SelectItem key={clinic.id} value={clinic.id}>
-                        {clinic.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Combobox
+                    options={clinicOptions}
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder="Select clinic"
+                    searchPlaceholder="Search clinics..."
+                    emptyText="No clinics found"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />

@@ -152,6 +152,7 @@ function Room({ clinicId }: RoomProps) {
           {selectedRoomId && (
             <RoomDetails 
               roomId={selectedRoomId}
+              clinicId={clinicId || ''}
               onSuccess={() => setOpenDetails(false)}
             />
           )}

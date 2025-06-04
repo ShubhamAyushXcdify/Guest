@@ -7,7 +7,7 @@ import { useGetRoomById } from "@/queries/rooms/get-room-by-id";
 import { useUpdateRoom } from "@/queries/rooms/update-room";
 import { toast } from "@/components/ui/use-toast";
 import { useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 // Define form values explicitly to avoid TypeScript errors
 type FormValues = {
@@ -17,11 +17,20 @@ type FormValues = {
 
 type RoomDetailsProps = {
   roomId: string;
+  clinicId: string;
   onSuccess?: () => void;
 };
 
-export default function RoomDetails({ roomId, onSuccess }: RoomDetailsProps) {
+export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetailsProps) {
   const router = useRouter();
+  
+  // Room type options for the combobox
+  const roomTypeOptions = [
+    { value: "examination", label: "Examination" },
+    { value: "surgery", label: "Surgery" },
+    { value: "isolation", label: "Isolation" },
+    { value: "recovery", label: "Recovery" }
+  ];
 
   const { data: room, isLoading } = useGetRoomById(roomId);
   const updateRoom = useUpdateRoom({
@@ -71,6 +80,8 @@ export default function RoomDetails({ roomId, onSuccess }: RoomDetailsProps) {
       // Cast to any to avoid TypeScript errors with the API
       const updateData: any = {
         ...values,
+        id: roomId,
+        clinicId,
         isActive: true // Always keep active
       };
       
@@ -100,22 +111,16 @@ export default function RoomDetails({ roomId, onSuccess }: RoomDetailsProps) {
           <FormField name="roomType" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Room Type</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value || ""} 
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a room type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="examination">Examination</SelectItem>
-                  <SelectItem value="surgery">Surgery</SelectItem>
-                  <SelectItem value="isolation">Isolation</SelectItem>
-                  <SelectItem value="recovery">Recovery</SelectItem>
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Combobox
+                  options={roomTypeOptions}
+                  value={field.value || ""}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                  }}
+                  placeholder="Select a room type"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />
