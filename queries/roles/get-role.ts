@@ -8,7 +8,7 @@ export type Role = {
     metadata: string;
     createdAt: string;
     updatedAt: string;
-    isClinicalRequired: boolean;
+    isClinicRequired: boolean;
 };
 
 const getRole = async (pageNumber = 1, pageSize = 10, search = '') => {

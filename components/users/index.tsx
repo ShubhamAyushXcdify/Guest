@@ -12,6 +12,7 @@ import UserDetails from "./userDetails";
 import { useDeleteUser } from "@/queries/users/delete-user";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
+import { useRouter } from "next/navigation";
 
 // User type based on the provided API schema
 export type User = {
@@ -21,6 +22,8 @@ export type User = {
   firstName: string;
   lastName: string;
   role: string;
+  roleId: string; 
+  clinicId?: string;
   isActive: boolean;
   lastLogin?: string;
   createdAt?: string;
@@ -37,6 +40,7 @@ export default function Users() {
   const totalPages = usersData?.totalPages || 1;
   
   const [openNew, setOpenNew] = useState(false);
+  const [openRole, setOpenRole] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const deleteUser = useDeleteUser();
@@ -46,6 +50,8 @@ export default function Users() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const router = useRouter();
+  
   const handleUserClick = (userId: string) => {
     setSelectedUserId(userId);
     setOpenDetails(true);
@@ -55,6 +61,10 @@ export default function Users() {
     setUserToDelete(user);
     setIsDeleteDialogOpen(true);
   };
+
+  const openRolePage = () => {
+    router.push("/roles")
+  }
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
@@ -98,11 +108,6 @@ export default function Users() {
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "role", header: "Role" },
-    { 
-      accessorKey: "isActive", 
-      header: "Status", 
-      cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "destructive"}>{getValue() ? "Active" : "Inactive"}</Badge>
-    },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -139,6 +144,10 @@ export default function Users() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Users</h1>
+        <div className="flex flex-row gap-2">
+            <Button onClick={openRolePage}>
+              Manage Roles
+        </Button>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
             <Button onClick={() => setOpenNew(true)}>
@@ -154,6 +163,7 @@ export default function Users() {
             }} />
           </SheetContent>
         </Sheet>
+        </div>
       </div>
       
       {isLoading ? (
