@@ -105,6 +105,8 @@ export function PrescriptionsScreen() {
               <div className="flex-1">
                 <Input
                   type="text"
+                  value=""
+                  onChange={() => {}}
                   placeholder="Search by patient, medication, or prescription #"
                   className="w-full bg-white dark:bg-slate-800"
                 />
