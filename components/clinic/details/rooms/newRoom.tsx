@@ -1,13 +1,12 @@
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useCreateRoom } from "@/queries/rooms/create-room";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { Room } from "./index";
-import { Switch } from "../ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 type NewRoomProps = {
   clinicId?: string;
@@ -46,10 +45,20 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
       isActive: true,
     },
   });
+
+  const roomTypeOptions = [
+    { value: "examination", label: "Examination" },
+    { value: "surgery", label: "Surgery" },
+    { value: "isolation", label: "Isolation" },
+    { value: "recovery", label: "Recovery" },
+  ];
   
   const handleSubmit = async (values: Omit<Room, "id" | "createdAt">) => {
     try {
-      await createRoom.mutateAsync(values);
+      await createRoom.mutateAsync({
+        ...values,
+        isActive: true
+      });
     } catch (error) {
       // Error is handled in onError callback
     }
@@ -80,31 +89,14 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
           <FormField name="roomType" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Room Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value ?? ""}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a room type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="examination">Examination</SelectItem>
-                  <SelectItem value="surgery">Surgery</SelectItem>
-                  <SelectItem value="isolation">Isolation</SelectItem>
-                  <SelectItem value="recovery">Recovery</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="isActive" control={form.control} render={({ field }) => (
-            <FormItem className="flex items-center gap-2">
-              <FormLabel>Active</FormLabel>
               <FormControl>
-                <input
-                  type="checkbox"
-                  checked={field.value}
-                  onChange={e => field.onChange(e.target.checked)}
+                <Combobox
+                  options={roomTypeOptions}
+                  value={field.value || ""}
+                  onValueChange={field.onChange}
+                  placeholder="Select a room type"
+                  searchPlaceholder="Search room types..."
+                  emptyText="No room types found"
                 />
               </FormControl>
               <FormMessage />

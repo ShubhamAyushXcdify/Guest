@@ -127,12 +127,6 @@ const navGroups = [
                 color: "text-purple-500",
             },
             {
-                href: "/roles",
-                label: "Roles",
-                icon: Users,
-                color: "text-purple-500",
-            },
-            {
                 href: "/products",
                 label: "Products",
                 icon: Package,

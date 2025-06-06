@@ -7,7 +7,7 @@ interface UpdateUserData {
 
 const updateUser = async (data: UpdateUserData) => {
   try {
-    const response = await fetch(`/api/user`, {
+    const response = await fetch(`/api/user/${data.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -31,6 +31,7 @@ export const useUpdateUser = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["doctors"] });
       
     },
   });

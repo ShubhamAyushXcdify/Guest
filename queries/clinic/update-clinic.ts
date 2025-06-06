@@ -6,7 +6,7 @@ interface UpdateClinicData {
 }
 
 const updateClinic = async (data: UpdateClinicData) => {
-  const response = await fetch(`/api/clinic/${data.id}`, {
+  const response = await fetch(`/api/clinic`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

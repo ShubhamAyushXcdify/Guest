@@ -4,7 +4,7 @@ import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { useGetRole } from "@/queries/roles/get-role";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewRole from "./newRole";
@@ -13,8 +13,10 @@ import { useDeleteRole } from "@/queries/roles/delete-role";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { Role } from "@/queries/roles/get-role";
+import { useRouter } from "next/navigation";
 
 export default function Roles() {
+  const router = useRouter();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
@@ -127,6 +129,13 @@ export default function Roles() {
 
   return (
     <div className="space-y-4">
+      <div>
+        <Button variant="outline" size="sm" onClick={() => router.push('/users')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Users
+        </Button>
+      </div>
+      
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Roles</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>

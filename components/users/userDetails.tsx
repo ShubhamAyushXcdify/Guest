@@ -11,18 +11,10 @@ import { Switch } from "../ui/switch";
 import { User } from ".";
 import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-
-const USER_ROLES = [
-  "admin", 
-  "clinicAdmin",
-  "veterinarian",  
-  "receptionist", 
-  "technician", 
-  "supplier",
-  "patient",
-  "client"
-];
+import { useGetRole } from "@/queries/roles/get-role";
+import { useGetClinic } from "@/queries/clinic/get-clinic";
+import clinic from "../clinic";
+import { Combobox } from "../ui/combobox";
 
 interface UserDetailsProps {
   userId: string;
@@ -33,6 +25,8 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   const router = useRouter();
   
   const { data: user, isLoading } = useGetUserById(userId);
+  const { data: rolesData } = useGetRole();
+  const { data: clinicData } = useGetClinic();
   const updateUser = useUpdateUser();
   
   // Initialize form with empty values that will be updated when data is loaded
@@ -44,6 +38,8 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       firstName: "",
       lastName: "",
       role: "",
+      roleId: "",
+      clinicId: "",
       isActive: false
     }
   });
@@ -58,12 +54,16 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
         lastName: user.lastName || "",
         email: user.email || "",
         role: user.role || "",
+        roleId: user.roleId || "",
+        clinicId: user.clinicId || "",
         isActive: typeof user.isActive === 'boolean' ? user.isActive : false
       };
-      
       form.reset(defaultValues);
     }
   }, [user, form]);
+
+  const selectedRole = rolesData?.data?.find((role:any) => role.id === form.watch("roleId"));
+  const showClinicField = selectedRole?.isClinicRequired;
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -75,7 +75,19 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   
   const handleSubmit = async (values: User) => {
     try {
-      await updateUser.mutateAsync(values);
+      // Find the selected role to ensure we have the correct data
+      const roleToSend = rolesData?.data?.find((role : any) => role.id === values.roleId);
+      
+      // Create the payload with role and clinic information
+      const payload = {
+        ...values,
+        isActive: true,
+        role: roleToSend?.name,
+        roleId: roleToSend?.id,
+        clinicId: selectedRole?.isClinicRequired ? values.clinicId : null,
+      };
+
+      await updateUser.mutateAsync(payload);
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -89,9 +101,6 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       });
     }
   };
-  
-  // Ensure we have a role value from the user data
-  const userRole = user?.role || "";
   
   return (
     <Form {...form}>
@@ -127,40 +136,47 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
             </FormItem>
           )} />
           
-          {/* Use the direct user role data instead of relying on form state */}
-          <div className="space-y-2">
-            <FormLabel>Role</FormLabel>
-            <Select 
-              defaultValue={userRole}
-              onValueChange={(value) => form.setValue("role", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                {USER_ROLES.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        
-          <FormField name="isActive" control={form.control} render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Active</FormLabel>
-              </div>
+          <FormField name="roleId" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Role</FormLabel>
               <FormControl>
-                <Switch
-                  checked={!!field.value}
-                  onCheckedChange={field.onChange}
+                <Combobox
+                  options={rolesData?.data?.map((role: any) => ({
+                    value: role.id,
+                    label: role.name
+                  })) || []}
+                  value={field.value?.toString()}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // Reset clinicId when role changes
+                    form.setValue("clinicId", "");
+                  }}
+                  placeholder="Select role"
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )} />
+
+          {showClinicField && (
+            <FormField name="clinicId" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Clinic</FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={clinicData?.items?.map((clinic) => ({
+                      value: clinic.id,
+                      label: clinic.name
+                    })) || []}
+                    value={field.value?.toString()}
+                    onValueChange={field.onChange}
+                    placeholder="Select clinic"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
         </div>
         
         <div className="flex justify-end mt-6">

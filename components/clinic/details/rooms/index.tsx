@@ -1,21 +1,21 @@
 'use client'
 import React, { useMemo, useState } from "react";
-import { DataTable } from "../ui/data-table";
-import { Button } from "../ui/button";
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "../ui/sheet";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "../ui/form";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
+import { DataTable } from "@/components/ui/data-table";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import withAuth from "@/utils/privateRouter";
 import { useDeleteRoom } from "@/queries/rooms/delete-room";
-import { toast } from "../ui/use-toast";
-import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
+import { toast } from "@/components/ui/use-toast";
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import NewRoom from "./newRoom";
 import RoomDetails from "./roomDetails";
-import { useGetRoom } from "@/queries/rooms";
+import { useGetRoom } from "@/queries/rooms/get-room";
 
 // Room type based on API response
 export type Room = {
@@ -145,13 +145,14 @@ function Room({ clinicId }: RoomProps) {
       />
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+        <SheetContent side="right" className="overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Room Details</SheetTitle>
           </SheetHeader>
           {selectedRoomId && (
             <RoomDetails 
               roomId={selectedRoomId}
+              clinicId={clinicId || ''}
               onSuccess={() => setOpenDetails(false)}
             />
           )}

@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
         const search = searchParams.get('search') || '';
+        const clinicId = searchParams.get('clinicId') || '';
+        const roleId = searchParams.get('roleId') || '';
         
+
         let token = getJwtToken(request);
 
         if(!token) {
@@ -24,7 +27,7 @@ export async function GET(request: NextRequest) {
         console.log('Using token (masked):', token ? token.substring(0, 10) + '...' : 'No token');
 
         const response = await fetch(
-            `${apiUrl}/api/User?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
+            `${apiUrl}/api/User?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clinicId=${clinicId}&roleId=${roleId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -67,7 +70,7 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ ...body}),
+            body: JSON.stringify({ ...body, clinicId: body.clinicId }),
         });
 
 
@@ -123,7 +126,7 @@ export async function PUT(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({ ...body, clinicId: body.clinicId }),
         });
 
         if (response.status === 401) {
