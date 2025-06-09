@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -65,17 +65,17 @@ export function NewPrescriptionForm() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button className="theme-button text-white">
           <Plus className="mr-2 h-4 w-4" /> New Prescription
         </Button>
-      </DialogTrigger>
-      <DialogContent className={`sm:max-w-[600px] theme-${colorTheme}`}>
-        <DialogHeader>
-          <DialogTitle className="text-xl theme-text-primary">Create New Prescription</DialogTitle>
-          <DialogDescription>Fill out the form below to create a new prescription</DialogDescription>
-        </DialogHeader>
+      </SheetTrigger>
+      <SheetContent className={`theme-${colorTheme} w-[600px] sm:max-w-[600px]`}>
+        <SheetHeader>
+          <SheetTitle className="text-xl theme-text-primary">Create New Prescription</SheetTitle>
+          <SheetDescription>Fill out the form below to create a new prescription</SheetDescription>
+        </SheetHeader>
 
         <form onSubmit={handleSubmit} className="grid gap-6 py-4">
           <div className="grid grid-cols-2 gap-4">
@@ -172,16 +172,16 @@ export function NewPrescriptionForm() {
             />
           </div>
 
-          <DialogFooter>
+          <SheetFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
             <Button type="submit" className="theme-button text-white">
               Create Prescription
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 } 

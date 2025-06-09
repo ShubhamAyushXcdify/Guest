@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { StatusBadge } from "./status-badge"
 
 export function RefillRequests() {
@@ -59,17 +59,17 @@ export function RefillRequests() {
   ]
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button variant="outline" className="theme-button-outline">
           Refill Requests
         </Button>
-      </DialogTrigger>
-      <DialogContent className={`sm:max-w-[800px] theme-${colorTheme}`}>
-        <DialogHeader>
-          <DialogTitle className="text-xl theme-text-primary">Prescription Refill Requests</DialogTitle>
-          <DialogDescription>Review and manage refill requests</DialogDescription>
-        </DialogHeader>
+      </SheetTrigger>
+      <SheetContent className={`w-full sm:max-w-[80%] theme-${colorTheme}`}>
+        <SheetHeader>
+          <SheetTitle className="text-xl theme-text-primary">Prescription Refill Requests</SheetTitle>
+          <SheetDescription>Review and manage refill requests</SheetDescription>
+        </SheetHeader>
 
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -143,12 +143,12 @@ export function RefillRequests() {
           </table>
         </div>
 
-        <DialogFooter>
+        <SheetFooter>
           <Button onClick={() => setOpen(false)} className="theme-button-outline">
             Close
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 } 
