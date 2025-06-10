@@ -10,7 +10,11 @@ import {
     removeJwtToken,
     removeProjectName,
     removeProjectId,
-    removeWorkspaceId
+    removeClinicId,
+    setUserId,
+    setClinicId,
+    setClinicName,
+    removeClinicName
 } from "../utils/clientCookie";
 
 
@@ -107,8 +111,10 @@ export const useContentLayout = () => {
                 setAuthorized(false);
                 return;
             }
-
+            setUserId(userData.id)
             setUser(userData);
+            setClinicId(userData.clinicId)
+            setClinicName(userData.clinicName)
             setClinic({
                 id: userData.clinicId,
                 name: userData.clinicName
@@ -164,7 +170,8 @@ export const useContentLayout = () => {
         removeProjectName();
         removeJwtToken();
         removeUserId();
-        removeWorkspaceId();
+        removeClinicId();
+        removeClinicName();
         setTimeout(() => {
             setAuthorized(false);
             //window.location.reload();

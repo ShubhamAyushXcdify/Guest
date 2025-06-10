@@ -52,28 +52,28 @@ export const removeProjectName = (): void => {
   Cookies.remove('projectName');
 };
 
-export const setWorkspaceId = (id: string): void => {
-  Cookies.set('workspaceId', id); // Set cookie to no expiration
+export const setClinicId = (id: string): void => {
+  Cookies.set('clinicId', id); // Set cookie to no expiration
 };
 
-export const getWorkspaceId = (): string | undefined => {
-  return Cookies.get('workspaceId');
+export const getClinicId = (): string | undefined => {
+  return Cookies.get('clinicId');
 };
 
-export const removeWorkspaceId = (): void => {
-  Cookies.remove('workspaceId');
+export const removeClinicId = (): void => {
+  Cookies.remove('clinicId');
 };
 
-export const setWorkspaceName = (name: string): void => {
-  Cookies.set('workspaceName', name); // Set cookie to no expiration
+export const setClinicName = (name: string): void => {
+  Cookies.set('clinicName', name); // Set cookie to no expiration
 };
 
-export const getWorkspaceName = (): string | undefined => {
-  return Cookies.get('workspaceName');
+export const getClinicName = (): string | undefined => {
+  return Cookies.get('clinicName');
 };
 
-export const removeWorkspaceName = (): void => {
-  Cookies.remove('workspaceName');
+export const removeClinicName = (): void => {
+  Cookies.remove('clinicName');
 };
 
 
