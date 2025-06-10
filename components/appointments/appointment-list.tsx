@@ -16,6 +16,7 @@ import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import useAppointmentFilter from "./hooks/useAppointmentFilter"
 import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
+import { useRootContext } from "@/context/RootContext"
 
 interface Appointment {
   id: string;
@@ -35,6 +36,7 @@ interface Appointment {
 }
 
 export default function AppointmentList({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
+  const { user, userType } = useRootContext()
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -203,6 +205,16 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
         return "theme-badge-neutral"
     }
   }
+
+  const handleDefaultState = () => {
+    if (userType.isProvider) {
+      setSelectedProvider(user?.firstName + " " + user?.lastName)
+    }
+  }
+
+  useEffect(() => {
+    handleDefaultState()
+  }, [userType])
 
   const columns: ColumnDef<any>[] = [
     {
@@ -425,16 +437,18 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
             }}
             className="h-full"
           />
-          <div className="w-[400px]">
-            <Combobox
-              options={providerOptions}
-              value={selectedProvider}
-              onValueChange={setSelectedProvider}
-              placeholder="Select Provider"
-              searchPlaceholder="Search providers..."
-              emptyText="No providers found."
-            />
-          </div>
+          {!userType.isProvider && (
+            <div className="w-[400px]">
+              <Combobox
+                options={providerOptions}
+                value={selectedProvider}
+                onValueChange={setSelectedProvider}
+                placeholder="Select Provider"
+                searchPlaceholder="Search providers..."
+                emptyText="No providers found."
+              />
+            </div>
+          )}
           <Button
             variant="outline"
             onClick={() => {
@@ -453,8 +467,8 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
         <button
           onClick={() => setActiveTab("all")}
           className={`px-6 py-3 text-sm font-medium ${activeTab === "all"
-              ? "theme-active text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            ? "theme-active text-white"
+            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
         >
           All ({allCount})
@@ -462,8 +476,8 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
         <button
           onClick={() => setActiveTab("scheduled")}
           className={`px-6 py-3 text-sm font-medium ${activeTab === "scheduled"
-              ? "theme-active text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            ? "theme-active text-white"
+            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
         >
           Scheduled ({scheduledCount})
@@ -471,8 +485,8 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
         <button
           onClick={() => setActiveTab("checked-in")}
           className={`px-6 py-3 text-sm font-medium ${activeTab === "checked-in"
-              ? "theme-active text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            ? "theme-active text-white"
+            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
         >
           Checked In ({checkedInCount})
@@ -480,8 +494,8 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
         <button
           onClick={() => setActiveTab("completed")}
           className={`px-6 py-3 text-sm font-medium ${activeTab === "completed"
-              ? "theme-active text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            ? "theme-active text-white"
+            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
         >
           Completed ({completedCount})
@@ -489,8 +503,8 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
         <button
           onClick={() => setActiveTab("cancelled")}
           className={`px-6 py-3 text-sm font-medium ${activeTab === "cancelled"
-              ? "theme-active text-white"
-              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            ? "theme-active text-white"
+            : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
         >
           Cancelled ({cancelledCount})

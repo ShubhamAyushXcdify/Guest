@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -18,6 +18,7 @@ import { useGetUsers } from "@/queries/users/get-users"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
 import { Plus } from "lucide-react"
+import { useRootContext } from '@/context/RootContext'
 
 // Define the form schema
 const newAppointmentSchema = z.object({
@@ -45,8 +46,9 @@ interface NewAppointmentProps {
 
 function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
   const { toast } = useToast()
+  const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
-  
+
   // Fetch real data from APIs
   const { data: clinics } = useGetClinic(1, 100)
   const { data: patientsResponse, refetch: refetchPatients } = useGetPatients(1, 100)
@@ -56,11 +58,11 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
   // Fetch users and filter veterinarians
   const { data: usersResponse = { items: [] } } = useGetUsers(1, 100);
   const veterinarianOptions = (usersResponse.items || [])
-  .filter(user => user.roleName === "Veterinarian")
-  .map(vet => ({
-    value: vet.id,
-    label: `Dr. ${vet.firstName} ${vet.lastName}`
-  }));
+    .filter(user => user.roleName === "Veterinarian")
+    .map(vet => ({
+      value: vet.id,
+      label: `Dr. ${vet.firstName} ${vet.lastName}`
+    }));
 
   // Transform API data into Combobox format
   const clinicOptions = (clinics?.items || []).map(clinic => ({
@@ -151,15 +153,15 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
   const handlePatientCreated = async () => {
     // Refetch patients to get the updated list
     await refetchPatients()
-    
+
     // Get the latest patient from the response
     const latestPatient = patientsResponse?.items?.[patientsResponse.items.length - 1]
-    
+
     if (latestPatient) {
       // Set the new patient as selected
       form.setValue("patientId", latestPatient.id)
       setShowNewPatientForm(false)
-      
+
       toast({
         title: "Patient added",
         description: `${latestPatient.name} has been added successfully.`,
@@ -171,6 +173,16 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
     setShowNewPatientForm(false)
     onClose()
   }
+
+  const handleClinicDefaultState = () => {
+    if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
+      form.setValue("clinicId", clinic.id)
+    }
+  }
+
+  useEffect(() => {
+    handleClinicDefaultState()
+  }, [clinic])
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
@@ -187,24 +199,26 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
                 form.handleSubmit(onSubmit)(e);
               }} className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="clinicId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Clinic</FormLabel>
-                        <FormControl>
-                          <Combobox
-                            options={clinicOptions}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Select clinic"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {!clinic.id && (
+                    <FormField
+                      control={form.control}
+                      name="clinicId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Clinic</FormLabel>
+                          <FormControl>
+                            <Combobox
+                              options={clinicOptions}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Select clinic"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <div className="space-y-2">
                     <FormField
