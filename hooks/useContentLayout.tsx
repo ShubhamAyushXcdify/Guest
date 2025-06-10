@@ -15,46 +15,41 @@ import {
 
 
 export type User = {
-    id: number;
+    id: string;
     email: string;
-    createdAt: string;
-    updatedAt: string;
-    avatar: string | null;
-    username: string;
-    name: string;
+    passwordHash: string;
     firstName: string;
     lastName: string;
-    gender: string;
-    mobileNumber: string;
     role: string;
+    roleId: string;
+    roleName: string;
+    clinicId: string | null;
+    clinicName: string | null;
+    clinic: string | null;
     isActive: boolean;
-    companyIds: number[];
-    projectIds: number[];
-    roleIds: number;
-    workspaceId: number;
-    workspaceName: string;
+    lastLogin: string | null;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export type UserType = {
     isAdmin: boolean;
-    isClient: boolean;
     isSuperAdmin: boolean;
-    isManager: boolean;
-    isMember: boolean;
-    isHR: boolean;
-    isGuest: boolean;
-    isFinanceManager: boolean;
+    isClinicAdmin: boolean;
+    isReceptionist: boolean;
+    isPatient: boolean;
+    isClient: boolean;
+    isProvider: boolean;
 }
 
 const userRolesObject: UserType = {
     isAdmin: false,
-    isClient: false,
     isSuperAdmin: false,
-    isManager: false,
-    isMember: false,
-    isHR: false,
-    isGuest: false,
-    isFinanceManager: false
+    isClinicAdmin: false,
+    isReceptionist: false,
+    isPatient: false,
+    isClient: false,
+    isProvider: false,
 }
 
 type workspace = {
@@ -65,6 +60,10 @@ export const useContentLayout = () => {
     const router = useRouter();
     const pathname = usePathname();
     const [loading, setLoading] = useState(true);
+    const [clinic, setClinic] = useState<{ id: string | null, name: string | null }>({
+        id: null,
+        name: null
+    });
     const [collapsed, setCollapsed] = useState(false);
     const [user, setUser] = useState<User | null>(null);
     const [roles, setRoles] = useState<string[] | null>(null);
@@ -74,14 +73,9 @@ export const useContentLayout = () => {
     const [, setRoleToLocal] = useStoreLocalStorage('role', '');
     const [, setUserToLocal] = useStoreLocalStorage<any>('user', '');
     const queryClient = useQueryClient();
-    const [workspace, setWorkspace] = useState<workspace>({
-        id: null,
-        name: null
-    })
 
     // Initial user fetch
     useEffect(() => {
-
         if (!user) {
             fetchUser();
         }
@@ -105,8 +99,8 @@ export const useContentLayout = () => {
         try {
             const response = await fetch(`/api/user/${userid}`);
             const userData = await response.json();
-        
-        
+
+
             if (!userData || userData.status === 400) {
                 console.error("userData not found");
                 setLoading(false);
@@ -115,6 +109,10 @@ export const useContentLayout = () => {
             }
 
             setUser(userData);
+            setClinic({
+                id: userData.clinicId,
+                name: userData.clinicName
+            });
             setAuthorized(true);
             registerUser(userData);
         } catch (error) {
@@ -130,17 +128,16 @@ export const useContentLayout = () => {
         //     id: userData.workspaceId,
         //     name: userData.workspaceName
         // }))
-        // const types = {
-        //     isAdmin: userData.role === 'Admin',
-        //     isClient: userData.role === 'Client',
-        //     isSuperAdmin: userData.role === 'Super Admin',
-        //     isManager: userData.role === 'Manager',
-        //     isMember: userData.role === 'Member',
-        //     isHR: userData.role === 'HR',
-        //     isGuest: userData.role === 'Guest',
-        //     isFinanceManager: userData.role === 'Finance Manager'
-        // }
-        setUserType((prev) => ({ ...userRolesObject }));
+        const types = {
+            isAdmin: userData.role === 'Admin',
+            isSuperAdmin: userData.role === 'Super Admin',
+            isClinicAdmin: userData.role === 'Clinic Admin',
+            isReceptionist: userData.role === 'Receptionist',
+            isPatient: userData.role === 'Patient',
+            isClient: userData.role === 'Client',
+            isProvider: userData.role === 'Provider'
+        }
+        setUserType((prev) => ({ ...userRolesObject, ...types }));
         setIsAdmin(userData.role === 'Admin' || userData.role === 'Super Admin');
         setRoles([userData.role]);
         setRoleToLocal(userData.role);
@@ -175,7 +172,7 @@ export const useContentLayout = () => {
     };
 
     return {
-        workspace,
+        clinic,
         loading,
         setLoading,
         collapsed,
