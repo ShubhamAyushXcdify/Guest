@@ -141,7 +141,7 @@ export const useContentLayout = () => {
             isReceptionist: userData.role === 'Receptionist',
             isPatient: userData.role === 'Patient',
             isClient: userData.role === 'Client',
-            isProvider: userData.role === 'Provider'
+            isProvider: (userData.role === 'Provider' || userData.role.toLocaleLowerCase() === 'veterinarian')
         }
         setUserType((prev) => ({ ...userRolesObject, ...types }));
         setIsAdmin(userData.role === 'Admin' || userData.role === 'Super Admin');
@@ -177,6 +177,8 @@ export const useContentLayout = () => {
             //window.location.reload();
         }, 1000)
     };
+
+    console.log(userType)
 
     return {
         clinic,

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/queries/auth/login-user";
 import { useRouter } from "next/navigation";
-    import { setJwtToken, setUserId, setWorkspaceId } from '@/utils/clientCookie';
+import { setJwtToken, setUserId } from '@/utils/clientCookie';
 import { Loader2 } from 'lucide-react';
 // import { useQueryState } from 'nuqs';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +34,7 @@ const loginSchema = z.object({
   email: z.string().min(2, {
     message: "Email is required.",
   }),
-  password: z.string().min(8, {
+  password: z.string().min(4, {
     message: "Password must be at least 8 characters.",
   }),
 });
@@ -57,7 +57,6 @@ export function LoginForm() {
     onSuccess: (data: any) => {
       setJwtToken(data.token);
       setUserId(data.user.id)
-      setWorkspaceId(data.workspaceId)
       fetchUser(data);
       router.push("/dashboard");
     },
