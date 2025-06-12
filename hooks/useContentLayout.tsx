@@ -134,16 +134,18 @@ export const useContentLayout = () => {
         //     id: userData.workspaceId,
         //     name: userData.workspaceName
         // }))
-        const types = {
-            isAdmin: userData.role === 'Admin',
-            isSuperAdmin: userData.role === 'Super Admin',
-            isClinicAdmin: userData.role === 'Clinic Admin',
-            isReceptionist: userData.role === 'Receptionist',
-            isPatient: userData.role === 'Patient',
-            isClient: userData.role === 'Client',
-            isProvider: (userData.role === 'Provider' || userData.role.toLocaleLowerCase() === 'veterinarian')
+        if (userData) {
+            const types = {
+                isAdmin: userData.role === 'Admin',
+                isSuperAdmin: userData.role === 'Super Admin',
+                isClinicAdmin: userData.role === 'Clinic Admin',
+                isReceptionist: userData.role === 'Receptionist',
+                isPatient: userData.role === 'Patient',
+                isClient: userData.role === 'Client',
+                isProvider: (userData.role === 'Provider' || userData?.role?.toLocaleLowerCase() === 'veterinarian')
+            }
+            setUserType((prev) => ({ ...userRolesObject, ...types }));
         }
-        setUserType((prev) => ({ ...userRolesObject, ...types }));
         setIsAdmin(userData.role === 'Admin' || userData.role === 'Super Admin');
         setRoles([userData.role]);
         setRoleToLocal(userData.role);

@@ -55,9 +55,9 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
       // Only run authentication checks on the client side
       const jwtToken = clientCookie.getJwtToken();
       const userId = clientCookie.getUserId();
-      const workspaceId = clientCookie.getWorkspaceId();
 
-      if (!jwtToken || !userId || !workspaceId) {
+
+      if (!jwtToken || !userId) {
         const timeout = setTimeout(() => {
 
           if (typeof window !== "undefined" && pathname !== "/login") {
