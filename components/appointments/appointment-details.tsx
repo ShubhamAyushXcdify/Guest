@@ -253,7 +253,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     {appointment?.status}
                   </Badge>
                   
-                  {appointment?.status === "in_progress" && (
+                  {(appointment?.status === "in_progress" || appointment?.status === "completed") && (
                     <Button
                       variant="outline"
                       size="sm"

@@ -197,20 +197,20 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             onClick={openAddDialog}
           >
             <PlusCircle className="h-4 w-4" /> 
-            Add Product
+            Add Medicine
           </Button>
         </div>
 
         {productMappings.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No products added yet. Click "Add Product" to start creating a prescription.
+            No medicines added yet. Click "Add Medicine" to start creating a prescription.
           </div>
         ) : (
           <div className="border rounded-md overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
+                  <TableHead>Medicine</TableHead>
                   <TableHead>Dosage</TableHead>
                   <TableHead>Frequency</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
@@ -280,18 +280,18 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingIndex !== null ? "Edit Product" : "Add Product"}</DialogTitle>
+            <DialogTitle>{editingIndex !== null ? "Edit Product" : "Add Medicine"}</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="product">Product</Label>
+              <Label htmlFor="product">Medicine</Label>
               <Select
                 value={currentMapping.productId}
                 onValueChange={(value) => setCurrentMapping({...currentMapping, productId: value})}
               >
                 <SelectTrigger id="product">
-                  <SelectValue placeholder="Select a product" />
+                  <SelectValue placeholder="Select a medicine" />
                 </SelectTrigger>
                 <SelectContent>
                   {products.map((product) => (

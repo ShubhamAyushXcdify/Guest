@@ -16,9 +16,10 @@ import { Textarea } from "@/components/ui/textarea"
 interface VitalsTabProps {
   patientId: string
   appointmentId: string
+  onNext?: () => void
 }
 
-export default function VitalsTab({ patientId, appointmentId }: VitalsTabProps) {
+export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTabProps) {
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
@@ -53,6 +54,9 @@ export default function VitalsTab({ patientId, appointmentId }: VitalsTabProps) 
     onSuccess: () => {
       toast.success("Vital details saved successfully")
       refetchVitalDetail()
+      if (onNext) {
+        onNext()
+      }
     },
     onError: (error) => {
       toast.error(`Failed to save vital details: ${error.message}`)
@@ -63,6 +67,9 @@ export default function VitalsTab({ patientId, appointmentId }: VitalsTabProps) 
     onSuccess: () => {
       toast.success("Vital details updated successfully")
       refetchVitalDetail()
+      if (onNext) {
+        onNext()
+      }
     },
     onError: (error: any) => {
       toast.error(`Failed to update vital details: ${error.message}`)

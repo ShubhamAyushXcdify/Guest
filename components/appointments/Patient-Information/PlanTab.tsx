@@ -13,6 +13,7 @@ import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-
 import { useUpdatePlanDetail } from "@/queries/PlanDetail/update-plan-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface PlanTabProps {
   patientId: string
@@ -30,6 +31,9 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
+  
+  // Get appointment data
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
   const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
@@ -84,9 +88,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
       toast.success("Visit completed successfully")
-      if (onClose) {
-        onClose()
-      }
+      setIsProcessing(false)
     },
     onError: (error) => {
       toast.error(`Failed to update appointment status: ${error.message}`)
@@ -110,13 +112,22 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     }
   }
 
+  // Track whether the plan has been saved and checkout has been initiated
+  const [hasInitiatedCheckout, setHasInitiatedCheckout] = useState(false)
+
   const handleSaveAndCheckout = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
     
+    if (!appointmentData) {
+      toast.error("No appointment data found")
+      return
+    }
+    
     setIsProcessing(true)
+    setHasInitiatedCheckout(true)
     
     try {
       // First save the plan details
@@ -140,9 +151,15 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       await updateAppointmentMutation.mutateAsync({
         id: appointmentId,
         data: {
+          ...appointmentData,
           status: "completed"
         }
       })
+      
+      // Ensure we close the form immediately after successful completion
+      if (onClose) {
+        onClose()
+      }
       
     } catch (error) {
       console.error("Error during checkout process:", error)
@@ -278,6 +295,8 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               >
                 {isProcessing ? (
                   "Processing..."
+                ) : hasInitiatedCheckout ? (
+                  "Update"
                 ) : (
                   <>
                     <CheckCircle className="mr-2 h-4 w-4" />
