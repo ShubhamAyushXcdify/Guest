@@ -12,6 +12,7 @@ import ProcedureTab from "./ProcedureTab"
 import AssessmentTab from "./PrescriptionTab"
 import PlanTab from "./PlanTab"
 import { ArrowRight } from "lucide-react"
+import NewAppointment from "../newAppointment"
 
 interface PatientInformationProps {
   patientId: string
@@ -21,6 +22,7 @@ interface PatientInformationProps {
 
 export default function PatientInformation({ patientId, appointmentId, onClose }: PatientInformationProps) {
   const [activeTab, setActiveTab] = useState("intake")
+  const [showNewAppointment, setShowNewAppointment] = useState(false)
 
   // Define tab navigation functions
   const navigateToNextTab = () => {
@@ -91,11 +93,28 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
         </Tabs>
 
         <div className="mt-6 flex justify-end space-x-4">
-          <Button onClick={navigateToNextTab} className="flex items-center gap-2">
-            Next <ArrowRight className="h-4 w-4" />
-          </Button>
+          {activeTab !== "plan" && (
+            <Button onClick={navigateToNextTab} className="flex items-center gap-2">
+              Next <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+          {activeTab == "plan" && (
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={() => setShowNewAppointment(true)}
+                className="theme-button text-white"
+              >
+                Book Another Appointment
+              </Button>
+            </div>
+          )}
         </div>
       </SheetContent>
+      <NewAppointment 
+        isOpen={showNewAppointment} 
+        onClose={() => setShowNewAppointment(false)}
+        patientId={patientId}
+      />
     </Sheet>
   )
-} 
+}

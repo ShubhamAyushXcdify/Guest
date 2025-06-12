@@ -24,7 +24,6 @@ import { useRootContext } from '@/context/RootContext'
 const newAppointmentSchema = z.object({
   clinicId: z.string().uuid(),
   patientId: z.string().uuid(),
-  clientId: z.string().uuid(),
   veterinarianId: z.string().uuid(),
   roomId: z.string().uuid(),
   appointmentDate: z.string(),
@@ -42,9 +41,10 @@ type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
 interface NewAppointmentProps {
   isOpen: boolean
   onClose: () => void
+  patientId?: string
 }
 
-function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
+function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
@@ -97,7 +97,6 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
     defaultValues: {
       clinicId: "",
       patientId: "",
-      clientId: "",
       veterinarianId: "",
       roomId: "",
       appointmentDate: "",
@@ -129,6 +128,17 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
   })
 
   const onSubmit = (data: NewAppointmentFormValues) => {
+    // Find the selected patient to get the client ID
+    const selectedPatient = patientsResponse?.items?.find(p => p.id === data.patientId);
+    if (!selectedPatient) {
+      toast({
+        title: "Error",
+        description: "Please select a patient",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Format the date and time for the API according to the new payload structure
     const appointmentDateString = data.appointmentDate;
     const startTimeString = data.startTime; // Assuming HH:mm from input type="time"
@@ -141,6 +151,7 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
 
     const formattedData = {
       ...data,
+      clientId: selectedPatient.clientId, // Add the client ID from the selected patient
       appointmentDate: formattedAppointmentDate,
       // Append :00 for seconds as required by the example payload
       startTime: `${startTimeString}:00`,
@@ -183,6 +194,12 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
   useEffect(() => {
     handleClinicDefaultState()
   }, [clinic])
+
+  useEffect(() => {
+    if (patientId) {
+      form.setValue("patientId", patientId);
+    }
+  }, [patientId, form]);
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
@@ -232,7 +249,18 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
                               <Combobox
                                 options={patientOptions}
                                 value={field.value}
-                                onValueChange={field.onChange}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  // Find the selected patient to get the client info
+                                  const selectedPatient = patientsResponse?.items?.find(p => p.id === value);
+                                  console.log(selectedPatient)
+                                  if (selectedPatient) {
+                                    toast({
+                                      title: "Client Selected",
+                                      description: `Client: ${selectedPatient.clientId}`,
+                                    });
+                                  }
+                                }}
                                 placeholder="Select patient"
                               />
                               <Button
@@ -251,25 +279,6 @@ function NewAppointment({ isOpen, onClose }: NewAppointmentProps) {
                       )}
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="clientId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Client</FormLabel>
-                        <FormControl>
-                          <Combobox
-                            options={clientOptions}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Select client"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   <FormField
                     control={form.control}
