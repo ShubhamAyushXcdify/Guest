@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useContext, useEffect } from "react";
 import React from "react";
 import { RootContextType } from "@/context/RootContext";
-import { getJwtToken, getUserId, getWorkspaceId } from "./clientCookie";
+import * as clientCookie from "./clientCookie";
 // import { useHasPermission } from "./auth";
 // import { Resource } from "../components/settings/rbac/rbac";
 
@@ -53,9 +53,9 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
 
     useEffect(() => {
       // Only run authentication checks on the client side
-      const jwtToken = getJwtToken();
-      const userId = getUserId();
-      const workspaceId = getWorkspaceId();
+      const jwtToken = clientCookie.getJwtToken();
+      const userId = clientCookie.getUserId();
+      const workspaceId = clientCookie.getWorkspaceId();
 
       if (!jwtToken || !userId || !workspaceId) {
         const timeout = setTimeout(() => {
