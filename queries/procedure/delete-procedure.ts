@@ -6,7 +6,7 @@ const deleteProcedure = async (id: string): Promise<void> => {
       throw new Error("Procedure ID is required");
     }
     
-    const response = await fetch(`/api/Procedure/${id}`, {
+    const response = await fetch(`/api/procedure/${id}`, {
       method: 'DELETE',
     });
 

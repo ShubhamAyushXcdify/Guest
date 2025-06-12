@@ -10,7 +10,7 @@ export interface Procedure {
 
 const getProcedures = async (): Promise<Procedure[]> => {
   try {
-    const response = await fetch('/api/Procedure');
+    const response = await fetch('/api/procedure');
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

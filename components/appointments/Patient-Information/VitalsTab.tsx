@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 interface VitalsTabProps {
   patientId: string
   appointmentId: string
+  onNext?: () => void
 }
 
-export default function VitalsTab({ patientId, appointmentId }: VitalsTabProps) {
+export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTabProps) {
   return (
     <Card>
       <CardContent className="p-6">

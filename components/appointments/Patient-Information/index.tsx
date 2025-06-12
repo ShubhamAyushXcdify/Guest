@@ -12,6 +12,7 @@ import VitalsTab from "./VitalsTab"
 import ProcedureTab from "./ProcedureTab"
 import AssessmentTab from "./AssessmentTab"
 import PlanTab from "./PlanTab"
+import { ArrowRight } from "lucide-react"
 
 interface PatientInformationProps {
   patientId: string
@@ -37,7 +38,7 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%] overflow-x-hidden overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle>Patient Information: {patient?.name || "Loading..."}</SheetTitle>
+          <SheetTitle>Patient Information: {patient?.name || " "}</SheetTitle>
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -62,38 +63,38 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
 
           {/* CC & HPI Tab */}
           <TabsContent value="cc-hpi">
-            <ComplaintsTab patientId={patientId} appointmentId={appointmentId} />
+            <ComplaintsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Medical History Tab */}
           <TabsContent value="medical-history">
-            <MedicalHistoryTab patientId={patientId} appointmentId={appointmentId} />
+            <MedicalHistoryTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Vitals Tab */}
           <TabsContent value="vitals">
-            <VitalsTab patientId={patientId} appointmentId={appointmentId} />
+            <VitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Procedure Tab */}
           <TabsContent value="procedure">
-            <ProcedureTab patientId={patientId} appointmentId={appointmentId} />
+            <ProcedureTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Assessment Tab */}
           <TabsContent value="assessment">
-            <AssessmentTab patientId={patientId} appointmentId={appointmentId} />
+            <AssessmentTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Plan Tab */}
           <TabsContent value="plan">
-            <PlanTab patientId={patientId} appointmentId={appointmentId} />
+            <PlanTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
         </Tabs>
 
         <div className="mt-6 flex justify-end space-x-4">
-          <Button variant="outline" onClick={onClose}>
-            Close
+          <Button onClick={navigateToNextTab} className="flex items-center gap-2">
+            Next <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </SheetContent>

@@ -282,18 +282,16 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
             />
           </div>
 
-          <div className="flex space-x-2">
+          <div className="mt-6 flex justify-end">
             <Button 
-              className="theme-button text-white"
               onClick={handleSaveIntake}
               disabled={weightKg === undefined || createIntakeMutation.isPending || updateIntakeMutation.isPending}
+              className="ml-2"
             >
               {createIntakeMutation.isPending || updateIntakeMutation.isPending 
                 ? "Saving..." 
-                : hasIntake ? "Update" : "Save & Next"}
+                : hasIntake ? "Update" : "Save and Next"}
             </Button>
-            
-            
           </div>
         </div>
       </CardContent>

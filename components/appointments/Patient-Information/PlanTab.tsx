@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 interface PlanTabProps {
   patientId: string
   appointmentId: string
+  onNext?: () => void
 }
 
-export default function PlanTab({ patientId, appointmentId }: PlanTabProps) {
+export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabProps) {
   return (
     <Card>
       <CardContent className="p-6">

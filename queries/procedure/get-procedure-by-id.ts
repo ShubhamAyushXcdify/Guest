@@ -7,7 +7,7 @@ const getProcedureById = async (id: string): Promise<Procedure> => {
       throw new Error("Procedure ID is required");
     }
     
-    const response = await fetch(`/api/Procedure/${id}`);
+    const response = await fetch(`/api/procedure/${id}`);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
