@@ -35,6 +35,7 @@ export const useCreateAppointment = ({ onSuccess, onError }: {
       queryClient.invalidateQueries({ queryKey: ['appointment'] })
       queryClient.invalidateQueries({ queryKey: ['patient'] })
       queryClient.invalidateQueries({ queryKey: ['appointmentList'] })
+      queryClient.invalidateQueries({ queryKey: ['appointments'] })
 
       onSuccess?.()
     },
