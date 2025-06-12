@@ -8,7 +8,7 @@ interface CreateProcedureData {
 
 const createProcedure = async (data: CreateProcedureData): Promise<Procedure> => {
   try {
-    const response = await fetch('/api/Procedure', {
+    const response = await fetch('/api/procedure', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

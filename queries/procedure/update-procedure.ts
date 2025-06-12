@@ -15,7 +15,7 @@ const updateProcedure = async (data: UpdateProcedureData): Promise<Procedure> =>
       throw new Error("Procedure ID is required");
     }
     
-    const response = await fetch(`/api/Procedure/${id}`, {
+    const response = await fetch(`/api/procedure/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

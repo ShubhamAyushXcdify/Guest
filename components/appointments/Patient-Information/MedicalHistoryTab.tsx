@@ -5,9 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 interface MedicalHistoryTabProps {
   patientId: string
   appointmentId: string
+  onNext?: () => void
 }
 
-export default function MedicalHistoryTab({ patientId, appointmentId }: MedicalHistoryTabProps) {
+export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: MedicalHistoryTabProps) {
   return (
     <Card>
       <CardContent className="p-6">
