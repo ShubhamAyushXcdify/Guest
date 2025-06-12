@@ -16,6 +16,7 @@ import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import useAppointmentFilter from "./hooks/useAppointmentFilter"
 import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
+import { useCreateVisit } from "@/queries/visit/create-visit"
 
 interface Appointment {
   id: string;
@@ -80,6 +81,9 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
       })
     }
   })
+
+  // // Add create visit mutation
+  // const createVisitMutation = useCreateVisit()
 
   // --- Start: Data Enrichment ---
   // The API now provides nested user data, so we directly enrich the appointments
@@ -249,25 +253,37 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
                 variant="outline"
                 size="sm"
                 className="theme-button-outline"
-                onClick={() => updateAppointmentMutation.mutate({
-                  id: row.original.id.toString(),
-                  data: {
-                    id: row.original.id,
-                    clinicId: row.original.clinicId,
-                    patientId: row.original.patientId,
-                    clientId: row.original.clientId,
-                    veterinarianId: row.original.veterinarianId,
-                    roomId: row.original.roomId,
-                    appointmentDate: row.original.appointmentDate,
-                    startTime: row.original.startTime,
-                    endTime: row.original.endTime,
-                    appointmentType: row.original.appointmentType,
-                    reason: row.original.reason,
-                    status: "in_progress",
-                    notes: row.original.notes,
-                    createdBy: row.original.createdBy,
-                  }
-                })}
+                onClick={() => {
+                  // Update appointment status
+                  updateAppointmentMutation.mutate({
+                    id: row.original.id.toString(),
+                    data: {
+                      id: row.original.id,
+                      clinicId: row.original.clinicId,
+                      patientId: row.original.patientId,
+                      clientId: row.original.clientId,
+                      veterinarianId: row.original.veterinarianId,
+                      roomId: row.original.roomId,
+                      appointmentDate: row.original.appointmentDate,
+                      startTime: row.original.startTime,
+                      endTime: row.original.endTime,
+                      appointmentType: row.original.appointmentType,
+                      reason: row.original.reason,
+                      status: "in_progress",
+                      notes: row.original.notes,
+                      createdBy: row.original.createdBy,
+                    }
+                  });
+                  
+                  // Also create a visit with intake flags set to false
+                  // createVisitMutation.mutate({
+                  //   appointmentId: row.original.id.toString(),
+                  //   patientId: row.original.patientId,
+                  //   isIntakeCompleted: false,
+                  //   isComplaintsCompleted: false,
+                  //   isMedicalHistoryCompleted: false
+                  // });
+                }}
                 disabled={updateAppointmentMutation.isPending}
               >
                 Check In

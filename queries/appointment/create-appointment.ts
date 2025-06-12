@@ -33,6 +33,9 @@ export const useCreateAppointment = ({ onSuccess, onError }: {
     mutationFn: createAppointment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointment'] })
+      queryClient.invalidateQueries({ queryKey: ['patient'] })
+      queryClient.invalidateQueries({ queryKey: ['appointmentList'] })
+
       onSuccess?.()
     },
     onError: (error: any) => {
