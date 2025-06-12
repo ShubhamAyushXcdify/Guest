@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { SidebarGroup, SidebarGroupLabel, useSidebar } from "@/components/ui/sidebar"
 import { NavItem } from "./nav-item"
+import { useRootContext } from "@/context/RootContext"
 
 const navItems = [
     { name: "Dashboard", icon: Home, href: "/dashboard" },
@@ -156,6 +157,7 @@ const navGroups = [
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
+    const { handleLogout } = useRootContext()
     const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
         "Core Operations": true,
         "Products & Services": true,
@@ -279,12 +281,12 @@ export function Sidebar() {
                                 </div>
                             )}
                             {state !== "collapsed" && (
-                                <Link href="/">
+                                <div onClick={handleLogout}>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
                                         <LogOut className="h-4 w-4" />
                                         <span className="sr-only">Log out</span>
                                     </Button>
-                                </Link>
+                                </div>
                             )}
                         </div>
                     </div>
