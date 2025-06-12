@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new"
 import { Button } from "@/components/ui/button"
-import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import IntakeTab from "./IntakeTab"
 import ComplaintsTab from "./ComplaintsTab"
 import MedicalHistoryTab from "./MedicalHistoryTab"
@@ -22,7 +21,6 @@ interface PatientInformationProps {
 
 export default function PatientInformation({ patientId, appointmentId, onClose }: PatientInformationProps) {
   const [activeTab, setActiveTab] = useState("intake")
-  const { data: patient, isLoading: patientLoading } = useGetPatientById(patientId)
 
   // Define tab navigation functions
   const navigateToNextTab = () => {
@@ -38,7 +36,7 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%] overflow-x-hidden overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle>Patient Information: {patient?.name || " "}</SheetTitle>
+          <SheetTitle>Patient Information</SheetTitle>
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -73,22 +71,22 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
 
           {/* Vitals Tab */}
           <TabsContent value="vitals">
-            <VitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            <VitalsTab patientId={patientId} appointmentId={appointmentId} />
           </TabsContent>
 
           {/* Procedure Tab */}
           <TabsContent value="procedure">
-            <ProcedureTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            <ProcedureTab patientId={patientId} appointmentId={appointmentId} />
           </TabsContent>
 
           {/* Assessment Tab */}
           <TabsContent value="assessment">
-            <AssessmentTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            <AssessmentTab patientId={patientId} appointmentId={appointmentId} />
           </TabsContent>
 
           {/* Plan Tab */}
           <TabsContent value="plan">
-            <PlanTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            <PlanTab patientId={patientId} appointmentId={appointmentId} />
           </TabsContent>
         </Tabs>
 

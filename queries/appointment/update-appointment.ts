@@ -33,6 +33,9 @@ export const useUpdateAppointment = ({ onSuccess, onError }: {
     mutationFn: updateAppointment,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointment'] })
+      queryClient.invalidateQueries({ queryKey: ['appointmentList'] })
+      queryClient.invalidateQueries({ queryKey: ['appointments'] })
+
       onSuccess?.()
     },
     onError: (error: any) => {

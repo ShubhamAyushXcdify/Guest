@@ -237,10 +237,10 @@ export default function VitalsTab({ patientId, appointmentId }: VitalsTabProps) 
           >
             {createVitalDetailMutation.isPending || updateVitalDetailMutation.isPending 
               ? "Saving..." 
-              : vitalDetail ? "Update" : "Save"}
+              : vitalDetail ? "Update" : "Save & Next"}
           </Button>
         </div>
       </CardContent>
     </Card>
   )
-}
+} 
