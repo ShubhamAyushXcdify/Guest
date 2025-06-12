@@ -9,20 +9,32 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { SidebarTrigger } from "../ui/sidebar"
-import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav"  
+import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav"
+import { useRootContext } from "@/context/RootContext"
 
 export function Header() {
+  const { user } = useRootContext();
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-accent px-4 sm:px-6 shadow-sm">
       <div className="flex items-center gap-4">
         <SidebarTrigger />
 
-      {/* breadcrumb */}
-      <BreadcrumbNav />
+        {/* breadcrumb */}
+        <BreadcrumbNav />
       </div>
 
 
       <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">Welcome,</span>
+          <span className="font-medium">{user?.firstName} {user?.lastName}</span>
+          {user?.clinicName && (
+            <>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-muted-foreground">{user.clinicName}</span>
+            </>
+          )}
+        </div>
         <Popover>
           <PopoverTrigger asChild>
             <div className="relative cursor-pointer">

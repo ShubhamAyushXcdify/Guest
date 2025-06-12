@@ -90,7 +90,7 @@ export function PrescriptionsScreen() {
   return (
     <>
       <div className="p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Prescription Management</h1>
             <div className="flex flex-col sm:flex-row gap-2 mt-4 md:mt-0">
@@ -105,6 +105,8 @@ export function PrescriptionsScreen() {
               <div className="flex-1">
                 <Input
                   type="text"
+                  value=""
+                  onChange={() => {}}
                   placeholder="Search by patient, medication, or prescription #"
                   className="w-full bg-white dark:bg-slate-800"
                 />

@@ -12,9 +12,11 @@ import AppointmentCalendar from "./appointment-calendar"
 import NewAppointment from "./newAppointment"
 import AppointmentDetails from "./appointment-details"
 import { PatientSearch } from "./patient-search"
+import { useRootContext } from "@/context/RootContext"
 
 export default function AppointmentsPage() {
     const router = useRouter()
+    const { user, userType } = useRootContext()
     const [appointmentId, setappointmentId] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
