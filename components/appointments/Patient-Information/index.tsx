@@ -9,7 +9,7 @@ import ComplaintsTab from "./ComplaintsTab"
 import MedicalHistoryTab from "./MedicalHistoryTab"
 import VitalsTab from "./VitalsTab"
 import ProcedureTab from "./ProcedureTab"
-import AssessmentTab from "./AssessmentTab"
+import AssessmentTab from "./PrescriptionTab"
 import PlanTab from "./PlanTab"
 import { ArrowRight } from "lucide-react"
 
@@ -46,7 +46,7 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
             <TabsTrigger value="medical-history">Medical History</TabsTrigger>
             <TabsTrigger value="vitals">Vitals</TabsTrigger>
             <TabsTrigger value="procedure">Procedure</TabsTrigger>
-            <TabsTrigger value="assessment">Assessment</TabsTrigger>
+            <TabsTrigger value="assessment">Prescription</TabsTrigger>
             <TabsTrigger value="plan">Plan</TabsTrigger>
           </TabsList>
 

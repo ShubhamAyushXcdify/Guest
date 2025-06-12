@@ -6,24 +6,27 @@ import { useGetPlans } from "@/queries/Plan/get-plans"
 import { useCreatePlan } from "@/queries/Plan/create-plan"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X } from "lucide-react"
+import { PlusCircle, X, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
 import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-by-visit-id"
 import { useUpdatePlanDetail } from "@/queries/PlanDetail/update-plan-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 
 interface PlanTabProps {
   patientId: string
   appointmentId: string
   onNext?: () => void
+  onClose?: () => void
 }
 
-export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabProps) {
+export default function PlanTab({ patientId, appointmentId, onNext, onClose }: PlanTabProps) {
   const [selectedPlans, setSelectedPlans] = useState<string[]>([])
   const [isAddingPlan, setIsAddingPlan] = useState(false)
   const [newPlanName, setNewPlanName] = useState("")
   const [notes, setNotes] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -60,10 +63,10 @@ export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabPro
     onSuccess: () => {
       toast.success("Plan details saved successfully")
       refetchPlanDetail()
-      if (onNext) onNext()
     },
     onError: (error) => {
       toast.error(`Failed to save plan details: ${error.message}`)
+      setIsProcessing(false)
     }
   })
 
@@ -71,10 +74,23 @@ export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabPro
     onSuccess: () => {
       toast.success("Plan details updated successfully")
       refetchPlanDetail()
-      if (onNext) onNext()
     },
     onError: (error: any) => {
       toast.error(`Failed to update plan details: ${error.message}`)
+      setIsProcessing(false)
+    }
+  })
+  
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      toast.success("Visit completed successfully")
+      if (onClose) {
+        onClose()
+      }
+    },
+    onError: (error) => {
+      toast.error(`Failed to update appointment status: ${error.message}`)
+      setIsProcessing(false)
     }
   })
 
@@ -94,28 +110,43 @@ export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabPro
     }
   }
 
-  const handleSave = () => {
+  const handleSaveAndCheckout = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
     
-    if (existingPlanDetail) {
-      // Update existing plan detail
-      updatePlanDetailMutation.mutate({
-        id: existingPlanDetail.id,
-        planIds: selectedPlans,
-        notes,
-        isCompleted: true
+    setIsProcessing(true)
+    
+    try {
+      // First save the plan details
+      if (existingPlanDetail) {
+        await updatePlanDetailMutation.mutateAsync({
+          id: existingPlanDetail.id,
+          planIds: selectedPlans,
+          notes,
+          isCompleted: true
+        })
+      } else {
+        await createPlanDetailMutation.mutateAsync({
+          visitId: visitData.id,
+          planIds: selectedPlans,
+          notes,
+          isCompleted: true
+        })
+      }
+      
+      // Then update appointment status to completed
+      await updateAppointmentMutation.mutateAsync({
+        id: appointmentId,
+        data: {
+          status: "completed"
+        }
       })
-    } else {
-      // Create new plan detail
-      createPlanDetailMutation.mutate({
-        visitId: visitData.id,
-        planIds: selectedPlans,
-        notes,
-        isCompleted: true
-      })
+      
+    } catch (error) {
+      console.error("Error during checkout process:", error)
+      setIsProcessing(false)
     }
   }
 
@@ -241,13 +272,18 @@ export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabPro
 
             <div className="mt-6 flex justify-end">
               <Button 
-                onClick={handleSave}
-                disabled={createPlanDetailMutation.isPending || updatePlanDetailMutation.isPending}
-                className="ml-2"
+                onClick={handleSaveAndCheckout}
+                disabled={isProcessing}
+                className="bg-green-600 hover:bg-green-700"
               >
-                {createPlanDetailMutation.isPending || updatePlanDetailMutation.isPending 
-                  ? "Saving..." 
-                  : existingPlanDetail ? "Update" : "Save & Next"}
+                {isProcessing ? (
+                  "Processing..."
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Save & Checkout
+                  </>
+                )}
               </Button>
             </div>
           </>
@@ -255,4 +291,4 @@ export default function PlanTab({ patientId, appointmentId, onNext }: PlanTabPro
       </CardContent>
     </Card>
   )
-} 
+}
