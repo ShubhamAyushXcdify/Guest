@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Combobox } from "@/components/ui/combobox"
 
 interface NewPatientModalProps {
   isOpen: boolean
@@ -40,6 +40,22 @@ export function NewPatientModal({ isOpen, onClose }: NewPatientModalProps) {
     onClose()
   }
 
+  // Define options for Combobox components
+  const speciesOptions = [
+    { value: "dog", label: "Dog" },
+    { value: "cat", label: "Cat" },
+    { value: "rabbit", label: "Rabbit" },
+    { value: "bird", label: "Bird" },
+    { value: "reptile", label: "Reptile" },
+    { value: "other", label: "Other" },
+  ]
+
+  const genderOptions = [
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "unknown", label: "Unknown" },
+  ]
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-md p-0 overflow-y-auto">
@@ -66,19 +82,12 @@ export function NewPatientModal({ isOpen, onClose }: NewPatientModalProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="species">Species</Label>
-                <Select value={formData.species} onValueChange={(value) => handleSelectChange("species", value)}>
-                  <SelectTrigger id="species">
-                    <SelectValue placeholder="Select species" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dog">Dog</SelectItem>
-                    <SelectItem value="cat">Cat</SelectItem>
-                    <SelectItem value="rabbit">Rabbit</SelectItem>
-                    <SelectItem value="bird">Bird</SelectItem>
-                    <SelectItem value="reptile">Reptile</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  options={speciesOptions}
+                  value={formData.species}
+                  onValueChange={(value) => handleSelectChange("species", value)}
+                  placeholder="Select species"
+                />
               </div>
 
               <div className="space-y-2">
@@ -101,16 +110,12 @@ export function NewPatientModal({ isOpen, onClose }: NewPatientModalProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
-                <Select value={formData.gender} onValueChange={(value) => handleSelectChange("gender", value)}>
-                  <SelectTrigger id="gender">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="unknown">Unknown</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  options={genderOptions}
+                  value={formData.gender}
+                  onValueChange={(value) => handleSelectChange("gender", value)}
+                  placeholder="Select gender"
+                />
               </div>
             </div>
 

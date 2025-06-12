@@ -12,7 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Combobox } from "@/components/ui/combobox"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Plus } from "lucide-react"
@@ -64,6 +64,29 @@ export function NewPrescriptionForm() {
     })
   }
 
+  // Define options for Combobox components
+  const patientOptions = [
+    { value: "max", label: "Max (Golden Retriever)" },
+    { value: "bella", label: "Bella (Siamese Cat)" },
+    { value: "charlie", label: "Charlie (Labrador)" },
+    { value: "daisy", label: "Daisy (Rabbit)" },
+    { value: "oscar", label: "Oscar (Maine Coon)" },
+  ]
+
+  const prescriberOptions = [
+    { value: "dr-johnson", label: "Dr. Johnson" },
+    { value: "dr-martinez", label: "Dr. Martinez" },
+    { value: "dr-wilson", label: "Dr. Wilson" },
+  ]
+
+  const medicationOptions = [
+    { value: "amoxicillin", label: "Amoxicillin 250mg" },
+    { value: "doxycycline", label: "Doxycycline 100mg" },
+    { value: "prednisone", label: "Prednisone 5mg" },
+    { value: "enrofloxacin", label: "Enrofloxacin 15mg" },
+    { value: "famotidine", label: "Famotidine 10mg" },
+  ]
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -83,33 +106,23 @@ export function NewPrescriptionForm() {
               <Label htmlFor="patient" className="text-gray-500 dark:text-gray-400">
                 Patient
               </Label>
-              <Select value={formData.patient} onValueChange={(value) => handleChange("patient", value)} required>
-                <SelectTrigger id="patient" className="w-full">
-                  <SelectValue placeholder="Select patient" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="max">Max (Golden Retriever)</SelectItem>
-                  <SelectItem value="bella">Bella (Siamese Cat)</SelectItem>
-                  <SelectItem value="charlie">Charlie (Labrador)</SelectItem>
-                  <SelectItem value="daisy">Daisy (Rabbit)</SelectItem>
-                  <SelectItem value="oscar">Oscar (Maine Coon)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={patientOptions}
+                value={formData.patient}
+                onValueChange={(value) => handleChange("patient", value)}
+                placeholder="Select patient"
+              />
             </div>
             <div>
               <Label htmlFor="prescriber" className="text-gray-500 dark:text-gray-400">
                 Prescriber
               </Label>
-              <Select value={formData.prescriber} onValueChange={(value) => handleChange("prescriber", value)} required>
-                <SelectTrigger id="prescriber" className="w-full">
-                  <SelectValue placeholder="Select prescriber" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dr-johnson">Dr. Johnson</SelectItem>
-                  <SelectItem value="dr-martinez">Dr. Martinez</SelectItem>
-                  <SelectItem value="dr-wilson">Dr. Wilson</SelectItem>
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={prescriberOptions}
+                value={formData.prescriber}
+                onValueChange={(value) => handleChange("prescriber", value)}
+                placeholder="Select prescriber"
+              />
             </div>
           </div>
 
@@ -117,18 +130,12 @@ export function NewPrescriptionForm() {
             <Label htmlFor="medication" className="text-gray-500 dark:text-gray-400">
               Medication
             </Label>
-            <Select value={formData.medication} onValueChange={(value) => handleChange("medication", value)} required>
-              <SelectTrigger id="medication" className="w-full">
-                <SelectValue placeholder="Select medication" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="amoxicillin">Amoxicillin 250mg</SelectItem>
-                <SelectItem value="doxycycline">Doxycycline 100mg</SelectItem>
-                <SelectItem value="prednisone">Prednisone 5mg</SelectItem>
-                <SelectItem value="enrofloxacin">Enrofloxacin 15mg</SelectItem>
-                <SelectItem value="famotidine">Famotidine 10mg</SelectItem>
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={medicationOptions}
+              value={formData.medication}
+              onValueChange={(value) => handleChange("medication", value)}
+              placeholder="Select medication"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
