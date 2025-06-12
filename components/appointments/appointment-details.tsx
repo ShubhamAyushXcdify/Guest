@@ -253,17 +253,6 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     {appointment?.status}
                   </Badge>
                   
-                  {(appointment?.status === "in_progress" || appointment?.status === "completed") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 theme-button-outline"
-                      onClick={handlePatientInfoClick}
-                    >
-                      <ClipboardList className=" h-4 w-4 mr-1" />
-                      Patient Information
-                    </Button>
-                  )}
                 </div>
               </div>
               <div className="space-y-4">
@@ -277,6 +266,17 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{appointment.notes}</p>
                   </div>
                 )}
+                {(appointment?.status === "in_progress" || appointment?.status === "completed") && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 theme-button-outline"
+                      onClick={handlePatientInfoClick}
+                    >
+                      <ClipboardList className=" h-4 w-4 mr-1" />
+                      Visit Details
+                    </Button>
+                  )}
               </div>
             </div>
           ) : (
