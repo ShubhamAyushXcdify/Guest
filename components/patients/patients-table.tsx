@@ -6,12 +6,13 @@ import { ColumnDef } from "@tanstack/react-table"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Eye, Trash2 } from "lucide-react"
+import { Edit, Eye, Trash2, Calendar } from "lucide-react"
 import { Patient } from "@/queries/patients/get-patients"
 import { useDeletePatient } from "@/queries/patients/delete-patients"
 import { toast } from "@/components/ui/use-toast"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { formatDate } from "@/lib/utils"
+import NewAppointment from "@/components/appointments/newAppointment"
 
 interface PatientsTableProps {
   patients: Patient[]
@@ -35,6 +36,8 @@ export function PatientsTable({
   const router = useRouter()
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [showNewAppointment, setShowNewAppointment] = useState(false)
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   
   const deletePatientMutation = useDeletePatient()
 
@@ -69,6 +72,11 @@ export function PatientsTable({
 
   const handleEditPatient = (patientId: string) => {
     router.push(`/patients/${patientId}/edit`)
+  }
+
+  const handleBookAppointment = (patientId: string) => {
+    setSelectedPatientId(patientId)
+    setShowNewAppointment(true)
   }
 
   const columns: ColumnDef<Patient>[] = [
@@ -127,6 +135,16 @@ export function PatientsTable({
           <Button 
             variant="ghost" 
             size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleBookAppointment(row.original.id);
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
             className="text-red-500 hover:text-red-700 hover:bg-red-100"
             onClick={(e) => {
               e.stopPropagation();
@@ -164,6 +182,15 @@ export function PatientsTable({
         description={`Are you sure you want to delete ${patientToDelete?.name}? This action cannot be undone.`}
         onConfirm={confirmDelete}
         isDeleting={deletePatientMutation.isPending}
+      />
+
+      <NewAppointment 
+        isOpen={showNewAppointment} 
+        onClose={() => {
+          setShowNewAppointment(false)
+          setSelectedPatientId(null)
+        }}
+        patientId={selectedPatientId || undefined}
       />
     </>
   )
