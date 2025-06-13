@@ -8,6 +8,7 @@ import { Combobox } from "@/components/ui/combobox"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
+import { DatePicker } from "@/components/ui/datePicker"
 import { useCreateAppointment } from "@/queries/appointment"
 import { useToast } from "@/components/ui/use-toast"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
@@ -28,7 +29,7 @@ const newAppointmentSchema = z.object({
   patientId: z.string().uuid("Please select a patient"),
   veterinarianId: z.string().uuid("Please select a veterinarian"),
   roomId: z.string().uuid("Please select a room"),
-  appointmentDate: z.string().min(1, "Please select an appointment date"),
+  appointmentDate: z.date().refine(date => !!date, "Please select an appointment date"),
   startTime: z.string().min(1, "Please select a start time"),
   endTime: z.string().min(1, "Please select an end time"),
   appointmentType: z.string().min(1, "Please select an appointment type"),
@@ -56,7 +57,7 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       patientId: "",
       veterinarianId: "",
       roomId: "",
-      appointmentDate: "",
+      appointmentDate: undefined,
       startTime: "",
       endTime: "",
       appointmentType: "",
@@ -121,15 +122,17 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       })
     }
   })
-console.log(form.formState.errors)
+// Handle form validation errors
   const onSubmit = (data: NewAppointmentFormValues) => {
     try {
-      const appointmentDateString = data.appointmentDate;
       const startTimeString = data.startTime;
       const endTimeString = data.endTime;
 
-      const appointmentDate = new Date(appointmentDateString);
-      const formattedAppointmentDate = appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      // appointmentDate is already a Date object now
+      if (!data.appointmentDate) {
+        throw new Error("Appointment date is required");
+      }
+      const formattedAppointmentDate = data.appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
       const selectedPatient = patientOptions?.find((p:any) => p.value === data.patientId);
       if (!selectedPatient) {
@@ -198,6 +201,11 @@ console.log(form.formState.errors)
       form.setValue("patientId", patientId);
     }
   }, [patientId, form]);
+  
+  // Set default appointment date to today when component mounts
+  useEffect(() => {
+    form.setValue("appointmentDate", new Date());
+  }, []);
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
@@ -342,7 +350,10 @@ console.log(form.formState.errors)
                       <FormItem>
                         <FormLabel>Date</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <DatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

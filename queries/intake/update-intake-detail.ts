@@ -3,18 +3,42 @@ import { UpdateIntakeDetailRequest, IntakeDetail } from "@/components/appointmen
 
 const updateIntakeDetail = async (request: UpdateIntakeDetailRequest): Promise<IntakeDetail> => {
   try {
-    const { id } = request;
+    const { id, files, ...otherData } = request;
     
     if (!id) {
       throw new Error("Intake ID is required");
     }
     
+    // Create FormData for multipart/form-data submission
+    const formData = new FormData();
+    
+    // Add ID field
+    formData.append('id', id);
+    
+    // Add all other basic fields
+    if (otherData.visitId) formData.append('visitId', otherData.visitId);
+    if (otherData.weightKg !== undefined) formData.append('weightKg', otherData.weightKg.toString());
+    if (otherData.notes !== undefined) formData.append('notes', otherData.notes);
+    if (otherData.isCompleted !== undefined) formData.append('isCompleted', otherData.isCompleted.toString());
+    
+    // Add image paths as array
+    if (otherData.imagePaths && otherData.imagePaths.length > 0) {
+      otherData.imagePaths.forEach(path => {
+        formData.append('imagePaths', path);
+      });
+    }
+    
+    // Add files as array
+    if (files && files.length > 0) {
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+    }
+    
     const response = await fetch(`/api/IntakeDetail/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
+      // No need to set Content-Type, browser will set it with boundary
+      body: formData,
     });
 
     if (!response.ok) {
