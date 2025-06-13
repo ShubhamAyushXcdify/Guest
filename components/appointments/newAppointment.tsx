@@ -19,21 +19,22 @@ import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
 import { Plus } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
+import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
+import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
 
 // Define the form schema
 const newAppointmentSchema = z.object({
-  clinicId: z.string().uuid(),
-  patientId: z.string().uuid(),
-  veterinarianId: z.string().uuid(),
-  roomId: z.string().uuid(),
-  appointmentDate: z.string(),
-  startTime: z.string(),
-  endTime: z.string(),
-  appointmentType: z.string(),
-  reason: z.string(),
+  clinicId: z.string().uuid("Please select a clinic"),
+  patientId: z.string().uuid("Please select a patient"),
+  veterinarianId: z.string().uuid("Please select a veterinarian"),
+  roomId: z.string().uuid("Please select a room"),
+  appointmentDate: z.string().min(1, "Please select an appointment date"),
+  startTime: z.string().min(1, "Please select a start time"),
+  endTime: z.string().min(1, "Please select an end time"),
+  appointmentType: z.string().min(1, "Please select an appointment type"),
+  reason: z.string().min(1, "Please provide a reason for the appointment"),
   status: z.string(),
   notes: z.string().optional(),
-  createdBy: z.string().uuid()
 })
 
 type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
@@ -48,50 +49,6 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
-
-  // Fetch real data from APIs
-  const { data: clinics } = useGetClinic(1, 100)
-  const { data: patientsResponse, refetch: refetchPatients } = useGetPatients(1, 100)
-  const { data: clients } = useGetClients(1, 100)
-  const { data: rooms } = useGetRoom(1, 100)
-
-  // Fetch users and filter veterinarians
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100);
-  const veterinarianOptions = (usersResponse.items || [])
-    .filter(user => user.roleName === "Veterinarian")
-    .map(vet => ({
-      value: vet.id,
-      label: `Dr. ${vet.firstName} ${vet.lastName}`
-    }));
-
-  // Transform API data into Combobox format
-  const clinicOptions = (clinics?.items || []).map(clinic => ({
-    value: clinic.id,
-    label: clinic.name
-  }))
-
-  const patientOptions = (patientsResponse?.items || []).map((patient: Patient) => ({
-    value: patient.id,
-    label: `${patient.name} (${patient.species})`
-  }))
-
-  const clientOptions = (clients?.items || []).map((client: Client) => ({
-    value: client.id,
-    label: `${client.firstName} ${client.lastName}`
-  }))
-
-  const roomOptions = (rooms?.items || []).map((room: Room) => ({
-    value: room.id,
-    label: `${room.name} (${room.roomType})`
-  }))
-
-  // Keep the appointment types as is since they're static
-  const appointmentTypes = [
-    { value: "checkup", label: "Check-up" },
-    { value: "vaccination", label: "Vaccination" },
-    { value: "surgery", label: "Surgery" }
-  ]
-
   const form = useForm<NewAppointmentFormValues>({
     resolver: zodResolver(newAppointmentSchema),
     defaultValues: {
@@ -106,9 +63,47 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       reason: "",
       status: "scheduled",
       notes: "",
-      createdBy: "03621acc-2772-4a42-8951-dd1c50e976fe"
     },
   })
+
+  // Fetch real data from APIs
+  const { data: clinics } = useGetClinic(1, 100)
+  const selectedClinicId = form.watch("clinicId") || clinic?.id || "";
+
+  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100);
+  const veterinarianOptions = (usersResponse.items || [])
+  .filter(user => user.roleName === "Veterinarian")
+  .map(vet => ({
+    value: vet.id,
+    label: `Dr. ${vet.firstName} ${vet.lastName}`
+  }));
+  
+  // Transform API data into Combobox format
+  const clinicOptions = (clinics?.items || []).map(clinic => ({
+    value: clinic.id,
+    label: clinic.name
+  }))
+  
+  const { data: patientsResponse, refetch: refetchPatients } = useGetPatientsByClinicId(selectedClinicId);
+  const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByClinicId(selectedClinicId);
+  
+  const roomOptions = isLoadingRooms 
+  ? [] 
+  : (rooms || []).map((room: any) => ({
+    value: room.id,
+    label: `${room.name} (${room.roomType})`
+  }));
+  
+  const patientOptions = (patientsResponse || []).map((patient: Patient) => ({
+    value: patient.id,
+    label: `${patient.name} (${patient.species})`,
+    clientId : patient.clientId
+  }))
+  const appointmentTypes = [
+    { value: "checkup", label: "Check-up" },
+    { value: "vaccination", label: "Vaccination" },
+    { value: "surgery", label: "Surgery" }
+  ]
 
   const { mutate: createAppointment, isPending } = useCreateAppointment({
     onSuccess: () => {
@@ -126,53 +121,56 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       })
     }
   })
-
+console.log(form.formState.errors)
   const onSubmit = (data: NewAppointmentFormValues) => {
-    // Find the selected patient to get the client ID
-    const selectedPatient = patientsResponse?.items?.find(p => p.id === data.patientId);
-    if (!selectedPatient) {
-      toast({
-        title: "Error",
-        description: "Please select a patient",
-        variant: "destructive",
-      });
-      return;
+    try {
+      const appointmentDateString = data.appointmentDate;
+      const startTimeString = data.startTime;
+      const endTimeString = data.endTime;
+
+      const appointmentDate = new Date(appointmentDateString);
+      const formattedAppointmentDate = appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      const selectedPatient = patientOptions?.find((p:any) => p.value === data.patientId);
+      if (!selectedPatient) {
+        throw new Error("Selected patient not found");
+      }
+
+      const formattedData = {
+        ...data,
+        clientId: selectedPatient.clientId, // Use the patient's client ID
+        appointmentDate: formattedAppointmentDate,
+        startTime: `${startTimeString}:00`,
+        endTime: `${endTimeString}:00`,
+        createdBy: user?.id,
+      }
+      createAppointment(formattedData)
+    } catch (error) {
+      console.log("ASdasdasd")
+      if (error instanceof z.ZodError) {
+        error.errors.forEach((err) => {
+          toast({
+            title: "Validation Error",
+            description: `${err.path.join('.')}: ${err.message}`,
+            variant: "destructive",
+          });
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      }
     }
-
-    // Format the date and time for the API according to the new payload structure
-    const appointmentDateString = data.appointmentDate;
-    const startTimeString = data.startTime; // Assuming HH:mm from input type="time"
-    const endTimeString = data.endTime;   // Assuming HH:mm from input type="time"
-
-    // Create Date objects to easily format to ISO string without milliseconds and Z
-    const appointmentDate = new Date(appointmentDateString);
-    // Need to handle potential timezone issues here or rely on API handling
-    const formattedAppointmentDate = appointmentDate.toISOString().split('.')[0]; // YYYY-MM-DDTHH:mm:ss
-
-    const formattedData = {
-      ...data,
-      clientId: selectedPatient.clientId, // Add the client ID from the selected patient
-      appointmentDate: formattedAppointmentDate,
-      // Append :00 for seconds as required by the example payload
-      startTime: `${startTimeString}:00`,
-      endTime: `${endTimeString}:00`,
-      // createdBy is already correctly set in defaultValues
-    }
-    createAppointment(formattedData)
   }
 
   const handlePatientCreated = async () => {
-    // Refetch patients to get the updated list
     await refetchPatients()
-
-    // Get the latest patient from the response
     const latestPatient = patientsResponse?.items?.[patientsResponse.items.length - 1]
-
     if (latestPatient) {
-      // Set the new patient as selected
       form.setValue("patientId", latestPatient.id)
       setShowNewPatientForm(false)
-
       toast({
         title: "Patient added",
         description: `${latestPatient.name} has been added successfully.`,
@@ -252,8 +250,7 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                                 onValueChange={(value) => {
                                   field.onChange(value);
                                   // Find the selected patient to get the client info
-                                  const selectedPatient = patientsResponse?.items?.find(p => p.id === value);
-                                  console.log(selectedPatient)
+                                  const selectedPatient = patientsResponse?.items?.find((p: Patient) => p.id === value);
                                   if (selectedPatient) {
                                     toast({
                                       title: "Client Selected",
@@ -310,7 +307,8 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                             options={roomOptions}
                             value={field.value}
                             onValueChange={field.onChange}
-                            placeholder="Select room"
+                            placeholder={isLoadingRooms ? "Loading rooms..." : "Select room"}
+                            // disabled={isLoadingRooms || !selectedClinicId}
                           />
                         </FormControl>
                         <FormMessage />
