@@ -46,8 +46,11 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
-
-
+  
+ // Add useEffect to set today's date when component mounts
+  useEffect(() => {
+    handleDate("today", null);
+  }, []);
   const { data: appointments = [], isLoading } = useGetAppointments(searchParams)
 
   const deleteAppointmentMutation = useDeleteAppointment({
@@ -122,6 +125,15 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
     (a) => a.status === "cancelled"
   ).length;
   const allCount = enrichedAppointments.length;
+
+  
+  // Calculate today's appointments count
+  const todayAppointmentsCount = enrichedAppointments.length; 
+
+  // Calculate today's completed appointments
+  const todayCompletedCount = enrichedAppointments.filter(
+    (a) => a.status === "completed"
+  ).length;
 
   // Provider options
   const providerOptions = useMemo(() => {

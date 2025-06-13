@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const workspaceType = searchParams.get('workspacemode');
 
         const response = await fetch(
-            `${apiUrl}/api/Appointment`,
+             `${apiUrl}/api/Appointment?${searchParams.toString()}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

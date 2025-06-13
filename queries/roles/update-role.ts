@@ -6,6 +6,7 @@ interface UpdateRoleData {
   isPrivileged: boolean;
   metadata: string | null;
   isClinicRequired: boolean;
+  colourName: string;
 }
 
 const updateRole = async ({ id, ...data }: { id: string } & UpdateRoleData) => {
@@ -26,6 +27,7 @@ export const useUpdateRole = () => {
     mutationFn: updateRole,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["role"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 };

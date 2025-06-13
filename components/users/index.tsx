@@ -2,10 +2,11 @@
 import React, { useState } from "react";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+import { Badge, BadgeProps } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { useGetUsers } from "@/queries/users/get-users";
+import { useGetRole } from "@/queries/roles/get-role";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewUser from "./newUser";
 import UserDetails from "./userDetails";
@@ -13,6 +14,7 @@ import { useDeleteUser } from "@/queries/users/delete-user";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 // User type based on the provided API schema
 export type User = {
@@ -23,6 +25,7 @@ export type User = {
   lastName: string;
   role: string;
   roleId: string; 
+  roleName: string;
   clinicId?: string;
   isActive: boolean;
   lastLogin?: string;
@@ -35,10 +38,40 @@ export default function Users() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
-  const { data: usersData, isLoading, isError } = useGetUsers(pageNumber, pageSize, search);
+  const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["role"] });
+    queryClient.invalidateQueries({ queryKey: ["users"] });
+    queryClient.refetchQueries({ queryKey: ["role"] });
+    queryClient.refetchQueries({ queryKey: ["users"] });
+  }, [queryClient]);
+
+  const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useGetRole(1, 1000, '', true); // Fetch all roles for color mapping
+
+  const { data: usersData, isLoading: isUsersLoading, isError: isUsersError } = useGetUsers(
+    pageNumber, 
+    pageSize, 
+    search, 
+    '', // clinicId
+    !!rolesData, // enabled
+    '' // roleId
+  );
+
   const users = usersData?.items || [];
   const totalPages = usersData?.totalPages || 1;
   
+
+   const roleColors = React.useMemo(() => {
+    const colors: { [key: string]: string } = {};
+    if (rolesData?.data) {
+      rolesData.data.forEach((role: any) => {
+        colors[role.name] = role.colourName;
+      });
+    }
+    return colors;
+  }, [rolesData]);
+
   const [openNew, setOpenNew] = useState(false);
   const [openRole, setOpenRole] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -107,7 +140,25 @@ export default function Users() {
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
-    { accessorKey: "role", header: "Role" },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => {
+        const roleDisplayName = row.original.roleName as string;
+        const colorValue = roleColors[roleDisplayName];
+
+        let badgeProps: BadgeProps = {};
+
+        if (colorValue) {
+          badgeProps.style = { backgroundColor: colorValue };
+        } else {
+          // Fallback to default color if no role-specific color is found
+          badgeProps.style = { backgroundColor: "#999999" };
+        }
+
+        return <Badge {...badgeProps}>{roleDisplayName}</Badge>;
+      },
+    },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -166,11 +217,11 @@ export default function Users() {
         </div>
       </div>
       
-      {isLoading ? (
+      {isUsersLoading || isRolesLoading || !rolesData?.data ? (
         <div className="flex items-center justify-center h-32">
           <p>Loading users...</p>
         </div>
-      ) : isError ? (
+      ) : isUsersError || isRolesError ? (
         <div className="flex items-center justify-center h-32">
           <p className="text-red-500">Error loading users</p>
         </div>

@@ -1,8 +1,11 @@
 "use client"
 
-export const DashboardWelcomeHeader = () => {
-  const today = new Date()
-  const formattedDate = today.toLocaleDateString("en-US", {
+interface DashboardWelcomeHeaderProps {
+  date: Date;
+}
+
+export const DashboardWelcomeHeader = ({ date }: DashboardWelcomeHeaderProps) => {
+  const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",

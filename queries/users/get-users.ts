@@ -51,8 +51,8 @@ export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', clinicId
   return useQuery({
     queryKey: ["users", pageNumber, pageSize, search, clinicId, roleId],
     queryFn: () => getUsers(pageNumber, pageSize, search, clinicId, roleId),
-    refetchOnWindowFocus: false,
-    placeholderData: keepPreviousData,
+   refetchOnWindowFocus: true,
+    refetchOnMount: true,
     enabled
   });
 };
