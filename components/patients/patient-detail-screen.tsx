@@ -135,12 +135,6 @@ export const PatientDetailScreen = () => {
             </div>
           </div>
           <div className="flex items-center ml-auto space-x-4">
-            <Badge className={patient.isActive ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"} variant="outline">
-              {patient.isActive ? "Active" : "Inactive"}
-            </Badge>
-            <Button className="theme-button text-white" onClick={handleEdit}>
-              <Edit className="mr-2 h-4 w-4" /> Edit Profile
-            </Button>
           </div>
         </div>
       </div>
@@ -221,7 +215,7 @@ export const PatientDetailScreen = () => {
         </TabsList>
 
         <TabsContent value="overview">
-          <PatientOverview />
+          <PatientOverview patient={patient} patientId={patientId}/>
         </TabsContent>
         <TabsContent value="medical">
           <PatientMedical />
