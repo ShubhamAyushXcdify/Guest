@@ -119,18 +119,18 @@ export default function StockAdjustmentPage() {
                                             placeholder="Search products..."
                                         />
                                         <div className="w-full md:w-64">
-                                            <Select defaultValue="all">
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Category: All" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">Category: All</SelectItem>
-                                                    <SelectItem value="medications">Medications</SelectItem>
-                                                    <SelectItem value="vaccines">Vaccines</SelectItem>
-                                                    <SelectItem value="supplies">Medical Supplies</SelectItem>
-                                                    <SelectItem value="food">Food & Supplements</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <Combobox
+                                                options={[
+                                                    { value: "all", label: "Category: All" },
+                                                    { value: "medications", label: "Medications" },
+                                                    { value: "vaccines", label: "Vaccines" },
+                                                    { value: "supplies", label: "Medical Supplies" },
+                                                    { value: "food", label: "Food & Supplements" }
+                                                ]}
+                                                value="all"
+                                                onValueChange={() => {}}
+                                                placeholder="Category: All"
+                                            />
                                         </div>
                                         <Button className="theme-button text-white" onClick={handleSearch}>
                                             Search
