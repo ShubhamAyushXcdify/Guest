@@ -91,6 +91,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
         isActive: true,
         roleId: roleToSend?.id, // Add the roleId
         role: roleToSend?.name, // Add the roleName
+        clinicId: roleToSend?.isClinicRequired ? values.clinicId : null, 
       };
 
       await createUser.mutateAsync(payload as any); // Added 'as any' temporarily for type compatibility, you might need to adjust your mutation's expected type

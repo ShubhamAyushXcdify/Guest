@@ -9,6 +9,7 @@ export type Role = {
     createdAt: string;
     updatedAt: string;
     isClinicRequired: boolean;
+    colourName: string;
 };
 
 const getRole = async (pageNumber = 1, pageSize = 10, search = '') => {
@@ -22,12 +23,13 @@ const getRole = async (pageNumber = 1, pageSize = 10, search = '') => {
 
 export const useGetRole = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
     return useQuery({
-        queryKey: ["role", pageNumber, pageSize, search],
+        queryKey: ["role"],
         queryFn: async () => {
             return getRole(pageNumber, pageSize, search);
         },
-        refetchOnWindowFocus: false,
-        placeholderData: keepPreviousData,
+         refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        staleTime: 0,
         enabled
     });
 };
