@@ -10,7 +10,15 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useGetIntakeByVisitId } from "@/queries/intake/get-intake-by-visit-id"
 import { useCreateIntakeDetail } from "@/queries/intake/create-intake-detail"
 import { useUpdateIntakeDetail } from "@/queries/intake/update-intake-detail"
-import { Plus, Trash, Upload, Image } from "lucide-react"
+import { Plus, Trash, Upload, Image, X, ZoomIn, ZoomOut, RotateCw } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"
 
 interface IntakeTabProps {
   patientId: string
@@ -38,65 +46,44 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   const [imagePaths, setImagePaths] = useState<string[]>([])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [notes, setNotes] = useState("")
-
-  const createIntakeMutation = useCreateIntakeDetail({
-    onSuccess: (data) => {
-      toast({
-        title: "Success",
-        description: "Intake detail saved successfully",
-      })
-      // Refetch intake data
-      refetchIntake();
-      setHasIntake(true);
-      
-      // Navigate to next tab if provided
-      if (onNext) {
-        onNext();
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save intake detail",
-        variant: "destructive",
-      })
-    }
-  })
-
-  const updateIntakeMutation = useUpdateIntakeDetail({
-    onSuccess: (data) => {
-      toast({
-        title: "Success",
-        description: "Intake detail updated successfully",
-      })
-      // Refetch intake data
-      refetchIntake();
-      
-      // Navigate to next tab if provided
-      if (onNext) {
-        onNext();
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update intake detail",
-        variant: "destructive",
-      })
-    }
-  })
+  
+  // Image viewer modal state
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [imageZoom, setImageZoom] = useState(1)
+  const [imageRotation, setImageRotation] = useState(0)
+  
+  // Use mutateAsync pattern for better control flow
+  const { mutateAsync: createIntakeDetail, isPending: isCreating } = useCreateIntakeDetail({})
+  const { mutateAsync: updateIntakeDetail, isPending: isUpdating } = useUpdateIntakeDetail({})
+  
+  // Combined loading state
+  const isPending = isCreating || isUpdating
 
   // Initialize form with existing data when available
   useEffect(() => {
     if (intakeData) {
-      setWeightKg(intakeData.weightKg)
-      setImagePaths(intakeData.imagePaths || [])
-      setNotes(intakeData.notes || "")
-      setHasIntake(true)
+      setWeightKg(intakeData.weightKg);
+      // Extract image paths from the images array
+      const paths = intakeData.images ? intakeData.images.map(img => img.imagePath) : [];
+      setImagePaths(paths);
+      setNotes(intakeData.notes || "");
+      setHasIntake(true);
     }
-  }, [intakeData])
+  }, [intakeData]);
 
-  const handleSaveIntake = () => {
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Clean up any blob URLs to prevent memory leaks
+      imagePaths.forEach(path => {
+        if (path.startsWith('blob:')) {
+          URL.revokeObjectURL(path);
+        }
+      });
+    };
+  }, []);
+
+  const handleSaveIntake = async () => {
     if (!visitData?.id) {
       toast({
         title: "Error",
@@ -106,35 +93,55 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       return
     }
     
-    if (hasIntake && intakeData?.id) {
-      // Update existing intake
-      updateIntakeMutation.mutate({
-        id: intakeData.id,
-        visitId: intakeData.visitId || visitData?.id,
-        weightKg: weightKg!,
-        imagePaths,
-        notes,
-        isCompleted: true
-      })
-    } else {
-      // Create new intake
-      createIntakeMutation.mutate({
-        visitId: visitData.id,
-        weightKg: weightKg!,
-        imagePaths,
-        notes,
-        isCompleted: true
+    try {
+      if (hasIntake && intakeData?.id) {
+        // Update existing intake, ensuring ID is included
+        await updateIntakeDetail({
+          id: intakeData.id,
+          visitId: intakeData.visitId || visitData?.id,
+          weightKg: weightKg!,
+          imagePaths,
+          files: imageFiles,
+          notes,
+          isCompleted: true
+        })
+        
+        toast({
+          title: "Success",
+          description: "Intake detail updated successfully",
+        })
+      } else {
+        // Create new intake
+        await createIntakeDetail({
+          visitId: visitData.id,
+          weightKg: weightKg!,
+          imagePaths,
+          files: imageFiles,
+          notes,
+          isCompleted: true
+        })
+        
+        toast({
+          title: "Success",
+          description: "Intake detail saved successfully",
+        })
+        setHasIntake(true);
+      }
+      
+      // Refetch intake data and navigate to next tab
+      refetchIntake();
+      if (onNext) {
+        onNext();
+      }
+    } catch (error) {
+      console.error('Error saving intake details:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save intake detail",
+        variant: "destructive",
       })
     }
   }
-
-  // const handleDeleteIntake = () => {
-  //   // Implementation for delete functionality
-  //   toast({
-  //     title: "Info",
-  //     description: "Delete functionality will be implemented soon",
-  //   })
-  // }
 
   const triggerFileInput = () => {
     fileInputRef.current?.click()
@@ -171,6 +178,33 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
     updatedFiles.splice(index, 1)
     setImageFiles(updatedFiles)
   }
+  
+  // Function to open image viewer
+  const openImageViewer = (imagePath: string) => {
+    setSelectedImage(imagePath);
+    setImageZoom(1);  // Reset zoom level
+    setImageRotation(0);  // Reset rotation
+  }
+  
+  // Function to close image viewer
+  const closeImageViewer = () => {
+    setSelectedImage(null);
+  }
+  
+  // Function to zoom in
+  const zoomIn = () => {
+    setImageZoom(prev => Math.min(3, prev + 0.2));
+  }
+  
+  // Function to zoom out
+  const zoomOut = () => {
+    setImageZoom(prev => Math.max(0.5, prev - 0.2));
+  }
+  
+  // Function to rotate image
+  const rotateImage = () => {
+    setImageRotation(prev => (prev + 90) % 360);
+  }
 
   if (visitLoading || intakeLoading) {
     return (
@@ -193,108 +227,153 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold">Intake Information</h2>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="weightKg" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Weight (kg)
-            </label>
-            <Input
-              id="weightKg"
-              type="number"
-              step="0.01"
-              value={weightKg || ""}
-              onChange={(e) => setWeightKg(parseFloat(e.target.value))}
-              className="w-full max-w-xs"
-            />
+    <>
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">Intake Information</h2>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Photos
-            </label>
-            <div className="space-y-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                multiple
-                className="hidden"
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="weightKg" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Weight (kg)
+              </label>
+              <Input
+                id="weightKg"
+                type="number"
+                step="0.01"
+                value={weightKg || ""}
+                onChange={(e) => setWeightKg(parseFloat(e.target.value))}
+                className="w-full max-w-xs"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Photos
+              </label>
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={triggerFileInput}
+                  className="flex items-center"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Photo
+                </Button>
+                
+                {imagePaths.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {imagePaths.map((path, index) => (
+                      <div key={index} className="relative border rounded p-2 h-24 w-24">
+                        {path.startsWith('blob:') ? (
+                          <img 
+                            src={path} 
+                            alt={`Patient photo ${index + 1}`}
+                            className="h-full w-full object-cover cursor-pointer"
+                            onClick={() => openImageViewer(path)}
+                          />
+                        ) : (
+                          <div 
+                            className="flex items-center justify-center h-full w-full cursor-pointer" 
+                            onClick={() => openImageViewer(path)}
+                          >
+                            <Image className="h-8 w-8 opacity-50" />
+                            <span className="text-xs mt-1">{path.split('/').pop()}</span>
+                          </div>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white p-0"
+                          onClick={() => removeImagePath(index)}
+                        >
+                          <Trash className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No photos uploaded</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Notes
+              </label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full h-32"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end">
               <Button 
-                variant="outline" 
-                size="sm"
-                onClick={triggerFileInput}
-                className="flex items-center"
+                onClick={handleSaveIntake}
+                disabled={weightKg === undefined || isPending}
+                className="ml-2"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Photo
+                {isPending 
+                  ? "Saving..." 
+                  : hasIntake ? "Update" : "Save and Next"}
               </Button>
-              
-              {imagePaths.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {imagePaths.map((path, index) => (
-                    <div key={index} className="relative border rounded p-2 h-24 w-24">
-                      {path.startsWith('blob:') ? (
-                        <img 
-                          src={path} 
-                          alt={`Patient photo ${index + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full w-full">
-                          <Image className="h-8 w-8 opacity-50" />
-                          <span className="text-xs mt-1">{path.split('/').pop()}</span>
-                        </div>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white p-0"
-                        onClick={() => removeImagePath(index)}
-                      >
-                        <Trash className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No photos uploaded</p>
-              )}
             </div>
           </div>
-
-          <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Notes
-            </label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full h-32"
-            />
+        </CardContent>
+      </Card>
+      
+      {/* Image Viewer Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={open => !open && closeImageViewer()}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle className="flex justify-between items-center">
+              <span>Image Viewer</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={zoomIn}>
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={zoomOut}>
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={rotateImage}>
+                  <RotateCw className="h-4 w-4" />
+                </Button>
+                <DialogClose asChild>
+                  <Button variant="outline" size="icon">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto w-full h-full flex items-center justify-center p-2">
+            {selectedImage && (
+              <img
+                src={selectedImage}
+                alt="Patient photo"
+                className="max-w-full max-h-full object-contain transition-transform duration-200 ease-in-out"
+                style={{
+                  transform: `scale(${imageZoom}) rotate(${imageRotation}deg)`,
+                }}
+              />
+            )}
           </div>
-
-          <div className="mt-6 flex justify-end">
-            <Button 
-              onClick={handleSaveIntake}
-              disabled={weightKg === undefined || createIntakeMutation.isPending || updateIntakeMutation.isPending}
-              className="ml-2"
-            >
-              {createIntakeMutation.isPending || updateIntakeMutation.isPending 
-                ? "Saving..." 
-                : hasIntake ? "Update" : "Save and Next"}
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 } 

@@ -3,12 +3,32 @@ import { CreateIntakeDetailRequest, IntakeDetail } from "@/components/appointmen
 
 const createIntakeDetail = async (data: CreateIntakeDetailRequest): Promise<IntakeDetail> => {
   try {
+    // Create FormData for multipart/form-data submission
+    const formData = new FormData();
+    
+    // Add basic fields
+    formData.append('visitId', data.visitId);
+    formData.append('weightKg', data.weightKg.toString());
+    formData.append('notes', data.notes);
+    formData.append('isCompleted', data.isCompleted.toString());
+    
+    // Add image paths as array
+    if (data.imagePaths && data.imagePaths.length > 0) {
+      data.imagePaths.forEach(path => {
+        formData.append('imagePaths', path);
+      });
+    }
+    
+    // Add files as array
+    if (data.files && data.files.length > 0) {
+      data.files.forEach(file => {
+        formData.append('files', file);
+      });
+    }
+    
     const response = await fetch('/api/IntakeDetail', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      body: formData, // No need to set Content-Type, browser will set it with boundary
     });
 
     if (!response.ok) {

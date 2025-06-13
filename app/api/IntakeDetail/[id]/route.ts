@@ -53,14 +53,22 @@ export async function PUT(
             );
         }
 
-        const body = await request.json();
+        // Clone the request to avoid consuming it
+        const clonedRequest = request.clone();
+        
+        // Get FormData from the request
+        const formData = await clonedRequest.formData();
+        
+        // Make sure the ID is included in the FormData
+        formData.append('id', params.id);
+        
         const response = await fetch(`${apiUrl}/api/IntakeDetail/${params.id}`, {
             method: 'PUT',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
+                // Don't set Content-Type, it will be set automatically with the boundary
             },
-            body: JSON.stringify(body),
+            body: formData,
         });
 
         if (response.status === 401) {

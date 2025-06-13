@@ -51,13 +51,20 @@ export async function PUT(
         }
 
         const body = await request.json();
+        
+        // Make sure the payload includes the ID
+        const fullPayload = {
+            ...body,
+            id: params.id 
+        };
+        
         const response = await fetch(`${apiUrl}/api/ProcedureDetail/${params.id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify(fullPayload),
         });
 
         if (!response.ok) {

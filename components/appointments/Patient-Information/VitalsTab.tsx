@@ -37,6 +37,13 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
   const [hydrationStatus, setHydrationStatus] = useState<string>("")
   const [notes, setNotes] = useState("")
 
+  // Use mutateAsync pattern for better control flow
+  const { mutateAsync: createVitalDetail, isPending: isCreating } = useCreateVitalDetail()
+  const { mutateAsync: updateVitalDetail, isPending: isUpdating } = useUpdateVitalDetail()
+  
+  // Combined loading state
+  const isPending = isCreating || isUpdating
+
   // Initialize form with existing data when available
   useEffect(() => {
     if (vitalDetail) {
@@ -50,61 +57,50 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
     }
   }, [vitalDetail])
 
-  const createVitalDetailMutation = useCreateVitalDetail({
-    onSuccess: () => {
-      toast.success("Vital details saved successfully")
-      refetchVitalDetail()
-      if (onNext) {
-        onNext()
-      }
-    },
-    onError: (error) => {
-      toast.error(`Failed to save vital details: ${error.message}`)
-    }
-  })
-
-  const updateVitalDetailMutation = useUpdateVitalDetail({
-    onSuccess: () => {
-      toast.success("Vital details updated successfully")
-      refetchVitalDetail()
-      if (onNext) {
-        onNext()
-      }
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to update vital details: ${error.message}`)
-    }
-  })
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
     
-    const vitalData = {
-      temperatureC,
-      heartRateBpm,
-      respiratoryRateBpm,
-      mucousMembraneColor: mucousMembraneColor || undefined,
-      capillaryRefillTimeSec,
-      hydrationStatus: hydrationStatus || undefined,
-      notes: notes || undefined,
-      isCompleted: true
-    }
-    
-    if (vitalDetail) {
-      // Update existing vital detail
-      updateVitalDetailMutation.mutate({
-        id: vitalDetail.id,
-        ...vitalData
-      })
-    } else {
-      // Create new vital detail
-      createVitalDetailMutation.mutate({
-        visitId: visitData.id,
-        ...vitalData
-      })
+    try {
+      const vitalData = {
+        temperatureC,
+        heartRateBpm,
+        respiratoryRateBpm,
+        mucousMembraneColor: mucousMembraneColor || undefined,
+        capillaryRefillTimeSec,
+        hydrationStatus: hydrationStatus || undefined,
+        notes: notes || undefined,
+        isCompleted: true
+      }
+      
+      if (vitalDetail) {
+        // Update with ID in the payload as required by API
+        await updateVitalDetail({
+          id: vitalDetail.id,
+          ...vitalData
+        })
+        
+        toast.success("Vital details updated successfully")
+      } else {
+        // Create new vital detail
+        await createVitalDetail({
+          visitId: visitData.id,
+          ...vitalData
+        })
+        
+        toast.success("Vital details saved successfully")
+      }
+      
+      // After successful save, refetch data and navigate to next tab
+      refetchVitalDetail()
+      if (onNext) {
+        onNext()
+      }
+    } catch (error) {
+      console.error('Error saving vital details:', error)
+      toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -239,10 +235,10 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={handleSave}
-            disabled={createVitalDetailMutation.isPending || updateVitalDetailMutation.isPending}
+            disabled={isPending}
             className="ml-2"
           >
-            {createVitalDetailMutation.isPending || updateVitalDetailMutation.isPending 
+            {isPending 
               ? "Saving..." 
               : vitalDetail ? "Update" : "Save & Next"}
           </Button>

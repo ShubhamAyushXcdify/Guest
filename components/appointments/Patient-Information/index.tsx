@@ -73,17 +73,17 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
 
           {/* Vitals Tab */}
           <TabsContent value="vitals">
-            <VitalsTab patientId={patientId} appointmentId={appointmentId} />
+            <VitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Procedure Tab */}
           <TabsContent value="procedure">
-            <ProcedureTab patientId={patientId} appointmentId={appointmentId} />
+            <ProcedureTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Assessment Tab */}
           <TabsContent value="assessment">
-            <AssessmentTab patientId={patientId} appointmentId={appointmentId} />
+            <AssessmentTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           {/* Plan Tab */}
