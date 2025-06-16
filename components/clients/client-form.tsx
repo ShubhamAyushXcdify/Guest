@@ -19,6 +19,7 @@ import { Client } from "@/queries/clients/get-client";
 import { useCreateClient } from "@/queries/clients/create-client";
 import { toast } from "@/components/ui/use-toast";
 import { ClinicSelect } from "@/components/clinics/clinic-select";
+import { useRootContext } from '@/context/RootContext';
 
 const clientFormSchema = z.object({
   clinicId: z.string().min(1, { message: "Clinic is required." }),
@@ -70,6 +71,7 @@ export function ClientForm({
 }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createClientMutation = useCreateClient();
+  const { clinic } = useRootContext();
 
   // Use the prop value if provided, otherwise it will be selected in the form
   const formDefaultValues = {
@@ -115,13 +117,15 @@ export function ClientForm({
   // The form fields content
   const formContent = (
     <div className="space-y-6">
-      {/* Clinic Selection Field */}
-      <ClinicSelect
-        control={form.control}
-        name="clinicId"
-        label="Select Clinic*"
-        description="Select the clinic this owner will be associated with"
-      />
+      {/* Clinic Selection Field - Only show if clinic.id is not present */}
+      {!clinic?.id && (
+        <ClinicSelect
+          control={form.control}
+          name="clinicId"
+          label="Select Clinic*"
+          description="Select the clinic this owner will be associated with"
+        />
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField

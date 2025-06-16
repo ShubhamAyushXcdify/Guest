@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -40,6 +40,8 @@ import { ClientForm } from "@/components/clients/client-form"
 import { Separator } from "@/components/ui/separator"
 import { Client } from "@/queries/clients/get-client"
 import { ClinicSelect } from "@/components/clinics/clinic-select"
+import { useRootContext } from '@/context/RootContext'
+import { useClientsByClinicId } from "@/queries/clients/get-client-by-clinic-id"
 
 const patientFormSchema = z.object({
   clientId: z.string().min(1, "Owner is required"),
@@ -77,12 +79,27 @@ interface NewPatientFormProps {
 export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
   const [isPending, setIsPending] = useState(false)
   const [showClientForm, setShowClientForm] = useState(false)
+  const { user, userType, clinic } = useRootContext()
   const createPatientMutation = useCreatePatient()
+  const { data: clients } = useClientsByClinicId(clinic?.id || "", !!clinic?.id)
 
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      clinicId: clinic?.id || "",
+    },
   })
+
+  useEffect(() => {
+    const selectedClientId = form.watch("clientId");
+    if (selectedClientId) {
+      const selectedClient = clients?.find(client => client.id === selectedClientId);
+      if (selectedClient) {
+        form.setValue("clinicId", selectedClient.clinicId);
+      }
+    }
+  }, [form.watch("clientId")]);
 
   async function onSubmit(data: PatientFormValues) {
     setIsPending(true)
@@ -183,14 +200,6 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
           <div className="flex-1 space-y-6">
             <h3 className="text-lg font-medium">Patient Information</h3>
             <div className="space-y-4">
-              {/* Add Clinic selection field */}
-              <ClinicSelect
-                control={form.control}
-                name="clinicId"
-                label="Clinic"
-                description="Select the clinic for this patient"
-              />
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
