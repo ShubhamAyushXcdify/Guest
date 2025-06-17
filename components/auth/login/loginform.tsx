@@ -64,6 +64,7 @@ export function LoginForm() {
       toast({
         description: error.message,
         variant: 'destructive',
+        duration: 3000,
       })
     }
   });

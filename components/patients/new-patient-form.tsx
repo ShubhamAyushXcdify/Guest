@@ -44,7 +44,7 @@ import { useRootContext } from '@/context/RootContext'
 import { useClientsByClinicId } from "@/queries/clients/get-client-by-clinic-id"
 
 const patientFormSchema = z.object({
-  clientId: z.string().min(1, "Owner is required"),
+ clientId: z.string().nonempty("Owner is required"),
   clinicId: z.string().min(1, "Clinic is required"),
   name: z.string().min(1, "Name is required"),
   species: z.string().min(1, "Species is required"),
@@ -52,7 +52,7 @@ const patientFormSchema = z.object({
   color: z.string().min(1, "Color is required"),
   gender: z.string().min(1, "Gender is required"),
   isNeutered: z.boolean().default(false),
-  dateOfBirth: z.date(),
+  dateOfBirth: z.coerce.date().max(new Date(), "Date of birth cannot be in the future"),
   weightKg: z.coerce.number().min(0, "Weight must be a positive number"),
   microchipNumber: z.string().optional(),
   registrationNumber: z.string().optional(),
@@ -67,6 +67,13 @@ const patientFormSchema = z.object({
 type PatientFormValues = z.infer<typeof patientFormSchema>
 
 const defaultValues: Partial<PatientFormValues> = {
+  clientId: "",
+  clinicId: "",
+  name: "",
+  species: "",
+  breed: "",
+  color: "",
+  gender: "",
   isNeutered: false,
   isActive: true,
   weightKg: 0,
@@ -137,11 +144,14 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
   const handleClientCreated = (client: Client) => {
     // Set the client ID in the form
     form.setValue("clientId", client.id);
-    setShowClientForm(false);
     toast({
       title: "Owner added",
       description: `${client.firstName} ${client.lastName} has been added as an owner.`,
     });
+    // Delay closing the form to allow the toast to be seen
+    setTimeout(() => {
+      setShowClientForm(false);
+    }, 500); // Adjust delay as needed, 500ms (0.5 seconds) is usually enough
   };
 
   return (
