@@ -22,7 +22,6 @@ import { ClinicSelect } from "@/components/clinics/clinic-select";
 import { useRootContext } from '@/context/RootContext';
 
 const clientFormSchema = z.object({
-  clinicId: z.string().min(1, { message: "Clinic is required." }),
   firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
   lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -36,7 +35,7 @@ const clientFormSchema = z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   notes: z.string().optional(),
-  isActive: z.boolean().default(true),
+  clinicId: z.string().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -63,7 +62,6 @@ export function ClientForm({
     emergencyContactName: "",
     emergencyContactPhone: "",
     notes: "",
-    isActive: true,
   },
   onSuccess,
   clinicId,
@@ -87,9 +85,10 @@ export function ClientForm({
   const onSubmit = async (data: ClientFormValues) => {
     setIsSubmitting(true);
     try {
-      // No need to add clinicId here, it's already in the form data
       const clientData = {
         ...data,
+        clinicId: clinic?.id || data.clinicId || "",
+        isActive:true
       };
       
       const newClient = await createClientMutation.mutateAsync(clientData);
@@ -313,27 +312,6 @@ export function ClientForm({
               />
             </FormControl>
             <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="isActive"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel>Active Client</FormLabel>
-              <FormDescription>
-                This client is currently active and can be associated with patients
-              </FormDescription>
-            </div>
           </FormItem>
         )}
       />

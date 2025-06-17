@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useClientsByClinicId } from "@/queries/clients/get-client-by-clinic-id";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +20,7 @@ import { Control } from "react-hook-form";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useRootContext } from '@/context/RootContext';
 import { Combobox } from "@/components/ui/combobox";
+import { useGetClients } from "@/queries/clients/get-client"
 
 interface ClientSelectProps {
   control: Control<any>;
@@ -63,7 +63,8 @@ export function ClientSelect({
   const selectedClinicId = control._formValues.clinicId || clinic?.id || "";
   
   // Use the new hook to get clients by clinic ID
-  const { data: clients, isLoading, isError, refetch } = useClientsByClinicId(selectedClinicId, !!selectedClinicId);
+  const { data: clientsData, isLoading, isError, refetch } = useGetClients(1, 100, selectedClinicId);
+  const clients = clientsData?.items || [];
 
   useEffect(() => {
     if (open) {

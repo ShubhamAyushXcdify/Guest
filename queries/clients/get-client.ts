@@ -46,10 +46,10 @@ const getClients = async (pageNumber = 1, pageSize = 10, clinicId = '') => {
   return data as ClientResponse;
 };
 
-export function useGetClients(pageNumber = 1, pageSize = 10, search = '') {
+export function useGetClients(pageNumber = 1, pageSize = 10, clinicId = '') {
   return useQuery({
-    queryKey: ['clients', pageNumber, pageSize, search],
-    queryFn: () => getClients(pageNumber, pageSize, search),
+    queryKey: ['clients', pageNumber, pageSize, clinicId],
+    queryFn: () => getClients(pageNumber, pageSize, clinicId),
     retry: 1,
     staleTime: 30000, // 30 seconds
   });
@@ -77,3 +77,4 @@ export function useGetClientById(id: string) {
     retry: 1,
   });
 }
+
