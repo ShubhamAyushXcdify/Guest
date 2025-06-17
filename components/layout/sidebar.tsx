@@ -163,7 +163,7 @@ const navGroups = [
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
-    const { handleLogout } = useRootContext()
+    const { handleLogout, IsAdmin } = useRootContext()
     const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
         "Core Operations": true,
         "Products & Services": true,
@@ -183,52 +183,58 @@ export function Sidebar() {
     // Single group for all nav items
     const renderNavItems = () => (
         <nav className="space-y-1 px-3">
-            {navGroups.map((group) => (
-                <SidebarGroup key={group.title}>
-                    <Collapsible
-                        open={expandedGroups[group.title]}
-                        onOpenChange={() => toggleGroup(group.title)}
-                    >
-                        <SidebarGroupLabel>
-                            <CollapsibleTrigger className={cn(
-                                "flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
-                                state === "collapsed" && "justify-center"
-                            )}>
-                                <div className={cn(
-                                    "flex items-center gap-2",
+            {navGroups.map((group) => {
+                if ((group.title === "Administration" || group.title === "Settings") && !IsAdmin) {
+                    return null;
+                }
+                
+                return (
+                    <SidebarGroup key={group.title}>
+                        <Collapsible
+                            open={expandedGroups[group.title]}
+                            onOpenChange={() => toggleGroup(group.title)}
+                        >
+                            <SidebarGroupLabel>
+                                <CollapsibleTrigger className={cn(
+                                    "flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
                                     state === "collapsed" && "justify-center"
                                 )}>
-                                    <group.icon className="h-4 w-4" />
-                                    {state !== "collapsed" && <span>{group.title}</span>}
+                                    <div className={cn(
+                                        "flex items-center gap-2",
+                                        state === "collapsed" && "justify-center"
+                                    )}>
+                                        <group.icon className="h-4 w-4" />
+                                        {state !== "collapsed" && <span>{group.title}</span>}
+                                    </div>
+                                    {state !== "collapsed" && (
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform duration-200 ${expandedGroups[group.title] ? "rotate-180" : ""
+                                                }`}
+                                        />
+                                    )}
+                                </CollapsibleTrigger>
+                            </SidebarGroupLabel>
+                            <CollapsibleContent>
+                                <div className={cn(
+                                    "mt-2 space-y-1",
+                                    state === "collapsed" ? "pl-0" : "pl-3"
+                                )}>
+                                    {group.items.map((item) => (
+                                        <NavItem
+                                            key={item.href}
+                                            href={item.href}
+                                            label={item.label}
+                                            icon={item.icon}
+                                            isActive={pathname === item.href}
+                                            color={item.color}
+                                        />
+                                    ))}
                                 </div>
-                                {state !== "collapsed" && (
-                                    <ChevronDown
-                                        className={`h-4 w-4 transition-transform duration-200 ${expandedGroups[group.title] ? "rotate-180" : ""
-                                            }`}
-                                    />
-                                )}
-                            </CollapsibleTrigger>
-                        </SidebarGroupLabel>
-                        <CollapsibleContent>
-                            <div className={cn(
-                                "mt-2 space-y-1",
-                                state === "collapsed" ? "pl-0" : "pl-3"
-                            )}>
-                                {group.items.map((item) => (
-                                    <NavItem
-                                        key={item.href}
-                                        href={item.href}
-                                        label={item.label}
-                                        icon={item.icon}
-                                        isActive={pathname === item.href}
-                                        color={item.color}
-                                    />
-                                ))}
-                            </div>
-                        </CollapsibleContent>
-                    </Collapsible>
-                </SidebarGroup>
-            ))}
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </SidebarGroup>
+                );
+            })}
         </nav>
     )
 

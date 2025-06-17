@@ -136,19 +136,19 @@ export const useContentLayout = () => {
         // }))
         if (userData) {
             const types = {
-                isAdmin: userData.role === 'Admin',
-                isSuperAdmin: userData.role === 'Super Admin',
-                isClinicAdmin: userData.role === 'Clinic Admin',
-                isReceptionist: userData.role === 'Receptionist',
-                isPatient: userData.role === 'Patient',
-                isClient: userData.role === 'Client',
-                isProvider: (userData.role === 'Provider' || userData?.role?.toLocaleLowerCase() === 'veterinarian')
+                isAdmin: userData.roleName === 'Administrator',
+                isSuperAdmin: userData.roleName === 'Super Admin',
+                isClinicAdmin: userData.roleName === 'Clinic Admin',
+                isReceptionist: userData.roleName === 'Receptionist',
+                isPatient: userData.roleName === 'Patient',
+                isClient: userData.roleName === 'Client',
+                isProvider: (userData.roleName === 'Provider' || userData?.roleName?.toLocaleLowerCase() === 'veterinarian')
             }
             setUserType((prev) => ({ ...userRolesObject, ...types }));
         }
-        setIsAdmin(userData.role === 'Admin' || userData.role === 'Super Admin');
-        setRoles([userData.role]);
-        setRoleToLocal(userData.role);
+        setIsAdmin(userData.roleName === 'Administrator' || userData.roleName === 'Super Admin');
+        setRoles([userData.roleName]);
+        setRoleToLocal(userData.roleName);
         setUserToLocal(JSON.stringify(userData));
         setLoading(false);
     };
