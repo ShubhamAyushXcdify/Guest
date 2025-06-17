@@ -41,20 +41,22 @@ const newAppointmentSchema = z.object({
 type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
 
 interface NewAppointmentProps {
-  isOpen: boolean
-  onClose: () => void
-  patientId?: string
+  isOpen?: boolean;
+  onClose?: () => void;
+  initialPatientId?: string;
+  initialClinicId?: string;
+  onSuccess?: () => void;
 }
 
-function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
+function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, onSuccess }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
   const form = useForm<NewAppointmentFormValues>({
     resolver: zodResolver(newAppointmentSchema),
     defaultValues: {
-      clinicId: "",
-      patientId: "",
+      clinicId: initialClinicId || "",
+      patientId: initialPatientId || "",
       veterinarianId: "",
       roomId: "",
       appointmentDate: undefined,
@@ -111,15 +113,19 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       toast({
         title: "Success",
         description: "Appointment created successfully",
-      })
-      onClose()
+      });
+      if (onSuccess) {
+        onSuccess();
+      } else if (onClose) {
+        onClose();
+      }
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create appointment",
         variant: "destructive",
-      })
+      });
     }
   })
 // Handle form validation errors
@@ -183,24 +189,26 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
 
   const handleCancel = () => {
     setShowNewPatientForm(false)
-    onClose()
+    if (onClose) onClose()
   }
 
   const handleClinicDefaultState = () => {
-    if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
+    if (initialClinicId) {
+      form.setValue("clinicId", initialClinicId)
+    } else if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
       form.setValue("clinicId", clinic.id)
     }
   }
 
   useEffect(() => {
     handleClinicDefaultState()
-  }, [clinic])
+  }, [clinic, initialClinicId])
 
   useEffect(() => {
-    if (patientId) {
-      form.setValue("patientId", patientId);
+    if (initialPatientId) {
+      form.setValue("patientId", initialPatientId)
     }
-  }, [patientId, form]);
+  }, [initialPatientId, form])
   
   // Set default appointment date to today when component mounts
   useEffect(() => {
@@ -208,7 +216,7 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   }, []);
 
   return (
-    <Sheet open={isOpen} onOpenChange={handleCancel}>
+    <Sheet open={isOpen || false} onOpenChange={handleCancel}>
       <SheetContent className={`w-[90%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '70%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '70%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
         <SheetHeader>
           <SheetTitle>New Appointment</SheetTitle>

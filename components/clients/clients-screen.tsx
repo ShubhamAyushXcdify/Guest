@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2 } from "lucide-react"
+import { Plus, Edit, Trash2, Eye } from "lucide-react"
 import { 
   Sheet, 
   SheetContent, 
@@ -19,6 +19,7 @@ import { useDeleteClient } from "@/queries/clients/delete-client"
 import { toast } from "@/components/ui/use-toast"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { useRootContext } from '@/context/RootContext'
+import { useRouter } from "next/navigation"
 
 
 export const ClientsScreen = () => {
@@ -45,6 +46,8 @@ export const ClientsScreen = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const router = useRouter()
 
 
   const handleSearch = (searchTerm: string) => {
@@ -126,6 +129,16 @@ export const ClientsScreen = () => {
             }}
           >
             <Edit className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/clients/${row.original.id}`);
+            }}
+          >
+            <Eye className="h-4 w-4" />
           </Button>
           <Button 
             variant="ghost" 
