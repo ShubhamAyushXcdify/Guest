@@ -41,7 +41,7 @@ import { Separator } from "@/components/ui/separator"
 import { Client } from "@/queries/clients/get-client"
 import { ClinicSelect } from "@/components/clinics/clinic-select"
 import { useRootContext } from '@/context/RootContext'
-import { useClientsByClinicId } from "@/queries/clients/get-client-by-clinic-id"
+import { useGetClients } from "@/queries/clients/get-client"
 
 const patientFormSchema = z.object({
  clientId: z.string().nonempty("Owner is required"),
@@ -88,7 +88,8 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
   const [showClientForm, setShowClientForm] = useState(false)
   const { user, userType, clinic } = useRootContext()
   const createPatientMutation = useCreatePatient()
-  const { data: clients } = useClientsByClinicId(clinic?.id || "", !!clinic?.id)
+  const { data: clientsData } = useGetClients(1, 100, clinic?.id || "")
+  const clients = clientsData?.items || []
 
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
