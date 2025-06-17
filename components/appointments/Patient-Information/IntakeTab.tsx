@@ -63,8 +63,50 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   useEffect(() => {
     if (intakeData) {
       setWeightKg(intakeData.weightKg);
-      // Extract image paths from the images array
-      const paths = intakeData.images ? intakeData.images.map(img => img.imagePath) : [];
+      
+      // Get API base URL from environment variable
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+      
+      if (!apiBaseUrl) {
+        console.warn('NEXT_PUBLIC_API_URL environment variable is not defined');
+      }
+      
+      // Process both images and files arrays from the API response
+      let paths: string[] = [];
+      
+      // Process images array if it exists
+      if (intakeData.images && intakeData.images.length > 0) {
+        const imagePaths = intakeData.images.map(img => {
+          // Check if the path is already a full URL or a blob URL
+          if (img.imagePath.startsWith('http://') || 
+              img.imagePath.startsWith('https://') || 
+              img.imagePath.startsWith('blob:')) {
+            return img.imagePath;
+          }
+          
+          // If we have filePath instead of imagePath
+          if (img.filePath) {
+            // Format: "Uploads\\file.jpg" - we need to convert backslashes and prepend API URL
+            const formattedPath = img.filePath.replace(/\\/g, '/');
+            return apiBaseUrl ? `${apiBaseUrl}/${formattedPath}` : formattedPath;
+          }
+          
+          // If it's a relative path, prepend the API URL
+          return apiBaseUrl ? `${apiBaseUrl}/${img.imagePath}` : img.imagePath;
+        });
+        paths = [...paths, ...imagePaths];
+      }
+      
+      // Process files array if it exists (from the screenshot, this is where the images are)
+      if (intakeData.files && intakeData.files.length > 0) {
+        const filePaths = intakeData.files.map(file => {
+          // Format: "Uploads\\file.jpg" - we need to convert backslashes and prepend API URL
+          const formattedPath = file.filePath.replace(/\\/g, '/');
+          return apiBaseUrl ? `${apiBaseUrl}/${formattedPath}` : formattedPath;
+        });
+        paths = [...paths, ...filePaths];
+      }
+      
       setImagePaths(paths);
       setNotes(intakeData.notes || "");
       setHasIntake(true);
@@ -276,7 +318,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                   <div className="flex flex-wrap gap-2">
                     {imagePaths.map((path, index) => (
                       <div key={index} className="relative border rounded p-2 h-24 w-24">
-                        {path.startsWith('blob:') ? (
+                        {path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://') ? (
                           <img 
                             src={path} 
                             alt={`Patient photo ${index + 1}`}

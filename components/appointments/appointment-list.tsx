@@ -17,6 +17,7 @@ import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import useAppointmentFilter from "./hooks/useAppointmentFilter"
 import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
 import { useRootContext } from "@/context/RootContext"
+import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 
 interface Appointment {
   id: string;
@@ -35,7 +36,13 @@ interface Appointment {
   appointmentType?: string;
 }
 
-export default function AppointmentList({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
+export default function AppointmentList({ 
+  onAppointmentClick,
+  selectedPatientId
+}: { 
+  onAppointmentClick: (id: string) => void,
+  selectedPatientId?: string 
+}) {
   const { user, userType } = useRootContext()
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -47,11 +54,34 @@ export default function AppointmentList({ onAppointmentClick }: { onAppointmentC
   const [searchQuery, setSearchQuery] = useState("")
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
- // Add useEffect to set today's date when component mounts
+  // Add useEffect to set today's date when component mounts
   useEffect(() => {
     handleDate("today", null);
   }, []);
-  const { data: appointments = [], isLoading } = useGetAppointments(searchParams)
+
+  // Fetch appointments by patient ID if selectedPatientId is provided
+  const { data: patientAppointments = [], isLoading: isLoadingPatientAppointments } = useGetAppointmentByPatientId(
+    selectedPatientId || "" 
+  );
+
+  // Fetch all appointments when no patient is selected
+  const { data: allAppointments = [], isLoading: isLoadingAllAppointments } = useGetAppointments(
+    searchParams
+  );
+
+  // Debugging logs
+  useEffect(() => {
+    if (selectedPatientId) {
+      console.log("Using patient-specific appointments for patient ID:", selectedPatientId);
+      console.log("Patient appointments:", patientAppointments);
+    } else {
+      console.log("Using all appointments");
+    }
+  }, [selectedPatientId, patientAppointments, allAppointments]);
+
+  // Use patient-specific appointments when selectedPatientId is provided, otherwise use all appointments
+  const appointments = selectedPatientId ? patientAppointments : allAppointments;
+  const isLoading = selectedPatientId ? isLoadingPatientAppointments : isLoadingAllAppointments;
 
   const deleteAppointmentMutation = useDeleteAppointment({
     onSuccess: () => {
