@@ -2,18 +2,13 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Search } from "lucide-react"
-import { usePatientSearch } from "@/components/appointments/hooks/use-patient-search"
+import { usePatientSearch, Patient } from "@/components/appointments/hooks/use-patient-search"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-interface Patient {
-    id: string
-    name: string
-    email?: string
-    phone?: string
-    address?: string
-}
+// Re-export the Patient interface for other components to use
+export type { Patient }
 
 interface PatientSearchProps {
     onPatientSelect: (patient: Patient) => void
@@ -21,12 +16,10 @@ interface PatientSearchProps {
 }
 
 const searchOptions = [
-    { value: "id", label: "ID" },
-    { value: "name", label: "Name" },
-    { value: "clientName", label: "Client Name" },
-    { value: "email", label: "Email" },
-    { value: "phone", label: "Phone" },
-    { value: "address", label: "Address" }
+    { value: "name", label: "Patient Name" },
+    { value: "client_first_name", label: "Client Name" },
+    { value: "client_email", label: "Client Email" },
+    { value: "client_phone_primary", label: "Client Phone" },
 ]
 
 export function PatientSearch({ onPatientSelect, className }: PatientSearchProps) {
@@ -57,6 +50,21 @@ export function PatientSearch({ onPatientSelect, className }: PatientSearchProps
         onPatientSelect(patient)
         setSearchQuery("")
         setIsDropdownOpen(false)
+    }
+
+    // Helper function to get secondary information for display
+    const getSecondaryInfo = (patient: Patient): string => {
+        // If we have client information, display it
+        if (patient.email && searchType === "client_email") {
+            return `Email: ${patient.email}`;
+        }
+        if (patient.phone && searchType === "client_phone_primary") {
+            return `Phone: ${patient.phone}`;
+        }
+        // Default to displaying any available contact info regardless of search type
+        if (patient.email) return `Email: ${patient.email}`;
+        if (patient.phone) return `Phone: ${patient.phone}`;
+        return '';
     }
 
     return (
@@ -106,11 +114,16 @@ export function PatientSearch({ onPatientSelect, className }: PatientSearchProps
                                     onClick={() => handleSelect(patient)}
                                 >
                                     <div className="font-medium text-gray-900">{patient.name}</div>
-                                    <div className="text-sm text-gray-500 mt-0.5">
-                                        {searchType === "email" && patient.email}
-                                        {searchType === "phone" && patient.phone}
-                                        {searchType === "address" && patient.address}
-                                    </div>
+                                    {patient.clientName && (
+                                        <div className="text-sm text-gray-600 mt-0.5">
+                                            Owner: {patient.clientName}
+                                        </div>
+                                    )}
+                                    {getSecondaryInfo(patient) && (
+                                        <div className="text-sm text-gray-500 mt-0.5">
+                                            {getSecondaryInfo(patient)}
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>
