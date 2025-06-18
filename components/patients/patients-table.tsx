@@ -189,7 +189,7 @@ export function PatientsTable({
           setShowNewAppointment(false)
           setSelectedPatientId(null)
         }}
-        initialPatientId={selectedPatientId || undefined}
+        patientId={selectedPatientId || undefined}
       />
     </>
   )

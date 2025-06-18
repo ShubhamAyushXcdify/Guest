@@ -11,14 +11,14 @@ import AppointmentList from "./appointment-list"
 import AppointmentCalendar from "./appointment-calendar"
 import NewAppointment from "./newAppointment"
 import AppointmentDetails from "./appointment-details"
-import { PatientSearch } from "./patient-search"
+import { PatientSearch, Patient } from "./patient-search"
 import { useRootContext } from "@/context/RootContext"
 
 export default function AppointmentsPage() {
     const router = useRouter()
     const { user, userType } = useRootContext()
     const [appointmentId, setappointmentId] = useState<string | null>(null);
-    const [selectedPatient, setSelectedPatient] = useState<any>(null);
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const searchParams = useSearchParams()
     const [activeView, setActiveView] = useState("list")
@@ -41,9 +41,16 @@ export default function AppointmentsPage() {
         setappointmentId(id.toString())
     }, [])
 
-    const handlePatientSelect = (patient: any) => {
+    const handlePatientSelect = (patient: Patient) => {
         setSelectedPatient(patient)
-        // You can add additional logic here, such as filtering appointments by patient
+        // Log for debugging
+        console.log("Selected patient:", patient)
+        console.log("Patient ID for filtering:", patient.id)
+    }
+
+    const clearPatientFilter = () => {
+        setSelectedPatient(null)
+        console.log("Patient filter cleared")
     }
 
     // If not mounted yet, don't render to avoid hydration mismatch
@@ -60,7 +67,26 @@ export default function AppointmentsPage() {
                         {activeView === "room" && "Room View"}
                         {activeView === "waiting" && "Waiting Room"}
                     </h1>
-                    <PatientSearch onPatientSelect={handlePatientSelect} className="max-w-xl" />
+                    <div className="max-w-xl">
+                        <PatientSearch 
+                            onPatientSelect={handlePatientSelect} 
+                            className="mb-2" 
+                        />
+                        {selectedPatient && (
+                            <div className="flex items-center bg-blue-50 text-blue-700 px-3 py-2 rounded-md">
+                                <span>Filtering appointments for: <strong>{selectedPatient.name}</strong></span>
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="ml-2 h-6 w-6 p-0"
+                                    onClick={clearPatientFilter}
+                                >
+                                    <span className="sr-only">Clear filter</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <Button
                     className="theme-button text-white"
@@ -124,7 +150,10 @@ export default function AppointmentsPage() {
 
             {/* View Content */}
             <div className="flex-1 overflow-auto">
-                {activeView === "list" && <AppointmentList onAppointmentClick={handleAppointmentClick} />}
+                {activeView === "list" && <AppointmentList 
+                    onAppointmentClick={handleAppointmentClick} 
+                    selectedPatientId={selectedPatient?.id}
+                />}
                 {activeView === "calendar" && <AppointmentCalendar onAppointmentClick={handleAppointmentClick} />}
                 {activeView === "provider" && <ProviderView onAppointmentClick={handleAppointmentClick} />}
                 {activeView === "room" && <RoomView onAppointmentClick={handleAppointmentClick} />}

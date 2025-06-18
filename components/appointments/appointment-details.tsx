@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Pencil, ClipboardList } from "lucide-react"
+import { Pencil, ClipboardList, Search, X } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Combobox } from "@/components/ui/combobox"
@@ -15,12 +15,14 @@ import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
-import { useGetPatients, Patient } from "@/queries/patients/get-patients"
+import { useGetPatients } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
+import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
+import { useDebounce } from "@/hooks/use-debounce"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -46,11 +48,89 @@ interface AppointmentDetailsProps {
   onClose: () => void
 }
 
+// Define a more comprehensive patient interface
+interface ExtendedPatient {
+  id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  patientId?: string;
+  species?: string;
+  breed?: string;
+}
+
 export default function AppointmentDetails({ appointmentId, onClose }: AppointmentDetailsProps) {
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
+  
+  // Patient search state
+  const [patientSearchQuery, setPatientSearchQuery] = useState("")
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null)
+  const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Use patient search query for edit mode
+  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
+    debouncedPatientQuery,
+    "name" // Always search by name as specified
+  )
+  
+  // Convert search results to our format
+  const typedSearchResults = searchResults as ExtendedPatient[];
+  
+  // Handle clicking outside the search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setIsSearchDropdownOpen(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+  
+  // Handle selecting a patient from search
+  const handlePatientSelect = (patient: ExtendedPatient) => {
+    // Determine the correct patient name based on different possible API structures
+    let patientName = '';
+    
+    if (patient.name) {
+      patientName = patient.name;
+    } 
+    else if (patient.patientId) {
+      patientName = patient.patientId;
+      if (patient.species) {
+        patientName += ` (${patient.species})`;
+      }
+    }
+    else if (patient.firstName || patient.lastName) {
+      patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+    
+    if (!patientName) {
+      console.warn('No name found for selected patient:', patient);
+      patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+    }
+    
+    setSelectedPatient({
+      id: patient.id,
+      name: patientName
+    });
+    
+    form.setValue("patientId", patient.id);
+    setPatientSearchQuery(""); // Clear the search input
+    setIsSearchDropdownOpen(false); // Close the dropdown
+  }
+  
+  // Clear selected patient
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null);
+    form.setValue("patientId", "");
+  }
 
   // Fetch data from APIs
   const { data: clinicsResponse } = useGetClinic(1, 100)
@@ -82,10 +162,33 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     label: clinic.name
   }))
 
-  const patientOptions = (patientsResponse?.items || []).map((patient: Patient) => ({
-    value: patient.id,
-    label: `${patient.name} (${patient.species})`
-  }))
+  const patientOptions = (patientsResponse?.items || []).map((patient: ExtendedPatient) => {
+    // Determine the display name based on available properties
+    let displayName = '';
+    
+    if (patient.name) {
+      displayName = patient.name;
+    } 
+    else if (patient.patientId) {
+      displayName = patient.patientId;
+      if (patient.species) {
+        displayName += ` (${patient.species})`;
+      }
+    }
+    else if (patient.firstName || patient.lastName) {
+      displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+    
+    // If we still don't have a display name, use ID as last resort
+    if (!displayName) {
+      displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+    }
+    
+    return {
+      value: patient.id,
+      label: displayName
+    }
+  })
 
   const clientOptions = (clientsResponse?.items || []).map((client: Client) => ({
     value: client.id,
@@ -137,9 +240,37 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       form.reset({
         ...appointment,
         appointmentDate: appointment.appointmentDate.split('T')[0], // Convert to YYYY-MM-DD format
-      })
+      });
+      
+      // Set the selected patient for the search component
+      if (appointment.patientId && appointment.patient) {
+        // Determine the display name based on what's available
+        let patientName = '';
+        
+        if (appointment.patient.name) {
+          patientName = appointment.patient.name;
+        } 
+        else if (appointment.patient.patientId) {
+          patientName = appointment.patient.patientId;
+          if (appointment.patient.species) {
+            patientName += ` (${appointment.patient.species})`;
+          }
+        }
+        else if (appointment.patient.firstName || appointment.patient.lastName) {
+          patientName = `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim();
+        }
+        
+        if (!patientName) {
+          patientName = `Patient (ID: ${appointment.patientId.substring(0, 8)}...)`;
+        }
+        
+        setSelectedPatient({
+          id: appointment.patientId,
+          name: patientName
+        });
+      }
     }
-  }, [appointment, form])
+  }, [appointment, form]);
 
   const onSubmit = (data: AppointmentFormValues) => {
     updateAppointmentMutation.mutate({
@@ -204,7 +335,15 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Patient</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {appointment?.patient?.name}
+                    {appointment?.patient ? (
+                      appointment.patient.name || 
+                      (appointment.patient.patientId ? 
+                        `${appointment.patient.patientId}${appointment.patient.species ? ` (${appointment.patient.species})` : ''}` : 
+                        (appointment.patient.firstName || appointment.patient.lastName ? 
+                          `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim() : 
+                          `Patient (ID: ${appointment.patient.id.substring(0, 8)}...)`)
+                      )
+                    ) : 'Not assigned'}
                   </p>
                 </div>
                 <div>
@@ -310,12 +449,84 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormItem>
                         <FormLabel>Patient</FormLabel>
                         <FormControl>
-                          <Combobox
-                            options={patientOptions}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Select patient"
-                          />
+                          <div className="relative flex-grow" ref={searchDropdownRef}>
+                            {selectedPatient ? (
+                              <div className="flex items-center justify-between p-2 border rounded-md">
+                                <span>{selectedPatient.name}</span>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="p-1 h-auto"
+                                  onClick={clearSelectedPatient}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="relative w-full">
+                                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                                  <Input
+                                    placeholder="Search patients by name"
+                                    className="pl-10"
+                                    value={patientSearchQuery}
+                                    onChange={(e) => {
+                                      setPatientSearchQuery(e.target.value);
+                                      setIsSearchDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsSearchDropdownOpen(true)}
+                                  />
+                                </div>
+                                
+                                {/* Search results dropdown */}
+                                {isSearchDropdownOpen && patientSearchQuery && (
+                                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                                    {isSearching ? (
+                                      <div className="p-2 text-center text-gray-500">Searching...</div>
+                                    ) : typedSearchResults.length === 0 ? (
+                                      <div className="p-2 text-center text-gray-500">No patients found</div>
+                                    ) : (
+                                      <ul>
+                                        {typedSearchResults.map((patient) => {
+                                          // Determine the display name
+                                          let displayName = '';
+                                          
+                                          if (patient.name) {
+                                            displayName = patient.name;
+                                          } 
+                                          else if (patient.patientId) {
+                                            displayName = patient.patientId;
+                                            if (patient.species) {
+                                              displayName += ` (${patient.species})`;
+                                            }
+                                          }
+                                          else if (patient.firstName || patient.lastName) {
+                                            displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                                          }
+                                          
+                                          if (!displayName) {
+                                            displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+                                          }
+                                          
+                                          return (
+                                            <li
+                                              key={patient.id}
+                                              className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                              onClick={() => handlePatientSelect(patient)}
+                                            >
+                                              <div className="font-medium">{displayName}</div>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <input type="hidden" {...field} />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

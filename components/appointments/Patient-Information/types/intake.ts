@@ -13,6 +13,10 @@ export interface IntakeDetail {
 export interface IntakeImage {
   id: string;
   imagePath: string;
+  filePath?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: string | number;
   createdAt: string;
   updatedAt: string;
 }

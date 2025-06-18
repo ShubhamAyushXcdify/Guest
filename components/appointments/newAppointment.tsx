@@ -18,10 +18,27 @@ import { useGetRoom, Room } from "@/queries/rooms/get-room"
 import { useGetUsers } from "@/queries/users/get-users"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
-import { Plus } from "lucide-react"
+import { Plus, Search, X } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
 import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
+import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
+import { useDebounce } from "@/hooks/use-debounce"
+
+// Extended patient interface to handle API response variations
+interface SearchPatientResult {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  patientId?: string;
+  species?: string;
+  client?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+  }
+}
 
 // Define the form schema
 const newAppointmentSchema = z.object({
@@ -43,20 +60,36 @@ type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
 interface NewAppointmentProps {
   isOpen?: boolean;
   onClose?: () => void;
-  initialPatientId?: string;
+    patientId?: string;
   initialClinicId?: string;
   onSuccess?: () => void;
 }
 
-function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, onSuccess }: NewAppointmentProps) {
+function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
+  
+  // Patient search state
+  const [patientSearchQuery, setPatientSearchQuery] = useState("")
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
+  const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
+  
+  // Use patient search query
+  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
+    debouncedPatientQuery,
+    "name" // Always search by name as specified
+  )
+  
+  // Cast the search results to our custom interface to handle API variations
+  const typedSearchResults = searchResults as SearchPatientResult[];
+  
   const form = useForm<NewAppointmentFormValues>({
     resolver: zodResolver(newAppointmentSchema),
     defaultValues: {
       clinicId: initialClinicId || "",
-      patientId: initialPatientId || "",
+      patientId: patientId || "",
       veterinarianId: "",
       roomId: "",
       appointmentDate: undefined,
@@ -97,11 +130,6 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
     label: `${room.name} (${room.roomType})`
   }));
   
-  const patientOptions = (patientsResponse || []).map((patient: Patient) => ({
-    value: patient.id,
-    label: `${patient.name} (${patient.species})`,
-    clientId : patient.clientId
-  }))
   const appointmentTypes = [
     { value: "checkup", label: "Check-up" },
     { value: "vaccination", label: "Vaccination" },
@@ -128,6 +156,56 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
       });
     }
   })
+  
+  // Handle selecting a patient from search results
+  const handlePatientSelect = (patient: SearchPatientResult) => {
+    // Determine the correct patient name based on different possible API structures
+    let patientName = '';
+    
+    if (patient.name) {
+      patientName = patient.name;
+    } 
+    else if (patient.patientId) {
+      patientName = patient.patientId;
+      if (patient.species) {
+        patientName += ` (${patient.species})`;
+      }
+    }
+    else if (patient.firstName || patient.lastName) {
+      patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+    
+    if (!patientName) {
+      console.warn('No name found for selected patient:', patient);
+      patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+    }
+    
+    setSelectedPatient({
+      id: patient.id,
+      name: patientName,
+      clientId: patient.client?.id
+    });
+    
+    form.setValue("patientId", patient.id);
+    setPatientSearchQuery(""); // Clear the search input
+    setIsSearchDropdownOpen(false); // Close the dropdown
+    
+    // Show a notification about the selected client
+    if (patient.client) {
+      const clientName = `${patient.client.firstName || ''} ${patient.client.lastName || ''}`.trim();
+      toast({
+        title: "Client Selected",
+        description: `Client: ${clientName || 'Unknown Client'}`,
+      });
+    }
+  }
+  
+  // Clear the selected patient
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null);
+    form.setValue("patientId", "");
+  }
+  
 // Handle form validation errors
   const onSubmit = (data: NewAppointmentFormValues) => {
     try {
@@ -140,14 +218,14 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
       }
       const formattedAppointmentDate = data.appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-      const selectedPatient = patientOptions?.find((p:any) => p.value === data.patientId);
-      if (!selectedPatient) {
-        throw new Error("Selected patient not found");
+      const clientId = selectedPatient?.clientId;
+      if (!clientId) {
+        throw new Error("Client information is missing for the selected patient");
       }
 
       const formattedData = {
         ...data,
-        clientId: selectedPatient.clientId, // Use the patient's client ID
+        clientId,
         appointmentDate: formattedAppointmentDate,
         startTime: `${startTimeString}:00`,
         endTime: `${endTimeString}:00`,
@@ -155,7 +233,7 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
       }
       createAppointment(formattedData)
     } catch (error) {
-      console.log("ASdasdasd")
+      console.error("Error submitting form:", error);
       if (error instanceof z.ZodError) {
         error.errors.forEach((err) => {
           toast({
@@ -163,6 +241,12 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
             description: `${err.path.join('.')}: ${err.message}`,
             variant: "destructive",
           });
+        });
+      } else if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
         });
       } else {
         toast({
@@ -179,6 +263,14 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
     const latestPatient = patientsResponse?.items?.[patientsResponse.items.length - 1]
     if (latestPatient) {
       form.setValue("patientId", latestPatient.id)
+      
+      // Update the selected patient state
+      setSelectedPatient({
+        id: latestPatient.id,
+        name: latestPatient.name,
+        clientId: latestPatient.clientId
+      });
+      
       setShowNewPatientForm(false)
       toast({
         title: "Patient added",
@@ -205,10 +297,20 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
   }, [clinic, initialClinicId])
 
   useEffect(() => {
-    if (initialPatientId) {
-      form.setValue("patientId", initialPatientId)
+    if (patientId) {
+      form.setValue("patientId", patientId);
+      
+      // Find the selected patient in the response to set the selected patient state
+      const patient = patientsResponse?.find((p: Patient) => p.id === patientId);
+      if (patient) {
+        setSelectedPatient({
+          id: patient.id,
+          name: patient.name,
+          clientId: patient.clientId
+        });
+      }
     }
-  }, [initialPatientId, form])
+  }, [patientId, form, patientsResponse]);
   
   // Set default appointment date to today when component mounts
   useEffect(() => {
@@ -260,22 +362,95 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
                           <FormLabel>Patient</FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Combobox
-                                options={patientOptions}
-                                value={field.value}
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  // Find the selected patient to get the client info
-                                  const selectedPatient = patientsResponse?.items?.find((p: Patient) => p.id === value);
-                                  if (selectedPatient) {
-                                    toast({
-                                      title: "Client Selected",
-                                      description: `Client: ${selectedPatient.clientId}`,
-                                    });
-                                  }
-                                }}
-                                placeholder="Select patient"
-                              />
+                              <div className="relative flex-grow">
+                                {selectedPatient ? (
+                                  <div className="flex items-center justify-between p-2 border rounded-md">
+                                    <span>{selectedPatient.name}</span>
+                                    <Button 
+                                      type="button" 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="p-1 h-auto"
+                                      onClick={clearSelectedPatient}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="relative w-full">
+                                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                                      <Input
+                                        placeholder="Search patients by name"
+                                        className="pl-10"
+                                        value={patientSearchQuery}
+                                        onChange={(e) => {
+                                          setPatientSearchQuery(e.target.value);
+                                          setIsSearchDropdownOpen(true);
+                                        }}
+                                        onFocus={() => setIsSearchDropdownOpen(true)}
+                                      />
+                                    </div>
+                                    
+                                    {/* Search results dropdown */}
+                                    {isSearchDropdownOpen && patientSearchQuery && (
+                                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                                        {isSearching ? (
+                                          <div className="p-2 text-center text-gray-500">Searching...</div>
+                                        ) : searchResults.length === 0 ? (
+                                          <div className="p-2 text-center text-gray-500">No patients found</div>
+                                        ) : (
+                                          <ul>
+                                            {typedSearchResults.map((patient) => {
+                                              // Determine the display name
+                                              // Different possible structures for patient name in the API response
+                                              
+                                              // Direct name property (some API responses)
+                                              let displayName = '';
+                                              
+                                              if (patient.name) {
+                                                displayName = patient.name;
+                                              } 
+                                              // Animal patient (may have species)
+                                              else if (patient.patientId) {
+                                                displayName = patient.patientId;
+                                                if (patient.species) {
+                                                  displayName += ` (${patient.species})`;
+                                                }
+                                              }
+                                              // Human patient with first/last name
+                                              else if (patient.firstName || patient.lastName) {
+                                                displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                                              }
+                                              
+                                              // If we still don't have a display name, use the ID as last resort
+                                              if (!displayName) {
+                                                console.warn('No name found for patient:', patient);
+                                                displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+                                              }
+                                              
+                                              return (
+                                                <li
+                                                  key={patient.id}
+                                                  className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                                  onClick={() => handlePatientSelect(patient)}
+                                                >
+                                                  <div className="font-medium">{displayName}</div>
+                                                  {patient.client && (
+                                                    <div className="text-sm text-gray-500">
+                                                      Owner: {patient.client.firstName || ''} {patient.client.lastName || ''}
+                                                    </div>
+                                                  )}
+                                                </li>
+                                              );
+                                            })}
+                                          </ul>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                               <Button
                                 type="button"
                                 variant="outline"
@@ -285,6 +460,7 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>
+                              <input type="hidden" {...field} />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -324,7 +500,6 @@ function NewAppointment({ isOpen, onClose, initialPatientId, initialClinicId, on
                             value={field.value}
                             onValueChange={field.onChange}
                             placeholder={isLoadingRooms ? "Loading rooms..." : "Select room"}
-                            // disabled={isLoadingRooms || !selectedClinicId}
                           />
                         </FormControl>
                         <FormMessage />
