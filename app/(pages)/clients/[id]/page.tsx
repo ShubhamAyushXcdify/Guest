@@ -13,10 +13,6 @@ export default function ClientDetailsPage() {
       return <div className="p-6">Loading permissions...</div>;
     }
 
-    if (!userType?.isAdmin && !userType?.isReceptionist) {
-      return <div className="p-6 text-red-500">Permission Denied: You do not have access to view client details.</div>;
-    }
-
     return (
         <div>
             <ClientDetails clientId={clientId} />

@@ -38,7 +38,13 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
   const router = useRouter();
 
   const { data: client, isLoading, isError } = useGetClientById(clientId);
-  const { data: patientsData, isLoading: isLoadingPatients, isError: isErrorPatients } = useGetPatients(pageNumber, pageSize, '', clientId);
+  const { data: patientsData, isLoading: isLoadingPatients, isError: isErrorPatients } = useGetPatients(
+    pageNumber, 
+    pageSize, 
+    '', // search term
+    clientId, // clientId for filtering
+    clinic?.id || undefined 
+  );
 
   useEffect(() => {
     if (isError) {
@@ -141,7 +147,7 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
             isOpen={showNewAppointmentSheet}
             onClose={() => setShowNewAppointmentSheet(false)}
             onSuccess={() => setShowNewAppointmentSheet(false)}
-            initialPatientId={selectedPatientIdForAppointment || undefined}
+            patientId={selectedPatientIdForAppointment || undefined}
             initialClinicId={client.clinicId}
           />
         </SheetContent>
