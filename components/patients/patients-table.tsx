@@ -22,6 +22,7 @@ interface PatientsTableProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onSearch: (term: string) => void
+  showClinicColumn?: boolean
 }
 
 export function PatientsTable({
@@ -32,6 +33,7 @@ export function PatientsTable({
   onPageChange,
   onPageSizeChange,
   onSearch,
+  showClinicColumn = false,
 }: PatientsTableProps) {
   const router = useRouter()
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null)
@@ -107,6 +109,13 @@ export function PatientsTable({
         </Badge>
       )
     },
+    ...(showClinicColumn ? [
+      { 
+        accessorKey: "clinicName", 
+        header: "Clinic",
+        cell: ({ row }: { row: { original: Patient } }) => row.original.clinicName || 'N/A'
+      }
+    ] : []),
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,

@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 export interface Patient {
   id: string;
   clinicId: string;
+  clinicName?: string;
   clientId: string;
   clientFirstName: string;
   clientLastName: string;
@@ -47,9 +48,9 @@ export interface PaginatedResponse<T> {
   hasNextPage: boolean;
 }
 
-const getPatients = async (pageNumber = 1, pageSize = 10, search = '') => {
+const getPatients = async (pageNumber = 1, pageSize = 10, search = '', clientId = '', clinicId = '') => {
   const response = await fetch(
-    `/api/patients?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`
+    `/api/patients?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clientId=${clientId}&clinicId=${clinicId}`
   );
   
   if (!response.ok) {
@@ -62,11 +63,13 @@ const getPatients = async (pageNumber = 1, pageSize = 10, search = '') => {
 export function useGetPatients(
   pageNumber = 1,
   pageSize = 10,
-  search = ''
+  search = '',
+  clientId = '',
+  clinicId = ''
 ) {
   return useQuery({
-    queryKey: ['patients', pageNumber, pageSize, search],
-    queryFn: () => getPatients(pageNumber, pageSize, search),
+    queryKey: ['patients', pageNumber, pageSize, search, clientId, clinicId],
+    queryFn: () => getPatients(pageNumber, pageSize, search, clientId, clinicId),
     placeholderData: keepPreviousData,
   });
 }

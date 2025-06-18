@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useStoreLocalStorage from "./useLocalStorage";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGetRoleById } from "@/queries/roles/get-role-by-id";
 
 import {
     getUserId,
@@ -142,7 +143,7 @@ export const useContentLayout = () => {
                 isReceptionist: userData.roleName === 'Receptionist',
                 isPatient: userData.roleName === 'Patient',
                 isClient: userData.roleName === 'Client',
-                isProvider: (userData.roleName === 'Provider' || userData?.roleName?.toLocaleLowerCase() === 'veterinarian')
+                isProvider: (userData.roleName === 'Provider' || userData?.roleName?.toLocaleLowerCase() === 'veterinarian'),
             }
             setUserType((prev) => ({ ...userRolesObject, ...types }));
         }
