@@ -63,8 +63,13 @@ export function ClientSelect({
   const selectedClinicId = control._formValues.clinicId || clinic?.id || "";
   
   // Use the new hook to get clients by clinic ID
-  const { data: clientsData, isLoading, isError, refetch } = useGetClients(1, 100, selectedClinicId);
+  const shouldFetch = !!debouncedSearch;
+  const { data: clientsData, isLoading, isError, refetch } = useGetClients(
+    1, 100, selectedClinicId, debouncedSearch, 'first_name', shouldFetch
+  );
+  // Always use items array from the response
   const clients = clientsData?.items || [];
+
 
   useEffect(() => {
     if (open) {
@@ -148,66 +153,35 @@ export function ClientSelect({
                           Try again
                         </Button>
                       </div>
-                    ) : (
-                      <>
-                        <CommandEmpty>
-                          <div className="py-6 text-center text-sm">
-                            <p>No owner found.</p>
-                            {onAddNewClick && (
-                              <Button
-                                variant="link"
-                                onClick={() => {
-                                  setOpen(false);
-                                  onAddNewClick();
-                                }}
-                                className="mt-2 text-primary"
-                              >
-                                + Add a new owner
-                              </Button>
-                            )}
-                          </div>
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {clients?.map((client) => (
-                            <CommandItem
-                              key={client.id}
-                              value={client.id}
-                              onSelect={() => {
-                                field.onChange(client.id);
-                                setOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  client.id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {client.firstName} {client.lastName}
-                              <span className="ml-2 text-muted-foreground text-xs">
-                                {client.email}
-                              </span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                        {onAddNewClick && clients && clients.length > 0 && (
-                          <div className="p-2 border-t">
-                            <Button
-                              variant="ghost"
-                              onClick={() => {
-                                setOpen(false);
-                                onAddNewClick();
-                              }}
-                              className="w-full justify-start text-primary"
-                            >
-                              + Add a new owner
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
+                    ) : debouncedSearch && clients.length === 0 ? (
+                      <div className="py-6 text-center text-sm">No owner found.</div>
+                    ) : debouncedSearch && clients.length > 0 ? (
+                      <CommandGroup>
+                        {clients.map((client) => (
+                          <CommandItem
+                            key={client.id}
+                            value={`${client.firstName} ${client.lastName} ${client.email}`.toLowerCase()}
+                            onSelect={() => {
+                              field.onChange(client.id);
+                              setOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                client.id === field.value
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {client.firstName} {client.lastName}
+                            <span className="ml-2 text-muted-foreground text-xs">
+                              {client.email}
+                            </span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    ) : null}
                   </CommandList>
                 </Command>
               </PopoverContent>

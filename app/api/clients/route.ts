@@ -16,12 +16,14 @@ export async function GET(request: NextRequest) {
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
         const clinicId = searchParams.get('clinicId') || '';
+        const type = searchParams.get('type') || 'first_name';
+        const search = searchParams.get('query') || '';
 
         console.log('Fetching clients with params:', { pageNumber, pageSize, clinicId });
         console.log('Using token (masked):', token ? token.substring(0, 10) + '...' : 'No token');
 
         const response = await fetch(
-            `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}`,
+            `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&type=${type}&query=${encodeURIComponent(search)}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
