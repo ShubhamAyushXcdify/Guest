@@ -33,6 +33,9 @@ interface SearchPatientResult {
   name?: string;
   patientId?: string;
   species?: string;
+  clientId?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
   client?: {
     id?: string;
     firstName?: string;
@@ -58,14 +61,12 @@ const newAppointmentSchema = z.object({
 type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
 
 interface NewAppointmentProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-    patientId?: string;
-  initialClinicId?: string;
-  onSuccess?: () => void;
+  isOpen: boolean
+  onClose: () => void
+  patientId?: string
 }
 
-function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess }: NewAppointmentProps) {
+function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
@@ -88,8 +89,8 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
   const form = useForm<NewAppointmentFormValues>({
     resolver: zodResolver(newAppointmentSchema),
     defaultValues: {
-      clinicId: initialClinicId || "",
-      patientId: patientId || "",
+      clinicId: "",
+      patientId: "",
       veterinarianId: "",
       roomId: "",
       appointmentDate: undefined,
@@ -141,19 +142,15 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
       toast({
         title: "Success",
         description: "Appointment created successfully",
-      });
-      if (onSuccess) {
-        onSuccess();
-      } else if (onClose) {
-        onClose();
-      }
+      })
+      onClose()
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create appointment",
         variant: "destructive",
-      });
+      })
     }
   })
   
@@ -176,37 +173,47 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
     }
     
     if (!patientName) {
-      console.warn('No name found for selected patient:', patient);
       patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
     }
     
+    // Get client ID - check both possible locations based on API structure
+    const clientId = patient.clientId || patient.client?.id;
+    
+    // Always select the patient
     setSelectedPatient({
       id: patient.id,
       name: patientName,
-      clientId: patient.client?.id
+      clientId: clientId
     });
     
     form.setValue("patientId", patient.id);
     setPatientSearchQuery(""); // Clear the search input
     setIsSearchDropdownOpen(false); // Close the dropdown
     
-    // Show a notification about the selected client
-    if (patient.client) {
-      const clientName = `${patient.client.firstName || ''} ${patient.client.lastName || ''}`.trim();
+    if (clientId) {
+      // Show client information
+      let clientName = "";
+      if (patient.client) {
+        clientName = `${patient.client.firstName || ''} ${patient.client.lastName || ''}`.trim();
+      } else if (patient.clientFirstName || patient.clientLastName) {
+        clientName = `${patient.clientFirstName || ''} ${patient.clientLastName || ''}`.trim();
+      }
+      
       toast({
-        title: "Client Selected",
+        title: "Patient Selected",
         description: `Client: ${clientName || 'Unknown Client'}`,
+      });
+    } else {
+      // Show warning that client ID is missing
+      toast({
+        title: "Warning: Missing Client Information",
+        description: "This patient doesn't have an associated client. You'll need to provide client info before creating an appointment.",
+        variant: "destructive", 
       });
     }
   }
   
-  // Clear the selected patient
-  const clearSelectedPatient = () => {
-    setSelectedPatient(null);
-    form.setValue("patientId", "");
-  }
-  
-// Handle form validation errors
+  // Handle form validation errors
   const onSubmit = (data: NewAppointmentFormValues) => {
     try {
       const startTimeString = data.startTime;
@@ -218,9 +225,43 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
       }
       const formattedAppointmentDate = data.appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD
 
-      const clientId = selectedPatient?.clientId;
+      // Check for the selected patient
+      if (!selectedPatient) {
+        toast({
+          title: "Patient Required",
+          description: "Please select a patient for this appointment.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Try to get client ID from the selected patient
+      let clientId = selectedPatient.clientId;
+      
+      // If no client ID yet, check if we can find this patient in our patients list
+      if (!clientId && patientsResponse) {
+        const patientId = selectedPatient.id;
+        // Find the patient in our full patient data
+        const fullPatientData = patientsResponse.find((p: any) => p.id === patientId);
+        
+        if (fullPatientData && fullPatientData.clientId) {
+          clientId = fullPatientData.clientId;
+          
+          // Update the selected patient with the client ID for future reference
+          setSelectedPatient({
+            ...selectedPatient,
+            clientId: clientId
+          });
+        }
+      }
+      
       if (!clientId) {
-        throw new Error("Client information is missing for the selected patient");
+        toast({
+          title: "Missing Client Information",
+          description: "To create an appointment, this patient must have an associated client. Please update the patient record first.",
+          variant: "destructive",
+        });
+        return; // Prevent form submission
       }
 
       const formattedData = {
@@ -230,8 +271,9 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
         startTime: `${startTimeString}:00`,
         endTime: `${endTimeString}:00`,
         createdBy: user?.id,
-      }
-      createAppointment(formattedData)
+      };
+      
+      createAppointment(formattedData);
     } catch (error) {
       console.error("Error submitting form:", error);
       if (error instanceof z.ZodError) {
@@ -281,20 +323,18 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
 
   const handleCancel = () => {
     setShowNewPatientForm(false)
-    if (onClose) onClose()
+    onClose()
   }
 
   const handleClinicDefaultState = () => {
-    if (initialClinicId) {
-      form.setValue("clinicId", initialClinicId)
-    } else if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
+    if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
       form.setValue("clinicId", clinic.id)
     }
   }
 
   useEffect(() => {
     handleClinicDefaultState()
-  }, [clinic, initialClinicId])
+  }, [clinic])
 
   useEffect(() => {
     if (patientId) {
@@ -317,8 +357,14 @@ function NewAppointment({ isOpen, onClose, patientId, initialClinicId, onSuccess
     form.setValue("appointmentDate", new Date());
   }, []);
 
+  // Clear the selected patient
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null);
+    form.setValue("patientId", "");
+  }
+
   return (
-    <Sheet open={isOpen || false} onOpenChange={handleCancel}>
+    <Sheet open={isOpen} onOpenChange={handleCancel}>
       <SheetContent className={`w-[90%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '70%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '70%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
         <SheetHeader>
           <SheetTitle>New Appointment</SheetTitle>
