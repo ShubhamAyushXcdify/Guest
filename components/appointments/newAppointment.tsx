@@ -18,12 +18,13 @@ import { useGetRoom, Room } from "@/queries/rooms/get-room"
 import { useGetUsers } from "@/queries/users/get-users"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Search, X } from "lucide-react"
+import { Plus, Search, X, Loader2 } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
 import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
+import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -50,8 +51,7 @@ const newAppointmentSchema = z.object({
   veterinarianId: z.string().uuid("Please select a veterinarian"),
   roomId: z.string().uuid("Please select a room"),
   appointmentDate: z.date().refine(date => !!date, "Please select an appointment date"),
-  startTime: z.string().min(1, "Please select a start time"),
-  endTime: z.string().min(1, "Please select an end time"),
+  slotId: z.string().min(1, "Please select a slot"),
   appointmentType: z.string().min(1, "Please select an appointment type"),
   reason: z.string().min(1, "Please provide a reason for the appointment"),
   status: z.string(),
@@ -66,10 +66,20 @@ interface NewAppointmentProps {
   patientId?: string
 }
 
+// Define the SlotResponse interface to match your API
+interface SlotResponse {
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  items: Slot[];
+}
+
 function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
   // Patient search state
   const [patientSearchQuery, setPatientSearchQuery] = useState("")
@@ -94,14 +104,52 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       veterinarianId: "",
       roomId: "",
       appointmentDate: undefined,
-      startTime: "",
-      endTime: "",
+      slotId: "",
       appointmentType: "",
       reason: "",
       status: "scheduled",
       notes: "",
     },
   })
+
+  // Get selected room ID for slots
+  const selectedRoomId = form.watch("roomId");
+  const selectedDate = form.watch("appointmentDate");
+
+  // Format selected date to YYYY-MM-DD for API filtering (if needed later)
+  const formattedDate = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
+
+  // Fetch slots for the selected room
+  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
+  
+  // Initialize slots with proper default value
+  const slots: SlotResponse = slotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
+
+  // Format time for display (assuming HH:mm:ss format from API)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
+    // If time is already in HH:MM format, return as is
+    if (timeString.length <= 5) return timeString;
+    
+    // Try to parse and format to HH:MM
+    try {
+      // Handle ISO format (2023-06-01T11:00:00)
+      if (timeString.includes('T')) {
+        return timeString.split('T')[1].substring(0, 5);
+      }
+      
+      // Handle HH:MM:SS format
+      if (timeString.includes(':')) {
+        const timeParts = timeString.split(':');
+        return `${timeParts[0]}:${timeParts[1]}`;
+      }
+      
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
+  };
 
   // Fetch real data from APIs
   const { data: clinics } = useGetClinic(1, 100)
@@ -212,13 +260,15 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       });
     }
   }
+
+  const handleSlotClick = (slotId: string) => {
+    setSelectedSlot(slotId);
+    form.setValue("slotId", slotId);
+  };
   
   // Handle form validation errors
   const onSubmit = (data: NewAppointmentFormValues) => {
     try {
-      const startTimeString = data.startTime;
-      const endTimeString = data.endTime;
-
       // appointmentDate is already a Date object now
       if (!data.appointmentDate) {
         throw new Error("Appointment date is required");
@@ -264,12 +314,23 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
         return; // Prevent form submission
       }
 
+      // Find selected slot details
+      const selectedSlotDetails = slots.items.find(slot => slot.id === data.slotId);
+      
+      if (!selectedSlotDetails) {
+        toast({
+          title: "Error",
+          description: "Selected slot information not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const formattedData = {
         ...data,
         clientId,
         appointmentDate: formattedAppointmentDate,
-        startTime: `${startTimeString}:00`,
-        endTime: `${endTimeString}:00`,
+        roomSlotId: data.slotId, // Use slotId as roomSlotId
         createdBy: user?.id,
       };
       
@@ -544,7 +605,12 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                           <Combobox
                             options={roomOptions}
                             value={field.value}
-                            onValueChange={field.onChange}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              // Reset selected slot when room changes
+                              setSelectedSlot(null);
+                              form.setValue("slotId", "");
+                            }}
                             placeholder={isLoadingRooms ? "Loading rooms..." : "Select room"}
                           />
                         </FormControl>
@@ -588,35 +654,55 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Time</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Time</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
+
+                {/* Slot selection section - only appears when room is selected */}
+                {selectedRoomId && (
+                  <FormField
+                    control={form.control}
+                    name="slotId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Available Slots</FormLabel>
+                        <FormControl>
+                          <div className="mt-2">
+                            {isLoadingSlots ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Loading available slots...
+                              </div>
+                            ) : slots.items.length === 0 ? (
+                              <div className="text-sm text-gray-500">
+                                No slots available for this room
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {slots.items
+                                  .filter(slot => slot.isAvailable)
+                                  .map((slot: Slot) => (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    onClick={() => handleSlotClick(slot.id)}
+                                    className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+                                      selectedSlot === slot.id
+                                        ? 'bg-green-100 border-green-300 text-green-800'
+                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    {formatTime(slot.startTime)}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <input type="hidden" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <div className="space-y-6">
                   <FormField

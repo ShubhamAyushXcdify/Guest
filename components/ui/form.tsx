@@ -103,15 +103,47 @@ const FormLabel = React.forwardRef<
 })
 FormLabel.displayName = "FormLabel"
 
+// Create a wrapper div to handle multiple children
+const FormControlWrapper = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ children, ...props }, ref) => {
+  return (
+    <div ref={ref} {...props}>
+      {children}
+    </div>
+  )
+})
+FormControlWrapper.displayName = "FormControlWrapper"
+
 const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
->(({ ...props }, ref) => {
+>(({ children, ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } = useFormField()
 
+  // If children is a single element, use Slot directly
+  if (React.Children.count(children) === 1) {
+    return (
+      <Slot
+        ref={ref}
+        id={formItemId}
+        aria-describedby={
+          !error
+            ? `${formDescriptionId}`
+            : `${formDescriptionId} ${formMessageId}`
+        }
+        aria-invalid={!!error}
+        {...props}
+      >
+        {children}
+      </Slot>
+    )
+  }
+
+  // If multiple children, wrap them in a div
   return (
-    <Slot
-      ref={ref}
+    <FormControlWrapper
       id={formItemId}
       aria-describedby={
         !error
@@ -120,7 +152,9 @@ const FormControl = React.forwardRef<
       }
       aria-invalid={!!error}
       {...props}
-    />
+    >
+      {children}
+    </FormControlWrapper>
   )
 })
 FormControl.displayName = "FormControl"

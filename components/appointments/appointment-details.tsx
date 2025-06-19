@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Pencil, ClipboardList, Search, X } from "lucide-react"
+import { Pencil, ClipboardList, Search, X, Loader2 } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Combobox } from "@/components/ui/combobox"
@@ -23,6 +23,7 @@ import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
+import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -32,8 +33,7 @@ const appointmentSchema = z.object({
   veterinarianId: z.string().uuid(),
   roomId: z.string().uuid(),
   appointmentDate: z.string(),
-  startTime: z.string(),
-  endTime: z.string(),
+  roomSlotId: z.string(),
   appointmentType: z.string(),
   reason: z.string(),
   status: z.string(),
@@ -64,6 +64,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isEditing, setIsEditing] = useState(false)
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
   // Patient search state
   const [patientSearchQuery, setPatientSearchQuery] = useState("")
@@ -71,6 +72,28 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null)
   const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Initialize form
+  const form = useForm<AppointmentFormValues>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      clinicId: "",
+      patientId: "",
+      clientId: "",
+      veterinarianId: "",
+      roomId: "",
+      appointmentDate: "",
+      roomSlotId: "",
+      appointmentType: "",
+      reason: "",
+      status: "scheduled",
+      notes: "",
+      createdBy: "" // This should be set from your auth context
+    },
+  })
+  
+  // Get selected room ID for slots
+  const selectedRoomId = form.watch("roomId");
   
   // Use patient search query for edit mode
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
@@ -80,6 +103,38 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   
   // Convert search results to our format
   const typedSearchResults = searchResults as ExtendedPatient[];
+  
+  // Fetch slots for the selected room
+  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
+  
+  // Initialize slots with proper default value
+  const slots = slotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
+  
+  // Format time for display (assuming HH:mm:ss format from API)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
+    // If time is already in HH:MM format, return as is
+    if (timeString.length <= 5) return timeString;
+    
+    // Try to parse and format to HH:MM
+    try {
+      // Handle ISO format (2023-06-01T11:00:00)
+      if (timeString.includes('T')) {
+        return timeString.split('T')[1].substring(0, 5);
+      }
+      
+      // Handle HH:MM:SS format
+      if (timeString.includes(':')) {
+        const timeParts = timeString.split(':');
+        return `${timeParts[0]}:${timeParts[1]}`;
+      }
+      
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
+  };
   
   // Handle clicking outside the search dropdown
   useEffect(() => {
@@ -125,6 +180,12 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     setPatientSearchQuery(""); // Clear the search input
     setIsSearchDropdownOpen(false); // Close the dropdown
   }
+  
+  // Handle slot selection
+  const handleSlotClick = (slotId: string) => {
+    setSelectedSlot(slotId);
+    form.setValue("roomSlotId", slotId);
+  };
   
   // Clear selected patient
   const clearSelectedPatient = () => {
@@ -215,32 +276,19 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     { value: "Follow-up", label: "Follow-up" }
   ]
 
-  const form = useForm<AppointmentFormValues>({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      clinicId: "",
-      patientId: "",
-      clientId: "",
-      veterinarianId: "",
-      roomId: "",
-      appointmentDate: "",
-      startTime: "",
-      endTime: "",
-      appointmentType: "",
-      reason: "",
-      status: "scheduled",
-      notes: "",
-      createdBy: "" // This should be set from your auth context
-    },
-  })
-
   // Update form values when appointment data is loaded
   useEffect(() => {
     if (appointment) {
+      const slotId = appointment.roomSlotId || appointment.slotId || "";
+      
       form.reset({
         ...appointment,
         appointmentDate: appointment.appointmentDate.split('T')[0], // Convert to YYYY-MM-DD format
+        roomSlotId: slotId, // Handle different field names
       });
+      
+      // Set the selected slot
+      setSelectedSlot(slotId);
       
       // Set the selected patient for the search component
       if (appointment.patientId && appointment.patient) {
@@ -383,7 +431,12 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Time</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {appointment?.startTime} - {appointment?.endTime}
+                    {appointment?.slot ? 
+                      `${formatTime(appointment.slot.startTime)} - ${formatTime(appointment.slot.endTime)}` : 
+                      appointment?.startTime && appointment?.endTime ? 
+                        `${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime)}` : 
+                        'Not set'
+                    }
                   </p>
                 </div>
                 <div>
@@ -625,12 +678,43 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 
                   <FormField
                     control={form.control}
-                    name="startTime"
+                    name="roomSlotId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start Time</FormLabel>
+                        <FormLabel>Available Slots</FormLabel>
                         <FormControl>
-                          <Input type="time" {...field} />
+                          <div className="mt-2">
+                            {isLoadingSlots ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Loading available slots...
+                              </div>
+                            ) : slots.items.length === 0 ? (
+                              <div className="text-sm text-gray-500">
+                                No slots available for this room
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {slots.items
+                                  .filter(slot => slot.isAvailable)
+                                  .map((slot: Slot) => (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    onClick={() => handleSlotClick(slot.id)}
+                                    className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+                                      selectedSlot === slot.id || field.value === slot.id
+                                        ? 'bg-green-100 border-green-300 text-green-800'
+                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    {formatTime(slot.startTime)}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <input type="hidden" {...field} />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
