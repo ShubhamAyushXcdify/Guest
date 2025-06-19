@@ -54,11 +54,6 @@ export default function AppointmentList({
   const [searchQuery, setSearchQuery] = useState("")
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
-  // Add useEffect to set today's date when component mounts
-  useEffect(() => {
-    handleDate("today", null);
-  }, []);
-
   // Fetch appointments by patient ID if selectedPatientId is provided
   const { data: patientAppointments = [], isLoading: isLoadingPatientAppointments } = useGetAppointmentByPatientId(
     selectedPatientId || "" 
@@ -265,6 +260,30 @@ export default function AppointmentList({
     {
       accessorKey: "startTime",
       header: "Time",
+      cell: ({ row }) => {
+        const appointment = row.original;
+        
+        // Check if roomSlot and startTime exist
+        if (appointment.roomSlot && appointment.roomSlot.startTime) {
+          // Format time to HH:MM
+          const timeValue = appointment.roomSlot.startTime;
+          
+          // Handle HH:MM:SS format
+          if (timeValue.includes(':')) {
+            const timeParts = timeValue.split(':');
+            return `${timeParts[0]}:${timeParts[1]}`;
+          }
+          
+          return timeValue;
+        }
+        
+        // Fallback to direct startTime if exists
+        if (appointment.startTime) {
+          return appointment.startTime;
+        }
+        
+        return 'N/A';
+      },
     },
     {
       accessorKey: "patient",
