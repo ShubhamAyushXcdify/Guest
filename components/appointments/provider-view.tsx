@@ -5,250 +5,202 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { useGetProviderStats, ProviderStats } from "@/queries/providers/get-provider-stats"
+import { AppointmentSearchParamsType } from "@/components/appointments/hooks/useAppointmentFilter"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
-export default function ProviderView( {onAppointmentClick}: {onAppointmentClick: (id: string) => void} ) {
-  // Mock provider data
-  const providers = [
-    {
-      id: 1,
-      name: "Dr. Sarah Johnson",
-      role: "Veterinarian",
-      specialty: "Small Animals",
-      appointments: 8,
-      completed: 3,
-      inProgress: 1,
-      scheduled: 4,
-      avatar: "/diverse-avatars.png",
-      initials: "SJ",
-    },
-    {
-      id: 2,
-      name: "Dr. Michael Chen",
-      role: "Veterinarian",
-      specialty: "Surgery",
-      appointments: 6,
-      completed: 2,
-      inProgress: 1,
-      scheduled: 3,
-      avatar: "/diverse-avatars.png",
-      initials: "MC",
-    },
-    {
-      id: 3,
-      name: "Dr. Emily Wilson",
-      role: "Veterinarian",
-      specialty: "Exotic Animals",
-      appointments: 5,
-      completed: 2,
-      inProgress: 0,
-      scheduled: 3,
-      avatar: "/diverse-avatars.png",
-      initials: "EW",
-    },
-    {
-      id: 4,
-      name: "Dr. James Miller",
-      role: "Veterinary Technician",
-      specialty: "Dental",
-      appointments: 7,
-      completed: 4,
-      inProgress: 1,
-      scheduled: 2,
-      avatar: "/diverse-avatars.png",
-      initials: "JM",
-    },
-  ]
 
-  // Mock appointments for the selected provider
-  const providerAppointments = [
-    {
-      id: 1,
-      time: "8:30 AM",
-      patient: "Bella (Cat)",
-      owner: "Sarah Johnson",
-      visitType: "Vaccination",
-      status: "In Room",
-    },
-    {
-      id: 2,
-      time: "10:00 AM",
-      patient: "Charlie (Dog)",
-      owner: "Robert Thompson",
-      visitType: "Dental",
-      status: "Completed",
-    },
-    {
-      id: 3,
-      time: "1:00 PM",
-      patient: "Oscar (Cat)",
-      owner: "Maria Rodriguez",
-      visitType: "Surgery",
-      status: "In Progress",
-    },
-    {
-      id: 4,
-      time: "3:15 PM",
-      patient: "Luna (Cat)",
-      owner: "Sarah Wilson",
-      visitType: "Check-up",
-      status: "Scheduled",
-    },
-  ]
+export default function ProviderView({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
+  const { data: providers = [], isLoading: isLoadingProviders } = useGetProviderStats();
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
 
-  const [selectedProvider, setSelectedProvider] = useState(providers[0])
+  // Find the selected provider object
+  const selectedProviderObj = providers.find((p: ProviderStats) => p.id === selectedProvider);
+
+  // Build search params for appointments
+  const searchParams: AppointmentSearchParamsType = {
+    search: null,
+    status: null,
+    provider: selectedProviderObj ? selectedProviderObj.name : null,
+    dateFrom: null,
+    dateTo: null,
+  };
+
+  // Use appointments from the selected provider object, ensure it's always an array
+  const appointments = Array.isArray(selectedProviderObj?.appointments) ? selectedProviderObj.appointments : [];
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case "In Room":
+      case "in_progress":
         return "theme-badge-info"
-      case "Completed":
+      case "completed":
         return "theme-badge-success"
-      case "In Progress":
-        return "theme-badge-warning"
-      case "Scheduled":
+      case "scheduled":
+      case "confirmed":
         return "theme-badge-neutral"
       default:
         return "theme-badge-neutral"
     }
   }
 
+  if (isLoadingProviders) {
+    return (
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="dark:bg-slate-800 dark:border-slate-700">
+              <CardContent className="p-6">
+                <div className="flex items-center mb-4">
+                  <Skeleton className="h-12 w-12 rounded-full mr-4" />
+                  <div>
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map((j) => (
+                    <Skeleton key={j} className="h-16 rounded" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
-      {/* Provider Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {providers.map((provider) => (
-          <Card
-            key={provider.id}
-            className={`cursor-pointer hover:shadow-md transition-shadow dark:bg-slate-800 dark:border-slate-700 ${
-              selectedProvider.id === provider.id
-                ? "ring-2 ring-theme-primary ring-offset-2 dark:ring-offset-slate-900"
-                : ""
-            }`}
-            onClick={() => setSelectedProvider(provider)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-center mb-4">
-                <Avatar className="h-12 w-12 mr-4">
-                  <AvatarImage src={provider.avatar || "/placeholder.svg"} alt={provider.name} />
-                  <AvatarFallback>{provider.initials}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium">{provider.name}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {provider.role} • {provider.specialty}
-                  </p>
-                </div>
+{/* Provider Cards */}
+<div className="w-full max-w-screen-lg overflow-x-auto mx-auto">
+  <div className="flex gap-6 pb-4">
+    {providers.map((provider: ProviderStats) => (
+      <div
+        key={provider.id}
+        className="min-w-[320px] max-w-[340px] flex-shrink-0"
+      >
+        {/* Keep all your existing card code exactly as is */}
+        <Card
+          className={`cursor-pointer hover:shadow-md transition-shadow dark:bg-slate-800 dark:border-slate-700 ${
+            selectedProvider === provider.id
+              ? "ring-2 ring-theme-primary ring-offset-2 dark:ring-offset-slate-900"
+              : ""
+          }`}
+          onClick={() => setSelectedProvider(provider.id)}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center mb-4">
+              <Avatar className="h-12 w-12 mr-4">
+                <AvatarImage src="/diverse-avatars.png" alt={provider.name} />
+                <AvatarFallback>{provider.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium">{provider.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {provider.role} • {provider.specialty}
+                </p>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{provider.appointments}</div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400">Total</div>
-                </div>
-                <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                  <div className="text-lg font-bold text-green-600 dark:text-green-400">{provider.completed}</div>
-                  <div className="text-xs text-green-600 dark:text-green-400">Done</div>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                  <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
-                    {provider.inProgress + provider.scheduled}
-                  </div>
-                  <div className="text-xs text-amber-600 dark:text-amber-400">Pending</div>
-                </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{provider.total}</div>
+                <div className="text-xs text-blue-600 dark:text-blue-400">Total</div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                <div className="text-lg font-bold text-green-600 dark:text-green-400">{provider.done}</div>
+                <div className="text-xs text-green-600 dark:text-green-400">Done</div>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{provider.pending}</div>
+                <div className="text-xs text-amber-600 dark:text-amber-400">Pending</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
+    ))}
+  </div>
+</div>
       {/* Selected Provider Appointments */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-            {selectedProvider.name}'s Appointments
-          </h2>
-          <Button className="theme-button text-white">View Schedule</Button>
+      {selectedProvider && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+              {selectedProviderObj?.name}'s Appointments
+            </h2>
+            <Button className="theme-button text-white">View Schedule</Button>
+          </div>
+          <div className="overflow-x-auto">
+            {appointments.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">No appointments found.</div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+                <thead className="bg-gray-50 dark:bg-slate-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Time
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Patient
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Owner
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Visit Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
+                  {appointments.map((appointment: any) => {
+                    const datePart = appointment.appointmentDate?.split('T')[0];
+                    const timePart = appointment.startTime;
+                    const dateTimeString = datePart && timePart ? `${datePart}T${timePart}` : null;
+                    return (
+                      <tr key={appointment.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {dateTimeString ? new Date(dateTimeString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {appointment.patient?.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {`${appointment.client?.firstName || ''} ${appointment.client?.lastName || ''}`}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          {appointment.appointmentType}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge className={getStatusBadgeClass(appointment.status)}>
+                            {appointment.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onAppointmentClick(appointment.id)}
+                          >
+                            View Details
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-            <thead className="bg-gray-50 dark:bg-slate-700">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Time
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Patient
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Owner
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Visit Type
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-              {providerAppointments.map((appointment) => (
-                <tr key={appointment.id} className="hover:bg-gray-50 dark:hover:bg-slate-750">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {appointment.time}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {appointment.patient}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {appointment.owner}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {appointment.visitType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge className={getStatusBadgeClass(appointment.status)}>{appointment.status}</Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 space-x-2">
-                    <Button variant="secondary" size="sm">
-                      View
-                    </Button>
-                    {appointment.status === "Scheduled" && (
-                      <Button variant="outline" size="sm" className="theme-button-outline">
-                        Check In
-                      </Button>
-                    )}
-                    {appointment.status === "In Room" && (
-                      <Button variant="outline" size="sm" className="theme-button-outline">
-                        Check Out
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   )
 }
