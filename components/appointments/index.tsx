@@ -34,7 +34,9 @@ export default function AppointmentsPage() {
 
     const handleViewChange = (view: string) => {
         setActiveView(view)
-        router.push(`/appointments?view=${view}`)
+        
+        // Force replace the entire URL with just the view parameter
+        window.history.replaceState(null, '', `/appointments?view=${view}`);
     }
 
     const handleAppointmentClick = useCallback((id: string | number) => {

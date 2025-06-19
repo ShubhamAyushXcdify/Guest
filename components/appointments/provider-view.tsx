@@ -74,7 +74,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
   return (
     <div className="p-6">
 {/* Provider Cards */}
-<div className="w-full max-w-screen-lg overflow-x-auto mx-auto">
+<div className="w-full max-w-screen-2xl overflow-x-auto mx-auto">
   <div className="flex gap-6 pb-4">
     {providers.map((provider: ProviderStats) => (
       <div
