@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useForm } from "react-hook-form";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2, Calendar } from "lucide-react";
 import withAuth from "@/utils/privateRouter";
 import { useDeleteRoom } from "@/queries/rooms/delete-room";
 import { toast } from "@/components/ui/use-toast";
@@ -16,6 +16,7 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import NewRoom from "./newRoom";
 import RoomDetails from "./roomDetails";
 import { useGetRoom } from "@/queries/rooms/get-room";
+import { useRouter } from "next/navigation";
 
 // Room type based on API response
 export type Room = {
@@ -33,7 +34,8 @@ type RoomProps = {
 };
 
 function Room({ clinicId }: RoomProps) {
-  const { data: result, isLoading, isError } = useGetRoom(1, 10, '', clinicId || '');
+  const router = useRouter();
+  const { data: result, isLoading, isError, refetch } = useGetRoom(1, 10, '', clinicId || '');
   const [openNew, setOpenNew] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
@@ -46,6 +48,7 @@ function Room({ clinicId }: RoomProps) {
         title: "Success",
         description: "Room deleted successfully",
       });
+      refetch();
     },
     onError: (error) => {
       toast({
@@ -59,6 +62,10 @@ function Room({ clinicId }: RoomProps) {
   const handleEditRoomClick = (roomId: string) => {
     setSelectedRoomId(roomId);
     setOpenDetails(true);
+  };
+
+  const handleSlotsClick = (roomId: string) => {
+    router.push(`/clinic/${clinicId}/rooms/${roomId}/slots`);
   };
 
   const handleDeleteRoom = async () => {
@@ -81,7 +88,19 @@ function Room({ clinicId }: RoomProps) {
   };
 
   const columns: ColumnDef<Room>[] = [
-    { accessorKey: "name", header: "Name" },
+    { 
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <Button 
+          variant="link" 
+          className="px-0 font-normal text-left text-blue-600 hover:text-blue-800 hover:underline"
+          onClick={() => handleSlotsClick(row.original.id)}
+        >
+          {row.original.name}
+        </Button>
+      )
+    },
     { accessorKey: "roomType", header: "Room Type" },
     { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
     {
@@ -98,6 +117,16 @@ function Room({ clinicId }: RoomProps) {
             }}
           >
             <Edit className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSlotsClick(row.original.id);
+            }}
+          >
+            <Calendar className="h-4 w-4" />
           </Button>
           <Button 
             variant="ghost" 
@@ -128,7 +157,7 @@ function Room({ clinicId }: RoomProps) {
             <SheetHeader>
               <SheetTitle>New Room</SheetTitle>
             </SheetHeader>
-            <NewRoom clinicId={clinicId} onSuccess={() => { setOpenNew(false); }} />
+            <NewRoom clinicId={clinicId} onSuccess={() => { setOpenNew(false); refetch(); }} />
           </SheetContent>
         </Sheet>
       </div>
@@ -153,7 +182,7 @@ function Room({ clinicId }: RoomProps) {
             <RoomDetails 
               roomId={selectedRoomId}
               clinicId={clinicId || ''}
-              onSuccess={() => setOpenDetails(false)}
+              onSuccess={() => { setOpenDetails(false); refetch(); }}
             />
           )}
         </SheetContent>

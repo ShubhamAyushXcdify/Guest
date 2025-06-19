@@ -64,8 +64,8 @@ export default function AppointmentsPage() {
                         {activeView === "list" && "Appointment List"}
                         {activeView === "calendar" && "Appointment Calendar"}
                         {activeView === "provider" && "Provider View"}
-                        {activeView === "room" && "Room View"}
-                        {activeView === "waiting" && "Waiting Room"}
+                        {/* {activeView === "room" && "Room View"}
+                        {activeView === "waiting" && "Waiting Room"} */}
                     </h1>
                     <div className="max-w-xl">
                         <PatientSearch 
@@ -127,7 +127,7 @@ export default function AppointmentsPage() {
                     >
                         Provider View
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => handleViewChange("room")}
                         className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "room"
                             ? "border-theme-primary text-theme-primary dark:text-white"
@@ -144,7 +144,7 @@ export default function AppointmentsPage() {
                             }`}
                     >
                         Waiting Room
-                    </button>
+                    </button> */}
                 </nav>
             </div>
 
