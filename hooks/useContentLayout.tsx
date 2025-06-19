@@ -181,8 +181,6 @@ export const useContentLayout = () => {
         }, 1000)
     };
 
-    console.log(userType)
-
     return {
         clinic,
         loading,

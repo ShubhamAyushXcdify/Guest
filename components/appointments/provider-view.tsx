@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -14,6 +14,13 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 export default function ProviderView({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
   const { data: providers = [], isLoading: isLoadingProviders } = useGetProviderStats();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+
+  // Automatically select the first provider when loaded
+  useEffect(() => {
+    if (!selectedProvider && providers.length > 0) {
+      setSelectedProvider(providers[0].id);
+    }
+  }, [providers, selectedProvider]);
 
   // Find the selected provider object
   const selectedProviderObj = providers.find((p: ProviderStats) => p.id === selectedProvider);

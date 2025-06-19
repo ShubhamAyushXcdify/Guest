@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            console.error('Create Appointment error:', errorData);
             return NextResponse.json(
                 { message: errorData?.message || 'Failed to create Appointment' },
                 { status: response.status }
@@ -75,7 +74,6 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error creating Appointment:', error);
         return NextResponse.json(
             { message: 'Error creating Appointment' },
             { status: 500 }

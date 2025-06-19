@@ -86,7 +86,6 @@ export function NewInvoiceDrawer({ isOpen, onClose }: NewInvoiceDrawerProps) {
 
   const handleSave = () => {
     // Here you would handle saving the invoice
-    console.log("Saving invoice:", { items, subtotal, tax, total })
     onClose()
   }
 

@@ -68,7 +68,6 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            console.error('Create clinic error:', errorData);
             return NextResponse.json(
                 { message: errorData?.message || 'Failed to create clinic' },
                 { status: response.status }
@@ -78,7 +77,6 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error creating clinic:', error);
         return NextResponse.json(
             { message: 'Error creating clinic' },
             { status: 500 }
@@ -126,7 +124,6 @@ export async function PUT(
             data: data || body
         }, { status: 200 });
     } catch (error) {
-        console.error('Error updating clinic:', error);
         return NextResponse.json(
             { message: 'Error updating clinic', error: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }

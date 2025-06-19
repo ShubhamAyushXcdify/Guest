@@ -17,7 +17,6 @@ function useStoreLocalStorage<T>(key: string, initialValue: T): [T, (value: T) =
       }
       return initialValue;
     } catch (error) {
-      console.log(error);
       return initialValue;
     }
   });
@@ -30,7 +29,6 @@ function useStoreLocalStorage<T>(key: string, initialValue: T): [T, (value: T) =
         window.localStorage.setItem(key, valueToStore);
       }
     } catch (error) {
-      console.log(error);
     }
   };
 

@@ -32,7 +32,6 @@ function AppointmentTypeComponent({ clinicId }: AppointmentTypeProps) {
   // For debugging
   useEffect(() => {
     if (appointmentTypes) {
-      console.log("Appointment types:", appointmentTypes);
     }
   }, [appointmentTypes]);
 

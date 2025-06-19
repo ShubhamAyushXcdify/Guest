@@ -22,8 +22,6 @@ interface UpdateClientPayload {
 }
 
 const updateClient = async (clientData: UpdateClientPayload): Promise<Client> => {
-  console.log("updateClient function called with data:", clientData);
-  
   try {
     const response = await fetch(`/api/clients/${clientData.id}`, {
       method: 'PUT',
@@ -33,19 +31,14 @@ const updateClient = async (clientData: UpdateClientPayload): Promise<Client> =>
       body: JSON.stringify(clientData),
     });
 
-    console.log("Client API response status:", response.status);
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Client API error response:", errorData);
       throw new Error(errorData.message || 'Failed to update client');
     }
 
     const data = await response.json();
-    console.log("Client updated successfully, API response:", data);
     return data as Client;
   } catch (error) {
-    console.error("Error in updateClient function:", error);
     throw error;
   }
 };
@@ -60,7 +53,6 @@ export function useUpdateClient() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
     onError: (error: Error) => {
-      console.error("Client update error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to update client",

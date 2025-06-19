@@ -34,7 +34,6 @@ export async function GET(
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error fetching Appointment:', error);
         return NextResponse.json(
             { message: 'Error fetching Appointment data' },
             { status: 500 }
@@ -84,7 +83,6 @@ export async function PUT(
             data: data || body
         }, { status: 200 });
     } catch (error) {
-        console.error('Error updating Appointment:', error);
         return NextResponse.json(
             { message: 'Error updating Appointment', error: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
@@ -129,7 +127,6 @@ export async function DELETE(
             { status: 200 }
         );
     } catch (error) {
-        console.error('Error deleting Appointment:', error);
         return NextResponse.json(
             { message: 'Error deleting Appointment' },
             { status: 500 }

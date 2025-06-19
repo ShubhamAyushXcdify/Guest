@@ -132,24 +132,6 @@ export function ProductDrawer({ open, onOpenChange, mode, productId }: ProductDr
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically save/update the product in your database
-    console.log("Product saved:", {
-      id: productId,
-      productName,
-      sku,
-      description,
-      category,
-      supplier,
-      brand,
-      currentStock,
-      reorderPoint,
-      unitOfMeasure,
-      location,
-      costPrice,
-      salePrice,
-      markup,
-      status,
-    })
     // Close the drawer
     onOpenChange(false)
   }
@@ -157,7 +139,6 @@ export function ProductDrawer({ open, onOpenChange, mode, productId }: ProductDr
   // Handle product deletion
   const handleDelete = () => {
     if (confirm("Are you sure you want to delete this product?")) {
-      console.log("Product deleted:", productId)
       // Close the drawer
       onOpenChange(false)
     }

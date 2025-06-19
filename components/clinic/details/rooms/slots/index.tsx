@@ -114,6 +114,11 @@ function Slots({ roomId, clinicId }: SlotProps) {
       cell: ({ getValue }) => getValue() ? "Yes" : "No" 
     },
     {
+      accessorKey: "isAvailable",
+      header: "Available",
+      cell: ({ row }) => (row.original.isAvailable ? 'Yes' : 'No'),
+    },
+    {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => (
