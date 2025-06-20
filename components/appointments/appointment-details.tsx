@@ -431,11 +431,11 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Time</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {appointment?.slot ? 
-                      `${formatTime(appointment.slot.startTime)} - ${formatTime(appointment.slot.endTime)}` : 
-                      appointment?.startTime && appointment?.endTime ? 
-                        `${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime)}` : 
-                        'Not set'
+                    {appointment?.roomSlot ? 
+                   `${formatTime(appointment.roomSlot.startTime)} - ${formatTime(appointment.roomSlot.endTime)}` : 
+                   appointment?.startTime && appointment?.endTime ? 
+                     `${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime)}` : 
+                     'Not set'
                     }
                   </p>
                 </div>
