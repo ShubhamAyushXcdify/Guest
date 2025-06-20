@@ -110,7 +110,7 @@ export default function AppointmentsPage() {
                     >
                         List View
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => handleViewChange("calendar")}
                         className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "calendar"
                             ? "border-theme-primary text-theme-primary dark:text-white"
@@ -118,7 +118,7 @@ export default function AppointmentsPage() {
                             }`}
                     >
                         Calendar View
-                    </button>
+                    </button> */}
 
                     <button
                         onClick={() => handleViewChange("provider")}
