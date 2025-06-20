@@ -11,8 +11,9 @@ import VitalsTab from "./VitalsTab"
 import ProcedureTab from "./ProcedureTab"
 import AssessmentTab from "./PrescriptionTab"
 import PlanTab from "./PlanTab"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, CheckCircle } from "lucide-react"
 import NewAppointment from "../newAppointment"
+import { TabCompletionProvider, useTabCompletion, TabId } from "@/context/TabCompletionContext"
 
 interface PatientInformationProps {
   patientId: string
@@ -20,9 +21,11 @@ interface PatientInformationProps {
   onClose: () => void
 }
 
-export default function PatientInformation({ patientId, appointmentId, onClose }: PatientInformationProps) {
+// Create a wrapper for the component content
+function PatientInformationContent({ patientId, appointmentId, onClose }: PatientInformationProps) {
   const [activeTab, setActiveTab] = useState("intake")
   const [showNewAppointment, setShowNewAppointment] = useState(false)
+  const { isTabCompleted } = useTabCompletion()
 
   // Define tab navigation functions
   const navigateToNextTab = () => {
@@ -43,13 +46,56 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full">
-            <TabsTrigger value="intake">Intake</TabsTrigger>
-            <TabsTrigger value="cc-hpi">Complaints</TabsTrigger>
-            <TabsTrigger value="medical-history">Medical History</TabsTrigger>
-            <TabsTrigger value="vitals">Vitals</TabsTrigger>
-            <TabsTrigger value="procedure">Procedure</TabsTrigger>
-            <TabsTrigger value="assessment">Prescription</TabsTrigger>
-            <TabsTrigger value="plan">Plan</TabsTrigger>
+            {/* Customize each TabsTrigger to show completion status */}
+            <TabsTrigger 
+              value="intake" 
+              className={`flex items-center gap-1 ${isTabCompleted("intake") ? "text-green-600" : ""}`}
+            >
+              Intake
+              {isTabCompleted("intake") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="cc-hpi"
+              className={`flex items-center gap-1 ${isTabCompleted("cc-hpi") ? "text-green-600" : ""}`}
+            >
+              Complaints
+              {isTabCompleted("cc-hpi") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="medical-history"
+              className={`flex items-center gap-1 ${isTabCompleted("medical-history") ? "text-green-600" : ""}`}
+            >
+              Medical History
+              {isTabCompleted("medical-history") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="vitals"
+              className={`flex items-center gap-1 ${isTabCompleted("vitals") ? "text-green-600" : ""}`}
+            >
+              Vitals
+              {isTabCompleted("vitals") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="procedure"
+              className={`flex items-center gap-1 ${isTabCompleted("procedure") ? "text-green-600" : ""}`}
+            >
+              Procedure
+              {isTabCompleted("procedure") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="assessment"
+              className={`flex items-center gap-1 ${isTabCompleted("assessment") ? "text-green-600" : ""}`}
+            >
+              Prescription
+              {isTabCompleted("assessment") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="plan"
+              className={`flex items-center gap-1 ${isTabCompleted("plan") ? "text-green-600" : ""}`}
+            >
+              Plan
+              {isTabCompleted("plan") && <CheckCircle className="h-3 w-3 text-green-600" />}
+            </TabsTrigger>
           </TabsList>
 
           {/* Intake Tab */}
@@ -88,7 +134,7 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
 
           {/* Plan Tab */}
           <TabsContent value="plan">
-            <PlanTab patientId={patientId} appointmentId={appointmentId} />
+            <PlanTab patientId={patientId} appointmentId={appointmentId} onClose={onClose} />
           </TabsContent>
         </Tabs>
 
@@ -116,5 +162,14 @@ export default function PatientInformation({ patientId, appointmentId, onClose }
         patientId={patientId}
       />
     </Sheet>
+  )
+}
+
+// Wrap the exported component with the provider
+export default function PatientInformation(props: PatientInformationProps) {
+  return (
+    <TabCompletionProvider>
+      <PatientInformationContent {...props} />
+    </TabCompletionProvider>
   )
 }

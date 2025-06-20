@@ -15,6 +15,7 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface PrescriptionTabProps {
   patientId: string
@@ -35,6 +36,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [currentMapping, setCurrentMapping] = useState<ProductMapping>({ productId: "", dosage: "", frequency: "" })
+  const { markTabAsCompleted } = useTabCompletion()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -61,12 +63,20 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           frequency: pm.frequency
         })))
       }
+      
+      // Mark tab as completed if it was already completed or if it has products
+      if (existingPrescriptionDetail.isCompleted || 
+          (existingPrescriptionDetail.productMappings && 
+           existingPrescriptionDetail.productMappings.length > 0)) {
+        markTabAsCompleted("assessment")
+      }
     }
-  }, [existingPrescriptionDetail])
+  }, [existingPrescriptionDetail, markTabAsCompleted])
   
   const createPrescriptionDetailMutation = useCreatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details saved successfully")
+      markTabAsCompleted("assessment")
       refetchPrescriptionDetail()
       if (onNext) onNext()
     },
@@ -78,6 +88,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const updatePrescriptionDetailMutation = useUpdatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details updated successfully")
+      markTabAsCompleted("assessment")
       refetchPrescriptionDetail()
       if (onNext) onNext()
     },
@@ -123,7 +134,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     setIsAddSheetOpen(false)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
@@ -139,20 +150,24 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       return
     }
     
+    const prescriptionData = {
+      notes,
+      isCompleted: true,
+      productMappings: validMappings.map(({ id, ...rest }) => rest)
+    }
+    
     if (existingPrescriptionDetail) {
       // Update existing prescription detail
-      updatePrescriptionDetailMutation.mutate({
+      await updatePrescriptionDetailMutation.mutateAsync({
         id: existingPrescriptionDetail.id,
-        notes,
-        productMappings: validMappings.map(({ id, ...rest }) => rest),
+        ...prescriptionData,
         visitId: visitData.id
       })
     } else {
       // Create new prescription detail
-      createPrescriptionDetailMutation.mutate({
+      await createPrescriptionDetailMutation.mutateAsync({
         visitId: visitData.id,
-        notes,
-        productMappings: validMappings.map(({ id, ...rest }) => rest)
+        ...prescriptionData
       })
     }
   }

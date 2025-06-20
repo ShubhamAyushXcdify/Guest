@@ -12,6 +12,7 @@ import { useCreateComplaintDetail } from "@/queries/complaint/create-complaint-d
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
 import { useUpdateComplaintDetail } from "@/queries/complaint/update-complaint-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface ComplaintsTabProps {
   patientId: string
@@ -24,6 +25,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const [isAddingSymptom, setIsAddingSymptom] = useState(false)
   const [newSymptomName, setNewSymptomName] = useState("")
   const [notes, setNotes] = useState("")
+  const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -40,8 +42,13 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
       if (existingComplaint.notes) {
         setNotes(existingComplaint.notes)
       }
+      
+      // If complaint is marked as completed, update the tab completion status
+      if (existingComplaint.isCompleted) {
+        markTabAsCompleted("cc-hpi");
+      }
     }
-  }, [existingComplaint])
+  }, [existingComplaint, markTabAsCompleted])
   
   const createSymptomMutation = useCreateSymptom({
     onSuccess: () => {
@@ -57,6 +64,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const createComplaintMutation = useCreateComplaintDetail({
     onSuccess: () => {
       toast.success("Complaint details saved successfully")
+      markTabAsCompleted("cc-hpi")
       refetchComplaint()
       if (onNext) onNext()
     },
@@ -68,6 +76,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const updateComplaintMutation = useUpdateComplaintDetail({
     onSuccess: () => {
       toast.success("Complaint details updated successfully")
+      markTabAsCompleted("cc-hpi")
       refetchComplaint()
       if (onNext) onNext()
     },
