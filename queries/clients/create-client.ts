@@ -32,12 +32,14 @@ const createClient = async (clientData: CreateClientPayload): Promise<Client> =>
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+       console.error("Client API error response:", errorData);
       throw new Error(errorData.message || 'Failed to create client');
     }
 
     const data = await response.json();
     return data as Client;
   } catch (error) {
+    console.error("Error in createClient function:", error);
     throw error;
   }
 };
@@ -52,6 +54,7 @@ export function useCreateClient() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
     onError: (error: Error) => {
+       console.error("Client creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create client",

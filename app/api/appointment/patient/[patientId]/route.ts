@@ -32,6 +32,7 @@ export async function GET(
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
+        console.error('Error fetching appointment by patient ID:', error);
         return NextResponse.json(
             { message: 'Error fetching appointment by patient ID' },
             { status: 500 }

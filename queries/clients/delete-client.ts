@@ -9,9 +9,11 @@ const deleteClient = async (id: string): Promise<void> => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+       console.error("Client API error response:", errorData);
       throw new Error(errorData.message || 'Failed to delete client');
     }
   } catch (error) {
+     console.error("Error in deleteClient function:", error);
     throw error;
   }
 };
@@ -30,6 +32,7 @@ export function useDeleteClient() {
       });
     },
     onError: (error: Error) => {
+       console.error("Client deletion error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete client",
