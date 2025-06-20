@@ -388,63 +388,34 @@ export default function AppointmentList({
               </Button>
             </>
           )}
-          {/* For in_progress: show Check Out and Cancel */}
+          {/* For in_progress: show Cancel only */}
           {row.original.status === "in_progress" && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="theme-button-outline"
-                onClick={() => updateAppointmentMutation.mutate({
-                  id: row.original.id.toString(),
-                  data: {
-                    id: row.original.id,
-                    clinicId: row.original.clinicId,
-                    patientId: row.original.patientId,
-                    clientId: row.original.clientId,
-                    veterinarianId: row.original.veterinarianId,
-                    roomId: row.original.roomId,
-                    appointmentDate: row.original.appointmentDate,
-                    startTime: row.original.startTime,
-                    endTime: row.original.endTime,
-                    appointmentType: row.original.appointmentType,
-                    reason: row.original.reason,
-                    status: "completed",
-                    notes: row.original.notes,
-                    createdBy: row.original.createdBy,
-                  }
-                })}
-                disabled={updateAppointmentMutation.isPending}
-              >
-                Check Out
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => updateAppointmentMutation.mutate({
-                  id: row.original.id.toString(),
-                  data: {
-                    id: row.original.id,
-                    clinicId: row.original.clinicId,
-                    patientId: row.original.patientId,
-                    clientId: row.original.clientId,
-                    veterinarianId: row.original.veterinarianId,
-                    roomId: row.original.roomId,
-                    appointmentDate: row.original.appointmentDate,
-                    startTime: row.original.startTime,
-                    endTime: row.original.endTime,
-                    appointmentType: row.original.appointmentType,
-                    reason: row.original.reason,
-                    status: "cancelled",
-                    notes: row.original.notes,
-                    createdBy: row.original.createdBy,
-                  }
-                })}
-                disabled={updateAppointmentMutation.isPending}
-              >
-                Cancel
-              </Button>
-            </>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => updateAppointmentMutation.mutate({
+                id: row.original.id.toString(),
+                data: {
+                  id: row.original.id,
+                  clinicId: row.original.clinicId,
+                  patientId: row.original.patientId,
+                  clientId: row.original.clientId,
+                  veterinarianId: row.original.veterinarianId,
+                  roomId: row.original.roomId,
+                  appointmentDate: row.original.appointmentDate,
+                  startTime: row.original.startTime,
+                  endTime: row.original.endTime,
+                  appointmentType: row.original.appointmentType,
+                  reason: row.original.reason,
+                  status: "cancelled",
+                  notes: row.original.notes,
+                  createdBy: row.original.createdBy,
+                }
+              })}
+              disabled={updateAppointmentMutation.isPending}
+            >
+              Cancel
+            </Button>
           )}
           {/* Keep Delete button */}
           <Button

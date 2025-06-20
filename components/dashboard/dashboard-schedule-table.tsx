@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 
 interface Appointment {
   startTime?: string;
+  roomSlot?: {
+    startTime?: string;
+  };
   patient?: { name?: string; species?: string } | string;
   reason?: string;
   status?: string;
@@ -20,11 +23,29 @@ export const DashboardScheduleTable = ({ appointments }: DashboardScheduleTableP
   // Helper to format time from 'HH:mm:ss' to 'h:mm A'
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return '';
-    const [hour, minute] = timeStr.split(":");
-    const date = new Date();
-    date.setHours(Number(hour), Number(minute));
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    try {
+      // Handle different time formats
+      let hour, minute;
+      
+      if (timeStr.includes(':')) {
+        [hour, minute] = timeStr.split(":");
+      } else {
+        // If it's not in expected format, return as is
+        return timeStr;
+      }
+      
+      const date = new Date();
+      date.setHours(Number(hour), Number(minute));
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return timeStr; // Return original string if there's an error
+    }
   };
+  
+  // Debug appointments data
+  console.log("Appointments data:", appointments);
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden mb-6">
@@ -66,7 +87,9 @@ export const DashboardScheduleTable = ({ appointments }: DashboardScheduleTableP
               <tr key={index} className="dark:hover:bg-slate-750">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200 flex items-center">
                   <Clock className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                {formatTime(appointment.startTime)}
+                  {appointment.roomSlot && appointment.roomSlot.startTime 
+                    ? formatTime(appointment.roomSlot.startTime)
+                    : formatTime(appointment.startTime)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                   {typeof appointment.patient === 'string'
@@ -100,11 +123,11 @@ export const DashboardScheduleTable = ({ appointments }: DashboardScheduleTableP
           </tbody>
         </table>
       </div>
-      <div className="px-6 py-4 bg-gray-50 dark:bg-slate-700">
+      {/* <div className="px-6 py-4 bg-gray-50 dark:bg-slate-700">
         <Button variant="outline" className="theme-button-outline">
           View Full Schedule
         </Button>
-      </div>
+      </div> */}
     </div>
   )
 } 
