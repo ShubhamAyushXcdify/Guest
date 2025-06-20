@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface IntakeTabProps {
   patientId: string
@@ -29,6 +30,7 @@ interface IntakeTabProps {
 export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTabProps) {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
   
   // State to track if we have an intake
   const [hasIntake, setHasIntake] = useState(false)
@@ -110,8 +112,13 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       setImagePaths(paths);
       setNotes(intakeData.notes || "");
       setHasIntake(true);
+      
+      // If intake is marked as completed, update the tab completion status
+      if (intakeData.isCompleted) {
+        markTabAsCompleted("intake");
+      }
     }
-  }, [intakeData]);
+  }, [intakeData, markTabAsCompleted]);
 
   // Clean up object URLs when component unmounts
   useEffect(() => {
@@ -169,6 +176,9 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
         })
         setHasIntake(true);
       }
+      
+      // Mark tab as completed
+      markTabAsCompleted("intake");
       
       // Refetch intake data and navigate to next tab
       refetchIntake();

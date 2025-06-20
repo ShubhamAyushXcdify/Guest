@@ -12,6 +12,7 @@ import { useCreateProcedureDetail } from "@/queries/ProcedureDetails/create-proc
 import { useGetProcedureDetailByVisitId } from "@/queries/ProcedureDetails/get-procedure-detail-by-visit-id"
 import { useUpdateProcedureDetail } from "@/queries/ProcedureDetails/update-procedure-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface ProcedureTabProps {
   patientId: string
@@ -24,6 +25,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [isAddingProcedure, setIsAddingProcedure] = useState(false)
   const [newProcedureName, setNewProcedureName] = useState("")
   const [notes, setNotes] = useState("")
+  const { markTabAsCompleted } = useTabCompletion()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -40,8 +42,20 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       if (existingProcedureDetail.notes) {
         setNotes(existingProcedureDetail.notes)
       }
+      
+      // Mark tab as completed if it was already completed or if it has procedures
+      if (existingProcedureDetail.isCompleted || 
+          (existingProcedureDetail.procedures && 
+           existingProcedureDetail.procedures.length > 0)) {
+        markTabAsCompleted("procedure")
+      }
     }
-  }, [existingProcedureDetail])
+    
+    // Ensure the tab is marked as completed on each render if procedures exist
+    if (selectedProcedures.length > 0) {
+      markTabAsCompleted("procedure")
+    }
+  }, [existingProcedureDetail, markTabAsCompleted, selectedProcedures])
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
@@ -105,6 +119,9 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         
         toast.success("Procedure details saved successfully")
       }
+      
+      // Mark the tab as completed
+      markTabAsCompleted("procedure")
       
       // After successful save, navigate to next tab
       if (onNext) {

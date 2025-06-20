@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetPlans } from "@/queries/Plan/get-plans"
 import { useCreatePlan } from "@/queries/Plan/create-plan"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CheckCircle } from "lucide-react"
+import { PlusCircle, X, CheckCircle, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
 import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-by-visit-id"
@@ -14,6 +14,8 @@ import { useUpdatePlanDetail } from "@/queries/PlanDetail/update-plan-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface PlanTabProps {
   patientId: string
@@ -29,11 +31,19 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   const [notes, setNotes] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   
+  const { markTabAsCompleted, allTabsCompleted, completedTabs } = useTabCompletion()
+  const [areAllTabsCompleted, setAreAllTabsCompleted] = useState(false)
+  
+  const completionCheckRef = useRef<NodeJS.Timeout | null>(null)
+  
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
   // Get appointment data
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
+  
+  // Check if appointment is already completed
+  const isAppointmentCompleted = appointmentData?.status === "completed"
   
   const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
@@ -47,8 +57,32 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       if (existingPlanDetail.notes) {
         setNotes(existingPlanDetail.notes)
       }
+      
+      // Mark plan tab as completed if it was already completed
+      if (existingPlanDetail.isCompleted) {
+        markTabAsCompleted("plan")
+      }
     }
-  }, [existingPlanDetail])
+  }, [existingPlanDetail, markTabAsCompleted])
+  
+  // Update allTabsCompleted state when tabs are completed
+  useEffect(() => {
+    // Use a delayed check to ensure all tab completion updates have been processed
+    if (completionCheckRef.current) {
+      clearTimeout(completionCheckRef.current)
+    }
+    
+    completionCheckRef.current = setTimeout(() => {
+      const checkResult = allTabsCompleted()
+      setAreAllTabsCompleted(checkResult)
+    }, 100)
+    
+    return () => {
+      if (completionCheckRef.current) {
+        clearTimeout(completionCheckRef.current)
+      }
+    }
+  }, [completedTabs, allTabsCompleted])
   
   const createPlanMutation = useCreatePlan({
     onSuccess: () => {
@@ -67,6 +101,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     onSuccess: () => {
       toast.success("Plan details saved successfully")
       refetchPlanDetail()
+      markTabAsCompleted("plan")
     },
     onError: (error) => {
       toast.error(`Failed to save plan details: ${error.message}`)
@@ -78,6 +113,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     onSuccess: () => {
       toast.success("Plan details updated successfully")
       refetchPlanDetail()
+      markTabAsCompleted("plan")
     },
     onError: (error: any) => {
       toast.error(`Failed to update plan details: ${error.message}`)
@@ -126,6 +162,13 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       return
     }
     
+    // Check if all required tabs have been completed
+    // Skip this check if the appointment is already completed
+    if (!isAppointmentCompleted && !allTabsCompleted()) {
+      toast.error("Please complete all tabs before checking out")
+      return
+    }
+    
     setIsProcessing(true)
     setHasInitiatedCheckout(true)
     
@@ -147,14 +190,16 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
         })
       }
       
-      // Then update appointment status to completed
-      await updateAppointmentMutation.mutateAsync({
-        id: appointmentId,
-        data: {
-          ...appointmentData,
-          status: "completed"
-        }
-      })
+      // Only update appointment status if not already completed
+      if (!isAppointmentCompleted) {
+        await updateAppointmentMutation.mutateAsync({
+          id: appointmentId,
+          data: {
+            ...appointmentData,
+            status: "completed"
+          }
+        })
+      }
       
       // Ensure we close the form immediately after successful completion
       if (onClose) {
@@ -186,7 +231,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       </Card>
     )
   }
-
+  
   return (
     <Card>
       <CardContent className="p-6">
@@ -227,6 +272,18 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               <X className="h-4 w-4" />
             </Button>
           </div>
+        )}
+
+        {/* Only show the warning if appointment isn't already completed */}
+        {!isAppointmentCompleted && !areAllTabsCompleted && (
+          <Alert variant="warning" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Incomplete Patient Information</AlertTitle>
+            <AlertDescription>
+              Please complete all tabs before checking out the patient. 
+              Tabs that are completed will show in green.
+            </AlertDescription>
+          </Alert>
         )}
 
         {isLoading ? (
@@ -290,11 +347,13 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSaveAndCheckout}
-                disabled={isProcessing}
-                className="bg-green-600 hover:bg-green-700"
+                disabled={isProcessing || (!isAppointmentCompleted && !areAllTabsCompleted)}
+                className={`${isAppointmentCompleted || areAllTabsCompleted ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}
               >
                 {isProcessing ? (
                   "Processing..."
+                ) : isAppointmentCompleted ? (
+                  "Update"
                 ) : hasInitiatedCheckout ? (
                   "Update"
                 ) : (

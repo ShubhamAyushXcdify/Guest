@@ -12,6 +12,7 @@ import { useUpdateVitalDetail } from "@/queries/vitals/update-vital-detail"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface VitalsTabProps {
   patientId: string
@@ -20,6 +21,8 @@ interface VitalsTabProps {
 }
 
 export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTabProps) {
+  const { markTabAsCompleted } = useTabCompletion()
+  
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
@@ -54,8 +57,23 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
       setCapillaryRefillTimeSec(vitalDetail.capillaryRefillTimeSec)
       setHydrationStatus(vitalDetail.hydrationStatus || "")
       setNotes(vitalDetail.notes || "")
+      
+      // Mark tab as completed if it was already completed or if basic vitals are present
+      if (vitalDetail.isCompleted || 
+          vitalDetail.temperatureC || 
+          vitalDetail.heartRateBpm || 
+          vitalDetail.respiratoryRateBpm) {
+        markTabAsCompleted("vitals")
+      }
     }
-  }, [vitalDetail])
+  }, [vitalDetail, markTabAsCompleted])
+  
+  // Always mark the tab as completed if we have vital measurements
+  useEffect(() => {
+    if (temperatureC || heartRateBpm || respiratoryRateBpm) {
+      markTabAsCompleted("vitals")
+    }
+  }, [temperatureC, heartRateBpm, respiratoryRateBpm, markTabAsCompleted])
 
   const handleSave = async () => {
     if (!visitData?.id) {
@@ -92,6 +110,9 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
         
         toast.success("Vital details saved successfully")
       }
+      
+      // Mark the tab as completed
+      markTabAsCompleted("vitals")
       
       // After successful save, refetch data and navigate to next tab
       refetchVitalDetail()
