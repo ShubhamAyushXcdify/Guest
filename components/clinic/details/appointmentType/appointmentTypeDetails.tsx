@@ -48,7 +48,6 @@ export default function AppointmentTypeDetails({ appointmentTypeId, clinicId, on
   // Update form when data is loaded
   useEffect(() => {
     if (appointmentType) {
-      console.log("Appointment type details:", appointmentType);
       form.reset({
         name: appointmentType.name,
       });

@@ -17,7 +17,6 @@ export interface Slot {
   durationMinutes: number;
   isActive: boolean;
   isAvailable: boolean;
-  name: string;
 }
 
 export const useGetSlotByRoomId = (

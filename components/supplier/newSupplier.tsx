@@ -66,7 +66,6 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
       form.setValue("clinicId", clinic.id);
     }
   };
-console.log(clinic.id)
   useEffect(() => {
     handleClinicDefaultState();
   }, [clinic]);

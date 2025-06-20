@@ -45,14 +45,10 @@ export default function AppointmentsPage() {
 
     const handlePatientSelect = (patient: Patient) => {
         setSelectedPatient(patient)
-        // Log for debugging
-        console.log("Selected patient:", patient)
-        console.log("Patient ID for filtering:", patient.id)
     }
 
     const clearPatientFilter = () => {
         setSelectedPatient(null)
-        console.log("Patient filter cleared")
     }
 
     // If not mounted yet, don't render to avoid hydration mismatch

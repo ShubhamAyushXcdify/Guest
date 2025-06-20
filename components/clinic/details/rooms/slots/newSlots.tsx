@@ -18,9 +18,6 @@ const slotSchema = z.object({
   roomId: z.string({
     required_error: "Room ID is required",
   }),
-  name: z.string({
-    required_error: "Name is required",
-  }).min(1, "Name is required"),
   startTime: z.string({
     required_error: "Start time is required",
   }),
@@ -29,6 +26,7 @@ const slotSchema = z.object({
   }),
   durationMinutes: z.coerce.number().min(1, "Duration must be at least 1 minute"),
   isActive: z.boolean().default(true),
+  isAvailable: z.boolean().default(true),
 });
 
 type SlotFormValues = z.infer<typeof slotSchema>;
@@ -62,11 +60,11 @@ export default function NewSlots({ roomId, clinicId, onSuccess }: NewSlotsProps)
     defaultValues: {
       clinicId: clinicId || '',
       roomId: roomId,
-      name: "",
       startTime: "",
       endTime: "",
       durationMinutes: 30,
       isActive: true,
+      isAvailable: true,
     },
   });
 
@@ -81,20 +79,6 @@ export default function NewSlots({ roomId, clinicId, onSuccess }: NewSlotsProps)
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pt-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <FormField
           control={form.control}
           name="startTime"
@@ -150,6 +134,24 @@ export default function NewSlots({ roomId, clinicId, onSuccess }: NewSlotsProps)
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>Active</FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isAvailable"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Is Available</FormLabel>
               </div>
             </FormItem>
           )}

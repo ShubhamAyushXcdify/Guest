@@ -67,10 +67,7 @@ export default function AppointmentList({
   // Debugging logs
   useEffect(() => {
     if (selectedPatientId) {
-      console.log("Using patient-specific appointments for patient ID:", selectedPatientId);
-      console.log("Patient appointments:", patientAppointments);
     } else {
-      console.log("Using all appointments");
     }
   }, [selectedPatientId, patientAppointments, allAppointments]);
 

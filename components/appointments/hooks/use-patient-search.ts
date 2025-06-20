@@ -22,9 +22,6 @@ export function usePatientSearch(query: string, searchType: string) {
         ? data.map(transformPatient).filter(result => result !== null) as Patient[]
         : []
     
-    // Log for debugging
-    console.log("API Patient data:", data);
-    console.log("Transformed results:", transformedResults);
     
     return { 
         results: transformedResults, 

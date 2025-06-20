@@ -23,8 +23,6 @@ export async function GET(request: NextRequest) {
             token = testToken;
         }
         
-        console.log('Fetching users with params:', searchParams.toString());
-        console.log('Using token (masked):', token ? token.substring(0, 10) + '...' : 'No token');
 
         const response = await fetch(
             `${apiUrl}/api/User?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clinicId=${clinicId}&roleId=${roleId}`,
@@ -42,10 +40,10 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-        console.log('User API response:', data);
+
         return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
-        console.error('Error fetching user:', error);
+         console.error('Error fetching user:', error);
         return NextResponse.json({ message: `Error fetching user: ${error.message}` }, { status: 500 });
     }
 }
@@ -90,7 +88,7 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error creating user:', error);
+         console.error('Error creating user:', error);
         return NextResponse.json(
             { message: 'Error creating user' },
             { status: 500 }
@@ -135,7 +133,7 @@ export async function PUT(request: NextRequest) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            console.error('Update user error:', errorData);
+             console.error('Update user error:', errorData);
             return NextResponse.json(
                 { message: errorData?.message || 'Failed to update user' },
                 { status: response.status }
@@ -145,7 +143,6 @@ export async function PUT(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error updating user:', error);
         return NextResponse.json(
             { message: 'Error updating user' },
             { status: 500 }

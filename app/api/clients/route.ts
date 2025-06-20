@@ -19,9 +19,6 @@ export async function GET(request: NextRequest) {
         const type = searchParams.get('type') || 'first_name';
         const search = searchParams.get('query') || '';
 
-        console.log('Fetching clients with params:', { pageNumber, pageSize, clinicId });
-        console.log('Using token (masked):', token ? token.substring(0, 10) + '...' : 'No token');
-
         const response = await fetch(
             `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&type=${type}&query=${encodeURIComponent(search)}`,
             {
@@ -38,7 +35,6 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-        console.log('Client API response:', data);
         return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
         console.error('Error in clients GET route:', error);
@@ -49,10 +45,7 @@ export async function GET(request: NextRequest) {
 // POST API Route - Create a new client
 export async function POST(request: NextRequest) {
     try {
-        console.log("POST /api/clients route handler called");
-        
         const body = await request.json();
-        console.log("Request body:", body);
         
         let token = getJwtToken(request);
 
@@ -60,9 +53,6 @@ export async function POST(request: NextRequest) {
             token = testToken;
         }
 
-        console.log("Using token (masked):", token.substring(0, 10) + "...");
-        console.log("Sending POST request to:", `${apiUrl}/api/Client`);
-        
         const response = await fetch(
             `${apiUrl}/api/Client`,
             {
@@ -75,8 +65,6 @@ export async function POST(request: NextRequest) {
             }
         );
 
-        console.log("Backend API response status:", response.status);
-        
         if (!response.ok) {
             const errorText = await response.text().catch(() => "Failed to get error details");
             console.error("Error response from backend:", errorText);
@@ -84,7 +72,6 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await response.json();
-        console.log("Client created successfully, response data:", data);
         return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
         console.error("Error in clients POST route:", error);

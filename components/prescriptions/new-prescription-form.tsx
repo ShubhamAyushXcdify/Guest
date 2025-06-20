@@ -51,7 +51,6 @@ export function NewPrescriptionForm() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    console.log("Form submitted:", formData)
     setOpen(false)
     // Reset form
     setFormData({

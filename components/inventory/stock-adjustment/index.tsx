@@ -86,7 +86,6 @@ export default function StockAdjustmentPage() {
     }
 
     const handleSaveAdjustment = (values: StockAdjustmentFormValues) => {
-        console.log("Form values:", values)
         alert("Stock adjustment saved!")
         // In a real app, this would save the adjustment to the database
     }

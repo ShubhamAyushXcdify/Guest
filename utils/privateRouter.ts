@@ -61,9 +61,6 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
         const timeout = setTimeout(() => {
 
           if (typeof window !== "undefined" && pathname !== "/login") {
-            console.log(
-              "redirecting to login from privateRouter because no jwtToken or userId or workspaceId"
-            );
             router.push(`/?redirect=${encodeURIComponent(pathname)}`);
           }
         }, 1000);
@@ -73,7 +70,6 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
       if (!loading && !authorized) {
         const timeout = setTimeout(() => {
           if (pathname !== "/login") {
-            console.log(`Redirecting to login from privateRouter because Authorized ${authorized}`);
             router.push(`/?redirect=${encodeURIComponent(pathname)}`);
           }
         }, 1000);
