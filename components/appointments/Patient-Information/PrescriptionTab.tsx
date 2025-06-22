@@ -65,11 +65,10 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       }
       
       // Mark tab as completed if it was already completed or if it has products
-      if (existingPrescriptionDetail.isCompleted || 
-          (existingPrescriptionDetail.productMappings && 
-           existingPrescriptionDetail.productMappings.length > 0)) {
-        markTabAsCompleted("assessment")
-      }
+      if (existingPrescriptionDetail?.productMappings?.length > 0) {
+      markTabAsCompleted("assessment")
+      } 
+
     }
   }, [existingPrescriptionDetail, markTabAsCompleted])
   
@@ -330,6 +329,27 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 value={currentMapping.frequency}
                 onChange={(e) => setCurrentMapping({...currentMapping, frequency: e.target.value})}
               />
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {[
+                  "1-0-1",
+                  "1-0-0",
+                  "0-0-1",
+                  "1-1-1",
+                  "0.5-0-0.5",
+                  "0.5-0-0",
+                  "0-0-0.5",
+                  "0.5-0.5-0.5"
+                ].map(value => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
+                    onClick={() => setCurrentMapping({...currentMapping, frequency: value})}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           

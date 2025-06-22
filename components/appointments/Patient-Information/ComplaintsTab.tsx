@@ -43,10 +43,6 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
         setNotes(existingComplaint.notes)
       }
       
-      // If complaint is marked as completed, update the tab completion status
-      if (existingComplaint.isCompleted) {
-        markTabAsCompleted("cc-hpi");
-      }
     }
   }, [existingComplaint, markTabAsCompleted])
   
@@ -104,6 +100,10 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const handleSave = () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
+      return
+    }
+    if (selectedSymptoms.length === 0) {
+      toast.error("Please select at least one symptom before saving.")
       return
     }
     
@@ -249,7 +249,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={createComplaintMutation.isPending || updateComplaintMutation.isPending}
+                disabled={createComplaintMutation.isPending || updateComplaintMutation.isPending || selectedSymptoms.length === 0}
                 className="ml-2"
               >
                 {createComplaintMutation.isPending || updateComplaintMutation.isPending 
