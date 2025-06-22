@@ -19,6 +19,10 @@ const getIntakeByVisitId = async (visitId: string): Promise<IntakeDetail | null>
     
     const data = await response.json();
     
+    if (!data) {
+      return null;
+    }
+    
     // Transform the response to match our interface if needed
     const transformedData: IntakeDetail = {
       ...data,

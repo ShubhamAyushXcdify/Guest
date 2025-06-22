@@ -6,13 +6,15 @@ import { useGetSymptoms } from "@/queries/symptoms/get-symptoms"
 import { useCreateSymptom } from "@/queries/symptoms/create-symptom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X } from "lucide-react"
+import { PlusCircle, X, Mic } from "lucide-react"
 import { toast } from "sonner"
 import { useCreateComplaintDetail } from "@/queries/complaint/create-complaint-detail"
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
 import { useUpdateComplaintDetail } from "@/queries/complaint/update-complaint-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface ComplaintsTabProps {
   patientId: string
@@ -126,6 +128,17 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     }
   }
 
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
+  const transcriber = useTranscriber()
+
+  useEffect(() => {
+    const output = transcriber.output
+    if (output && !output.isBusy && output.text) {
+      setNotes(prev => prev ? prev + "\n" + output.text : output.text)
+    }
+    // eslint-disable-next-line
+  }, [transcriber.output?.isBusy])
+
   if (visitLoading || isLoading) {
     return (
       <Card>
@@ -237,12 +250,34 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Additional Notes
+                </label>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setAudioModalOpen(true)}
+                  title="Record voice note"
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              </div>
               <textarea
                 className="w-full border rounded-md p-2 min-h-[100px]"
                 placeholder="Add any additional details about the complaint..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+              />
+              <AudioManager
+                open={audioModalOpen}
+                onClose={() => setAudioModalOpen(false)}
+                transcriber={transcriber}
+                onTranscriptionComplete={(transcript: string) => {
+                  setNotes(prev => prev ? prev + "\n" + transcript : transcript)
+                  setAudioModalOpen(false)
+                }}
               />
             </div>
 
