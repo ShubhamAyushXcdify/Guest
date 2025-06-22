@@ -22,6 +22,10 @@ export async function GET(
         });
 
         if (!response.ok) {
+            if (response.status === 404) {
+                // No data found yet – return null or an empty object
+                return NextResponse.json(null, { status: 200 });
+            }
             const errorData = await response.json().catch(() => ({}));
             return NextResponse.json(
                 { message: errorData.message || 'Failed to fetch prescription detail by visit ID' },

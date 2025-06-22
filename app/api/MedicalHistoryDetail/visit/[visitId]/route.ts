@@ -22,6 +22,9 @@ export async function GET(
         });
 
         if (!response.ok) {
+            if (response.status === 404) {
+                return NextResponse.json(null, { status: 200 }); // or return empty structure
+            }
             const errorData = await response.json().catch(() => ({}));
             return NextResponse.json(
                 { message: errorData.message || 'Failed to fetch medical history detail by visit ID' },

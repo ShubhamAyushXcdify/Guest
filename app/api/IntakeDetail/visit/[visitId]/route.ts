@@ -23,6 +23,9 @@ export async function GET(
         });
 
         if (!response.ok) {
+            if (response.status === 404) {
+                return NextResponse.json(null, { status: 200 }); // or return empty structure
+            }
             return NextResponse.json(
                 { message: 'Failed to fetch intake detail by visit ID' },
                 { status: response.status }

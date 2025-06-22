@@ -50,12 +50,14 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         markTabAsCompleted("procedure")
       }
     }
-    
-    // Ensure the tab is marked as completed on each render if procedures exist
+  }, [existingProcedureDetail, markTabAsCompleted])
+  
+  // Mark as completed if selectedProcedures changes and is not empty
+  useEffect(() => {
     if (selectedProcedures.length > 0) {
       markTabAsCompleted("procedure")
     }
-  }, [existingProcedureDetail, markTabAsCompleted, selectedProcedures])
+  }, [selectedProcedures, markTabAsCompleted])
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
@@ -94,6 +96,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
+      return
+    }
+    if (selectedProcedures.length === 0) {
+      toast.error("Please select at least one procedure before saving.")
       return
     }
     
@@ -257,7 +263,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={isPending}
+                disabled={isPending || selectedProcedures.length === 0}
                 className="ml-2"
               >
                 {isPending 

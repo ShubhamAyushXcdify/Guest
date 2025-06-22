@@ -49,7 +49,11 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
     visitData?.id || ""
   )
+  const { mutateAsync: createPlanDetail, isPending: isCreating } = useCreatePlanDetail()
+  const { mutateAsync: updatePlanDetail, isPending: isUpdating } = useUpdatePlanDetail()
   
+  // Combined loading state
+  const isPending = isCreating || isUpdating
   // Initialize selected plans and notes from existing data
   useEffect(() => {
     if (existingPlanDetail) {
@@ -151,29 +155,57 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   // Track whether the plan has been saved and checkout has been initiated
   const [hasInitiatedCheckout, setHasInitiatedCheckout] = useState(false)
 
-  const handleSaveAndCheckout = async () => {
+  // Save or update plan detail (for Save/Update button)
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
-    
+    if (selectedPlans.length === 0) {
+      toast.error("Please select at least one plan before saving.")
+      return
+    }
+    try {
+      if (existingPlanDetail) {
+        await updatePlanDetailMutation.mutateAsync({
+          id: existingPlanDetail.id,
+          planIds: selectedPlans,
+          notes,
+          isCompleted: false // Only set true on checkout
+        })
+      } else {
+        await createPlanDetailMutation.mutateAsync({
+          visitId: visitData.id,
+          planIds: selectedPlans,
+          notes,
+          isCompleted: false // Only set true on checkout
+        })
+      }
+      toast.success("Plan details saved successfully")
+    } catch (error) {
+      toast.error(`Failed to save plan details: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleCheckout = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment")
+      return
+    }
     if (!appointmentData) {
       toast.error("No appointment data found")
       return
     }
-    
     // Check if all required tabs have been completed
     // Skip this check if the appointment is already completed
     if (!isAppointmentCompleted && !allTabsCompleted()) {
       toast.error("Please complete all tabs before checking out")
       return
     }
-    
     setIsProcessing(true)
     setHasInitiatedCheckout(true)
-    
     try {
-      // First save the plan details
+      // First save the plan details as completed
       if (existingPlanDetail) {
         await updatePlanDetailMutation.mutateAsync({
           id: existingPlanDetail.id,
@@ -189,7 +221,6 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           isCompleted: true
         })
       }
-      
       // Only update appointment status if not already completed
       if (!isAppointmentCompleted) {
         await updateAppointmentMutation.mutateAsync({
@@ -200,12 +231,10 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           }
         })
       }
-      
       // Ensure we close the form immediately after successful completion
       if (onClose) {
         onClose()
       }
-      
     } catch (error) {
       console.error("Error during checkout process:", error)
       setIsProcessing(false)
@@ -276,7 +305,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
 
         {/* Only show the warning if appointment isn't already completed */}
         {!isAppointmentCompleted && !areAllTabsCompleted && (
-          <Alert variant="warning" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
+          <Alert variant="default" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Incomplete Patient Information</AlertTitle>
             <AlertDescription>
@@ -344,24 +373,20 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               />
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-2">
               <Button 
-                onClick={handleSaveAndCheckout}
-                disabled={isProcessing || (!isAppointmentCompleted && !areAllTabsCompleted)}
-                className={`${isAppointmentCompleted || areAllTabsCompleted ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}
+                onClick={handleSave}
+                disabled={isPending || selectedPlans.length === 0}
+                className="ml-2"
               >
-                {isProcessing ? (
-                  "Processing..."
-                ) : isAppointmentCompleted ? (
-                  "Update"
-                ) : hasInitiatedCheckout ? (
-                  "Update"
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Save & Checkout
-                  </>
-                )}
+                {isPending ? "Saving..." : existingPlanDetail ? "Update" : "Save"}
+              </Button>
+              <Button
+                onClick={handleCheckout}
+                disabled={isPending || !areAllTabsCompleted || !existingPlanDetail || selectedPlans.length === 0}
+                className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Checkout
               </Button>
             </div>
           </>
