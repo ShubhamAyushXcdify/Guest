@@ -264,8 +264,8 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium">Additional Notes</h3>
                 <Button
                   type="button"
                   size="icon"
@@ -277,7 +277,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                 </Button>
               </div>
               <textarea
-                className="w-full border rounded-md p-2 min-h-[100px]"
+                className="w-full border rounded-md p-2 min-h-[100px] mt-2"
                 placeholder="Add any additional details about the procedures..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

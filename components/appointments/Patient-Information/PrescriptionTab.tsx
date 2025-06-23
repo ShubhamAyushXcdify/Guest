@@ -276,8 +276,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         )}
 
         <div className="mt-6">
-          <Label htmlFor="notes">Additional Notes</Label>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="notes">Additional Notes</Label>
             <Button
               type="button"
               size="icon"
