@@ -39,6 +39,13 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
     provider: selectedProviderObj ? selectedProviderObj.name : null,
     dateFrom: null,
     dateTo: null,
+    clinicId: null,
+    patientId: null,
+    clientId: null,
+    veterinarianId: null,
+    roomId: null,
+    pageNumber: 1,
+    pageSize: 10,
   };
 
   // Use appointments from the selected provider object, ensure it's always an array

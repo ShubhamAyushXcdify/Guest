@@ -6,15 +6,13 @@ import { useGetProcedures } from "@/queries/procedure/get-procedures"
 import { useCreateProcedure } from "@/queries/procedure/create-procedure"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, Mic } from "lucide-react"
+import { PlusCircle, X } from "lucide-react"
 import { toast } from "sonner"
 import { useCreateProcedureDetail } from "@/queries/ProcedureDetails/create-procedure-detail"
 import { useGetProcedureDetailByVisitId } from "@/queries/ProcedureDetails/get-procedure-detail-by-visit-id"
 import { useUpdateProcedureDetail } from "@/queries/ProcedureDetails/update-procedure-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
-import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
-import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface ProcedureTabProps {
   patientId: string
@@ -52,14 +50,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         markTabAsCompleted("procedure")
       }
     }
-  }, [existingProcedureDetail, markTabAsCompleted])
-  
-  // Mark as completed if selectedProcedures changes and is not empty
-  useEffect(() => {
+    
+    // Ensure the tab is marked as completed on each render if procedures exist
     if (selectedProcedures.length > 0) {
       markTabAsCompleted("procedure")
     }
-  }, [selectedProcedures, markTabAsCompleted])
+  }, [existingProcedureDetail, markTabAsCompleted, selectedProcedures])
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
@@ -100,10 +96,6 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       toast.error("No visit data found for this appointment")
       return
     }
-    if (selectedProcedures.length === 0) {
-      toast.error("Please select at least one procedure before saving.")
-      return
-    }
     
     try {
       if (existingProcedureDetail) {
@@ -141,17 +133,6 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
-
-  const [audioModalOpen, setAudioModalOpen] = useState(false)
-  const transcriber = useTranscriber()
-
-  useEffect(() => {
-    const output = transcriber.output
-    if (output && !output.isBusy && output.text) {
-      setNotes(prev => prev ? prev + "\n" + output.text : output.text)
-    }
-    // eslint-disable-next-line
-  }, [transcriber.output?.isBusy])
 
   if (visitLoading || isLoading) {
     return (
@@ -264,39 +245,19 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             </div>
 
             <div className="mt-6">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium">Additional Notes</h3>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setAudioModalOpen(true)}
-                  title="Record voice note"
-                >
-                  <Mic className="w-4 h-4" />
-                </Button>
-              </div>
+              <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
               <textarea
-                className="w-full border rounded-md p-2 min-h-[100px] mt-2"
+                className="w-full border rounded-md p-2 min-h-[100px]"
                 placeholder="Add any additional details about the procedures..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-              />
-              <AudioManager
-                open={audioModalOpen}
-                onClose={() => setAudioModalOpen(false)}
-                transcriber={transcriber}
-                onTranscriptionComplete={(transcript: string) => {
-                  setNotes(prev => prev ? prev + "\n" + transcript : transcript)
-                  setAudioModalOpen(false)
-                }}
               />
             </div>
 
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={isPending || selectedProcedures.length === 0}
+                disabled={isPending}
                 className="ml-2"
               >
                 {isPending 

@@ -46,9 +46,12 @@ export const DashboardScreen = () => {
   };
 
   // Filter only today's appointments
-  const todaysAppointments = (appointmentsData || []).filter(
-    (a: any) => isToday(a.appointmentDate)
-  );
+  // Check if appointmentsData has items property (paginated response) or is an array
+  const appointmentsItems = appointmentsData?.items || appointmentsData || [];
+  
+  const todaysAppointments = Array.isArray(appointmentsItems) 
+    ? appointmentsItems.filter((a: any) => isToday(a.appointmentDate))
+    : [];
 
   const todayAppointmentsCount = todaysAppointments.length;
   const todayCompletedCount = todaysAppointments.filter((a: any) => a.status === "completed").length;
