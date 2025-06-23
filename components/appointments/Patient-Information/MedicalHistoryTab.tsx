@@ -211,8 +211,8 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="chronicConditions">Chronic Conditions</Label>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="chronicConditions">Chronic Conditions</Label>
               <Button
                 type="button"
                 size="icon"
@@ -247,8 +247,8 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           </div>
           
           <div className="space-y-1">
-            <Label htmlFor="surgeries">Surgeries</Label>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="surgeries">Surgeries</Label>
               <Button
                 type="button"
                 size="icon"
@@ -283,8 +283,8 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="currentMedications">Current Medications</Label>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="currentMedications">Current Medications</Label>
               <Button
                 type="button"
                 size="icon"
@@ -319,8 +319,8 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="generalNotes">General Notes</Label>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="generalNotes">General Notes</Label>
               <Button
                 type="button"
                 size="icon"
