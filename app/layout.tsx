@@ -25,12 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <QueryWrapper>
-          <NuqsAdapter>
+        <NuqsAdapter>
+          <QueryWrapper>
             {children}
-          </NuqsAdapter>
-          <Toaster />
-        </QueryWrapper>
+            <Toaster />
+          </QueryWrapper>
+        </NuqsAdapter>
       </body>
     </html>
   )

@@ -1,5 +1,6 @@
 import { appointmentSearchParamsParser, appointmentSearchParamsSerializer, AppointmentSearchParamsType } from "@/components/appointments/hooks/useAppointmentFilter";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 interface AppointmentResponse {
   items: any[];
@@ -13,11 +14,60 @@ interface AppointmentResponse {
 
 const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
   try {
-    let url = `/api/appointment`;
-    const serialize = appointmentSearchParamsSerializer({ ...searchParams });
-    if (serialize) {
-      url += `?${serialize}`;
+    // Directly build URLSearchParams object instead of relying on serialization
+    const params = new URLSearchParams();
+    
+    // Add pagination parameters (using numbers or defaults)
+    params.set('pageNumber', String(searchParams.pageNumber || 1));
+    params.set('pageSize', String(searchParams.pageSize || 10));
+    
+    // Add UUID parameters if present
+    if (searchParams.clinicId) {
+      params.set('clinicId', searchParams.clinicId);
     }
+    
+    if (searchParams.patientId) {
+      params.set('patientId', searchParams.patientId);
+    }
+    
+    if (searchParams.clientId) {
+      params.set('clientId', searchParams.clientId);
+    }
+    
+    if (searchParams.veterinarianId) {
+      params.set('veterinarianId', searchParams.veterinarianId);
+    }
+    
+    if (searchParams.roomId) {
+      params.set('roomId', searchParams.roomId);
+    }
+    
+    // Add date parameters if present
+    if (searchParams.dateFrom) {
+      params.set('dateFrom', searchParams.dateFrom);
+    }
+    
+    if (searchParams.dateTo) {
+      params.set('dateTo', searchParams.dateTo);
+    }
+    
+    // Add other parameters if present
+    if (searchParams.status) {
+      params.set('status', searchParams.status);
+    }
+    
+    if (searchParams.provider) {
+      params.set('provider', searchParams.provider);
+    }
+    
+    if (searchParams.search) {
+      params.set('search', searchParams.search);
+    }
+    
+    // Construct URL with query string only if we have parameters
+    const queryString = params.toString();
+    const url = queryString ? `/api/appointment?${queryString}` : '/api/appointment';
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -29,16 +79,53 @@ const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
     if (!response.ok) {
       throw result;
     }
-    // Return the items array from the response
-    return result.data.items;
+    
+    // Check if the response data format is as expected
+    if (result.data && typeof result.data === 'object') {
+      // Return the data object (which should contain items, totalCount, etc.)
+      return result.data;
+    } else if (Array.isArray(result)) {
+      // Handle case where API returns array directly
+      return {
+        items: result,
+        totalCount: result.length,
+        pageNumber: 1,
+        pageSize: result.length,
+        totalPages: 1
+      };
+    } else {
+      return { items: [], totalCount: 0, pageNumber: 1, pageSize: 10, totalPages: 0 };
+    }
   } catch (error) {
     throw error;
   }
 }
 
 export const useGetAppointments = (searchParams: AppointmentSearchParamsType) => {
+  // Create a stable query key that includes all relevant search parameters
+  const queryKey = useMemo(() => {
+    return [
+      'appointment',
+      searchParams.search || '',
+      searchParams.status || '',
+      searchParams.provider || '',
+      searchParams.dateFrom || '',
+      searchParams.dateTo || '',
+      searchParams.clinicId || '',
+      searchParams.patientId || '',
+      searchParams.clientId || '',
+      searchParams.veterinarianId || '',
+      searchParams.roomId || '',
+      searchParams.pageNumber || 1,
+      searchParams.pageSize || 10
+    ];
+  }, [searchParams]);
+
   return useQuery({
-    queryKey: ['appointment'],
+    queryKey,
     queryFn: () => getAppointments(searchParams),
-  })
+    // Ensure we refetch on window focus and don't cache too aggressively
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // 30 seconds
+  });
 } 

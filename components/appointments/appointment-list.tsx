@@ -17,7 +17,14 @@ import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import useAppointmentFilter from "./hooks/useAppointmentFilter"
 import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
 import { useRootContext } from "@/context/RootContext"
+import { User } from "@/hooks/useContentLayout"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
+import { useGetUsers, User as ApiUser } from "@/queries/users/get-users"
+
+// Extended API user type with clinicId
+interface ExtendedUser extends ApiUser {
+  clinicId?: string;
+}
 
 interface Appointment {
   id: string;
@@ -43,7 +50,7 @@ export default function AppointmentList({
   onAppointmentClick: (id: string) => void,
   selectedPatientId?: string 
 }) {
-  const { user, userType } = useRootContext()
+  const { user, userType, IsAdmin, clinic } = useRootContext()
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -54,26 +61,80 @@ export default function AppointmentList({
   const [searchQuery, setSearchQuery] = useState("")
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
+  // Fetch veterinarians from users API - if admin, get all; if not admin, filter by clinic
+  const { data: usersData } = useGetUsers(1, 100, '', IsAdmin ? '' : clinic?.id || '', true, '');
+  
+  // Filter users to get only veterinarians
+  const veterinarians = useMemo(() => {
+    if (!usersData?.items) return [];
+    
+    const vets = usersData.items.filter(user => user.roleName === "Veterinarian") as ExtendedUser[];
+    
+    // If not admin, we don't need to filter further since we already filtered by clinicId in the API call
+    return vets;
+  }, [usersData]);
+
   // Fetch appointments by patient ID if selectedPatientId is provided
   const { data: patientAppointments = [], isLoading: isLoadingPatientAppointments } = useGetAppointmentByPatientId(
     selectedPatientId || "" 
   );
 
   // Fetch all appointments when no patient is selected
-  const { data: allAppointments = [], isLoading: isLoadingAllAppointments } = useGetAppointments(
-    searchParams
-  );
-
-  // Debugging logs
-  useEffect(() => {
-    if (selectedPatientId) {
-    } else {
-    }
-  }, [selectedPatientId, patientAppointments, allAppointments]);
-
+  const { data: allAppointments = [], isLoading: isLoadingAllAppointments } = useGetAppointments({
+    dateFrom: searchParams.dateFrom,
+    dateTo: searchParams.dateTo,
+    search: searchParams.search,
+    status: searchParams.status,
+    provider: searchParams.provider,
+    clinicId: searchParams.clinicId,
+    patientId: searchParams.patientId,
+    clientId: searchParams.clientId,
+    veterinarianId: searchParams.veterinarianId,
+    roomId: searchParams.roomId,
+    pageNumber: currentPage,
+    pageSize: pageSize,
+  });
+  
   // Use patient-specific appointments when selectedPatientId is provided, otherwise use all appointments
   const appointments = selectedPatientId ? patientAppointments : allAppointments;
   const isLoading = selectedPatientId ? isLoadingPatientAppointments : isLoadingAllAppointments;
+
+  // Extract pagination information from API response
+  const paginationInfo = useMemo(() => {
+    if (!selectedPatientId && allAppointments && typeof allAppointments === 'object') {
+      return {
+        totalCount: allAppointments.totalCount || 0,
+        pageNumber: allAppointments.pageNumber || 1,
+        pageSize: allAppointments.pageSize || 10,
+        totalPages: allAppointments.totalPages || 1,
+      };
+    }
+    return {
+      totalCount: 0,
+      pageNumber: currentPage,
+      pageSize: pageSize,
+      totalPages: 1,
+    };
+  }, [allAppointments, currentPage, pageSize, selectedPatientId]);
+
+  const appointmentItems = useMemo(() => {
+    if (selectedPatientId) {
+      return patientAppointments;
+    }
+    
+    // Check if allAppointments has items property
+    if (allAppointments && allAppointments.items && Array.isArray(allAppointments.items)) {
+      return allAppointments.items;
+    }
+    
+    // Fallback if allAppointments itself is an array
+    if (Array.isArray(allAppointments)) {
+      return allAppointments;
+    }
+    
+    // Default empty array if no data
+    return [];
+  }, [allAppointments, patientAppointments, selectedPatientId]);
 
   const deleteAppointmentMutation = useDeleteAppointment({
     onSuccess: () => {
@@ -115,11 +176,11 @@ export default function AppointmentList({
   // The API now provides nested user data, so we directly enrich the appointments
   const enrichedAppointments = useMemo(() => {
     // Ensure appointments is an array before mapping
-    if (!Array.isArray(appointments)) {
+    if (!Array.isArray(appointmentItems)) {
       return [];
     }
 
-    return appointments.map(appointment => {
+    return appointmentItems.map(appointment => {
       const patientName = appointment.patient?.name || 'N/A';
       const ownerName = `${appointment.client?.firstName || ''} ${appointment.client?.lastName || ''}`.trim() || 'N/A';
       const providerName = `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim() || 'N/A';
@@ -131,9 +192,45 @@ export default function AppointmentList({
         provider: providerName,
       };
     });
-  }, [appointments]); // Re-run when appointments data changes
+  }, [appointmentItems]); // Re-run when appointments data changes
   // --- End: Data Enrichment ---
 
+  // Use the enriched appointments directly and filter in the frontend
+  const filteredAppointments = useMemo(() => {
+    let filtered = enrichedAppointments;
+
+    // Apply status filter based on active tab
+    if (activeTab === "all") {
+      filtered = enrichedAppointments;
+    } else if (activeTab === "scheduled") {
+      filtered = enrichedAppointments.filter(
+        (a) => a.status === "scheduled" || a.status === "confirmed"
+      );
+    } else if (activeTab === "checked-in") {
+      filtered = enrichedAppointments.filter((a) => a.status === "in_progress");
+    } else if (activeTab === "completed") {
+      filtered = enrichedAppointments.filter((a) => a.status === "completed");
+    } else if (activeTab === "cancelled") {
+      filtered = enrichedAppointments.filter((a) => a.status === "cancelled");
+    }
+
+    // Apply search filter client-side
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(appointment =>
+        appointment.patient?.toLowerCase().includes(query) ||
+        appointment.owner?.toLowerCase().includes(query) ||
+        appointment.appointmentType?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Note: Provider filtering is now handled by the API using veterinarianId parameter
+    // We don't need to filter by provider name client-side anymore
+
+    return filtered;
+  }, [enrichedAppointments, activeTab, searchQuery]);
+
+  // Update counts based on filtered data
   const scheduledCount = enrichedAppointments.filter(
     (a) => a.status === "scheduled" || a.status === "confirmed"
   ).length;
@@ -148,33 +245,55 @@ export default function AppointmentList({
   ).length;
   const allCount = enrichedAppointments.length;
 
-  
   // Calculate today's appointments count
-  const todayAppointmentsCount = enrichedAppointments.length; 
+  const todayAppointmentsCount = enrichedAppointments.length;
 
   // Calculate today's completed appointments
   const todayCompletedCount = enrichedAppointments.filter(
     (a) => a.status === "completed"
   ).length;
 
-  // Provider options
+  // Provider options from users API
   const providerOptions = useMemo(() => {
-    const uniqueProviders = new Set<string>()
-    appointments.forEach((appointment: Appointment) => {
-      const providerName = `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim()
-      if (providerName) {
-        uniqueProviders.add(providerName)
-      }
-    })
-
-    return [
+    // Create options from veterinarians data
+    const options = [
       { value: "", label: "All Providers" },
-      ...Array.from(uniqueProviders).map(provider => ({
-        value: provider,
-        label: provider
+      ...veterinarians.map(vet => ({
+        value: vet.id, // Use the veterinarian's ID as the value
+        label: `${vet.firstName} ${vet.lastName}`.trim()
       }))
-    ]
-  }, [appointments])
+    ];
+    return options;
+  }, [veterinarians]);
+
+  // Handle provider selection
+  const handleProviderSelection = (providerId: string) => {
+    setSelectedProvider(providerId);
+    
+    // Update search parameters to include veterinarianId
+    const params: any = { 
+      veterinarianId: providerId || null,
+      pageNumber: 1 // Reset to page 1 when changing provider
+    };
+    
+    // Remove the provider parameter as we're using veterinarianId instead
+    if (searchParams.provider) {
+      params.provider = null;
+    }
+    
+    handleProvider(providerId);
+  };
+
+  const handleDefaultState = () => {
+    if (userType.isProvider && user?.id) {
+      setSelectedProvider(user.id);
+      handleProviderSelection(user.id);
+    }
+  }
+
+  useEffect(() => {
+    handleDefaultState()
+  }, [userType, user])
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.
@@ -186,45 +305,6 @@ export default function AppointmentList({
     { value: "Completed", label: "Completed" },
     { value: "Cancelled", label: "Cancelled" },
   ]
-
-  // Filter appointments based on active tab and selected filters
-  const filteredAppointments = useMemo(() => {
-    let filtered = enrichedAppointments
-
-    // Apply status filter based on active tab
-    if (activeTab === "all") {
-      filtered = enrichedAppointments
-    } else if (activeTab === "scheduled") {
-      filtered = enrichedAppointments.filter(
-        (a) => a.status === "scheduled" || a.status === "confirmed"
-      )
-    } else if (activeTab === "checked-in") {
-      filtered = enrichedAppointments.filter((a) => a.status === "in_progress")
-    } else if (activeTab === "completed") {
-      filtered = enrichedAppointments.filter((a) => a.status === "completed")
-    } else if (activeTab === "cancelled") {
-      filtered = enrichedAppointments.filter((a) => a.status === "cancelled")
-    }
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(appointment =>
-        appointment.patient?.toLowerCase().includes(query) ||
-        appointment.owner?.toLowerCase().includes(query) ||
-        appointment.appointmentType?.toLowerCase().includes(query)
-      )
-    }
-
-    // Apply provider filter
-    if (selectedProvider) {
-      filtered = filtered.filter(appointment =>
-        `${appointment.veterinarian?.firstName || ''} ${appointment.veterinarian?.lastName || ''}`.trim() === selectedProvider
-      )
-    }
-
-    return filtered
-  }, [enrichedAppointments, activeTab, searchQuery, selectedProvider])
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -242,16 +322,6 @@ export default function AppointmentList({
         return "theme-badge-neutral"
     }
   }
-
-  const handleDefaultState = () => {
-    if (userType.isProvider) {
-      setSelectedProvider(user?.firstName + " " + user?.lastName)
-    }
-  }
-
-  useEffect(() => {
-    handleDefaultState()
-  }, [userType])
 
   const columns: ColumnDef<any>[] = [
     {
@@ -460,6 +530,29 @@ export default function AppointmentList({
     }
   }
 
+  // Update page handling
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Add pageNumber and pageSize to URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('pageNumber', page.toString());
+    urlParams.set('pageSize', pageSize.toString());
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({}, '', newUrl);
+  };
+
+  // Update pageSize handling
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    // Add pageNumber and pageSize to URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.set('pageNumber', '1'); // Reset to page 1
+    urlParams.set('pageSize', size.toString());
+    const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+    window.history.pushState({}, '', newUrl);
+  };
+
   return (
     <div className="p-6">
       {/* Filters */}
@@ -467,13 +560,23 @@ export default function AppointmentList({
         <div className="flex items-center gap-3 ">
           <DatePickerWithRangeV2
             date={{
-              from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : undefined,
-              to: searchParams.dateTo ? new Date(searchParams.dateTo) : undefined
+              from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : new Date(),
+              to: searchParams.dateTo ? new Date(searchParams.dateTo) : new Date()
             }}
             setDate={async (date) => {
               try {
                 if (date?.from && date?.to) {
-                  handleDate(date.from.toISOString(), date.to.toISOString());
+                  // Format dates as YYYY-MM-DD
+                  const formattedFrom = date.from.toISOString().split('T')[0];
+                  const formattedTo = date.to.toISOString().split('T')[0];
+                  
+                  // Reset to page 1 and set date range
+                  setCurrentPage(1);
+                  handleDate(formattedFrom, formattedTo);
+                } else {
+                  // If date is cleared, reset date filters
+                  setCurrentPage(1);
+                  handleDate(null, null);
                 }
               } catch (error) {
                 console.error('Error updating date range:', error);
@@ -486,10 +589,10 @@ export default function AppointmentList({
               <Combobox
                 options={providerOptions}
                 value={selectedProvider}
-                onValueChange={setSelectedProvider}
+                onValueChange={handleProviderSelection}
                 placeholder="Select Provider"
-                searchPlaceholder="Search providers..."
-                emptyText="No providers found."
+                searchPlaceholder="Search veterinarians..."
+                emptyText="No veterinarians found."
               />
             </div>
           )}
@@ -498,6 +601,7 @@ export default function AppointmentList({
             onClick={() => {
               setSelectedProvider("")
               setSearchQuery("")
+              setActiveTab("all")
               removeAllFilters()
             }}
           >
@@ -563,9 +667,9 @@ export default function AppointmentList({
         searchPlaceholder="Search appointments..."
         page={currentPage}
         pageSize={pageSize}
-        totalPages={Math.ceil(filteredAppointments.length / pageSize)}
-        onPageChange={setCurrentPage}
-        onPageSizeChange={setPageSize}
+        totalPages={paginationInfo.totalPages}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
       />
 
     </div>
