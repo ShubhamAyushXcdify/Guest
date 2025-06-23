@@ -19,15 +19,18 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [viewType, setViewType] = useState<"list" | "calendar">("list");
 
-  // Automatically select the first provider when loaded
+  // Only show providers whose role is 'Veterinarian'
+  const veterinarianProviders = providers.filter((provider: ProviderStats) => provider.role?.toLowerCase() === "veterinarian");
+
+  // Automatically select the first veterinarian when loaded
   useEffect(() => {
-    if (!selectedProvider && providers.length > 0) {
-      setSelectedProvider(providers[0].id);
+    if (!selectedProvider && veterinarianProviders.length > 0) {
+      setSelectedProvider(veterinarianProviders[0].id);
     }
-  }, [providers, selectedProvider]);
+  }, [veterinarianProviders, selectedProvider]);
 
   // Find the selected provider object
-  const selectedProviderObj = providers.find((p: ProviderStats) => p.id === selectedProvider);
+  const selectedProviderObj = veterinarianProviders.find((p: ProviderStats) => p.id === selectedProvider);
 
   // Build search params for appointments
   const searchParams: AppointmentSearchParamsType = {
@@ -87,7 +90,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
       {/* Provider Cards */}
       <div className="w-full max-w-screen-2xl overflow-x-auto mx-auto">
         <div className="flex gap-6 pb-4">
-          {providers.map((provider: ProviderStats) => (
+          {veterinarianProviders.map((provider: ProviderStats) => (
             <div
               key={provider.id}
               className="min-w-[320px] max-w-[340px] flex-shrink-0"
