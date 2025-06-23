@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,9 @@ import { useCreateClient } from "@/queries/clients/create-client";
 import { toast } from "@/components/ui/use-toast";
 import { ClinicSelect } from "@/components/clinics/clinic-select";
 import { useRootContext } from '@/context/RootContext';
+import { Mic, Loader2 } from "lucide-react";
+import { AudioManager } from "@/components/audioTranscriber/AudioManager";
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber";
 
 const clientFormSchema = z.object({
   firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
@@ -68,13 +71,28 @@ export function ClientForm({
   nestedForm = false,
 }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [audioModalOpen, setAudioModalOpen] = useState(false);
   const createClientMutation = useCreateClient();
   const { clinic } = useRootContext();
+  const notesTranscriber = useTranscriber();
 
-  // Use the prop value if provided, otherwise it will be selected in the form
+  // Audio transcription effect for notes
+  useEffect(() => {
+    const output = notesTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "notes",
+        (form.getValues("notes") ? form.getValues("notes") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(false);
+    }
+    // eslint-disable-next-line
+  }, [notesTranscriber.output?.isBusy]);
+
+  // Use the current clinic from context if available, otherwise fall back to props or defaultValues
   const formDefaultValues = {
     ...defaultValues,
-    clinicId: clinicId || "",
+    clinicId: clinic?.id || clinicId || defaultValues.clinicId || "",
   };
 
   const form = useForm<ClientFormValues>({
@@ -297,12 +315,28 @@ export function ClientForm({
         />
       </div>
 
-      <FormField
+     <FormField
         control={form.control}
         name="notes"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Notes</FormLabel>
+            <div className="flex items-center gap-2">
+              <FormLabel>Notes</FormLabel>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setAudioModalOpen(true)}
+                title="Record voice note"
+                disabled={notesTranscriber.output?.isBusy}
+              >
+                {notesTranscriber.output?.isBusy ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
             <FormControl>
               <Textarea
                 placeholder="Any additional notes about the client"
@@ -312,6 +346,12 @@ export function ClientForm({
               />
             </FormControl>
             <FormMessage />
+            <AudioManager
+              open={audioModalOpen}
+              onClose={() => setAudioModalOpen(false)}
+              transcriber={notesTranscriber}
+              onTranscriptionComplete={() => setAudioModalOpen(false)}
+            />
           </FormItem>
         )}
       />
@@ -348,4 +388,4 @@ export function ClientForm({
       </form>
     </Form>
   );
-} 
+}

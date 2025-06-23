@@ -100,15 +100,15 @@ export function PatientsTable({
       header: "Date of Birth",
       cell: ({ getValue }) => formatDate(getValue() as string)
     },
-    { 
-      accessorKey: "isActive", 
-      header: "Status", 
-      cell: ({ getValue }) => (
-        <Badge variant={getValue() ? "default" : "destructive"}>
-          {getValue() ? "Active" : "Inactive"}
-        </Badge>
-      )
-    },
+    // { 
+    //   accessorKey: "isActive", 
+    //   header: "Status", 
+    //   cell: ({ getValue }) => (
+    //     <Badge variant={getValue() ? "default" : "destructive"}>
+    //       {getValue() ? "Active" : "Inactive"}
+    //     </Badge>
+    //   )
+    // },
     ...(showClinicColumn ? [
       { 
         accessorKey: "clinicName", 

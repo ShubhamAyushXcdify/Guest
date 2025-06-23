@@ -204,7 +204,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                     {appointments.map((appointment: any) => {
                       const datePart = appointment.appointmentDate?.split('T')[0];
-                      const timePart = appointment.startTime;
+                      const timePart = appointment.roomSlot.startTime;
                       const dateTimeString = datePart && timePart ? `${datePart}T${timePart}` : null;
                       return (
                         <tr key={appointment.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">

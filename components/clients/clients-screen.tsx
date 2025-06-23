@@ -168,7 +168,7 @@ export const ClientsScreen = () => {
               <Plus className="mr-2 h-4 w-4" /> Add Client
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[62%] overflow-auto">
+          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[40%] overflow-auto">
             <SheetHeader>
               <SheetTitle>{selectedClient ? "Edit Client" : "New Client"}</SheetTitle>
             </SheetHeader>
