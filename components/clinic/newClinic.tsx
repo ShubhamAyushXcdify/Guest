@@ -50,21 +50,22 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
       website: "",
       taxId: "",
       licenseNumber: "",
-      subscriptionStatus: "Active",
-      subscriptionExpiresAt: "",
+      //subscriptionStatus: "Active",
+      //subscriptionExpiresAt: "",
     },
   });
   
   const handleSubmit = async (values: Omit<Clinic, "id" | "createdAt" | "updatedAt">) => {
     try {
       // Convert subscriptionExpiresAt to UTC if it exists
-      const dataToSubmit = {
-        ...values,
-        subscriptionExpiresAt: values.subscriptionExpiresAt 
-          ? new Date(values.subscriptionExpiresAt).toISOString()
-          : null
-      };
-      await createClinic.mutateAsync(dataToSubmit);
+      // const dataToSubmit = {
+      //   ...values,
+      //   subscriptionExpiresAt: values.subscriptionExpiresAt 
+      //     ? new Date(values.subscriptionExpiresAt).toISOString()
+      //     : null
+      // };
+      //await createClinic.mutateAsync(dataToSubmit);
+      await createClinic.mutateAsync(values);
     } catch (error) {
       // Error is handled in onError callback
     }
@@ -170,7 +171,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
             </FormItem>
           )} />
           
-          <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
+          {/* <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Subscription Status</FormLabel>
               <FormControl><Input {...field} /></FormControl>
@@ -189,7 +190,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
               </FormControl>
               <FormMessage />
             </FormItem>
-          )} />
+          )} /> */}
         </div>
         
         <div className="flex justify-end mt-6">

@@ -160,7 +160,7 @@ export default function PatientPrescriptions() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Prescription History</h3>
           </div>
 
-          <div className="p-4 border-b border-gray-200 dark:border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* <div className="p-4 border-b border-gray-200 dark:border-slate-700 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Label htmlFor="search-prescriptions" className="sr-only">Search</Label>
               <Input
@@ -220,15 +220,15 @@ export default function PatientPrescriptions() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
+          </div> */}
 
           <Tabs defaultValue="list" className="w-full">
-            <div className="px-4 pt-4">
+            {/* <div className="px-4 pt-4">
               <TabsList>
                 <TabsTrigger value="list">List View</TabsTrigger>
                 {/* <TabsTrigger value="calendar">Calendar View</TabsTrigger> */}
-              </TabsList>
-            </div>
+              {/* </TabsList>
+            </div> */} 
 
             <TabsContent value="list" className="p-0 mt-4">
               <div className="overflow-x-auto">
@@ -251,9 +251,9 @@ export default function PatientPrescriptions() {
                       {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Refills
                       </th> */}
-                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                       {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Status
-                      </th> 
+                      </th>  */}
                       {/* Commented out Actions column header */}
                       {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Actions
@@ -290,7 +290,7 @@ export default function PatientPrescriptions() {
                         {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                           {prescription.refills}
                         </td> */}
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        {/* <td className="px-6 py-4 whitespace-nowrap">
                           {prescription.status === "active" ? (
                             <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
                               Active
@@ -308,7 +308,7 @@ export default function PatientPrescriptions() {
                           ) : (
                             <Badge variant="outline">{prescription.status || "Unknown"}</Badge>
                           )}
-                        </td> 
+                        </td>  */}
                         {/* Commented out Actions column */}
                         {/* <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex space-x-2">

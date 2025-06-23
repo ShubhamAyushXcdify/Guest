@@ -34,8 +34,8 @@ export type Clinic = {
   website: string;
   taxId: string;
   licenseNumber: string;
-  subscriptionStatus: string;
-  subscriptionExpiresAt: string;
+  // subscriptionStatus: string;
+  // subscriptionExpiresAt: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -124,7 +124,7 @@ function Clinic() {
     { accessorKey: "country", header: "Country" },
     { accessorKey: "phone", header: "Phone" },
     { accessorKey: "email", header: "Email" },
-    { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
+    // { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
