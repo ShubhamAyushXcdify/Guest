@@ -20,6 +20,9 @@ import {
   DialogClose,
 } from "@/components/ui/dialog"
 import { useTabCompletion } from "@/context/TabCompletionContext"
+import { Mic } from "lucide-react"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface IntakeTabProps {
   patientId: string
@@ -60,6 +63,10 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   
   // Combined loading state
   const isPending = isCreating || isUpdating
+
+  // Audio modal state
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
+  const transcriber = useTranscriber()
 
   // Initialize form with existing data when available
   useEffect(() => {
@@ -258,6 +265,18 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
     setImageRotation(prev => (prev + 90) % 360);
   }
 
+  useEffect(() => {
+    if (
+      transcriber.output &&
+      !transcriber.output.isBusy &&
+      transcriber.output.text
+    ) {
+      setNotes(prev => prev ? prev + "\n" + transcriber.output!.text : transcriber.output!.text)
+    }
+    // Only run when transcription completes
+    // eslint-disable-next-line
+  }, [transcriber.output?.isBusy])
+
   if (visitLoading || intakeLoading) {
     return (
       <Card>
@@ -362,9 +381,20 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
             </div>
 
             <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Notes
-              </label>
+              <div className="flex items-center gap-2 mb-1">
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Notes
+                </label>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setAudioModalOpen(true)}
+                  title="Record voice note"
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              </div>
               <Textarea
                 id="notes"
                 value={notes}
@@ -372,6 +402,15 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                 className="w-full h-32"
               />
             </div>
+            <AudioManager
+              open={audioModalOpen}
+              onClose={() => setAudioModalOpen(false)}
+              transcriber={transcriber}
+              onTranscriptionComplete={(transcript: string) => {
+                setNotes(prev => prev ? prev + "\n" + transcript : transcript)
+                setAudioModalOpen(false)
+              }}
+            />
 
             <div className="mt-6 flex justify-end">
               <Button 

@@ -13,6 +13,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useTabCompletion } from "@/context/TabCompletionContext"
+import { Mic } from "lucide-react"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface VitalsTabProps {
   patientId: string
@@ -39,6 +42,8 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
   const [capillaryRefillTimeSec, setCapillaryRefillTimeSec] = useState<number | undefined>(undefined)
   const [hydrationStatus, setHydrationStatus] = useState<string>("")
   const [notes, setNotes] = useState("")
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
+  const transcriber = useTranscriber()
 
   // Use mutateAsync pattern for better control flow
   const { mutateAsync: createVitalDetail, isPending: isCreating } = useCreateVitalDetail()
@@ -74,6 +79,12 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
       markTabAsCompleted("vitals")
     }
   }, [temperatureC, heartRateBpm, respiratoryRateBpm, markTabAsCompleted])
+
+  const output = transcriber.output;
+  if (output && !output.isBusy && output.text) {
+    setNotes(prev => prev ? prev + "\n" + output.text : output.text);
+  }
+  // eslint-disable-next-line
 
   const handleSave = async () => {
     if (!visitData?.id) {
@@ -243,13 +254,35 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
         </div>
 
         <div className="mt-6">
-          <Label htmlFor="notes">Additional Notes</Label>
-          <Textarea
+          <div className="flex items-center gap-2 mb-1">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Additional Notes
+            </label>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setAudioModalOpen(true)}
+              title="Record voice note"
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+          </div>
+          <textarea
             id="notes"
-            placeholder="Enter any additional observations or notes about the patient's vital signs..."
-            className="mt-2"
+            className="w-full border rounded-md p-2 min-h-[100px]"
+            placeholder="Add any additional details..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+          />
+          <AudioManager
+            open={audioModalOpen}
+            onClose={() => setAudioModalOpen(false)}
+            transcriber={transcriber}
+            onTranscriptionComplete={(transcript: string) => {
+              setNotes(prev => prev ? prev + "\n" + transcript : transcript);
+              setAudioModalOpen(false);
+            }}
           />
         </div>
 
