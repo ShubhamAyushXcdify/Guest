@@ -39,8 +39,8 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
       website: "",
       taxId: "",
       licenseNumber: "",
-      subscriptionStatus: "",
-      subscriptionExpiresAt: "",
+      // subscriptionStatus: "",
+      // subscriptionExpiresAt: "",
       // Add any other default fields here
     }
   });
@@ -206,7 +206,7 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
             </FormItem>
           )} />
           
-          <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
+          {/* <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Subscription Status</FormLabel>
               <FormControl>
@@ -227,7 +227,7 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
               </FormControl>
               <FormMessage />
             </FormItem>
-          )} />
+          )} /> */}
         </div>
         
         <div className="flex justify-end mt-6">
