@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -60,6 +60,9 @@ export default function AppointmentList({
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
+  
+  // Ref to track if dates have been initialized
+  const datesInitializedRef = useRef(false);
   
   // Fetch veterinarians from users API - if admin, get all; if not admin, filter by clinic
   const { data: usersData } = useGetUsers(1, 100, '', IsAdmin ? '' : clinic?.id || '', true, '');
@@ -285,15 +288,31 @@ export default function AppointmentList({
   };
 
   const handleDefaultState = () => {
+    // Set provider filter if user is a provider
     if (userType.isProvider && user?.id) {
       setSelectedProvider(user.id);
       handleProviderSelection(user.id);
     }
   }
 
+  // Function to initialize today's date filter
+  const initializeTodayDateFilter = () => {
+    // Only set the date filter if it's not already set and we haven't initialized it yet
+    if ((!searchParams.dateFrom || !searchParams.dateTo) && !datesInitializedRef.current) {
+      const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      handleDate(today, today);
+      datesInitializedRef.current = true;
+    }
+  }
+
   useEffect(() => {
-    handleDefaultState()
-  }, [userType, user])
+    handleDefaultState();
+  }, [userType, user]);
+
+  // Initialize with today's date when component mounts
+  useEffect(() => {
+    initializeTodayDateFilter();
+  }, []);
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.
