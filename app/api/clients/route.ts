@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         const pageSize = searchParams.get('pageSize') || '10';
         const clinicId = searchParams.get('clinicId') || '';
         const type = searchParams.get('type') || 'first_name';
-        const search = searchParams.get('query') || '';
+        const search = searchParams.get('query') || searchParams.get('search') || '';
 
         const response = await fetch(
             `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&type=${type}&query=${encodeURIComponent(search)}`,
@@ -35,7 +35,12 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-        return NextResponse.json(data, { status: 200 });
+        return NextResponse.json(data, { 
+          status: 200,
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+          }
+        });
     } catch (error: any) {
         console.error('Error in clients GET route:', error);
         return NextResponse.json({ message: `Error fetching clients: ${error.message}` }, { status: 500 });

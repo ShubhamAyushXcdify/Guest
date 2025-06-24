@@ -224,6 +224,11 @@ export function DataTable<TData, TValue>({
                 }
               }}
               className="pr-9 transition-all duration-200 pl-9"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
+              }}
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-foreground/70 transition-colors duration-200" />
             {globalFilter && (

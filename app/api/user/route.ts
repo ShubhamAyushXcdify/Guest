@@ -41,7 +41,12 @@ export async function GET(request: NextRequest) {
 
         const data = await response.json();
 
-        return NextResponse.json(data, { status: 200 });
+        return NextResponse.json(data, { 
+          status: 200,
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+          }
+        });
     } catch (error: any) {
          console.error('Error fetching user:', error);
         return NextResponse.json({ message: `Error fetching user: ${error.message}` }, { status: 500 });

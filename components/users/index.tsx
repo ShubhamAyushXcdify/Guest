@@ -15,6 +15,7 @@ import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // User type based on the provided API schema
 export type User = {
@@ -38,6 +39,8 @@ export default function Users() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
+  const debouncedSearch = useDebounce(search, 300);
+  
   const queryClient = useQueryClient();
 
   React.useEffect(() => {
@@ -52,7 +55,7 @@ export default function Users() {
   const { data: usersData, isLoading: isUsersLoading, isError: isUsersError } = useGetUsers(
     pageNumber, 
     pageSize, 
-    search, 
+    debouncedSearch, 
     '', // clinicId
     !!rolesData, // enabled
     '' // roleId
@@ -134,6 +137,13 @@ export default function Users() {
   const handleSearch = (value: string) => {
     setSearch(value);
     setPageNumber(1); // Reset to first page when searching
+    
+    // Update URL with search parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', encodeURIComponent(value));
+    
+    // Update the URL without page reload
+    window.history.pushState({}, '', url.toString());
   };
 
   const columns: ColumnDef<User>[] = [
@@ -226,18 +236,20 @@ export default function Users() {
           <p className="text-red-500">Error loading users</p>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          data={users as User[]}
-          searchColumn="email"
-          searchPlaceholder="Search users..."
-          page={pageNumber}
-          pageSize={pageSize}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          onSearch={handleSearch}
-        />
+        <div onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}>
+          <DataTable
+            columns={columns}
+            data={users as User[]}
+            searchColumn="firstName"
+            searchPlaceholder="Search users by name or email..."
+            page={pageNumber}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSearch={handleSearch}
+          />
+        </div>
       )}
       
       {/* User Details Sheet */}

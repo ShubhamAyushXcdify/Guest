@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export interface Client {
   id: string;
@@ -65,6 +65,9 @@ export function useGetClients(
     enabled,
     retry: 1,
     staleTime: 30000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: keepPreviousData,
   });
 }
 
