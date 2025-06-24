@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Pencil, ClipboardList, Search, X, Loader2 } from "lucide-react"
+import { Pencil, ClipboardList, Search, X, Loader2,Mic } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Combobox } from "@/components/ui/combobox"
@@ -24,6 +24,8 @@ import PatientInformation from "@/components/appointments/Patient-Information/in
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -353,6 +355,37 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 //   if (isLoading) {
 //     return null
 //   }
+
+const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
+  const reasonTranscriber = useTranscriber();
+  const notesTranscriber = useTranscriber();
+
+  // Audio transcription effect for reason
+  useEffect(() => {
+    const output = reasonTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "reason",
+        (form.getValues("reason") ? form.getValues("reason") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+    // eslint-disable-next-line
+  }, [reasonTranscriber.output?.isBusy]);
+
+  // Audio transcription effect for notes
+  useEffect(() => {
+    const output = notesTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "notes",
+        (form.getValues("notes") ? form.getValues("notes") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+    // eslint-disable-next-line
+  }, [notesTranscriber.output?.isBusy]);
+
 
   return (
     <>
@@ -728,11 +761,33 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     name="reason"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reason</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Reason</FormLabel>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setAudioModalOpen("reason")}
+                            title="Record voice note"
+                            disabled={reasonTranscriber.output?.isBusy}
+                          >
+                            {reasonTranscriber.output?.isBusy ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <FormControl>
                           <Textarea {...field} />
                         </FormControl>
                         <FormMessage />
+                        <AudioManager
+                          open={audioModalOpen === "reason"}
+                          onClose={() => setAudioModalOpen(null)}
+                          transcriber={reasonTranscriber}
+                          onTranscriptionComplete={() => setAudioModalOpen(null)}
+                        />
                       </FormItem>
                     )}
                   />
@@ -742,11 +797,33 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Notes</FormLabel>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setAudioModalOpen("notes")}
+                            title="Record voice note"
+                            disabled={notesTranscriber.output?.isBusy}
+                          >
+                            {notesTranscriber.output?.isBusy ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <FormControl>
                           <Textarea {...field} />
                         </FormControl>
                         <FormMessage />
+                        <AudioManager
+                          open={audioModalOpen === "notes"}
+                          onClose={() => setAudioModalOpen(null)}
+                          transcriber={notesTranscriber}
+                          onTranscriptionComplete={() => setAudioModalOpen(null)}
+                        />
                       </FormItem>
                     )}
                   />
@@ -775,4 +852,4 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       )}
     </>
   )
-} 
+}

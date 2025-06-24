@@ -32,7 +32,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { format } from "date-fns"
-import { CalendarIcon, Plus } from "lucide-react"
+import { CalendarIcon, Plus,Mic,Loader2} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCreatePatient } from "@/queries/patients/create-patients"
 import { ClientSelect } from "@/components/clients/client-select"
@@ -42,6 +42,8 @@ import { Client } from "@/queries/clients/get-client"
 import { ClinicSelect } from "@/components/clinics/clinic-select"
 import { useRootContext } from '@/context/RootContext'
 import { useGetClients } from "@/queries/clients/get-client"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 
 const patientFormSchema = z.object({
  clientId: z.string().nonempty("Owner is required"),
@@ -154,6 +156,49 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
       setShowClientForm(false);
     }, 500); // Adjust delay as needed, 500ms (0.5 seconds) is usually enough
   };
+
+   const [audioModalOpen, setAudioModalOpen] = useState<null | "allergies" | "medicalConditions" | "behavioralNotes">(null);
+    const allergiesTranscriber = useTranscriber();
+    const medicalConditionsTranscriber = useTranscriber();
+    const behavioralNotesTranscriber = useTranscriber();
+  
+    // Audio transcription effect for reason
+    useEffect(() => {
+      const output = allergiesTranscriber.output;
+      if (output && !output.isBusy && output.text) {
+        form.setValue(
+          "allergies",
+          (form.getValues("allergies") ? form.getValues("allergies") + "\n" : "") + output.text
+        );
+        setAudioModalOpen(null);
+      }
+      // eslint-disable-next-line
+    }, [allergiesTranscriber.output?.isBusy]);
+  
+    // Audio transcription effect for notes
+    useEffect(() => {
+      const output = medicalConditionsTranscriber.output;
+      if (output && !output.isBusy && output.text) {
+        form.setValue(
+          "medicalConditions",
+          (form.getValues("medicalConditions") ? form.getValues("medicalConditions") + "\n" : "") + output.text
+        );
+        setAudioModalOpen(null);
+      }
+      // eslint-disable-next-line
+    }, [medicalConditionsTranscriber.output?.isBusy]);
+
+    useEffect(() => {
+      const output = behavioralNotesTranscriber.output;
+      if (output && !output.isBusy && output.text) {
+        form.setValue(
+          "behavioralNotes",
+          (form.getValues("behavioralNotes") ? form.getValues("behavioralNotes") + "\n" : "") + output.text
+        );
+        setAudioModalOpen(null);
+      }
+      // eslint-disable-next-line
+    }, [behavioralNotesTranscriber.output?.isBusy]);
 
   return (
     <Form {...form}>
@@ -448,11 +493,38 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
                 name="allergies"
                 render={({ field }) => (
                   <FormItem>
+                    <div className="flex items-center gap-2">
                     <FormLabel>Allergies</FormLabel>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setAudioModalOpen("allergies")}
+                      title="Record voice note"
+                      disabled={allergiesTranscriber.output?.isBusy}
+                    >
+                      {allergiesTranscriber.output?.isBusy ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                     <FormControl>
-                      <Textarea placeholder="List any allergies (optional)" {...field} />
+                      <textarea
+                        id="allergies"
+                        value={field.value}
+                        onChange={e => field.onChange(e.target.value)}
+                        className="w-full h-20 p-2 border rounded-md"
+                      />
                     </FormControl>
                     <FormMessage />
+                    <AudioManager
+                      open={audioModalOpen === "allergies"}
+                      onClose={() => setAudioModalOpen(null)}
+                      transcriber={allergiesTranscriber}
+                      onTranscriptionComplete={() => setAudioModalOpen(null)}
+                    />
                   </FormItem>
                 )}
               />
@@ -462,11 +534,38 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
                 name="medicalConditions"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Medical Conditions</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Medical Conditions</FormLabel>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setAudioModalOpen("medicalConditions")}
+                        title="Record voice note"
+                        disabled={medicalConditionsTranscriber.output?.isBusy}
+                      >
+                        {medicalConditionsTranscriber.output?.isBusy ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Mic className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
                     <FormControl>
-                      <Textarea placeholder="List any medical conditions (optional)" {...field} />
+                      <textarea
+                        id="medicalConditions"
+                        value={field.value}
+                        onChange={e => field.onChange(e.target.value)}
+                        className="w-full h-20 p-2 border rounded-md"
+                      />
                     </FormControl>
                     <FormMessage />
+                    <AudioManager
+                      open={audioModalOpen === "medicalConditions"}
+                      onClose={() => setAudioModalOpen(null)}
+                      transcriber={medicalConditionsTranscriber}
+                      onTranscriptionComplete={() => setAudioModalOpen(null)}
+                    />
                   </FormItem>
                 )}
               />
@@ -476,16 +575,43 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
                 name="behavioralNotes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Behavioral Notes</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Behavioral Notes</FormLabel>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setAudioModalOpen("behavioralNotes")}
+                        title="Record voice note"
+                        disabled={behavioralNotesTranscriber.output?.isBusy}
+                      >
+                        {behavioralNotesTranscriber.output?.isBusy ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Mic className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
                     <FormControl>
-                      <Textarea placeholder="Any behavioral notes (optional)" {...field} />
+                      <textarea
+                        id="behavioralNotes"
+                        value={field.value}
+                        onChange={e => field.onChange(e.target.value)}
+                        className="w-full h-20 p-2 border rounded-md"
+                      />
                     </FormControl>
                     <FormMessage />
+                    <AudioManager
+                      open={audioModalOpen === "behavioralNotes"}
+                      onClose={() => setAudioModalOpen(null)}
+                      transcriber={behavioralNotesTranscriber}
+                      onTranscriptionComplete={() => setAudioModalOpen(null)}
+                    />
                   </FormItem>
                 )}
               />
 
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="isActive"
                 render={({ field }) => (
@@ -505,7 +631,7 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
             </div>
           </div>
         </div>
@@ -525,4 +651,4 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
       </form>
     </Form>
   )
-} 
+}
