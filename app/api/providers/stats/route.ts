@@ -9,12 +9,24 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         let token = getJwtToken(request);
+        
+        // Extract all query parameters
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
         const search = searchParams.get('search') || '';
+        const fromDate = searchParams.get('fromDate') || '';
+        const toDate = searchParams.get('toDate') || '';
+        const clinicId = searchParams.get('clinicId') || '';
+
+        // Build the query string with all parameters
+        let queryString = `pageNumber=${pageNumber}&pageSize=${pageSize}`;
+        if (search) queryString += `&search=${search}`;
+        if (fromDate) queryString += `&fromDate=${fromDate}`;
+        if (toDate) queryString += `&toDate=${toDate}`;
+        if (clinicId) queryString += `&clinicId=${clinicId}`;
 
         const response = await fetch(
-            `${apiUrl}/api/Appointment/provider-dashboard?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
+            `${apiUrl}/api/Appointment/provider-dashboard?${queryString}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -24,7 +36,7 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to fetch roles from backend');
+            throw new Error('Failed to fetch provider data from backend');
         }
 
         const data = await response.json();
@@ -42,6 +54,6 @@ export async function GET(request: NextRequest) {
         }));
         return NextResponse.json({ data: mapped }, { status: 200 });
     } catch (error: any) {
-        return NextResponse.json({ message: `Error fetching roles: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ message: `Error fetching provider data: ${error.message}` }, { status: 500 });
     }
 }

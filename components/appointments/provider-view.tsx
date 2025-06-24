@@ -12,10 +12,32 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarDays, List } from "lucide-react"
 import AppointmentCalendar from "./appointment-calendar"
+import { DatePickerWithRangeV2 } from "../ui/custom/date/date-picker-with-range"
+import { format } from "date-fns"
+import { useRootContext } from "@/context/RootContext"
 
 
 export default function ProviderView({ onAppointmentClick }: { onAppointmentClick: (id: string) => void }) {
-  const { data: providers = [], isLoading: isLoadingProviders } = useGetProviderStats();
+  // State for date range selection
+  const [dateRange, setDateRange] = useState({
+    from: new Date(),
+    to: new Date()
+  });
+  
+  // Format dates for API calls
+  const fromDate = format(dateRange.from, 'yyyy-MM-dd');
+  const toDate = format(dateRange.to, 'yyyy-MM-dd');
+  
+  // Get clinic context
+  const { clinic } = useRootContext();
+  
+  // Fetch providers with date range params
+  const { data: providers = [], isLoading: isLoadingProviders } = useGetProviderStats({
+    fromDate,
+    toDate,
+    clinicId: clinic?.id || undefined
+  });
+  
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [viewType, setViewType] = useState<"list" | "calendar">("list");
 
@@ -37,12 +59,12 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
     search: null,
     status: null,
     provider: selectedProviderObj ? selectedProviderObj.name : null,
-    dateFrom: null,
-    dateTo: null,
-    clinicId: null,
+    dateFrom: fromDate,
+    dateTo: toDate,
+    clinicId: clinic?.id || null,
     patientId: null,
     clientId: null,
-    veterinarianId: null,
+    veterinarianId: selectedProviderObj ? selectedProviderObj.id : null,
     roomId: null,
     pageNumber: 1,
     pageSize: 10,
@@ -64,6 +86,16 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
         return "theme-badge-neutral"
     }
   }
+
+  // Handler for date range changes
+  const handleDateRangeChange = (date: { from?: Date, to?: Date } | undefined) => {
+    if (date?.from) {
+      setDateRange({
+        from: date.from,
+        to: date.to || date.from // Default to 'from' if 'to' is not set
+      });
+    }
+  };
 
   if (isLoadingProviders) {
     return (
@@ -145,12 +177,27 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
         </div>
       </div>
       
+      {/* Date Range Picker - Only shown in list view */}
+      {viewType === "list" && selectedProvider && (
+        <div className="mb-6 bg-gray-100 dark:bg-slate-800 p-4 rounded-lg">
+          <h3 className="text-md font-medium mb-2">Select Date Range</h3>
+          <DatePickerWithRangeV2
+            date={dateRange}
+            setDate={handleDateRangeChange}
+            className="w-[300px]"
+          />
+        </div>
+      )}
+      
       {/* Selected Provider Appointments */}
       {selectedProvider && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              {selectedProviderObj?.name}'s Appointments
+              {selectedProviderObj?.name}'s Appointments 
+              {viewType === "list" && (
+                <span> ({format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')})</span>
+              )}
             </h2>
             <div className="flex items-center gap-4">
               <Tabs 
@@ -169,14 +216,14 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              <Button className="theme-button text-white">View Schedule</Button>
+              {/* <Button className="theme-button text-white">View Schedule</Button> */}
             </div>
           </div>
           
           {viewType === "list" ? (
             <div className="overflow-x-auto">
               {appointments.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">No appointments found.</div>
+                <div className="p-6 text-center text-gray-500">No appointments found for the selected date range.</div>
               ) : (
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-700">
@@ -204,7 +251,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                     {appointments.map((appointment: any) => {
                       const datePart = appointment.appointmentDate?.split('T')[0];
-                      const timePart = appointment.startTime;
+                      const timePart = appointment.roomSlot?.startTime || appointment.startTime;
                       const dateTimeString = datePart && timePart ? `${datePart}T${timePart}` : null;
                       return (
                         <tr key={appointment.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
@@ -243,7 +290,11 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
             </div>
           ) : (
             <div>
-              <AppointmentCalendar onAppointmentClick={(id) => onAppointmentClick(id.toString())} />
+              <AppointmentCalendar 
+                onAppointmentClick={(id) => onAppointmentClick(id.toString())} 
+                appointments={appointments} 
+                providerId={selectedProvider}
+              />
             </div>
           )}
         </div>
