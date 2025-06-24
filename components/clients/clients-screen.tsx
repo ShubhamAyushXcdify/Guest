@@ -35,7 +35,8 @@ export const ClientsScreen = () => {
   const { data: clientsData, isLoading, isError } = useGetClients(
     page,
     pageSize,
-    clinic?.id || debouncedSearchQuery
+    clinic?.id || '',
+    debouncedSearchQuery
   )
   
   const clients = clientsData?.items || []
@@ -56,7 +57,7 @@ export const ClientsScreen = () => {
     
     // Update URL with search parameter but don't expose specific fields
     const url = new URL(window.location.href);
-    url.searchParams.set('search', searchTerm);
+    url.searchParams.set('search', encodeURIComponent(searchTerm));
     
     // Update the URL without page reload
     window.history.pushState({}, '', url.toString());
@@ -186,23 +187,33 @@ export const ClientsScreen = () => {
           <div className="flex items-center justify-center h-64">
             <p className="text-destructive">Error loading clients. Please try again.</p>
           </div>
-        ) : clients.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">No clients found. Add a client to get started.</p>
-          </div>
         ) : (
-          <DataTable
-            columns={columns}
-            data={clients as Client[]}
-            searchColumn="email"
-            searchPlaceholder="Search clients by email..."
-            page={page}
-            pageSize={pageSize}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-            onSearch={handleSearch}
-          />
+          <>
+            
+            <div 
+              onKeyDown={(e) => { 
+                // Prevent form submission when pressing Enter
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+              className="search-container"
+            >
+              <DataTable
+                columns={columns}
+                data={clients as Client[]}
+                searchColumn="firstName"
+                searchPlaceholder="Search clients by first or last name..."
+                page={page}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                onSearch={handleSearch}
+              />
+            </div>
+          </>
         )}
       </div>
       <DeleteConfirmationDialog

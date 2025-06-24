@@ -48,7 +48,7 @@ export const PatientsScreen = () => {
     
     // Update URL with search parameter but don't expose specific fields
     const url = new URL(window.location.href);
-    url.searchParams.set('search', searchTerm);
+    url.searchParams.set('search', encodeURIComponent(searchTerm));
     
     // Update the URL without page reload
     window.history.pushState({}, '', url.toString());

@@ -18,6 +18,7 @@ import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // Clinic type based on provided schema
 export type Clinic = {
@@ -48,7 +49,9 @@ function Clinic() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
-  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, search);
+  const debouncedSearch = useDebounce(search, 300);
+  
+  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, debouncedSearch);
   
   // Extract the clinics from the paginated response
   const clinics = clinicData?.items || [];
@@ -104,6 +107,13 @@ function Clinic() {
   const handleSearch = (value: string) => {
     setSearch(value);
     setPageNumber(1); // Reset to first page when searching
+    
+    // Update URL with search parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', encodeURIComponent(value));
+    
+    // Update the URL without page reload
+    window.history.pushState({}, '', url.toString());
   };
 
   const columns: ColumnDef<Clinic>[] = [
