@@ -1,3 +1,4 @@
+import { getRedirectUrl } from '@/services/auth/redirectService';
 import { NextResponse } from 'next/server';
 
 
@@ -26,10 +27,12 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
+    const redirectUrl = getRedirectUrl(data.user);
+
     const token = data.token;
     const workspaceId = data.workspaceId;
 
-    return NextResponse.json({ status: 200, ...data });
+    return NextResponse.json({ status: 200, ...data, redirectUrl });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 });
