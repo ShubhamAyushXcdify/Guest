@@ -7,75 +7,30 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar, Clock, MapPin, Phone, Mail, Heart, PawPrint, CalendarDays, User, Building } from "lucide-react"
+import { useContext } from "react";
+import { RootContext } from "@/context/RootContext";
+import { useGetPatients } from "@/queries/patients/get-patients";
+import { useGetClientById } from "@/queries/clients/get-client";
+import { useGetAppointments } from "@/queries/appointment/get-appointment";
 
-// Hardcoded data
-const clientData = {
-  name: "Sarah Johnson",
-  email: "sarah.johnson@email.com",
-  phone: "+1 (555) 123-4567",
-  avatar: "/images/logo.png"
+interface Appointment {
+  id: string;
+  status: string;
+  appointmentType?: string;
+  appointmentDate?: string;
+  patient?: {
+    name?: string;
+  };
+  veterinarian?: {
+    firstName: string;
+    lastName: string;
+  };
+  clinic?: {
+    name: string;
+  };
 }
 
-const pets = [
-  {
-    id: 1,
-    name: "Buddy",
-    type: "Golden Retriever",
-    age: "3 years",
-    breed: "Golden Retriever",
-    weight: "65 lbs",
-    avatar: "/images/logo.png",
-    lastVisit: "2024-01-15",
-    nextAppointment: "2024-02-20"
-  },
-  {
-    id: 2,
-    name: "Luna",
-    type: "Cat",
-    age: "2 years",
-    breed: "Persian",
-    weight: "8 lbs",
-    avatar: "/images/logo.png",
-    lastVisit: "2024-01-10",
-    nextAppointment: null
-  }
-]
-
-const appointments = [
-  {
-    id: 1,
-    petName: "Buddy",
-    date: "2024-02-20",
-    time: "10:00 AM",
-    type: "Annual Checkup",
-    status: "upcoming",
-    doctor: "Dr. Emily Chen",
-    clinic: "PawTrack Veterinary Clinic",
-    address: "123 Main Street, City, State 12345"
-  },
-  {
-    id: 2,
-    petName: "Buddy",
-    date: "2024-01-15",
-    time: "2:30 PM",
-    type: "Vaccination",
-    status: "completed",
-    doctor: "Dr. Michael Rodriguez",
-    clinic: "PawTrack Veterinary Clinic",
-    address: "123 Main Street, City, State 12345"
-  },
-  {
-    id: 3,
-    petName: "Luna",
-    date: "2024-01-10",
-    time: "11:00 AM",
-    type: "Dental Cleaning",
-    status: "completed",
-    doctor: "Dr. Sarah Wilson",
-    clinic: "PawTrack Veterinary Clinic",
-    address: "123 Main Street, City, State 12345"
-  }
-]
+// const { user } = useContext(RootContext);
 
 const medicalRecords = [
   {
@@ -98,6 +53,32 @@ const medicalRecords = [
 
 export default function PatientDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
+  const rootContext = useContext(RootContext);
+  const handleLogout = rootContext?.handleLogout;
+
+  const clientId = "b49be47b-bf72-42ee-8c8f-396409e23f15";
+  const { data, isLoading, error } = useGetPatients(1, 100, "", clientId);
+  const pets = data?.items || [];
+
+  const { data: clientData, isLoading: isClientLoading, error: clientError } = useGetClientById(clientId);
+
+  const appointmentQuery = useGetAppointments({
+    search: null,
+    status: null,
+    provider: null,
+    dateFrom: null,
+    dateTo: null,
+    clinicId: null,
+    patientId: null,
+    clientId,
+    veterinarianId: null,
+    roomId: null,
+    pageNumber: 1,
+    pageSize: 100,
+  });
+  const appointments = appointmentQuery.data?.items || [];
+  const isAppointmentsLoading = appointmentQuery.isLoading;
+  const appointmentsError = appointmentQuery.error;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -126,30 +107,37 @@ export default function PatientDashboard() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={clientData.avatar} alt={clientData.name} />
-              <AvatarFallback className="text-lg font-semibold">
-                {clientData.name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {clientData.name}!</h1>
-              <p className="text-gray-600">Manage your pets and appointments</p>
+          {isClientLoading ? (
+            <div>Loading client info...</div>
+          ) : clientError ? (
+            <div>Error loading client info.</div>
+          ) : clientData && (
+            <div className="flex items-center gap-4 mb-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src="/images/logo.png" alt={`${clientData.firstName} ${clientData.lastName}`} />
+                <AvatarFallback className="text-lg font-semibold">
+                  {clientData.firstName[0]}{clientData.lastName[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Welcome back, {clientData.firstName} {clientData.lastName}!
+                </h1>
+                <p className="text-gray-600">Manage your pets and appointments</p>
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  {clientData.email}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  {clientData.phonePrimary}
+                </div>
+              </div>
+              <Button variant="secondary" onClick={handleLogout} className="ml-auto">Logout</Button>
             </div>
-          </div>
-          
-          {/* Contact Info */}
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              {clientData.email}
-            </div>
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              {clientData.phone}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Main Content */}
@@ -173,7 +161,7 @@ export default function PatientDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Upcoming Appointments</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {appointments.filter(apt => apt.status === "upcoming").length}
+                        {appointments.filter((apt: Appointment) => apt.status === "upcoming").length}
                       </p>
                     </div>
                   </div>
@@ -203,7 +191,7 @@ export default function PatientDashboard() {
                     <div>
                       <p className="text-sm font-medium text-gray-600">Completed Visits</p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {appointments.filter(apt => apt.status === "completed").length}
+                        {appointments.filter((apt: Appointment) => apt.status === "completed").length}
                       </p>
                     </div>
                   </div>
@@ -235,25 +223,35 @@ export default function PatientDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {appointments.slice(0, 3).map((appointment) => (
-                    <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-blue-100 text-blue-600">
-                            {appointment.petName[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-gray-900">{appointment.petName}</p>
-                          <p className="text-sm text-gray-600">{appointment.type}</p>
+                  {isAppointmentsLoading ? (
+                    <div>Loading appointments...</div>
+                  ) : appointmentsError ? (
+                    <div>Error loading appointments.</div>
+                  ) : appointments.length === 0 ? (
+                    <div>No appointments found.</div>
+                  ) : (
+                    appointments.slice(0, 3).map((appointment: Appointment) => (
+                      <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-blue-100 text-blue-600">
+                              {appointment.patient?.name?.[0] || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-gray-900">{appointment.patient?.name}</p>
+                            <p className="text-sm text-gray-600">{appointment.appointmentType}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-gray-900">
+                            {appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
+                          </p>
+                          {getStatusBadge(appointment.status)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{formatDate(appointment.date)}</p>
-                        {getStatusBadge(appointment.status)}
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -265,24 +263,39 @@ export default function PatientDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {pets.map((pet) => (
-                    <div key={pet.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={pet.avatar} alt={pet.name} />
-                        <AvatarFallback className="bg-purple-100 text-purple-600">
-                          {pet.name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{pet.name}</p>
-                        <p className="text-sm text-gray-600">{pet.breed} • {pet.age}</p>
-                        <p className="text-sm text-gray-600">{pet.weight}</p>
+                  {isLoading ? (
+                    <div>Loading pets...</div>
+                  ) : error ? (
+                    <div>Error loading pets.</div>
+                  ) : pets.length === 0 ? (
+                    <div>No pets found.</div>
+                  ) : (
+                    pets.map((pet) => (
+                      <div key={pet.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-purple-100 text-purple-600">
+                            {pet.name?.[0] || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{pet.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {pet.breed} • {
+                              pet.dateOfBirth
+                                ? `${Math.floor(
+                                    (new Date().getTime() - new Date(pet.dateOfBirth).getTime()) /
+                                      (365.25 * 24 * 60 * 60 * 1000)
+                                  )} years`
+                                : "Unknown age"}
+                          </p>
+                          <p className="text-sm text-gray-600">{pet.weightKg} kg</p>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          View Details
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -297,52 +310,60 @@ export default function PatientDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {appointments.map((appointment) => (
-                    <div key={appointment.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarFallback className="bg-blue-100 text-blue-600">
-                              {appointment.petName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-lg">{appointment.petName}</h3>
-                              {getStatusBadge(appointment.status)}
-                            </div>
-                            <p className="text-gray-600 font-medium">{appointment.type}</p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-4 w-4" />
-                                {formatDate(appointment.date)}
+                  {isAppointmentsLoading ? (
+                    <div>Loading appointments...</div>
+                  ) : appointmentsError ? (
+                    <div>Error loading appointments.</div>
+                  ) : appointments.length === 0 ? (
+                    <div>No appointments found.</div>
+                  ) : (
+                    appointments.map((appointment: Appointment) => (
+                      <div key={appointment.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-4">
+                            <Avatar className="h-12 w-12">
+                              <AvatarFallback className="bg-blue-100 text-blue-600">
+                                {appointment.patient?.name?.[0] || "?"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-semibold text-lg">{appointment.patient?.name}</h3>
+                                {getStatusBadge(appointment.status)}
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                {appointment.time}
+                              <p className="text-gray-600 font-medium">{appointment.appointmentType}</p>
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-4 w-4" />
+                                  {appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  {appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <User className="h-4 w-4" />
+                                  {appointment.veterinarian ? `${appointment.veterinarian.firstName} ${appointment.veterinarian.lastName}` : ""}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <User className="h-4 w-4" />
-                                {appointment.doctor}
+                              <div className="flex items-center gap-1 text-sm text-gray-500">
+                                <MapPin className="h-4 w-4" />
+                                {appointment.clinic?.name}
                               </div>
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
-                              <MapPin className="h-4 w-4" />
-                              {appointment.clinic}
                             </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            Reschedule
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Cancel
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm">
+                              Reschedule
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              Cancel
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -350,52 +371,64 @@ export default function PatientDashboard() {
 
           {/* Pets Tab */}
           <TabsContent value="pets" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {pets.map((pet) => (
-                <Card key={pet.id} className="bg-white shadow-lg border-0 overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-16 w-16 border-2 border-white">
-                        <AvatarImage src={pet.avatar} alt={pet.name} />
-                        <AvatarFallback className="bg-white text-blue-600 text-lg font-bold">
-                          {pet.name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle className="text-white">{pet.name}</CardTitle>
-                        <CardDescription className="text-blue-100">{pet.breed}</CardDescription>
+            {isLoading ? (
+              <div>Loading pets...</div>
+            ) : error ? (
+              <div>Error loading pets.</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {pets.map((pet) => (
+                  <Card key={pet.id} className="bg-white shadow-lg border-0 overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 border-2 border-white">
+                          <AvatarFallback className="bg-white text-blue-600 text-lg font-bold">
+                            {pet.name?.[0] || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-white">{pet.name}</CardTitle>
+                          <CardDescription className="text-blue-100">{pet.breed}</CardDescription>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Age</p>
-                        <p className="text-lg font-semibold">{pet.age}</p>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Age</p>
+                          <p className="text-lg font-semibold">
+                            {pet.dateOfBirth
+                              ? `${Math.floor(
+                                  (new Date().getTime() - new Date(pet.dateOfBirth).getTime()) /
+                                    (365.25 * 24 * 60 * 60 * 1000)
+                                )} years`
+                              : "Unknown"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Weight</p>
+                          <p className="text-lg font-semibold">
+                            {pet.weightKg ? `${pet.weightKg} kg` : "Unknown"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Last Visit</p>
+                          <p className="text-lg font-semibold">—</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-600">Next Appointment</p>
+                          <p className="text-lg font-semibold">—</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Weight</p>
-                        <p className="text-lg font-semibold">{pet.weight}</p>
+                      <div className="flex gap-2">
+                        <Button className="flex-1">View Medical Records</Button>
+                        <Button variant="outline">Book Appointment</Button>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Last Visit</p>
-                        <p className="text-lg font-semibold">{formatDate(pet.lastVisit)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Next Appointment</p>
-                        <p className="text-lg font-semibold">
-                          {pet.nextAppointment ? formatDate(pet.nextAppointment) : "None scheduled"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button className="flex-1">View Medical Records</Button>
-                      <Button variant="outline">Book Appointment</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Medical Records Tab */}
