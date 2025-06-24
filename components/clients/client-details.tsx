@@ -88,7 +88,7 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Client Information</CardTitle>
+          <CardTitle>Information</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <p><strong>Name:</strong> {client.firstName} {client.lastName}</p>
@@ -105,7 +105,7 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle>Client Patients</CardTitle>
+          <CardTitle>Patients</CardTitle>
           
         </CardHeader>
         <CardContent>
@@ -146,9 +146,9 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
           <NewAppointment
             isOpen={showNewAppointmentSheet}
             onClose={() => setShowNewAppointmentSheet(false)}
-            onSuccess={() => setShowNewAppointmentSheet(false)}
+            // onSuccess={() => setShowNewAppointmentSheet(false)}
             patientId={selectedPatientIdForAppointment || undefined}
-            initialClinicId={client.clinicId}
+            // initialClinicId={client.clinicId}
           />
         </SheetContent>
       </Sheet>

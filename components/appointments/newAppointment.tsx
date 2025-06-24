@@ -18,13 +18,15 @@ import { useGetRoom, Room } from "@/queries/rooms/get-room"
 import { useGetUsers } from "@/queries/users/get-users"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Search, X, Loader2 } from "lucide-react"
+import { Plus, Search, X, Loader2, Mic } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
 import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -424,6 +426,36 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
     form.setValue("patientId", "");
   }
 
+  const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
+  const reasonTranscriber = useTranscriber();
+  const notesTranscriber = useTranscriber();
+
+  // Audio transcription effect for reason
+  useEffect(() => {
+    const output = reasonTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "reason",
+        (form.getValues("reason") ? form.getValues("reason") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+    // eslint-disable-next-line
+  }, [reasonTranscriber.output?.isBusy]);
+
+  // Audio transcription effect for notes
+  useEffect(() => {
+    const output = notesTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "notes",
+        (form.getValues("notes") ? form.getValues("notes") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+    // eslint-disable-next-line
+  }, [notesTranscriber.output?.isBusy]);
+
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
       <SheetContent className={`w-[90%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '70%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '70%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
@@ -671,9 +703,9 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : slots.items.length === 0 ? (
+                            ) : slots.items.filter(slot => slot.isAvailable).length === 0 ? (
                               <div className="text-sm text-gray-500">
-                                No slots available for this room
+                                No available slots for this room
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
@@ -710,11 +742,38 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                     name="reason"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reason</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormLabel className="mb-0">Reason</FormLabel>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setAudioModalOpen("reason")}
+                            title="Record voice note"
+                            disabled={reasonTranscriber.output?.isBusy}
+                          >
+                            {reasonTranscriber.output?.isBusy ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <FormControl>
-                          <Textarea {...field} />
+                          <textarea
+                            id="reason"
+                            value={field.value}
+                            onChange={e => field.onChange(e.target.value)}
+                            className="w-full h-20 p-2 border rounded-md"
+                          />
                         </FormControl>
                         <FormMessage />
+                        <AudioManager
+                          open={audioModalOpen === "reason"}
+                          onClose={() => setAudioModalOpen(null)}
+                          transcriber={reasonTranscriber}
+                          onTranscriptionComplete={() => setAudioModalOpen(null)}
+                        />
                       </FormItem>
                     )}
                   />
@@ -724,11 +783,38 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormLabel className="mb-0">Notes</FormLabel>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setAudioModalOpen("notes")}
+                            title="Record voice note"
+                            disabled={reasonTranscriber.output?.isBusy}
+                          >
+                            {reasonTranscriber.output?.isBusy ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <FormControl>
-                          <Textarea {...field} />
+                          <textarea
+                            id="notes"
+                            value={field.value}
+                            onChange={e => field.onChange(e.target.value)}
+                            className="w-full h-20 p-2 border rounded-md"
+                          />
                         </FormControl>
                         <FormMessage />
+                        <AudioManager
+                          open={audioModalOpen === "notes"}
+                          onClose={() => setAudioModalOpen(null)}
+                          transcriber={notesTranscriber}
+                          onTranscriptionComplete={() => setAudioModalOpen(null)}
+                        />
                       </FormItem>
                     )}
                   />
