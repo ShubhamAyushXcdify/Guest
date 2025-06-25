@@ -101,7 +101,7 @@ export const useContentLayout = () => {
             return;
         }
 
-        if (role === "client"){
+        if (role === "Client"){
             return ;
         }
 
