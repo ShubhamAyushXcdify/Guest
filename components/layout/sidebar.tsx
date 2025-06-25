@@ -85,12 +85,12 @@ const navGroups = [
                 icon: Package,
                 color: "text-blue-500",
             },
-            {
-                href: "/prescriptions",
-                label: "Prescriptions",
-                icon: Pill,
-                color: "text-blue-500",
-            },
+            // {
+            //     href: "/prescriptions",
+            //     label: "Prescriptions",
+            //     icon: Pill,
+            //     color: "text-blue-500",
+            // },
         ],
     },
     {
@@ -146,19 +146,20 @@ const navGroups = [
                 color: "text-purple-500",
             }
         ],
-    },
-    {
-        title: "Settings",
-        icon: Settings2,
-        items: [
-            {
-                href: "/settings",
-                label: "Settings",
-                icon: Settings,
-                color: "text-green-500",
-            },
-        ],
-    },
+    }
+    // },
+    // {
+    //     title: "Settings",
+    //     icon: Settings2,
+    //     items: [
+    //         {
+    //             href: "/settings",
+    //             label: "Settings",
+    //             icon: Settings,
+    //             color: "text-green-500",
+    //         },
+    //     ],
+    // },
 ]
 
 export function Sidebar() {
