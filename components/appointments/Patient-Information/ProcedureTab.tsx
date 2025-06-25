@@ -38,24 +38,30 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   // Initialize selected procedures and notes from existing data
   useEffect(() => {
     if (existingProcedureDetail) {
-      setSelectedProcedures(existingProcedureDetail.procedures.map(p => p.id))
+      // Check if procedures array exists before accessing it
+      if (existingProcedureDetail.procedures && Array.isArray(existingProcedureDetail.procedures)) {
+        setSelectedProcedures(existingProcedureDetail.procedures.map(p => p.id));
+      }
+      
       if (existingProcedureDetail.notes) {
-        setNotes(existingProcedureDetail.notes)
+        setNotes(existingProcedureDetail.notes);
       }
       
       // Mark tab as completed if it was already completed or if it has procedures
       if (existingProcedureDetail.isCompleted || 
           (existingProcedureDetail.procedures && 
            existingProcedureDetail.procedures.length > 0)) {
-        markTabAsCompleted("procedure")
+        markTabAsCompleted("procedure");
       }
     }
-    
-    // Ensure the tab is marked as completed on each render if procedures exist
+  }, [existingProcedureDetail, markTabAsCompleted]);
+  
+  // Separate effect for marking the tab as completed based on selectedProcedures
+  useEffect(() => {
     if (selectedProcedures.length > 0) {
-      markTabAsCompleted("procedure")
+      markTabAsCompleted("procedure");
     }
-  }, [existingProcedureDetail, markTabAsCompleted, selectedProcedures])
+  }, [selectedProcedures, markTabAsCompleted]);
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
