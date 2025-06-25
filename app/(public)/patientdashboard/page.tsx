@@ -12,6 +12,7 @@ import { RootContext } from "@/context/RootContext";
 import { useGetPatients } from "@/queries/patients/get-patients";
 import { useGetClientById } from "@/queries/clients/get-client";
 import { useGetAppointments } from "@/queries/appointment/get-appointment";
+import { getClientId } from "@/utils/clientCookie"
 
 interface Appointment {
   id: string;
@@ -57,7 +58,7 @@ export default function PatientDashboard() {
   const handleLogout = rootContext?.handleLogout;
   const user = rootContext?.user;
 
-  const clientId = user?.id || "";
+  const clientId = getClientId() || "";
   const { data, isLoading, error } = useGetPatients(1, 100, "", clientId);
   const pets = data?.items || [];
 
