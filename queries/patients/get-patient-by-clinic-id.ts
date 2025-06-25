@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 const getPatientsByClinicId = async (clinicId: string) => {
   try {
     if (!clinicId) {
-      throw new Error("Clinic ID is required");
+      console.warn("No clinic ID provided to getPatientsByClinicId, returning empty array");
+      return [];
     }
     
     const url = `/api/patients/clinic/${clinicId}`;
