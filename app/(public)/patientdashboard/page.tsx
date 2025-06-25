@@ -296,9 +296,9 @@ export default function PatientDashboard() {
                           </p>
                           <p className="text-sm text-gray-600">{pet.weightKg} kg</p>
                         </div>
-                        <Button variant="outline" size="sm">
+                        {/* <Button variant="outline" size="sm">
                           View Details
-                        </Button>
+                        </Button> */}
                       </div>
                     ))
                   )}
@@ -358,14 +358,14 @@ export default function PatientDashboard() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          {/* <div className="flex gap-2">
                             <Button variant="outline" size="sm">
                               Reschedule
                             </Button>
                             <Button variant="outline" size="sm">
                               Cancel
                             </Button>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     ))
@@ -426,10 +426,10 @@ export default function PatientDashboard() {
                           <p className="text-lg font-semibold">—</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      {/* <div className="flex gap-2">
                         <Button className="flex-1">View Medical Records</Button>
                         <Button variant="outline">Book Appointment</Button>
-                      </div>
+                      </div> */}
                     </CardContent>
                   </Card>
                 ))}
@@ -445,33 +445,12 @@ export default function PatientDashboard() {
                 <CardDescription>View your pets' medical history and treatments</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {medicalRecords.map((record) => (
-                    <div key={record.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-lg">{record.petName}</h3>
-                            <Badge variant="outline">{record.type}</Badge>
-                          </div>
-                          <p className="text-gray-600">{record.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
-                              {formatDate(record.date)}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <User className="h-4 w-4" />
-                              {record.doctor}
-                            </div>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">🚧</div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h3>
+                    <p className="text-gray-600">Medical records feature is under development</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
