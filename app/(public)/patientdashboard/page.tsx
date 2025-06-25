@@ -55,8 +55,9 @@ export default function PatientDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const rootContext = useContext(RootContext);
   const handleLogout = rootContext?.handleLogout;
+  const user = rootContext?.user;
 
-  const clientId = "b49be47b-bf72-42ee-8c8f-396409e23f15";
+  const clientId = user?.id || "";
   const { data, isLoading, error } = useGetPatients(1, 100, "", clientId);
   const pets = data?.items || [];
 
@@ -79,6 +80,10 @@ export default function PatientDashboard() {
   const appointments = appointmentQuery.data?.items || [];
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;
+
+  if (!user) {
+    return <div>Loading user...</div>;
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -56,8 +56,9 @@ export function LoginForm() {
   const loginMutation = useLoginMutation({
     onSuccess: (data: any) => {
       setJwtToken(data.token);
-      setUserId(data.user.id)
-      fetchUser(data);
+      setUserId(data.user.id);
+      setUser(data.user); 
+      fetchUser(data, data.roleName); 
       router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
     },
     onError: (error: any) => {

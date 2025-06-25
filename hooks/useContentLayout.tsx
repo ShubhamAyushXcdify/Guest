@@ -86,7 +86,7 @@ export const useContentLayout = () => {
         }
     }, []);
 
-    const fetchUser = async (data?: any) => {
+    const fetchUser = async (data?: any, role?: any) => {
         setLoading(true);
         let userid = getUserId() || data?.user?.id;
         if (!userid && data?.user?.id) {
@@ -101,9 +101,13 @@ export const useContentLayout = () => {
             return;
         }
 
+        if (role === "client"){
+            return ;
+        }
+
         try {
-            const response = await fetch(`/api/user/${userid}`);
-            const userData = await response.json();
+                const response = await fetch(`/api/user/${userid}`);
+                const userData = await response.json();
 
 
             if (!userData || userData.status === 400) {
