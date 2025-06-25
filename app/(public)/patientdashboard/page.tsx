@@ -82,7 +82,7 @@ export default function PatientDashboard() {
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;
 
-  if (!user) {
+  if (!clientId) {
     return <div>Loading user...</div>;
   }
 
