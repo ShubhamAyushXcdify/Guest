@@ -87,6 +87,9 @@ export const useContentLayout = () => {
     }, []);
 
     const fetchUser = async (data?: any, role?: any) => {
+        if (role === "Client"){
+            return ;
+        }
         setLoading(true);
         let userid = getUserId() || data?.user?.id;
         if (!userid && data?.user?.id) {
@@ -101,9 +104,6 @@ export const useContentLayout = () => {
             return;
         }
 
-        if (role === "Client"){
-            return ;
-        }
 
         try {
                 const response = await fetch(`/api/user/${userid}`);

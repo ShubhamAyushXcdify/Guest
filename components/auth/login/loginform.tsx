@@ -58,7 +58,7 @@ export function LoginForm() {
       setJwtToken(data.token);
       setUserId(data.user.id);
       setUser(data.user); 
-      fetchUser(data, data.roleName); 
+      // fetchUser(data, data.roleName); 
       router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
     },
     onError: (error: any) => {
