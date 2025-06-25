@@ -61,7 +61,6 @@ export function LoginForm() {
       if(data.user.roleName === "Client"){
         setClientId(data.user.id);
       }
-      setUser(data.user); 
       fetchUser(data, data.user.roleName); 
       router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
     },
