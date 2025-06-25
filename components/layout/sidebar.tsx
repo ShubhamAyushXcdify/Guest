@@ -164,7 +164,7 @@ const navGroups = [
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
-    const { handleLogout, IsAdmin } = useRootContext()
+    const { handleLogout, IsAdmin, user } = useRootContext()
     const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
         "Core Operations": true,
         "Products & Services": true,
@@ -285,12 +285,12 @@ export function Sidebar() {
                         )}>
                             <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)]/30 rounded-full flex items-center justify-center">
                                 <AvatarImage src="/placeholder-user.jpg" alt="User" className="rounded-full" />
-                                <AvatarFallback className="text-white">AD</AvatarFallback>
+                                <AvatarFallback className="text-white">{user?.firstName?.charAt(0) || ''}{user?.lastName?.charAt(0) || ''}</AvatarFallback>
                             </Avatar>
                             {state !== "collapsed" && (
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">Admin User</p>
-                                    <p className="text-xs text-white/70 truncate">admin@example.com</p>
+                                    <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                                    <p className="text-xs text-white/70 truncate">{user?.email}</p>
                                 </div>
                             )}
                             {state !== "collapsed" && (
