@@ -132,7 +132,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
             <FormItem>
               <FormLabel>Start Time</FormLabel>
               <FormControl>
-                <Input type="time" {...field} />
+                <Input type="time" {...field} disabled={slot.isAvailable} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -146,7 +146,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
             <FormItem>
               <FormLabel>End Time</FormLabel>
               <FormControl>
-                <Input type="time" {...field} />
+                <Input type="time" {...field} disabled={slot.isAvailable} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -160,7 +160,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
             <FormItem>
               <FormLabel>Duration (minutes)</FormLabel>
               <FormControl>
-                <Input type="number" min="1" {...field} />
+                <Input type="number" min="1" {...field} disabled={slot.isAvailable} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -176,6 +176,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={slot.isAvailable}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -194,6 +195,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  disabled={slot.isAvailable}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -203,9 +205,11 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={updateSlot.isPending}>
-          {updateSlot.isPending ? "Updating..." : "Update Slot"}
-        </Button>
+        {!slot.isAvailable && (
+          <Button type="submit" className="w-full" disabled={updateSlot.isPending}>
+            {updateSlot.isPending ? "Updating..." : "Update Slot"}
+          </Button>
+        )}
       </form>
     </Form>
   );
