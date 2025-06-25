@@ -150,6 +150,7 @@ function Clinic() {
           >
             <Edit className="h-4 w-4" />
           </Button>
+          {/* Delete button commented out
           <Button 
             variant="ghost" 
             size="icon"
@@ -161,6 +162,7 @@ function Clinic() {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          */}
         </div>
       ),
       meta: { className: "text-center" },
