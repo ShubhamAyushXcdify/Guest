@@ -17,6 +17,10 @@ export const setUserId = (id: any): void => {
   Cookies.set('userId', id, { expires: 1 }); // Set cookie to expire in 1 day
 }
 
+export const setClientId = (id: string) => {
+  Cookies.set('clientId', id, { expires: 1 }); 
+}
+
 export const getUserId = (): string | undefined => {
   return Cookies.get('userId') || undefined;
 };
@@ -60,7 +64,7 @@ export const getClinicId = (): string | undefined => {
   return Cookies.get('clinicId');
 };
 
-export const removeClinicId = (): void => {
+export const removeClinicId = () => {
   Cookies.remove('clinicId');
 };
 
@@ -74,6 +78,10 @@ export const getClinicName = (): string | undefined => {
 
 export const removeClinicName = (): void => {
   Cookies.remove('clinicName');
+};
+
+export const getClientId = (): string | undefined => {
+  return Cookies.get('clientId');
 };
 
 

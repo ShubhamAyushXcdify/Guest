@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/queries/auth/login-user";
 import { useRouter } from "next/navigation";
-import { setJwtToken, setUserId } from '@/utils/clientCookie';
+import { setJwtToken, setUserId, setClientId } from '@/utils/clientCookie';
 import { Loader2 } from 'lucide-react';
 // import { useQueryState } from 'nuqs';
 import { useToast } from '@/hooks/use-toast';
@@ -56,8 +56,12 @@ export function LoginForm() {
   const loginMutation = useLoginMutation({
     onSuccess: (data: any) => {
       setJwtToken(data.token);
-      setUserId(data.user.id)
-      fetchUser(data);
+      setUserId(data.user.id);
+
+      if(data.user.roleName === "Client"){
+        setClientId(data.user.id);
+      }
+      fetchUser(data, data.user.roleName); 
       router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
     },
     onError: (error: any) => {

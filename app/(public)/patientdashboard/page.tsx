@@ -12,6 +12,7 @@ import { RootContext } from "@/context/RootContext";
 import { useGetPatients } from "@/queries/patients/get-patients";
 import { useGetClientById } from "@/queries/clients/get-client";
 import { useGetAppointments } from "@/queries/appointment/get-appointment";
+import { getClientId } from "@/utils/clientCookie"
 
 interface Appointment {
   id: string;
@@ -55,8 +56,9 @@ export default function PatientDashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const rootContext = useContext(RootContext);
   const handleLogout = rootContext?.handleLogout;
+  const user = rootContext?.user;
 
-  const clientId = "b49be47b-bf72-42ee-8c8f-396409e23f15";
+  const clientId = getClientId() || "";
   const { data, isLoading, error } = useGetPatients(1, 100, "", clientId);
   const pets = data?.items || [];
 
@@ -79,6 +81,10 @@ export default function PatientDashboard() {
   const appointments = appointmentQuery.data?.items || [];
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;
+
+  if (!clientId) {
+    return <div>Loading user...</div>;
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {

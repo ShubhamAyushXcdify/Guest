@@ -24,7 +24,7 @@ export type RootContextType = {
     setUser: any
     setRoles: any
     handleLogout: any
-    fetchUser: (data: any) => any,
+    fetchUser: (data: any, role? :any) => any,
     userType: any,
 
 };
