@@ -376,12 +376,19 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
         clientId: latestPatient.clientId
       });
       
-      setShowNewPatientForm(false)
       toast({
         title: "Patient added",
         description: `${latestPatient.name} has been added successfully.`,
       })
+    } else {
+      toast({
+        title: "Patient added",
+        description: "Patient has been added successfully, refreshing patient list.",
+      })
     }
+    
+    // Always close the form regardless of patient data availability
+    setShowNewPatientForm(false)
   }
 
   const handleCancel = () => {
