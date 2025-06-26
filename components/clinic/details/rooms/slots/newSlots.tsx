@@ -24,10 +24,17 @@ const slotSchema = z.object({
   endTime: z.string({
     required_error: "End time is required",
   }),
-  durationMinutes: z.coerce.number().min(1, "Duration must be at least 1 minute"),
   isActive: z.boolean().default(true),
-  isAvailable: z.boolean().default(true),
-});
+}).refine(
+  (data) => {
+    if (!data.startTime || !data.endTime) return true;
+    return data.startTime < data.endTime;
+  },
+  {
+    message: "Start time must be less than end time",
+    path: ["endTime"],
+  }
+);
 
 type SlotFormValues = z.infer<typeof slotSchema>;
 
@@ -55,22 +62,21 @@ export default function NewSlots({ roomId, clinicId, onSuccess }: NewSlotsProps)
     },
   });
 
-  const form = useForm<SlotFormValues>({
+  const form = useForm<any>({
     resolver: zodResolver(slotSchema),
     defaultValues: {
       clinicId: clinicId || '',
       roomId: roomId,
       startTime: "",
       endTime: "",
-      durationMinutes: 30,
       isActive: true,
-      isAvailable: true,
     },
   });
 
-  const onSubmit = async (values: SlotFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
-      await createSlot.mutateAsync(values);
+      // Always send isAvailable: true, do not send durationMinutes
+      await createSlot.mutateAsync({ ...values, isAvailable: true });
     } catch (error) {
       // Error handled in onError callback
     }
@@ -109,20 +115,6 @@ export default function NewSlots({ roomId, clinicId, onSuccess }: NewSlotsProps)
 
         <FormField
           control={form.control}
-          name="durationMinutes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Duration (minutes)</FormLabel>
-              <FormControl>
-                <Input type="number" min="1" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="isActive"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0">
@@ -134,24 +126,6 @@ export default function NewSlots({ roomId, clinicId, onSuccess }: NewSlotsProps)
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>Active</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="isAvailable"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Is Available</FormLabel>
               </div>
             </FormItem>
           )}

@@ -26,9 +26,7 @@ const slotSchema = z.object({
   endTime: z.string({
     required_error: "End time is required",
   }),
-  durationMinutes: z.coerce.number().min(1, "Duration must be at least 1 minute"),
   isActive: z.boolean().default(true),
-  isAvailable: z.boolean().default(true),
 });
 
 type SlotFormValues = z.infer<typeof slotSchema>;
@@ -59,7 +57,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
     }
   });
 
-  const form = useForm<SlotFormValues>({
+  const form = useForm<any>({
     resolver: zodResolver(slotSchema),
     defaultValues: {
       id: slotId,
@@ -67,9 +65,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
       roomId: roomId,
       startTime: "",
       endTime: "",
-      durationMinutes: 30,
       isActive: true,
-      isAvailable: true,
     },
   });
 
@@ -96,9 +92,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
         roomId: roomId,
         startTime: formatTimeForForm(slot.startTime || ''),
         endTime: formatTimeForForm(slot.endTime || ''),
-        durationMinutes: slot.durationMinutes || 30,
         isActive: slot.isActive ?? true,
-        isAvailable: slot.isAvailable ?? true,
       });
     }
   }, [slot, form, roomId, slotId, clinicId]);
@@ -111,11 +105,11 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
     return <div>Slot not found</div>;
   }
 
-  const onSubmit = async (values: SlotFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
       await updateSlot.mutateAsync({
         id: slotId,
-        data: values
+        data: { ...values }, // do not send durationMinutes or isAvailable
       });
     } catch (error) {
       // Error handled in onError callback
@@ -132,7 +126,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
             <FormItem>
               <FormLabel>Start Time</FormLabel>
               <FormControl>
-                <Input type="time" {...field} disabled={slot.isAvailable} />
+                <Input type="time" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -146,21 +140,7 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
             <FormItem>
               <FormLabel>End Time</FormLabel>
               <FormControl>
-                <Input type="time" {...field} disabled={slot.isAvailable} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="durationMinutes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Duration (minutes)</FormLabel>
-              <FormControl>
-                <Input type="number" min="1" {...field} disabled={slot.isAvailable} />
+                <Input type="time" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -176,7 +156,6 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
-                  disabled={slot.isAvailable}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
@@ -186,30 +165,9 @@ export default function SlotDetails({ slotId, roomId, clinicId, onSuccess }: Slo
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="isAvailable"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={slot.isAvailable}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Is Available</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
-
-        {!slot.isAvailable && (
-          <Button type="submit" className="w-full" disabled={updateSlot.isPending}>
-            {updateSlot.isPending ? "Updating..." : "Update Slot"}
-          </Button>
-        )}
+        <Button type="submit" className="w-full" disabled={updateSlot.isPending}>
+          {updateSlot.isPending ? "Updating..." : "Update Slot"}
+        </Button>
       </form>
     </Form>
   );
