@@ -27,6 +27,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId"
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -173,6 +174,7 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   
   const { data: patientsResponse, refetch: refetchPatients } = useGetPatientsByClinicId(selectedClinicId);
   const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByClinicId(selectedClinicId);
+  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentTypeByClinicId(selectedClinicId, !!selectedClinicId);
   
   const roomOptions = isLoadingRooms 
   ? [] 
@@ -181,11 +183,12 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
     label: `${room.name} (${room.roomType})`
   }));
   
-  const appointmentTypes = [
-    { value: "checkup", label: "Check-up" },
-    { value: "vaccination", label: "Vaccination" },
-    { value: "surgery", label: "Surgery" }
-  ]
+  const appointmentTypeOptions = isLoadingAppointmentTypes
+  ? []
+  : (appointmentTypes || []).map((type) => ({
+    value: type.appointmentTypeId,
+    label: type.name
+  }));
 
   const { mutate: createAppointment, isPending } = useCreateAppointment({
     onSuccess: () => {
@@ -666,10 +669,10 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
                         <FormLabel>Appointment Type</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={appointmentTypes}
+                            options={appointmentTypeOptions}
                             value={field.value}
                             onValueChange={field.onChange}
-                            placeholder="Select appointment type"
+                            placeholder={isLoadingAppointmentTypes ? "Loading appointment types..." : "Select appointment type"}
                           />
                         </FormControl>
                         <FormMessage />
