@@ -92,7 +92,7 @@ export default function AppointmentList({
     clinicId: searchParams.clinicId,
     patientId: searchParams.patientId,
     clientId: searchParams.clientId,
-    veterinarianId: searchParams.veterinarianId,
+    veterinarianId: userType.isProvider ? user?.id : searchParams.veterinarianId,
     roomId: searchParams.roomId,
     pageNumber: currentPage,
     pageSize: pageSize,

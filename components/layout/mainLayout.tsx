@@ -1,9 +1,10 @@
 'use client'
+import withAuth from "@/utils/privateRouter";
 import { SidebarProvider } from "../ui/sidebar";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+function MainLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="flex h-screen">
@@ -19,3 +20,5 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         </div>
     )
 }
+
+export default withAuth(MainLayout);
