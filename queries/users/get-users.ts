@@ -52,6 +52,7 @@ export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', clinicId
     queryKey: ["users", pageNumber, pageSize, search, clinicId, roleId],
     queryFn: () => getUsers(pageNumber, pageSize, search, clinicId, roleId),
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
     placeholderData: keepPreviousData,
     enabled
   });

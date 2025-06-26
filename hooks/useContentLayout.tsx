@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useStoreLocalStorage from "./useLocalStorage";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGetRoleById } from "@/queries/roles/get-role-by-id";
 
 import {
     getUserId,
@@ -85,7 +86,10 @@ export const useContentLayout = () => {
         }
     }, []);
 
-    const fetchUser = async (data?: any) => {
+    const fetchUser = async (data?: any, role?: any) => {
+        if (role === "Client") {
+            return;
+        }
         setLoading(true);
         let userid = getUserId() || data?.user?.id;
         if (!userid && data?.user?.id) {
@@ -99,6 +103,7 @@ export const useContentLayout = () => {
         if (!userid) {
             return;
         }
+
 
         try {
             const response = await fetch(`/api/user/${userid}`);
@@ -136,19 +141,19 @@ export const useContentLayout = () => {
         // }))
         if (userData) {
             const types = {
-                isAdmin: userData.role === 'Admin',
-                isSuperAdmin: userData.role === 'Super Admin',
-                isClinicAdmin: userData.role === 'Clinic Admin',
-                isReceptionist: userData.role === 'Receptionist',
-                isPatient: userData.role === 'Patient',
-                isClient: userData.role === 'Client',
-                isProvider: (userData.role === 'Provider' || userData?.role?.toLocaleLowerCase() === 'veterinarian')
+                isAdmin: userData.roleName === 'Administrator',
+                isSuperAdmin: userData.roleName === 'Super Admin',
+                isClinicAdmin: userData.roleName === 'Clinic Admin',
+                isReceptionist: userData.roleName === 'Receptionist',
+                isPatient: userData.roleName === 'Patient',
+                isClient: userData.roleName === 'Client',
+                isProvider: (userData.roleName === 'Provider' || userData?.roleName?.toLocaleLowerCase().includes('veterinarian')),
             }
             setUserType((prev) => ({ ...userRolesObject, ...types }));
         }
-        setIsAdmin(userData.role === 'Admin' || userData.role === 'Super Admin');
-        setRoles([userData.role]);
-        setRoleToLocal(userData.role);
+        setIsAdmin(userData.roleName === 'Administrator' || userData.roleName === 'Super Admin');
+        setRoles([userData.roleName]);
+        setRoleToLocal(userData.roleName);
         setUserToLocal(JSON.stringify(userData));
         setLoading(false);
     };
@@ -179,8 +184,6 @@ export const useContentLayout = () => {
             //window.location.reload();
         }, 1000)
     };
-
-    console.log(userType)
 
     return {
         clinic,

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/queries/auth/login-user";
 import { useRouter } from "next/navigation";
-import { setJwtToken, setUserId } from '@/utils/clientCookie';
+import { setJwtToken, setUserId, setClientId } from '@/utils/clientCookie';
 import { Loader2 } from 'lucide-react';
 // import { useQueryState } from 'nuqs';
 import { useToast } from '@/hooks/use-toast';
@@ -56,14 +56,19 @@ export function LoginForm() {
   const loginMutation = useLoginMutation({
     onSuccess: (data: any) => {
       setJwtToken(data.token);
-      setUserId(data.user.id)
-      fetchUser(data);
-      router.push("/dashboard");
+      setUserId(data.user.id);
+
+      if(data.user.roleName === "Client"){
+        setClientId(data.user.id);
+      }
+      fetchUser(data, data.user.roleName); 
+      router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
     },
     onError: (error: any) => {
       toast({
         description: error.message,
         variant: 'destructive',
+        duration: 3000,
       })
     }
   });
@@ -104,8 +109,8 @@ export function LoginForm() {
                   <div className="flex items-center">
                     <FormLabel>Password</FormLabel>
                     <Link
-                      href="#"
-                      className="ml-auto inline-block text-sm underline"
+                      href="/forgot-password"
+                      className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80"
                     >
                       Forgot your password?
                     </Link>

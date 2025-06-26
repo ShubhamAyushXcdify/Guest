@@ -17,7 +17,7 @@ function DetailsLayout({
   // Get clinicId from props instead of params
   const { clinicId } = clinicData;
   
-  const tabsList = ['rooms', 'slots', 'doctors', 'users', 'appointmentType'];
+  const tabsList = ['rooms', 'doctors', 'users', 'appointmentType'];
   const currentTab = pathname.split("/").pop() || "rooms";
 
   const handleTabChange = (value: string) => {
@@ -38,7 +38,6 @@ function DetailsLayout({
       >
         <TabsList className="space-x-3">
           <TabsTrigger value="rooms" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Rooms</TabsTrigger>
-          <TabsTrigger value="slots" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Slots</TabsTrigger>
           <TabsTrigger value="doctors" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Doctors</TabsTrigger>
           <TabsTrigger value="users" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Users</TabsTrigger>
           <TabsTrigger value="appointmentType" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Appointment Type</TabsTrigger>

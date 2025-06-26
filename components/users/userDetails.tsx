@@ -78,13 +78,20 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       // Find the selected role to ensure we have the correct data
       const roleToSend = rolesData?.data?.find((role : any) => role.id === values.roleId);
       
+      // Determine clinicId value: null if not required or empty
+      const clinicId = selectedRole?.isClinicRequired && values.clinicId ? values.clinicId : null;
+      
+      // Extract lastName to handle separately
+      const { lastName, ...restValues } = values;
+      
       // Create the payload with role and clinic information
       const payload = {
-        ...values,
+        ...restValues,
+        lastName: lastName ? lastName : null, // Set lastName to null if empty
         isActive: true,
         role: roleToSend?.name,
         roleId: roleToSend?.id,
-        clinicId: selectedRole?.isClinicRequired ? values.clinicId : null,
+        clinicId: clinicId, // Set to null if not required or if empty string
       };
 
       await updateUser.mutateAsync(payload);

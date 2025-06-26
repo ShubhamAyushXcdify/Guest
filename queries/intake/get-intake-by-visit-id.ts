@@ -17,7 +17,20 @@ const getIntakeByVisitId = async (visitId: string): Promise<IntakeDetail | null>
       throw new Error("Failed to fetch intake detail by visit ID");
     }
     
-    return await response.json();
+    const data = await response.json();
+    
+    if (!data) {
+      return null;
+    }
+    
+    // Transform the response to match our interface if needed
+    const transformedData: IntakeDetail = {
+      ...data,
+      images: data.images || [],
+      files: data.files || []
+    };
+    
+    return transformedData;
   } catch (error) {
     console.error("Error fetching intake detail by visit ID:", error);
     throw error;

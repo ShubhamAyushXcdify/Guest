@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useGetClients } from "@/queries/clients/get-client";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -18,6 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Control } from "react-hook-form";
+import { useGetClinic } from "@/queries/clinic/get-clinic";
+import { useRootContext } from '@/context/RootContext';
+import { Combobox } from "@/components/ui/combobox";
+import { useGetClients } from "@/queries/clients/get-client"
 
 interface ClientSelectProps {
   control: Control<any>;
@@ -39,6 +42,7 @@ export function ClientSelect({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const { clinic } = useRootContext();
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -47,9 +51,25 @@ export function ClientSelect({
     
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Get clinic data for dropdown
+  const { data: clinicsData } = useGetClinic(1, 100);
+  const clinicOptions = (clinicsData?.items || []).map(clinic => ({
+    value: clinic.id,
+    label: clinic.name
+  }));
+
+  // Get selected clinic ID from form or context
+  const selectedClinicId = control._formValues.clinicId || clinic?.id || "";
   
-  const { data: clientsData, isLoading, isError, refetch } = useGetClients(1, 20, debouncedSearch);
+  // Use the new hook to get clients by clinic ID
+  const shouldFetch = !!debouncedSearch;
+  const { data: clientsData, isLoading, isError, refetch } = useGetClients(
+    1, 100, selectedClinicId, debouncedSearch, 'first_name', shouldFetch
+  );
+  // Always use items array from the response
   const clients = clientsData?.items || [];
+
 
   useEffect(() => {
     if (open) {
@@ -58,82 +78,89 @@ export function ClientSelect({
   }, [open, refetch]);
 
   return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <FormLabel>{label}</FormLabel>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
+    <div className="space-y-4">
+      {/* Add Clinic selection if no clinic.id */}
+      {!clinic?.id && (
+        <FormField
+          control={control}
+          name="clinicId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Clinic</FormLabel>
               <FormControl>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className={cn(
-                    "w-full justify-between",
-                    !field.value && "text-muted-foreground"
-                  )}
-                  disabled={disabled}
-                >
-                  {field.value ? (
-                    clients?.find((client) => client.id === field.value)
-                      ? `${clients.find((client) => client.id === field.value)?.firstName} ${clients.find((client) => client.id === field.value)?.lastName}`
-                      : "Select owner"
-                  ) : (
-                    "Select owner"
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput 
-                  placeholder="Search owners..." 
-                  onValueChange={setSearchQuery}
+                <Combobox
+                  options={clinicOptions}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder="Select clinic"
                 />
-                <CommandList>
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-6">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : isError ? (
-                    <div className="py-6 text-center text-sm">
-                      <p className="text-destructive">Error loading owners.</p>
-                      <Button
-                        variant="link"
-                        onClick={() => refetch()}
-                        className="mt-2"
-                      >
-                        Try again
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <CommandEmpty>
-                        <div className="py-6 text-center text-sm">
-                          <p>No owner found.</p>
-                          {onAddNewClick && (
-                            <Button
-                              variant="link"
-                              onClick={() => {
-                                setOpen(false);
-                                onAddNewClick();
-                              }}
-                              className="mt-2 text-primary"
-                            >
-                              + Add a new owner
-                            </Button>
-                          )}
-                        </div>
-                      </CommandEmpty>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      <FormField
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <FormItem className="flex flex-col">
+            <FormLabel>{label}</FormLabel>
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className={cn(
+                      "w-full justify-between",
+                      !field.value && "text-muted-foreground"
+                    )}
+                    disabled={disabled || !selectedClinicId}
+                  >
+                    {field.value ? (
+                      clients?.find((client) => client.id === field.value)
+                        ? `${clients.find((client) => client.id === field.value)?.firstName} ${clients.find((client) => client.id === field.value)?.lastName}`
+                        : "Select owner"
+                    ) : (
+                      "Select owner"
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <Command>
+                  <CommandInput 
+                    placeholder="Search owners..." 
+                    onValueChange={setSearchQuery}
+                  />
+                  <CommandList>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : isError ? (
+                      <div className="py-6 text-center text-sm">
+                        <p className="text-destructive">Error loading owners.</p>
+                        <Button
+                          variant="link"
+                          onClick={() => refetch()}
+                          className="mt-2"
+                        >
+                          Try again
+                        </Button>
+                      </div>
+                    ) : debouncedSearch && clients.length === 0 ? (
+                      <div className="py-6 text-center text-sm">No owner found.</div>
+                    ) : debouncedSearch && clients.length > 0 ? (
                       <CommandGroup>
-                        {clients?.map((client) => (
+                        {clients.map((client) => (
                           <CommandItem
                             key={client.id}
-                            value={client.id}
+                            value={`${client.firstName} ${client.lastName} ${client.email}`.toLowerCase()}
                             onSelect={() => {
                               field.onChange(client.id);
                               setOpen(false);
@@ -154,30 +181,16 @@ export function ClientSelect({
                           </CommandItem>
                         ))}
                       </CommandGroup>
-                      {onAddNewClick && clients && clients.length > 0 && (
-                        <div className="p-2 border-t">
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              setOpen(false);
-                              onAddNewClick();
-                            }}
-                            className="w-full justify-start text-primary"
-                          >
-                            + Add a new owner
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+                    ) : null}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
   );
 } 

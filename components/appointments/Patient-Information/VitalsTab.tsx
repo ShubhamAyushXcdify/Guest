@@ -12,6 +12,10 @@ import { useUpdateVitalDetail } from "@/queries/vitals/update-vital-detail"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useTabCompletion } from "@/context/TabCompletionContext"
+import { Mic } from "lucide-react"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface VitalsTabProps {
   patientId: string
@@ -20,6 +24,8 @@ interface VitalsTabProps {
 }
 
 export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTabProps) {
+  const { markTabAsCompleted } = useTabCompletion()
+  
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
@@ -36,6 +42,15 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
   const [capillaryRefillTimeSec, setCapillaryRefillTimeSec] = useState<number | undefined>(undefined)
   const [hydrationStatus, setHydrationStatus] = useState<string>("")
   const [notes, setNotes] = useState("")
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
+  const transcriber = useTranscriber()
+
+  // Use mutateAsync pattern for better control flow
+  const { mutateAsync: createVitalDetail, isPending: isCreating } = useCreateVitalDetail()
+  const { mutateAsync: updateVitalDetail, isPending: isUpdating } = useUpdateVitalDetail()
+  
+  // Combined loading state
+  const isPending = isCreating || isUpdating
 
   // Initialize form with existing data when available
   useEffect(() => {
@@ -47,64 +62,77 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
       setCapillaryRefillTimeSec(vitalDetail.capillaryRefillTimeSec)
       setHydrationStatus(vitalDetail.hydrationStatus || "")
       setNotes(vitalDetail.notes || "")
-    }
-  }, [vitalDetail])
-
-  const createVitalDetailMutation = useCreateVitalDetail({
-    onSuccess: () => {
-      toast.success("Vital details saved successfully")
-      refetchVitalDetail()
-      if (onNext) {
-        onNext()
+      
+      // Mark tab as completed if it was already completed or if basic vitals are present
+      if (vitalDetail.isCompleted || 
+          vitalDetail.temperatureC || 
+          vitalDetail.heartRateBpm || 
+          vitalDetail.respiratoryRateBpm) {
+        markTabAsCompleted("vitals")
       }
-    },
-    onError: (error) => {
-      toast.error(`Failed to save vital details: ${error.message}`)
     }
-  })
-
-  const updateVitalDetailMutation = useUpdateVitalDetail({
-    onSuccess: () => {
-      toast.success("Vital details updated successfully")
-      refetchVitalDetail()
-      if (onNext) {
-        onNext()
-      }
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to update vital details: ${error.message}`)
+  }, [vitalDetail, markTabAsCompleted])
+  
+  // Always mark the tab as completed if we have vital measurements
+  useEffect(() => {
+    if (temperatureC || heartRateBpm || respiratoryRateBpm) {
+      markTabAsCompleted("vitals")
     }
-  })
+  }, [temperatureC, heartRateBpm, respiratoryRateBpm, markTabAsCompleted])
 
-  const handleSave = () => {
+  const output = transcriber.output;
+  if (output && !output.isBusy && output.text) {
+    setNotes(prev => prev ? prev + "\n" + output.text : output.text);
+  }
+  // eslint-disable-next-line
+
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
     
-    const vitalData = {
-      temperatureC,
-      heartRateBpm,
-      respiratoryRateBpm,
-      mucousMembraneColor: mucousMembraneColor || undefined,
-      capillaryRefillTimeSec,
-      hydrationStatus: hydrationStatus || undefined,
-      notes: notes || undefined,
-      isCompleted: true
-    }
-    
-    if (vitalDetail) {
-      // Update existing vital detail
-      updateVitalDetailMutation.mutate({
-        id: vitalDetail.id,
-        ...vitalData
-      })
-    } else {
-      // Create new vital detail
-      createVitalDetailMutation.mutate({
-        visitId: visitData.id,
-        ...vitalData
-      })
+    try {
+      const vitalData = {
+        temperatureC,
+        heartRateBpm,
+        respiratoryRateBpm,
+        mucousMembraneColor: mucousMembraneColor || undefined,
+        capillaryRefillTimeSec,
+        hydrationStatus: hydrationStatus || undefined,
+        notes: notes || undefined,
+        isCompleted: true
+      }
+      
+      if (vitalDetail) {
+        // Update with ID in the payload as required by API
+        await updateVitalDetail({
+          id: vitalDetail.id,
+          ...vitalData
+        })
+        
+        toast.success("Vital details updated successfully")
+      } else {
+        // Create new vital detail
+        await createVitalDetail({
+          visitId: visitData.id,
+          ...vitalData
+        })
+        
+        toast.success("Vital details saved successfully")
+      }
+      
+      // Mark the tab as completed
+      markTabAsCompleted("vitals")
+      
+      // After successful save, refetch data and navigate to next tab
+      refetchVitalDetail()
+      if (onNext) {
+        onNext()
+      }
+    } catch (error) {
+      console.error('Error saving vital details:', error)
+      toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -226,23 +254,45 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
         </div>
 
         <div className="mt-6">
-          <Label htmlFor="notes">Additional Notes</Label>
-          <Textarea
+          <div className="flex items-center gap-2 mb-1">
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Additional Notes
+            </label>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setAudioModalOpen(true)}
+              title="Record voice note"
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+          </div>
+          <textarea
             id="notes"
-            placeholder="Enter any additional observations or notes about the patient's vital signs..."
-            className="mt-2"
+            className="w-full border rounded-md p-2 min-h-[100px]"
+            placeholder="Add any additional details..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+          />
+          <AudioManager
+            open={audioModalOpen}
+            onClose={() => setAudioModalOpen(false)}
+            transcriber={transcriber}
+            onTranscriptionComplete={(transcript: string) => {
+              setNotes(prev => prev ? prev + "\n" + transcript : transcript);
+              setAudioModalOpen(false);
+            }}
           />
         </div>
 
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={handleSave}
-            disabled={createVitalDetailMutation.isPending || updateVitalDetailMutation.isPending}
+            disabled={isPending}
             className="ml-2"
           >
-            {createVitalDetailMutation.isPending || updateVitalDetailMutation.isPending 
+            {isPending 
               ? "Saving..." 
               : vitalDetail ? "Update" : "Save & Next"}
           </Button>

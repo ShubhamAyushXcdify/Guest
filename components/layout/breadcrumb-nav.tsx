@@ -46,6 +46,12 @@ const formatSegmentName = (segment: string, index: number, segments: string[]): 
       // Return nothing - we'll filter this out
       return "";
     }
+    
+    // Special case: If this appears to be a roomId (after "rooms"), don't label it as "Clinic"
+    if (index > 0 && segments[index-1].toLowerCase() === "rooms") {
+      return ""; // Skip room IDs in breadcrumb
+    }
+    
     return "Clinic";
   }
   

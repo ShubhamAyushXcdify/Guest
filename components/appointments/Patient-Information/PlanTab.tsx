@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetPlans } from "@/queries/Plan/get-plans"
 import { useCreatePlan } from "@/queries/Plan/create-plan"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CheckCircle } from "lucide-react"
+import { PlusCircle, X, CheckCircle, AlertCircle, Mic } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
 import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-by-visit-id"
@@ -14,6 +14,10 @@ import { useUpdatePlanDetail } from "@/queries/PlanDetail/update-plan-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useTabCompletion } from "@/context/TabCompletionContext"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface PlanTabProps {
   patientId: string
@@ -29,17 +33,29 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   const [notes, setNotes] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   
+  const { markTabAsCompleted, allTabsCompleted, completedTabs } = useTabCompletion()
+  const [areAllTabsCompleted, setAreAllTabsCompleted] = useState(false)
+  
+  const completionCheckRef = useRef<NodeJS.Timeout | null>(null)
+  
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
   // Get appointment data
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
+  // Check if appointment is already completed
+  const isAppointmentCompleted = appointmentData?.status === "completed"
+  
   const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
     visitData?.id || ""
   )
+  const { mutateAsync: createPlanDetail, isPending: isCreating } = useCreatePlanDetail()
+  const { mutateAsync: updatePlanDetail, isPending: isUpdating } = useUpdatePlanDetail()
   
+  // Combined loading state
+  const isPending = isCreating || isUpdating
   // Initialize selected plans and notes from existing data
   useEffect(() => {
     if (existingPlanDetail) {
@@ -47,8 +63,32 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       if (existingPlanDetail.notes) {
         setNotes(existingPlanDetail.notes)
       }
+      
+      // Mark plan tab as completed if it was already completed
+      if (existingPlanDetail.isCompleted) {
+        markTabAsCompleted("plan")
+      }
     }
-  }, [existingPlanDetail])
+  }, [existingPlanDetail, markTabAsCompleted])
+  
+  // Update allTabsCompleted state when tabs are completed
+  useEffect(() => {
+    // Use a delayed check to ensure all tab completion updates have been processed
+    if (completionCheckRef.current) {
+      clearTimeout(completionCheckRef.current)
+    }
+    
+    completionCheckRef.current = setTimeout(() => {
+      const checkResult = allTabsCompleted()
+      setAreAllTabsCompleted(checkResult)
+    }, 100)
+    
+    return () => {
+      if (completionCheckRef.current) {
+        clearTimeout(completionCheckRef.current)
+      }
+    }
+  }, [completedTabs, allTabsCompleted])
   
   const createPlanMutation = useCreatePlan({
     onSuccess: () => {
@@ -67,6 +107,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     onSuccess: () => {
       toast.success("Plan details saved successfully")
       refetchPlanDetail()
+      markTabAsCompleted("plan")
     },
     onError: (error) => {
       toast.error(`Failed to save plan details: ${error.message}`)
@@ -78,6 +119,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     onSuccess: () => {
       toast.success("Plan details updated successfully")
       refetchPlanDetail()
+      markTabAsCompleted("plan")
     },
     onError: (error: any) => {
       toast.error(`Failed to update plan details: ${error.message}`)
@@ -115,22 +157,57 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   // Track whether the plan has been saved and checkout has been initiated
   const [hasInitiatedCheckout, setHasInitiatedCheckout] = useState(false)
 
-  const handleSaveAndCheckout = async () => {
+  // Save or update plan detail (for Save/Update button)
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
-    
+    if (selectedPlans.length === 0) {
+      toast.error("Please select at least one plan before saving.")
+      return
+    }
+    try {
+      if (existingPlanDetail) {
+        await updatePlanDetailMutation.mutateAsync({
+          id: existingPlanDetail.id,
+          planIds: selectedPlans,
+          notes,
+          isCompleted: false // Only set true on checkout
+        })
+      } else {
+        await createPlanDetailMutation.mutateAsync({
+          visitId: visitData.id,
+          planIds: selectedPlans,
+          notes,
+          isCompleted: false // Only set true on checkout
+        })
+      }
+      toast.success("Plan details saved successfully")
+    } catch (error) {
+      toast.error(`Failed to save plan details: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  const handleCheckout = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment")
+      return
+    }
     if (!appointmentData) {
       toast.error("No appointment data found")
       return
     }
-    
+    // Check if all required tabs have been completed
+    // Skip this check if the appointment is already completed
+    if (!isAppointmentCompleted && !allTabsCompleted()) {
+      toast.error("Please complete all tabs before checking out")
+      return
+    }
     setIsProcessing(true)
     setHasInitiatedCheckout(true)
-    
     try {
-      // First save the plan details
+      // First save the plan details as completed
       if (existingPlanDetail) {
         await updatePlanDetailMutation.mutateAsync({
           id: existingPlanDetail.id,
@@ -146,26 +223,36 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           isCompleted: true
         })
       }
-      
-      // Then update appointment status to completed
-      await updateAppointmentMutation.mutateAsync({
-        id: appointmentId,
-        data: {
-          ...appointmentData,
-          status: "completed"
-        }
-      })
-      
+      // Only update appointment status if not already completed
+      if (!isAppointmentCompleted) {
+        await updateAppointmentMutation.mutateAsync({
+          id: appointmentId,
+          data: {
+            ...appointmentData,
+            status: "completed"
+          }
+        })
+      }
       // Ensure we close the form immediately after successful completion
       if (onClose) {
         onClose()
       }
-      
     } catch (error) {
       console.error("Error during checkout process:", error)
       setIsProcessing(false)
     }
   }
+
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
+  const transcriber = useTranscriber()
+
+  useEffect(() => {
+    const output = transcriber.output
+    if (output && !output.isBusy && output.text) {
+      setNotes(prev => prev ? prev + "\n" + output.text : output.text)
+    }
+    // eslint-disable-next-line
+  }, [transcriber.output?.isBusy])
 
   if (visitLoading || isLoading) {
     return (
@@ -186,7 +273,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       </Card>
     )
   }
-
+  
   return (
     <Card>
       <CardContent className="p-6">
@@ -227,6 +314,18 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               <X className="h-4 w-4" />
             </Button>
           </div>
+        )}
+
+        {/* Only show the warning if appointment isn't already completed */}
+        {!isAppointmentCompleted && !areAllTabsCompleted && (
+          <Alert variant="default" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Incomplete Patient Information</AlertTitle>
+            <AlertDescription>
+              Please complete all tabs before checking out the patient. 
+              Tabs that are completed will show in green.
+            </AlertDescription>
+          </Alert>
         )}
 
         {isLoading ? (
@@ -279,30 +378,48 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
 
             <div className="mt-6">
               <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
+              <div className="flex flex-row items-center gap-2 mb-1">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setAudioModalOpen(true)}
+                  title="Record voice note"
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              </div>
               <textarea
                 className="w-full border rounded-md p-2 min-h-[100px]"
                 placeholder="Add any additional details about the treatment plan..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
+              <AudioManager
+                open={audioModalOpen}
+                onClose={() => setAudioModalOpen(false)}
+                transcriber={transcriber}
+                onTranscriptionComplete={(transcript: string) => {
+                  setNotes(prev => prev ? prev + "\n" + transcript : transcript)
+                  setAudioModalOpen(false)
+                }}
+              />
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-6 flex justify-end gap-2">
               <Button 
-                onClick={handleSaveAndCheckout}
-                disabled={isProcessing}
-                className="bg-green-600 hover:bg-green-700"
+                onClick={handleSave}
+                disabled={isPending || selectedPlans.length === 0}
+                className="ml-2"
               >
-                {isProcessing ? (
-                  "Processing..."
-                ) : hasInitiatedCheckout ? (
-                  "Update"
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Save & Checkout
-                  </>
-                )}
+                {isPending ? "Saving..." : existingPlanDetail ? "Update" : "Save"}
+              </Button>
+              <Button
+                onClick={handleCheckout}
+                disabled={isPending || !areAllTabsCompleted || !existingPlanDetail || selectedPlans.length === 0}
+                className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+              >
+                Checkout
               </Button>
             </div>
           </>

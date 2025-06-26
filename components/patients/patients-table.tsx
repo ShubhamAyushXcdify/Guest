@@ -22,6 +22,7 @@ interface PatientsTableProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onSearch: (term: string) => void
+  showClinicColumn?: boolean
 }
 
 export function PatientsTable({
@@ -32,6 +33,7 @@ export function PatientsTable({
   onPageChange,
   onPageSizeChange,
   onSearch,
+  showClinicColumn = false,
 }: PatientsTableProps) {
   const router = useRouter()
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null)
@@ -98,15 +100,22 @@ export function PatientsTable({
       header: "Date of Birth",
       cell: ({ getValue }) => formatDate(getValue() as string)
     },
-    { 
-      accessorKey: "isActive", 
-      header: "Status", 
-      cell: ({ getValue }) => (
-        <Badge variant={getValue() ? "default" : "destructive"}>
-          {getValue() ? "Active" : "Inactive"}
-        </Badge>
-      )
-    },
+    // { 
+    //   accessorKey: "isActive", 
+    //   header: "Status", 
+    //   cell: ({ getValue }) => (
+    //     <Badge variant={getValue() ? "default" : "destructive"}>
+    //       {getValue() ? "Active" : "Inactive"}
+    //     </Badge>
+    //   )
+    // },
+    ...(showClinicColumn ? [
+      { 
+        accessorKey: "clinicName", 
+        header: "Clinic",
+        cell: ({ row }: { row: { original: Patient } }) => row.original.clinicName || 'N/A'
+      }
+    ] : []),
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -121,16 +130,6 @@ export function PatientsTable({
             }}
           >
             <Eye className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditPatient(row.original.id);
-            }}
-          >
-            <Edit className="h-4 w-4" />
           </Button>
           <Button 
             variant="ghost" 

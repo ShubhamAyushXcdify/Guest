@@ -135,112 +135,107 @@ export const PatientDetailScreen = () => {
             </div>
           </div>
           <div className="flex items-center ml-auto space-x-4">
-            <Badge className={patient.isActive ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"} variant="outline">
-              {patient.isActive ? "Active" : "Inactive"}
-            </Badge>
-            <Button className="theme-button text-white" onClick={handleEdit}>
-              <Edit className="mr-2 h-4 w-4" /> Edit Profile
-            </Button>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 p-0 h-auto w-full justify-start rounded-none mb-6">
-          <TabsTrigger
-            value="overview"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "overview"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Overview
-          </TabsTrigger>
-          <TabsTrigger
-            value="medical"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "medical"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Medical
-          </TabsTrigger>
-          <TabsTrigger
-            value="visits"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "visits"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Visits
-          </TabsTrigger>
-          <TabsTrigger
-            value="lab-results"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "lab-results"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Lab Results
-          </TabsTrigger>
-          <TabsTrigger
-            value="prescriptions"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "prescriptions"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Prescriptions
-          </TabsTrigger>
-          <TabsTrigger
-            value="billing"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "billing"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Billing
-          </TabsTrigger>
-          <TabsTrigger
-            value="files"
-            className={`px-6 py-3 rounded-none border-b-2 ${
-              activeTab === "files"
-                ? "border-theme-primary text-theme-primary dark:text-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-            }`}
-          >
-            Files
-          </TabsTrigger>
-        </TabsList>
+      <TabsList className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 p-0 h-auto w-full justify-start rounded-none mb-6">
+      <TabsTrigger
+        value="overview"
+        className={`px-6 py-3 rounded-none border-b-2 ${
+          activeTab === "overview"
+            ? "border-theme-primary text-theme-primary dark:text-white"
+            : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        }`}
+      >
+    Overview
+  </TabsTrigger>
+  <TabsTrigger
+    value="medical"
+    className={`px-6 py-3 rounded-none border-b-2 ${
+      activeTab === "medical"
+        ? "border-theme-primary text-theme-primary dark:text-white"
+        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+    }`}
+  >
+    Medical
+  </TabsTrigger>
+  <TabsTrigger
+    value="visits"
+    className={`px-6 py-3 rounded-none border-b-2 ${
+      activeTab === "visits"
+        ? "border-theme-primary text-theme-primary dark:text-white"
+        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+    }`}
+  >
+    Visits
+  </TabsTrigger>
+  {/* <TabsTrigger
+    value="lab-results"
+    className={`px-6 py-3 rounded-none border-b-2 ${
+      activeTab === "lab-results"
+        ? "border-theme-primary text-theme-primary dark:text-white"
+        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+    }`}
+  >
+    Lab Results
+  </TabsTrigger> */}
+  <TabsTrigger
+    value="prescriptions"
+    className={`px-6 py-3 rounded-none border-b-2 ${
+      activeTab === "prescriptions"
+        ? "border-theme-primary text-theme-primary dark:text-white"
+        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+    }`}
+  >
+    Prescriptions
+  </TabsTrigger>
+  {/* <TabsTrigger
+    value="billing"
+    className={`px-6 py-3 rounded-none border-b-2 ${
+      activeTab === "billing"
+        ? "border-theme-primary text-theme-primary dark:text-white"
+        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+    }`}
+  >
+    Billing
+  </TabsTrigger>
+  <TabsTrigger
+    value="files"
+    className={`px-6 py-3 rounded-none border-b-2 ${
+      activeTab === "files"
+        ? "border-theme-primary text-theme-primary dark:text-white"
+        : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+    }`}
+  >
+    Files
+  </TabsTrigger> */}
+</TabsList>
 
-        <TabsContent value="overview">
-          <PatientOverview />
-        </TabsContent>
-        <TabsContent value="medical">
-          <PatientMedical />
-        </TabsContent>
-        <TabsContent value="visits">
-          <PatientVisits />
-        </TabsContent>
-        <TabsContent value="lab-results">
-          <PatientLabResults />
-        </TabsContent>
-        <TabsContent value="prescriptions">
-          <PatientPrescriptions />
-        </TabsContent>
-        <TabsContent value="billing">
-          <PatientBilling />
-        </TabsContent>
-        <TabsContent value="files">
-          <PatientFiles />
-        </TabsContent>
+<TabsContent value="overview">
+  <PatientOverview patient={patient} patientId={patientId} />
+</TabsContent>
+<TabsContent value="medical">
+  <PatientMedical />
+</TabsContent>
+<TabsContent value="visits">
+  <PatientVisits />
+</TabsContent>
+{/* <TabsContent value="lab-results">
+  <PatientLabResults />
+</TabsContent> */}
+<TabsContent value="prescriptions">
+  <PatientPrescriptions />
+</TabsContent>
+{/* <TabsContent value="billing">
+  <PatientBilling />
+</TabsContent>
+<TabsContent value="files">
+  <PatientFiles />
+</TabsContent> */}
+
       </Tabs>
     </div>
   )

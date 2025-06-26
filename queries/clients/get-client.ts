@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export interface Client {
   id: string;
@@ -32,10 +32,15 @@ interface ClientResponse {
   hasNextPage: boolean;
 }
 
-const getClients = async (pageNumber = 1, pageSize = 10, clinicId = '') => {
-  const response = await fetch(
-    `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}`
-  );
+const getClients = async (
+  pageNumber = 1,
+  pageSize = 10,
+  clinicId = '',
+  search = '',
+  type = 'first_name'
+) => {
+  const url = `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&type=${type}&query=${encodeURIComponent(search)}`;
+  const response = await fetch(url);
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -46,12 +51,23 @@ const getClients = async (pageNumber = 1, pageSize = 10, clinicId = '') => {
   return data as ClientResponse;
 };
 
-export function useGetClients(pageNumber = 1, pageSize = 10, search = '') {
+export function useGetClients(
+  pageNumber = 1,
+  pageSize = 10,
+  clinicId = '',
+  search = '',
+  type = 'first_name',
+  enabled = true
+) {
   return useQuery({
-    queryKey: ['clients', pageNumber, pageSize, search],
-    queryFn: () => getClients(pageNumber, pageSize, search),
+    queryKey: ['clients', pageNumber, pageSize, clinicId, search, type],
+    queryFn: () => getClients(pageNumber, pageSize, clinicId, search, type),
+    enabled,
     retry: 1,
-    staleTime: 30000, // 30 seconds
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -77,3 +93,4 @@ export function useGetClientById(id: string) {
     retry: 1,
   });
 }
+

@@ -14,6 +14,7 @@ import {
   MedicalHistoryDetail
 } from "@/queries/MedicalHistoryDetail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface MedicalHistoryTabProps {
   patientId: string
@@ -23,6 +24,7 @@ interface MedicalHistoryTabProps {
 
 export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: MedicalHistoryTabProps) {
   const { toast } = useToast()
+  const { markTabAsCompleted } = useTabCompletion()
   const [formData, setFormData] = useState<Partial<MedicalHistoryDetail>>({
     chronicConditionsNotes: '',
     surgeriesNotes: '',
@@ -55,8 +57,13 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         isCompleted: medicalHistoryDetail.isCompleted || false,
       })
       setMedicalHistoryId(medicalHistoryDetail.id)
+      
+      // Mark tab as completed if data exists and is completed
+      if (medicalHistoryDetail.isCompleted) {
+        markTabAsCompleted("medical-history")
+      }
     }
-  }, [medicalHistoryDetail])
+  }, [medicalHistoryDetail, markTabAsCompleted])
 
   const handleInputChange = (field: keyof MedicalHistoryDetail, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -73,10 +80,16 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         return
       }
       
+      // Set isCompleted to true when saving
+      const updatedFormData = {
+        ...formData,
+        isCompleted: true
+      }
+      
       if (medicalHistoryId) {
         await updateMedicalHistory({
           id: medicalHistoryId,
-          ...formData,
+          ...updatedFormData,
           visitId: visitData.id,
         })
         toast({
@@ -85,7 +98,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         })
       } else {
         const result = await createMedicalHistory({
-          ...formData,
+          ...updatedFormData,
           visitId: visitData.id,
         })
         setMedicalHistoryId(result.id)
@@ -94,6 +107,9 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           description: "Medical history has been created successfully.",
         })
       }
+      
+      // Mark the tab as completed
+      markTabAsCompleted("medical-history")
       
       if (onNext) {
         onNext()

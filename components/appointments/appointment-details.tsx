@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Pencil, ClipboardList } from "lucide-react"
+import { Pencil, ClipboardList, Search, X, Loader2,Mic } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Combobox } from "@/components/ui/combobox"
@@ -15,12 +15,17 @@ import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-
 import { useToast } from "@/components/ui/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
-import { useGetPatients, Patient } from "@/queries/patients/get-patients"
+import { useGetPatients } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
+import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
+import { useDebounce } from "@/hooks/use-debounce"
+import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -30,8 +35,7 @@ const appointmentSchema = z.object({
   veterinarianId: z.string().uuid(),
   roomId: z.string().uuid(),
   appointmentDate: z.string(),
-  startTime: z.string(),
-  endTime: z.string(),
+  roomSlotId: z.string(),
   appointmentType: z.string(),
   reason: z.string(),
   status: z.string(),
@@ -46,11 +50,150 @@ interface AppointmentDetailsProps {
   onClose: () => void
 }
 
+// Define a more comprehensive patient interface
+interface ExtendedPatient {
+  id: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  patientId?: string;
+  species?: string;
+  breed?: string;
+}
+
 export default function AppointmentDetails({ appointmentId, onClose }: AppointmentDetailsProps) {
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  
+  // Patient search state
+  const [patientSearchQuery, setPatientSearchQuery] = useState("")
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null)
+  const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Initialize form
+  const form = useForm<AppointmentFormValues>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      clinicId: "",
+      patientId: "",
+      clientId: "",
+      veterinarianId: "",
+      roomId: "",
+      appointmentDate: "",
+      roomSlotId: "",
+      appointmentType: "",
+      reason: "",
+      status: "scheduled",
+      notes: "",
+      createdBy: "" // This should be set from your auth context
+    },
+  })
+  
+  // Get selected room ID for slots
+  const selectedRoomId = form.watch("roomId");
+  
+  // Use patient search query for edit mode
+  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
+    debouncedPatientQuery,
+    "name" // Always search by name as specified
+  )
+  
+  // Convert search results to our format
+  const typedSearchResults = searchResults as ExtendedPatient[];
+  
+  // Fetch slots for the selected room
+  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
+  
+  // Initialize slots with proper default value
+  const slots = slotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
+  
+  // Format time for display (assuming HH:mm:ss format from API)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
+    // If time is already in HH:MM format, return as is
+    if (timeString.length <= 5) return timeString;
+    
+    // Try to parse and format to HH:MM
+    try {
+      // Handle ISO format (2023-06-01T11:00:00)
+      if (timeString.includes('T')) {
+        return timeString.split('T')[1].substring(0, 5);
+      }
+      
+      // Handle HH:MM:SS format
+      if (timeString.includes(':')) {
+        const timeParts = timeString.split(':');
+        return `${timeParts[0]}:${timeParts[1]}`;
+      }
+      
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
+  };
+  
+  // Handle clicking outside the search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setIsSearchDropdownOpen(false)
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+  
+  // Handle selecting a patient from search
+  const handlePatientSelect = (patient: ExtendedPatient) => {
+    // Determine the correct patient name based on different possible API structures
+    let patientName = '';
+    
+    if (patient.name) {
+      patientName = patient.name;
+    } 
+    else if (patient.patientId) {
+      patientName = patient.patientId;
+      if (patient.species) {
+        patientName += ` (${patient.species})`;
+      }
+    }
+    else if (patient.firstName || patient.lastName) {
+      patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+    
+    if (!patientName) {
+      console.warn('No name found for selected patient:', patient);
+      patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+    }
+    
+    setSelectedPatient({
+      id: patient.id,
+      name: patientName
+    });
+    
+    form.setValue("patientId", patient.id);
+    setPatientSearchQuery(""); // Clear the search input
+    setIsSearchDropdownOpen(false); // Close the dropdown
+  }
+  
+  // Handle slot selection
+  const handleSlotClick = (slotId: string) => {
+    setSelectedSlot(slotId);
+    form.setValue("roomSlotId", slotId);
+  };
+  
+  // Clear selected patient
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null);
+    form.setValue("patientId", "");
+  }
 
   // Fetch data from APIs
   const { data: clinicsResponse } = useGetClinic(1, 100)
@@ -82,10 +225,33 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     label: clinic.name
   }))
 
-  const patientOptions = (patientsResponse?.items || []).map((patient: Patient) => ({
-    value: patient.id,
-    label: `${patient.name} (${patient.species})`
-  }))
+  const patientOptions = (patientsResponse?.items || []).map((patient: ExtendedPatient) => {
+    // Determine the display name based on available properties
+    let displayName = '';
+    
+    if (patient.name) {
+      displayName = patient.name;
+    } 
+    else if (patient.patientId) {
+      displayName = patient.patientId;
+      if (patient.species) {
+        displayName += ` (${patient.species})`;
+      }
+    }
+    else if (patient.firstName || patient.lastName) {
+      displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+    
+    // If we still don't have a display name, use ID as last resort
+    if (!displayName) {
+      displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+    }
+    
+    return {
+      value: patient.id,
+      label: displayName
+    }
+  })
 
   const clientOptions = (clientsResponse?.items || []).map((client: Client) => ({
     value: client.id,
@@ -112,34 +278,49 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     { value: "Follow-up", label: "Follow-up" }
   ]
 
-  const form = useForm<AppointmentFormValues>({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      clinicId: "",
-      patientId: "",
-      clientId: "",
-      veterinarianId: "",
-      roomId: "",
-      appointmentDate: "",
-      startTime: "",
-      endTime: "",
-      appointmentType: "",
-      reason: "",
-      status: "scheduled",
-      notes: "",
-      createdBy: "" // This should be set from your auth context
-    },
-  })
-
   // Update form values when appointment data is loaded
   useEffect(() => {
     if (appointment) {
+      const slotId = appointment.roomSlotId || appointment.slotId || "";
+      
       form.reset({
         ...appointment,
         appointmentDate: appointment.appointmentDate.split('T')[0], // Convert to YYYY-MM-DD format
-      })
+        roomSlotId: slotId, // Handle different field names
+      });
+      
+      // Set the selected slot
+      setSelectedSlot(slotId);
+      
+      // Set the selected patient for the search component
+      if (appointment.patientId && appointment.patient) {
+        // Determine the display name based on what's available
+        let patientName = '';
+        
+        if (appointment.patient.name) {
+          patientName = appointment.patient.name;
+        } 
+        else if (appointment.patient.patientId) {
+          patientName = appointment.patient.patientId;
+          if (appointment.patient.species) {
+            patientName += ` (${appointment.patient.species})`;
+          }
+        }
+        else if (appointment.patient.firstName || appointment.patient.lastName) {
+          patientName = `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim();
+        }
+        
+        if (!patientName) {
+          patientName = `Patient (ID: ${appointment.patientId.substring(0, 8)}...)`;
+        }
+        
+        setSelectedPatient({
+          id: appointment.patientId,
+          name: patientName
+        });
+      }
     }
-  }, [appointment, form])
+  }, [appointment, form]);
 
   const onSubmit = (data: AppointmentFormValues) => {
     updateAppointmentMutation.mutate({
@@ -175,20 +356,51 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 //     return null
 //   }
 
+const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
+  const reasonTranscriber = useTranscriber();
+  const notesTranscriber = useTranscriber();
+
+  // Audio transcription effect for reason
+  useEffect(() => {
+    const output = reasonTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "reason",
+        (form.getValues("reason") ? form.getValues("reason") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+    // eslint-disable-next-line
+  }, [reasonTranscriber.output?.isBusy]);
+
+  // Audio transcription effect for notes
+  useEffect(() => {
+    const output = notesTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "notes",
+        (form.getValues("notes") ? form.getValues("notes") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+    // eslint-disable-next-line
+  }, [notesTranscriber.output?.isBusy]);
+
+
   return (
     <>
       <Sheet open={true} onOpenChange={onClose}>
         <SheetContent className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
           <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle>Appointment Details</SheetTitle>
-            <Button
+            {/* <Button
               variant="outline"
               size="icon"
               onClick={() => setIsEditing(!isEditing)}
               className="h-8 w-8"
             >
               <Pencil className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </SheetHeader>
 
           {!isEditing ? (
@@ -204,7 +416,15 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Patient</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {appointment?.patient?.name}
+                    {appointment?.patient ? (
+                      appointment.patient.name || 
+                      (appointment.patient.patientId ? 
+                        `${appointment.patient.patientId}${appointment.patient.species ? ` (${appointment.patient.species})` : ''}` : 
+                        (appointment.patient.firstName || appointment.patient.lastName ? 
+                          `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim() : 
+                          `Patient (ID: ${appointment.patient.id.substring(0, 8)}...)`)
+                      )
+                    ) : 'Not assigned'}
                   </p>
                 </div>
                 <div>
@@ -228,7 +448,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Appointment Type</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {appointment?.appointmentType}
+                  {appointment?.appointmentType.name}
                   </p>
                 </div>
                 <div>
@@ -244,7 +464,12 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Time</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                    {appointment?.startTime} - {appointment?.endTime}
+                    {appointment?.roomSlot ? 
+                   `${formatTime(appointment.roomSlot.startTime)} - ${formatTime(appointment.roomSlot.endTime)}` : 
+                   appointment?.startTime && appointment?.endTime ? 
+                     `${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime)}` : 
+                     'Not set'
+                    }
                   </p>
                 </div>
                 <div>
@@ -253,17 +478,6 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     {appointment?.status}
                   </Badge>
                   
-                  {/* {(appointment?.status === "in_progress" || appointment?.status === "completed") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 theme-button-outline"
-                      onClick={handlePatientInfoClick}
-                    >
-                      <ClipboardList className=" h-4 w-4 mr-1" />
-                      Patient Information
-                    </Button>
-                  )} */}
                 </div>
               </div>
               <div className="space-y-4">
@@ -285,7 +499,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       onClick={handlePatientInfoClick}
                     >
                       <ClipboardList className=" h-4 w-4 mr-1" />
-                      Visit Information
+                      Visit Details
                     </Button>
                   )}
               </div>
@@ -321,12 +535,84 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                       <FormItem>
                         <FormLabel>Patient</FormLabel>
                         <FormControl>
-                          <Combobox
-                            options={patientOptions}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Select patient"
-                          />
+                          <div className="relative flex-grow" ref={searchDropdownRef}>
+                            {selectedPatient ? (
+                              <div className="flex items-center justify-between p-2 border rounded-md">
+                                <span>{selectedPatient.name}</span>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="p-1 h-auto"
+                                  onClick={clearSelectedPatient}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="relative w-full">
+                                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                                  <Input
+                                    placeholder="Search patients by name"
+                                    className="pl-10"
+                                    value={patientSearchQuery}
+                                    onChange={(e) => {
+                                      setPatientSearchQuery(e.target.value);
+                                      setIsSearchDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsSearchDropdownOpen(true)}
+                                  />
+                                </div>
+                                
+                                {/* Search results dropdown */}
+                                {isSearchDropdownOpen && patientSearchQuery && (
+                                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                                    {isSearching ? (
+                                      <div className="p-2 text-center text-gray-500">Searching...</div>
+                                    ) : typedSearchResults.length === 0 ? (
+                                      <div className="p-2 text-center text-gray-500">No patients found</div>
+                                    ) : (
+                                      <ul>
+                                        {typedSearchResults.map((patient) => {
+                                          // Determine the display name
+                                          let displayName = '';
+                                          
+                                          if (patient.name) {
+                                            displayName = patient.name;
+                                          } 
+                                          else if (patient.patientId) {
+                                            displayName = patient.patientId;
+                                            if (patient.species) {
+                                              displayName += ` (${patient.species})`;
+                                            }
+                                          }
+                                          else if (patient.firstName || patient.lastName) {
+                                            displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                                          }
+                                          
+                                          if (!displayName) {
+                                            displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+                                          }
+                                          
+                                          return (
+                                            <li
+                                              key={patient.id}
+                                              className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                              onClick={() => handlePatientSelect(patient)}
+                                            >
+                                              <div className="font-medium">{displayName}</div>
+                                            </li>
+                                          );
+                                        })}
+                                      </ul>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            <input type="hidden" {...field} />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -425,12 +711,43 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 
                   <FormField
                     control={form.control}
-                    name="startTime"
+                    name="roomSlotId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Start Time</FormLabel>
+                        <FormLabel>Available Slots</FormLabel>
                         <FormControl>
-                          <Input type="time" {...field} />
+                          <div className="mt-2">
+                            {isLoadingSlots ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Loading available slots...
+                              </div>
+                            ) : slots.items.length === 0 ? (
+                              <div className="text-sm text-gray-500">
+                                No slots available for this room
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {slots.items
+                                  .filter(slot => slot.isAvailable)
+                                  .map((slot: Slot) => (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    onClick={() => handleSlotClick(slot.id)}
+                                    className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+                                      selectedSlot === slot.id || field.value === slot.id
+                                        ? 'bg-green-100 border-green-300 text-green-800'
+                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    {formatTime(slot.startTime)}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <input type="hidden" {...field} />
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -444,11 +761,33 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     name="reason"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reason</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Reason</FormLabel>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setAudioModalOpen("reason")}
+                            title="Record voice note"
+                            disabled={reasonTranscriber.output?.isBusy}
+                          >
+                            {reasonTranscriber.output?.isBusy ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <FormControl>
                           <Textarea {...field} />
                         </FormControl>
                         <FormMessage />
+                        <AudioManager
+                          open={audioModalOpen === "reason"}
+                          onClose={() => setAudioModalOpen(null)}
+                          transcriber={reasonTranscriber}
+                          onTranscriptionComplete={() => setAudioModalOpen(null)}
+                        />
                       </FormItem>
                     )}
                   />
@@ -458,11 +797,33 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Notes</FormLabel>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setAudioModalOpen("notes")}
+                            title="Record voice note"
+                            disabled={notesTranscriber.output?.isBusy}
+                          >
+                            {notesTranscriber.output?.isBusy ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                         <FormControl>
                           <Textarea {...field} />
                         </FormControl>
                         <FormMessage />
+                        <AudioManager
+                          open={audioModalOpen === "notes"}
+                          onClose={() => setAudioModalOpen(null)}
+                          transcriber={notesTranscriber}
+                          onTranscriptionComplete={() => setAudioModalOpen(null)}
+                        />
                       </FormItem>
                     )}
                   />
@@ -491,4 +852,4 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       )}
     </>
   )
-} 
+}

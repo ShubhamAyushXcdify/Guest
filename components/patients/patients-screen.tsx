@@ -13,25 +13,34 @@ import {
 } from "@/components/ui/sheet"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { useGetPatients } from "@/queries/patients/get-patients"
+import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
 import { useDebounce } from "@/hooks/use-debounce"
+import { useRootContext } from "@/context/RootContext"
 
 export const PatientsScreen = () => {
   const [openNew, setOpenNew] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const { userType, clinic, user } = useRootContext()
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   
-  const { data: patientsData, isLoading, isError } = useGetPatients(
+  const { data: patientsData, isLoading: isLoadingPatients, isError: isErrorPatients } = useGetPatients(
     page,
     pageSize,
-    debouncedSearchQuery
+    debouncedSearchQuery,
+    '', // clientId
+    user?.clinicId || undefined // Use user.clinicId for filtering
   )
+
+  const { data: clinicPatientsData, isLoading: isLoadingClinicPatients, isError: isErrorClinicPatients } = useGetPatientsByClinicId(clinic?.id || '')
   
-  // Extract patients from the paginated response
-  const patients = patientsData?.items || []
-  const totalPages = patientsData?.totalPages || 1
+  // Extract patients from the appropriate data source
+  const patients = userType?.isReceptionist ? (clinicPatientsData || []) : (patientsData?.items || [])
+  const totalPages = userType?.isReceptionist ? 1 : (patientsData?.totalPages || 1)
+  const isLoading = userType?.isReceptionist ? isLoadingClinicPatients : isLoadingPatients
+  const isError = userType?.isReceptionist ? isErrorClinicPatients : isErrorPatients
 
   const handleSearch = (searchTerm: string) => {
     setSearchQuery(searchTerm)
@@ -39,7 +48,7 @@ export const PatientsScreen = () => {
     
     // Update URL with search parameter but don't expose specific fields
     const url = new URL(window.location.href);
-    url.searchParams.set('search', searchTerm);
+    url.searchParams.set('search', encodeURIComponent(searchTerm));
     
     // Update the URL without page reload
     window.history.pushState({}, '', url.toString());
@@ -57,7 +66,9 @@ export const PatientsScreen = () => {
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Patients</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">
+          {userType?.isReceptionist ? 'Clinic Patients' : 'Patients'}
+        </h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
             <Button>
@@ -84,7 +95,9 @@ export const PatientsScreen = () => {
           </div>
         ) : patients.length === 0 ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">No patients found. Add a patient to get started.</p>
+            <p className="text-muted-foreground">
+              {userType?.isReceptionist ? 'No patients found in this clinic.' : 'No patients found. Add a patient to get started.'}
+            </p>
           </div>
         ) : (
           <PatientsTable
@@ -95,6 +108,7 @@ export const PatientsScreen = () => {
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
             onSearch={handleSearch}
+            showClinicColumn={!user?.clinicId}
           />
         )}
       </div>

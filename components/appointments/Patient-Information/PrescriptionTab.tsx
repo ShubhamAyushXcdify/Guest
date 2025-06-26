@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Combobox } from "@/components/ui/combobox"
 import { PlusCircle, X, Trash2, Pencil } from "lucide-react"
 import { toast } from "sonner"
 import { useGetProducts } from "@/queries/products/get-products"
@@ -14,7 +14,8 @@ import { useUpdatePrescriptionDetail } from "@/queries/PrescriptionDetail/update
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface PrescriptionTabProps {
   patientId: string
@@ -32,9 +33,10 @@ interface ProductMapping {
 export default function PrescriptionTab({ patientId, appointmentId, onNext }: PrescriptionTabProps) {
   const [notes, setNotes] = useState("")
   const [productMappings, setProductMappings] = useState<ProductMapping[]>([])
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [currentMapping, setCurrentMapping] = useState<ProductMapping>({ productId: "", dosage: "", frequency: "" })
+  const { markTabAsCompleted } = useTabCompletion()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -61,12 +63,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           frequency: pm.frequency
         })))
       }
+      
+      // Mark tab as completed if it was already completed or if it has products
+      if (existingPrescriptionDetail.productMappings && 
+           existingPrescriptionDetail.productMappings.length > 0) {
+        markTabAsCompleted("assessment")
+      }
     }
-  }, [existingPrescriptionDetail])
+  }, [existingPrescriptionDetail, markTabAsCompleted])
   
   const createPrescriptionDetailMutation = useCreatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details saved successfully")
+      markTabAsCompleted("assessment")
       refetchPrescriptionDetail()
       if (onNext) onNext()
     },
@@ -78,6 +87,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const updatePrescriptionDetailMutation = useUpdatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details updated successfully")
+      markTabAsCompleted("assessment")
       refetchPrescriptionDetail()
       if (onNext) onNext()
     },
@@ -86,16 +96,16 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     }
   })
 
-  const openAddDialog = () => {
+  const openAddSheet = () => {
     setCurrentMapping({ productId: "", dosage: "", frequency: "" })
     setEditingIndex(null)
-    setIsAddDialogOpen(true)
+    setIsAddSheetOpen(true)
   }
 
-  const openEditDialog = (index: number) => {
+  const openEditSheet = (index: number) => {
     setCurrentMapping({ ...productMappings[index] })
     setEditingIndex(index)
-    setIsAddDialogOpen(true)
+    setIsAddSheetOpen(true)
   }
 
   const handleRemoveProduct = (index: number) => {
@@ -120,10 +130,10 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       setProductMappings([...productMappings, currentMapping])
     }
 
-    setIsAddDialogOpen(false)
+    setIsAddSheetOpen(false)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
@@ -139,20 +149,24 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       return
     }
     
+    const prescriptionData = {
+      notes,
+      isCompleted: true,
+      productMappings: validMappings.map(({ id, ...rest }) => rest)
+    }
+    
     if (existingPrescriptionDetail) {
       // Update existing prescription detail
-      updatePrescriptionDetailMutation.mutate({
+      await updatePrescriptionDetailMutation.mutateAsync({
         id: existingPrescriptionDetail.id,
-        notes,
-        productMappings: validMappings.map(({ id, ...rest }) => rest),
+        ...prescriptionData,
         visitId: visitData.id
       })
     } else {
       // Create new prescription detail
-      createPrescriptionDetailMutation.mutate({
+      await createPrescriptionDetailMutation.mutateAsync({
         visitId: visitData.id,
-        notes,
-        productMappings: validMappings.map(({ id, ...rest }) => rest)
+        ...prescriptionData
       })
     }
   }
@@ -194,7 +208,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             variant="outline" 
             size="sm" 
             className="flex items-center gap-1"
-            onClick={openAddDialog}
+            onClick={openAddSheet}
           >
             <PlusCircle className="h-4 w-4" /> 
             Add Medicine
@@ -227,7 +241,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => openEditDialog(index)}
+                          onClick={() => openEditSheet(index)}
                           className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                         >
                           <Pencil className="h-4 w-4" />
@@ -276,34 +290,28 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         </div>
       </CardContent>
 
-      {/* Add/Edit Product Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingIndex !== null ? "Edit Product" : "Add Medicine"}</DialogTitle>
-          </DialogHeader>
+      {/* Add/Edit Product Side Sheet */}
+      <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editingIndex !== null ? "Edit Medicine" : "Add Medicine"}</SheetTitle>
+          </SheetHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
+          <div className="space-y-6 py-6">
+            <div className="space-y-3">
               <Label htmlFor="product">Medicine</Label>
-              <Select
+              <Combobox
+                options={products.map(product => ({
+                  value: product.id,
+                  label: product.name
+                }))}
                 value={currentMapping.productId}
                 onValueChange={(value) => setCurrentMapping({...currentMapping, productId: value})}
-              >
-                <SelectTrigger id="product">
-                  <SelectValue placeholder="Select a medicine" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select a medicine"
+              />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="dosage">Dosage</Label>
               <Input
                 id="dosage"
@@ -313,7 +321,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label htmlFor="frequency">Frequency</Label>
               <Input
                 id="frequency"
@@ -321,15 +329,36 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 value={currentMapping.frequency}
                 onChange={(e) => setCurrentMapping({...currentMapping, frequency: e.target.value})}
               />
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {[
+                  "1-0-1",
+                  "1-0-0",
+                  "0-0-1",
+                  "1-1-1",
+                  "0.5-0-0.5",
+                  "0.5-0-0",
+                  "0-0-0.5",
+                  "0.5-0.5-0.5"
+                ].map(value => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
+                    onClick={() => setCurrentMapping({...currentMapping, frequency: value})}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+          <SheetFooter className="pt-4">
+            <Button variant="outline" onClick={() => setIsAddSheetOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveMapping}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </Card>
   )
 }

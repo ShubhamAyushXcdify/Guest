@@ -9,6 +9,8 @@ import { Supplier } from "./index";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
+import { useRootContext } from '@/context/RootContext';
+import { useEffect } from "react";
 
 type NewSupplierProps = {
   onSuccess?: () => void;
@@ -16,6 +18,7 @@ type NewSupplierProps = {
 
 export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   const router = useRouter();
+  const { user, userType, clinic } = useRootContext();
   const { data: clinicsData } = useGetClinic();
   const clinics = clinicsData?.items || [];
   
@@ -42,7 +45,7 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   
   const form = useForm<Omit<Supplier, "id" | "createdAt" | "updatedAt">>({
     defaultValues: {
-      clinicId: "",
+      clinicId: clinic?.id || "",
       name: "",
       contactPerson: "",
       email: "",
@@ -57,6 +60,15 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
       isActive: true,
     },
   });
+
+  const handleClinicDefaultState = () => {
+    if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
+      form.setValue("clinicId", clinic.id);
+    }
+  };
+  useEffect(() => {
+    handleClinicDefaultState();
+  }, [clinic]);
   
   const handleSubmit = async (values: Omit<Supplier, "id" | "createdAt" | "updatedAt">) => {
     try {
@@ -70,26 +82,28 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
         <div className="grid grid-cols-1 gap-8">
-          <FormField name="clinicId" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Clinic</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a clinic" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {clinics?.map((clinic) => (
-                    <SelectItem key={clinic.id} value={clinic.id}>
-                      {clinic.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
+          {!clinic.id && (
+            <FormField name="clinicId" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Clinic</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a clinic" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {clinics?.map((clinic) => (
+                      <SelectItem key={clinic.id} value={clinic.id}>
+                        {clinic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
           
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>

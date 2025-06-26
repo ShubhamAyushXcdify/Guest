@@ -18,6 +18,7 @@ import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 
 // Clinic type based on provided schema
 export type Clinic = {
@@ -34,8 +35,8 @@ export type Clinic = {
   website: string;
   taxId: string;
   licenseNumber: string;
-  subscriptionStatus: string;
-  subscriptionExpiresAt: string;
+  // subscriptionStatus: string;
+  // subscriptionExpiresAt: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -48,7 +49,9 @@ function Clinic() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
-  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, search);
+  const debouncedSearch = useDebounce(search, 300);
+  
+  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, debouncedSearch);
   
   // Extract the clinics from the paginated response
   const clinics = clinicData?.items || [];
@@ -104,6 +107,13 @@ function Clinic() {
   const handleSearch = (value: string) => {
     setSearch(value);
     setPageNumber(1); // Reset to first page when searching
+    
+    // Update URL with search parameter
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', encodeURIComponent(value));
+    
+    // Update the URL without page reload
+    window.history.pushState({}, '', url.toString());
   };
 
   const columns: ColumnDef<Clinic>[] = [
@@ -124,7 +134,7 @@ function Clinic() {
     { accessorKey: "country", header: "Country" },
     { accessorKey: "phone", header: "Phone" },
     { accessorKey: "email", header: "Email" },
-    { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
+    // { accessorKey: "subscriptionStatus", header: "Subscription", cell: ({ getValue }) => <Badge>{getValue() as string}</Badge> },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -140,6 +150,7 @@ function Clinic() {
           >
             <Edit className="h-4 w-4" />
           </Button>
+          {/* Delete button commented out
           <Button 
             variant="ghost" 
             size="icon"
@@ -151,6 +162,7 @@ function Clinic() {
           >
             <Trash2 className="h-4 w-4" />
           </Button>
+          */}
         </div>
       ),
       meta: { className: "text-center" },

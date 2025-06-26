@@ -38,22 +38,27 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
         let token = getJwtToken(request);
 
         if(!token) {
             token = testToken;
         }
 
+        // Clone the request to avoid consuming it
+        const clonedRequest = request.clone();
+        
+        // Forward the multipart/form-data request directly
+        const formData = await clonedRequest.formData();
+        
         const response = await fetch(
             `${apiUrl}/api/IntakeDetail`,
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    // Don't set Content-Type, it will be set automatically with the boundary
                 },
-                body: JSON.stringify(body),
+                body: formData,
             }
         );
 

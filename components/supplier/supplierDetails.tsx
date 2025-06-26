@@ -45,7 +45,6 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
   
   const handleSubmit = async (values: Supplier) => {
     try {
-      console.log('Submitting supplier data:', values);
       await updateSupplier.mutateAsync(values);
       toast({
         title: "Success",

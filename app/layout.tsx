@@ -3,6 +3,8 @@ import "@/app/globals.css"
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import localFont from "next/font/local";
 import QueryWrapper from "@/components/layout/queryWrapper";
+import { Toaster } from "@/components/ui/toaster";
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -23,11 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <QueryWrapper>
-          <NuqsAdapter>
+        <NuqsAdapter>
+          <QueryWrapper>
             {children}
-          </NuqsAdapter>
-        </QueryWrapper>
+            <Toaster />
+          </QueryWrapper>
+        </NuqsAdapter>
       </body>
     </html>
   )

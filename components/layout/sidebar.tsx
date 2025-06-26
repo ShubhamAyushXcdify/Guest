@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { SidebarGroup, SidebarGroupLabel, useSidebar } from "@/components/ui/sidebar"
 import { NavItem } from "./nav-item"
+import { useRootContext } from "@/context/RootContext"
 
 const navItems = [
     { name: "Dashboard", icon: Home, href: "/dashboard" },
@@ -73,17 +74,23 @@ const navGroups = [
                 color: "text-blue-500",
             },
             {
+                href: "/clients",
+                label: "Clients",
+                icon: Users,
+                color: "text-blue-500",
+            },
+            {
                 href: "/inventory",
                 label: "Inventory",
                 icon: Package,
                 color: "text-blue-500",
             },
-            {
-                href: "/prescriptions",
-                label: "Prescriptions",
-                icon: Pill,
-                color: "text-blue-500",
-            },
+            // {
+            //     href: "/prescriptions",
+            //     label: "Prescriptions",
+            //     icon: Pill,
+            //     color: "text-blue-500",
+            // },
         ],
     },
     {
@@ -139,23 +146,25 @@ const navGroups = [
                 color: "text-purple-500",
             }
         ],
-    },
-    {
-        title: "Settings",
-        icon: Settings2,
-        items: [
-            {
-                href: "/settings",
-                label: "Settings",
-                icon: Settings,
-                color: "text-green-500",
-            },
-        ],
-    },
+    }
+    // },
+    // {
+    //     title: "Settings",
+    //     icon: Settings2,
+    //     items: [
+    //         {
+    //             href: "/settings",
+    //             label: "Settings",
+    //             icon: Settings,
+    //             color: "text-green-500",
+    //         },
+    //     ],
+    // },
 ]
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
+    const { handleLogout, IsAdmin, user } = useRootContext()
     const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
         "Core Operations": true,
         "Products & Services": true,
@@ -175,52 +184,58 @@ export function Sidebar() {
     // Single group for all nav items
     const renderNavItems = () => (
         <nav className="space-y-1 px-3">
-            {navGroups.map((group) => (
-                <SidebarGroup key={group.title}>
-                    <Collapsible
-                        open={expandedGroups[group.title]}
-                        onOpenChange={() => toggleGroup(group.title)}
-                    >
-                        <SidebarGroupLabel>
-                            <CollapsibleTrigger className={cn(
-                                "flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
-                                state === "collapsed" && "justify-center"
-                            )}>
-                                <div className={cn(
-                                    "flex items-center gap-2",
+            {navGroups.map((group) => {
+                if ((group.title === "Administration" || group.title === "Settings") && !IsAdmin) {
+                    return null;
+                }
+                
+                return (
+                    <SidebarGroup key={group.title}>
+                        <Collapsible
+                            open={expandedGroups[group.title]}
+                            onOpenChange={() => toggleGroup(group.title)}
+                        >
+                            <SidebarGroupLabel>
+                                <CollapsibleTrigger className={cn(
+                                    "flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
                                     state === "collapsed" && "justify-center"
                                 )}>
-                                    <group.icon className="h-4 w-4" />
-                                    {state !== "collapsed" && <span>{group.title}</span>}
+                                    <div className={cn(
+                                        "flex items-center gap-2",
+                                        state === "collapsed" && "justify-center"
+                                    )}>
+                                        <group.icon className="h-4 w-4" />
+                                        {state !== "collapsed" && <span>{group.title}</span>}
+                                    </div>
+                                    {state !== "collapsed" && (
+                                        <ChevronDown
+                                            className={`h-4 w-4 transition-transform duration-200 ${expandedGroups[group.title] ? "rotate-180" : ""
+                                                }`}
+                                        />
+                                    )}
+                                </CollapsibleTrigger>
+                            </SidebarGroupLabel>
+                            <CollapsibleContent>
+                                <div className={cn(
+                                    "mt-2 space-y-1",
+                                    state === "collapsed" ? "pl-0" : "pl-3"
+                                )}>
+                                    {group.items.map((item) => (
+                                        <NavItem
+                                            key={item.href}
+                                            href={item.href}
+                                            label={item.label}
+                                            icon={item.icon}
+                                            isActive={pathname === item.href}
+                                            color={item.color}
+                                        />
+                                    ))}
                                 </div>
-                                {state !== "collapsed" && (
-                                    <ChevronDown
-                                        className={`h-4 w-4 transition-transform duration-200 ${expandedGroups[group.title] ? "rotate-180" : ""
-                                            }`}
-                                    />
-                                )}
-                            </CollapsibleTrigger>
-                        </SidebarGroupLabel>
-                        <CollapsibleContent>
-                            <div className={cn(
-                                "mt-2 space-y-1",
-                                state === "collapsed" ? "pl-0" : "pl-3"
-                            )}>
-                                {group.items.map((item) => (
-                                    <NavItem
-                                        key={item.href}
-                                        href={item.href}
-                                        label={item.label}
-                                        icon={item.icon}
-                                        isActive={pathname === item.href}
-                                        color={item.color}
-                                    />
-                                ))}
-                            </div>
-                        </CollapsibleContent>
-                    </Collapsible>
-                </SidebarGroup>
-            ))}
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </SidebarGroup>
+                );
+            })}
         </nav>
     )
 
@@ -270,21 +285,21 @@ export function Sidebar() {
                         )}>
                             <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)]/30 rounded-full flex items-center justify-center">
                                 <AvatarImage src="/placeholder-user.jpg" alt="User" className="rounded-full" />
-                                <AvatarFallback className="text-white">AD</AvatarFallback>
+                                <AvatarFallback className="text-white">{user?.firstName?.charAt(0) || ''}{user?.lastName?.charAt(0) || ''}</AvatarFallback>
                             </Avatar>
                             {state !== "collapsed" && (
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">Admin User</p>
-                                    <p className="text-xs text-white/70 truncate">admin@example.com</p>
+                                    <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                                    <p className="text-xs text-white/70 truncate">{user?.email}</p>
                                 </div>
                             )}
                             {state !== "collapsed" && (
-                                <Link href="/">
+                                <div onClick={handleLogout}>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
                                         <LogOut className="h-4 w-4" />
                                         <span className="sr-only">Log out</span>
                                     </Button>
-                                </Link>
+                                </div>
                             )}
                         </div>
                     </div>

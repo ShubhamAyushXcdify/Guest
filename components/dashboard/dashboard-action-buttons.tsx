@@ -21,9 +21,9 @@ export const DashboardActionButtons = ({
       <Button className="theme-button text-white" onClick={onNewAppointment}>
         New Appointment
       </Button>
-      <Button className="theme-button text-white" onClick={onNewInvoice}>
+      {/* <Button className="theme-button text-white" onClick={onNewInvoice}>
         New Invoice
-      </Button>
+      </Button> */}
     </div>
   )
 } 

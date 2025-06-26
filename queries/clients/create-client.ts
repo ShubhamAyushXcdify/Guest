@@ -21,8 +21,6 @@ interface CreateClientPayload {
 }
 
 const createClient = async (clientData: CreateClientPayload): Promise<Client> => {
-  console.log("createClient function called with data:", clientData);
-  
   try {
     const response = await fetch('/api/clients', {
       method: 'POST',
@@ -32,16 +30,13 @@ const createClient = async (clientData: CreateClientPayload): Promise<Client> =>
       body: JSON.stringify(clientData),
     });
 
-    console.log("Client API response status:", response.status);
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Client API error response:", errorData);
+       console.error("Client API error response:", errorData);
       throw new Error(errorData.message || 'Failed to create client');
     }
 
     const data = await response.json();
-    console.log("Client created successfully, API response:", data);
     return data as Client;
   } catch (error) {
     console.error("Error in createClient function:", error);
@@ -59,7 +54,7 @@ export function useCreateClient() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
     onError: (error: Error) => {
-      console.error("Client creation error:", error);
+       console.error("Client creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create client",

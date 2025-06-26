@@ -209,10 +209,10 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-4", className, "relative flex flex-col h-full max-h-[calc(100vh-400px)] overflow-y-auto")}>
       {searchColumn && (
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 group">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="relative flex-grow">
             <Input
               placeholder={searchPlaceholder}
               value={globalFilter ?? ""}
@@ -224,6 +224,11 @@ export function DataTable<TData, TValue>({
                 }
               }}
               className="pr-9 transition-all duration-200 pl-9"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
+              }}
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-foreground/70 transition-colors duration-200" />
             {globalFilter && (
@@ -246,7 +251,7 @@ export function DataTable<TData, TValue>({
       )}
 
       {/* Scrollable Table Area */}
-      <div className="rounded-md border max-h-[65vh] overflow-y-auto">
+      <div className="rounded-md border flex-grow overflow-auto">
         <Table className="table-auto w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -289,7 +294,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls - always visible at the bottom */}
-      <div className="flex items-center justify-between pt-2 bg-white sticky bottom-0 z-10">
+      <div className="flex items-center justify-between pt-2 bg-white sticky bottom-0 z-10 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <p className="text-sm text-muted-foreground">
             Page {page} of {totalPages}

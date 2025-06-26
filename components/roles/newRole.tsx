@@ -9,6 +9,7 @@ import { useCreateRole } from "@/queries/roles/create-role";
 import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Role } from "@/queries/roles/get-role";
+import { useQueryClient } from "@tanstack/react-query";
 
 type RoleFormValues = {
     name: string;
@@ -16,6 +17,7 @@ type RoleFormValues = {
     isPrivileged: boolean;
     metadata: string; // flexible JSON-like structure
     isClinicRequired: boolean;
+    colourName: string;
   };
   
 
@@ -25,9 +27,12 @@ interface NewRoleProps {
 
 export default function NewRole({ onSuccess }: NewRoleProps) {
   const router = useRouter();
+   const queryClient = useQueryClient();
   
   const createRole = useCreateRole({
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["role"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
         title: "Success",
         description: "Role created successfully",
@@ -54,6 +59,7 @@ export default function NewRole({ onSuccess }: NewRoleProps) {
       isPrivileged: false,
       metadata: "{}",
       isClinicRequired: false,
+      colourName: "#000000",
     },
   });
 
@@ -85,20 +91,55 @@ export default function NewRole({ onSuccess }: NewRoleProps) {
             </FormItem>
           )} />
           
-          <FormField name="isPrivileged" control={form.control} render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Privileged</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
+          <FormField
+            name="colourName"
+            control={form.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel style={{ fontWeight: "bold", marginBottom: 8 }}>Color</FormLabel>
+                <FormControl>
+                  <div style={{ position: "relative", width: 48, height: 48 }}>
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: "50%",
+                        background: field.value || "#ff001a",
+                        border: "2px solid #eee",
+                        cursor: "pointer",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        zIndex: 1,
+                      }}
+                      onClick={() => {
+                        document.getElementById("hidden-color-input")?.click();
+                      }}
+                    />
+                    <input
+                      id="hidden-color-input"
+                      type="color"
+                      value={field.value || "#ff001a"}
+                      onChange={e => field.onChange(e.target.value)}
+                      style={{
+                        opacity: 0,
+                        width: 48,
+                        height: 48,
+                        border: "none",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        cursor: "pointer",
+                        zIndex: 2,
+                      }}
+                      tabIndex={-1}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField name="isClinicRequired" control={form.control} render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">

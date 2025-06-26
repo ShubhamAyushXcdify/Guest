@@ -86,6 +86,16 @@ export default function Roles() {
     { accessorKey: "name", header: "Name" },
     { accessorKey: "value", header: "Value" },
     { 
+      accessorKey: "colourName", 
+      header: "Color", 
+      cell: ({ getValue }) => (
+        <div 
+          className="w-6 h-6 rounded-full border border-gray-300" 
+          style={{ backgroundColor: getValue() as string }}
+        ></div>
+      )
+    },
+    { 
       accessorKey: "isPrivileged", 
       header: "Privileged", 
       cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "secondary"}>{getValue() ? "Yes" : "No"}</Badge>

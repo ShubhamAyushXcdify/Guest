@@ -12,6 +12,7 @@ import { useCreateProcedureDetail } from "@/queries/ProcedureDetails/create-proc
 import { useGetProcedureDetailByVisitId } from "@/queries/ProcedureDetails/get-procedure-detail-by-visit-id"
 import { useUpdateProcedureDetail } from "@/queries/ProcedureDetails/update-procedure-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useTabCompletion } from "@/context/TabCompletionContext"
 
 interface ProcedureTabProps {
   patientId: string
@@ -24,6 +25,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [isAddingProcedure, setIsAddingProcedure] = useState(false)
   const [newProcedureName, setNewProcedureName] = useState("")
   const [notes, setNotes] = useState("")
+  const { markTabAsCompleted } = useTabCompletion()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -36,12 +38,23 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   // Initialize selected procedures and notes from existing data
   useEffect(() => {
     if (existingProcedureDetail) {
-      setSelectedProcedures(existingProcedureDetail.procedures.map(p => p.id))
+      // Check if procedures array exists before accessing it
+      if (existingProcedureDetail.procedures && Array.isArray(existingProcedureDetail.procedures)) {
+        setSelectedProcedures(existingProcedureDetail.procedures.map(p => p.id));
+      }
+      
       if (existingProcedureDetail.notes) {
-        setNotes(existingProcedureDetail.notes)
+        setNotes(existingProcedureDetail.notes);
+      }
+      
+      // Mark tab as completed if it was already completed or if it has procedures
+      if (existingProcedureDetail.isCompleted || 
+          (existingProcedureDetail.procedures && 
+           existingProcedureDetail.procedures.length > 0)) {
+        markTabAsCompleted("procedure");
       }
     }
-  }, [existingProcedureDetail])
+  }, [existingProcedureDetail, markTabAsCompleted])
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
@@ -54,27 +67,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
   })
 
-  const createProcedureDetailMutation = useCreateProcedureDetail({
-    onSuccess: () => {
-      toast.success("Procedure details saved successfully")
-      refetchProcedureDetail()
-      if (onNext) onNext()
-    },
-    onError: (error) => {
-      toast.error(`Failed to save procedure details: ${error.message}`)
-    }
-  })
-
-  const updateProcedureDetailMutation = useUpdateProcedureDetail({
-    onSuccess: () => {
-      toast.success("Procedure details updated successfully")
-      refetchProcedureDetail()
-      if (onNext) onNext()
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to update procedure details: ${error.message}`)
-    }
-  })
+  // Use mutateAsync pattern like MedicalHistoryTab
+  const { mutateAsync: createProcedureDetail, isPending: isCreating } = useCreateProcedureDetail()
+  const { mutateAsync: updateProcedureDetail, isPending: isUpdating } = useUpdateProcedureDetail()
+  
+  // Combined loading state
+  const isPending = isCreating || isUpdating
 
   const handleProcedureClick = (id: string) => {
     setSelectedProcedures(prev => 
@@ -92,28 +90,46 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
     
-    if (existingProcedureDetail) {
-      // Update existing procedure detail
-      updateProcedureDetailMutation.mutate({
-        id: existingProcedureDetail.id,
-        procedureIds: selectedProcedures,
-        notes,
-        isCompleted: true
-      })
-    } else {
-      // Create new procedure detail
-      createProcedureDetailMutation.mutate({
-        visitId: visitData.id,
-        procedureIds: selectedProcedures,
-        notes,
-        isCompleted: true
-      })
+    try {
+      if (existingProcedureDetail) {
+        // Update with ID in the payload as required by the API
+        await updateProcedureDetail({
+          id: existingProcedureDetail.id,
+          notes: notes || "",
+          isCompleted: true,
+          procedureIds: selectedProcedures
+        })
+        
+        toast.success("Procedure details updated successfully")
+      } else {
+        // Create new procedure detail
+        await createProcedureDetail({
+          visitId: visitData.id,
+          notes: notes || "",
+          isCompleted: true,
+          procedureIds: selectedProcedures
+        })
+        
+        toast.success("Procedure details saved successfully")
+      }
+      
+      // Mark the tab as completed
+      markTabAsCompleted("procedure")
+      
+      // After successful save, navigate to next tab
+      if (onNext) {
+        onNext()
+      }
+      
+    } catch (error) {
+      console.error('Error saving procedure details:', error)
+      toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -240,10 +256,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={createProcedureDetailMutation.isPending || updateProcedureDetailMutation.isPending}
+                disabled={isPending}
                 className="ml-2"
               >
-                {createProcedureDetailMutation.isPending || updateProcedureDetailMutation.isPending 
+                {isPending 
                   ? "Saving..." 
                   : existingProcedureDetail ? "Update" : "Save and Next"}
               </Button>
@@ -253,4 +269,4 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       </CardContent>
     </Card>
   )
-} 
+}
