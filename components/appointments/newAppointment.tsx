@@ -55,10 +55,11 @@ const newAppointmentSchema = z.object({
   roomId: z.string().uuid("Please select a room"),
   appointmentDate: z.date().refine(date => !!date, "Please select an appointment date"),
   slotId: z.string().min(1, "Please select a slot"),
-  appointmentType: z.string().min(1, "Please select an appointment type"),
+  appointmentTypeId: z.string().min(1, "Please select an appointment type"),
   reason: z.string().min(1, "Please provide a reason for the appointment"),
   status: z.string(),
   notes: z.string().optional(),
+  isActive: z.boolean().optional(),
 })
 
 type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
@@ -108,11 +109,12 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
       roomId: "",
       appointmentDate: undefined,
       slotId: "",
-      appointmentType: "",
+      appointmentTypeId: "",
       reason: "",
       status: "scheduled",
       notes: "",
-    },
+      isActive: true,
+      },
   })
 
   // Get selected room ID for slots
@@ -663,7 +665,7 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
 
                   <FormField
                     control={form.control}
-                    name="appointmentType"
+                    name="appointmentTypeId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Appointment Type</FormLabel>
