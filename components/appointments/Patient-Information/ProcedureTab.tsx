@@ -50,12 +50,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         markTabAsCompleted("procedure")
       }
     }
-    
-    // Ensure the tab is marked as completed on each render if procedures exist
-    if (selectedProcedures.length > 0) {
-      markTabAsCompleted("procedure")
-    }
-  }, [existingProcedureDetail, markTabAsCompleted, selectedProcedures])
+  }, [existingProcedureDetail, markTabAsCompleted])
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
@@ -270,4 +265,4 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       </CardContent>
     </Card>
   )
-} 
+}

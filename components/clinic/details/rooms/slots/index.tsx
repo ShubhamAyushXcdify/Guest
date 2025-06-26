@@ -4,7 +4,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Trash2, ArrowLeft, Eye } from "lucide-react";
+import { Edit, Plus, Trash2, ArrowLeft } from "lucide-react";
 import withAuth from "@/utils/privateRouter";
 import { useDeleteSlot } from "@/queries/slots/delete-slot";
 import { toast } from "@/components/ui/use-toast";
@@ -131,11 +131,7 @@ function Slots({ roomId, clinicId }: SlotProps) {
               handleEditSlotClick(row.original.id);
             }}
           >
-            {row.original.isAvailable ? (
-              <Eye className="h-4 w-4" />
-            ) : (
-              <Edit className="h-4 w-4" />
-            )}
+            <Edit className="h-4 w-4" />
           </Button>
           <Button 
             variant="ghost" 

@@ -105,7 +105,14 @@ function UserComponent({ clinicId }: UserProps) {
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
-    { accessorKey: "role", header: "Role" },
+    { 
+      accessorKey: "roleName", 
+      header: "Role",
+      cell: ({ getValue }) => {
+        const value = getValue() as string | undefined;
+        return value && typeof value === 'string' && value.trim() !== '' ? value : null;
+      }
+    },
     { 
       accessorKey: "isActive", 
       header: "Status", 
