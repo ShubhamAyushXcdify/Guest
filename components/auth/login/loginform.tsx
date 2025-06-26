@@ -109,8 +109,8 @@ export function LoginForm() {
                   <div className="flex items-center">
                     <FormLabel>Password</FormLabel>
                     <Link
-                      href="#"
-                      className="ml-auto inline-block text-sm underline"
+                      href="/forgot-password"
+                      className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80"
                     >
                       Forgot your password?
                     </Link>
