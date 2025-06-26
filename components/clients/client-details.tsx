@@ -7,7 +7,7 @@ import { useGetClientById } from "@/queries/clients/get-client";
 import { useGetPatients } from "@/queries/patients/get-patients";
 import { PatientsTable } from "@/components/patients/patients-table";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, CalendarIcon, ArrowLeft } from "lucide-react";
+import { Plus, Calendar, CalendarIcon, ArrowLeft, Edit, Save, CheckCircle } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +22,8 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useRootContext } from "@/context/RootContext";
 import { useRouter } from "next/navigation";
+import { ClientForm } from "./client-form";
+import { toast } from "@/components/ui/use-toast";
 
 interface ClientDetailsProps {
   clientId: string;
@@ -34,10 +36,11 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
   const [activeTab, setActiveTab] = useState("list");
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [isEditing, setIsEditing] = useState(false);
   const { userType, clinic } = useRootContext();
   const router = useRouter();
 
-  const { data: client, isLoading, isError } = useGetClientById(clientId);
+  const { data: client, isLoading, isError, refetch } = useGetClientById(clientId);
   const { data: patientsData, isLoading: isLoadingPatients, isError: isErrorPatients } = useGetPatients(
     pageNumber, 
     pageSize, 
@@ -87,17 +90,56 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
       </Button>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Information</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Owner Information</CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsEditing(!isEditing)}
+            className="flex items-center gap-1"
+          >
+            {isEditing ? "Cancel" : <><Edit className="h-4 w-4 mr-1" /> Edit</>}
+          </Button>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <p><strong>Name:</strong> {client.firstName} {client.lastName}</p>
-          <p><strong>Email:</strong> {client.email}</p>
-          <p><strong>Primary Phone:</strong> {client.phonePrimary}</p>
-          <p><strong>Secondary Phone:</strong> {client.phoneSecondary || 'N/A'}</p>
-          <p><strong>Address:</strong> {client.addressLine1}, {client.city}, {client.state}, {client.postalCode}</p>
-          <p><strong>Clinic:</strong> {client.clinicName}</p>
-          <p><strong>Active:</strong> {client.isActive ? 'Yes' : 'No'}</p>
+        <CardContent>
+          {!isEditing ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <p><strong>Name:</strong> {client.firstName} {client.lastName}</p>
+              <p><strong>Email:</strong> {client.email}</p>
+              <p><strong>Primary Phone:</strong> {client.phonePrimary}</p>
+              <p><strong>Secondary Phone:</strong> {client.phoneSecondary || 'N/A'}</p>
+              <p><strong>Address:</strong> {client.addressLine1}, {client.city}, {client.state}, {client.postalCode}</p>
+              <p><strong>Clinic:</strong> {client.clinicName}</p>
+              <p><strong>Active:</strong> {client.isActive ? 'Yes' : 'No'}</p>
+            </div>
+          ) : (
+            <ClientForm
+              defaultValues={{
+                id: client.id,
+                clinicId: client.clinicId || clinic?.id || "",
+                firstName: client.firstName || "",
+                lastName: client.lastName || "",
+                email: client.email || "",
+                phonePrimary: client.phonePrimary || "",
+                phoneSecondary: client.phoneSecondary || "",
+                addressLine1: client.addressLine1 || "",
+                addressLine2: client.addressLine2 || "",
+                city: client.city || "",
+                state: client.state || "",
+                postalCode: client.postalCode || "",
+                emergencyContactName: client.emergencyContactName || "",
+                emergencyContactPhone: client.emergencyContactPhone || "",
+                notes: client.notes || "",
+                isActive: client.isActive ?? true,
+              }}
+              onSuccess={(updatedClient) => {
+                setIsEditing(false);
+                refetch(); // Refresh client data
+              }}
+              isUpdate={true} // Force update mode
+              clinicId={client.clinicId || clinic?.id || ""}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -106,7 +148,6 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle>Patients</CardTitle>
-          
         </CardHeader>
         <CardContent>
           {isLoadingPatientsList ? (

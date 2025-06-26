@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Client } from "@/queries/clients/get-client";
 import { useCreateClient } from "@/queries/clients/create-client";
+import { useUpdateClient } from "@/queries/clients/update-client";
 import { toast } from "@/components/ui/use-toast";
 import { ClinicSelect } from "@/components/clinics/clinic-select";
 import { useRootContext } from '@/context/RootContext';
@@ -25,6 +26,7 @@ import { AudioManager } from "@/components/audioTranscriber/AudioManager";
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber";
 
 const clientFormSchema = z.object({
+  id: z.string().optional(),
   firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
   lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -39,6 +41,7 @@ const clientFormSchema = z.object({
   emergencyContactPhone: z.string().optional(),
   notes: z.string().optional(),
   clinicId: z.string().optional(),
+  isActive: z.boolean().default(true),
 });
 
 type ClientFormValues = z.infer<typeof clientFormSchema>;
@@ -48,10 +51,12 @@ interface ClientFormProps {
   onSuccess?: (client: Client) => void;
   clinicId?: string;
   nestedForm?: boolean;
+  isUpdate?: boolean;
 }
 
 export function ClientForm({
   defaultValues = {
+    id: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -65,14 +70,17 @@ export function ClientForm({
     emergencyContactName: "",
     emergencyContactPhone: "",
     notes: "",
+    isActive: true,
   },
   onSuccess,
   clinicId,
   nestedForm = false,
+  isUpdate = false,
 }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [audioModalOpen, setAudioModalOpen] = useState(false);
   const createClientMutation = useCreateClient();
+  const updateClientMutation = useUpdateClient();
   const { clinic } = useRootContext();
   const notesTranscriber = useTranscriber();
 
@@ -106,24 +114,58 @@ export function ClientForm({
       const clientData = {
         ...data,
         clinicId: clinic?.id || data.clinicId || "",
-        isActive:true
+        isActive: data.isActive !== undefined ? data.isActive : true
       };
       
-      const newClient = await createClientMutation.mutateAsync(clientData);
+      console.log("Form submission - isUpdate:", isUpdate);
+      console.log("Form submission - client ID:", data.id);
+      console.log("Form submission data:", clientData);
       
-      toast({
-        title: "Success",
-        description: "Owner created successfully",
-      });
+      let updatedClient: Client;
+      
+      // Force update if isUpdate prop is true, regardless of ID
+      if (isUpdate) {
+        console.log("Using UPDATE mutation - ID:", data.id);
+        updatedClient = await updateClientMutation.mutateAsync({
+          id: (data.id || defaultValues.id || "") as string,  // Ensure we have the ID with string typecast
+          clinicId: clientData.clinicId,
+          firstName: clientData.firstName,
+          lastName: clientData.lastName, 
+          email: clientData.email,
+          phonePrimary: clientData.phonePrimary,
+          phoneSecondary: clientData.phoneSecondary,
+          addressLine1: clientData.addressLine1,
+          addressLine2: clientData.addressLine2,
+          city: clientData.city,
+          state: clientData.state,
+          postalCode: clientData.postalCode,
+          emergencyContactName: clientData.emergencyContactName,
+          emergencyContactPhone: clientData.emergencyContactPhone,
+          notes: clientData.notes,
+          isActive: clientData.isActive
+        });
+        toast({
+          title: "Success",
+          description: "Owner updated successfully",
+        });
+      } else {
+        console.log("Using CREATE mutation");
+        // Otherwise use create mutation
+        updatedClient = await createClientMutation.mutateAsync(clientData);
+        toast({
+          title: "Success",
+          description: "Owner created successfully",
+        });
+      }
       
       if (onSuccess) {
-        onSuccess(newClient);
+        onSuccess(updatedClient);
       }
     } catch (error) {
-      console.error("Error creating client:", error);
+      console.error(`Error ${isUpdate ? "updating" : "creating"} owner:`, error);
       toast({
         title: "Error",
-        description: "Failed to create owner. Please try again.",
+        description: `Failed to ${isUpdate ? "update" : "create"} owner. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -134,6 +176,17 @@ export function ClientForm({
   // The form fields content
   const formContent = (
     <div className="space-y-6">
+      {/* Hidden ID field for updates */}
+      {isUpdate && (
+        <FormField
+          control={form.control}
+          name="id"
+          render={({ field }) => (
+            <input type="hidden" {...field} />
+          )}
+        />
+      )}
+      
       {/* Clinic Selection Field - Only show if clinic.id is not present */}
       {!clinic?.id && (
         <ClinicSelect
@@ -314,6 +367,26 @@ export function ClientForm({
           )}
         />
       </div>
+      
+      {isUpdate && (
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Active</FormLabel>
+              </div>
+            </FormItem>
+          )}
+        />
+      )}
 
      <FormField
         control={form.control}
@@ -358,7 +431,7 @@ export function ClientForm({
 
       <Button
         type="button"
-        className="theme-button text-white w-full"
+        className={isUpdate ? "bg-green-600 hover:bg-green-700 text-white w-full" : "theme-button text-white w-full"}
         disabled={isSubmitting}
         onClick={(e) => {
           e.preventDefault();
@@ -366,7 +439,10 @@ export function ClientForm({
           form.handleSubmit(onSubmit)();
         }}
       >
-        {isSubmitting ? "Saving..." : "Save Client"}
+        {isSubmitting 
+          ? (isUpdate ? "Updating..." : "Saving...") 
+          : (isUpdate ? "Update Owner" : "Save Owner")
+        }
       </Button>
     </div>
   );

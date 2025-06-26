@@ -95,13 +95,13 @@ export const ClientsScreen = () => {
       await deleteClientMutation.mutateAsync(clientToDelete.id);
       toast({
         title: "Success",
-        description: "Client deleted successfully",
+        description: "Owner deleted successfully",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete client",
+        description: "Failed to delete owner",
         variant: "destructive",
       });
     } finally {
@@ -162,18 +162,22 @@ export const ClientsScreen = () => {
   return (
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Clients</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Owners</h1>
         <Sheet open={isClientDrawerOpen} onOpenChange={setIsClientDrawerOpen}>
           <SheetTrigger asChild>
             <Button onClick={() => handleEditClient(null)}>
-              <Plus className="mr-2 h-4 w-4" /> Add Client
+              <Plus className="mr-2 h-4 w-4" /> Add Owner
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-full md:!max-w-[40%] overflow-auto">
             <SheetHeader>
-              <SheetTitle>{selectedClient ? "Edit Client" : "New Client"}</SheetTitle>
+              <SheetTitle>{selectedClient ? "Update Owner" : "New Owner"}</SheetTitle>
             </SheetHeader>
-            <ClientDrawerContent onClose={handleDrawerClose} defaultValues={selectedClient || undefined} />
+            <ClientDrawerContent 
+              onClose={handleDrawerClose} 
+              defaultValues={selectedClient || undefined}
+              isUpdate={!!selectedClient} 
+            />
           </SheetContent>
         </Sheet>
       </div>
@@ -181,11 +185,11 @@ export const ClientsScreen = () => {
       <div className="space-y-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Loading clients...</p>
+            <p className="text-muted-foreground">Loading owners...</p>
           </div>
         ) : isError ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-destructive">Error loading clients. Please try again.</p>
+            <p className="text-destructive">Error loading owners. Please try again.</p>
           </div>
         ) : (
           <>
@@ -204,7 +208,7 @@ export const ClientsScreen = () => {
                 columns={columns}
                 data={clients as Client[]}
                 searchColumn="firstName"
-                searchPlaceholder="Search clients by first or last name..."
+                searchPlaceholder="Search owners by first or last name..."
                 page={page}
                 pageSize={pageSize}
                 totalPages={totalPages}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,7 @@ import PlanTab from "./PlanTab"
 import { ArrowRight, CheckCircle } from "lucide-react"
 import NewAppointment from "../newAppointment"
 import { TabCompletionProvider, useTabCompletion, TabId } from "@/context/TabCompletionContext"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface PatientInformationProps {
   patientId: string
@@ -26,6 +27,8 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
   const [activeTab, setActiveTab] = useState("intake")
   const [showNewAppointment, setShowNewAppointment] = useState(false)
   const { isTabCompleted } = useTabCompletion()
+  const { data: appointment } = useGetAppointmentById(appointmentId)
+  const isCompleted = appointment?.status?.toLowerCase() === "completed"
 
   // Define tab navigation functions
   const navigateToNextTab = () => {
@@ -35,6 +38,11 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
     if (currentIndex < tabOrder.length - 1) {
       setActiveTab(tabOrder[currentIndex + 1]);
     }
+  };
+
+  // Function to determine if a tab should appear completed/green
+  const shouldShowTabAsCompleted = (tabId: TabId) => {
+    return isCompleted || isTabCompleted(tabId);
   };
 
   return (
@@ -49,52 +57,52 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
             {/* Customize each TabsTrigger to show completion status */}
             <TabsTrigger 
               value="intake" 
-              className={`flex items-center gap-1 ${isTabCompleted("intake") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("intake") ? "text-green-600" : ""}`}
             >
               Intake
-              {isTabCompleted("intake") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("intake") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
             <TabsTrigger 
               value="cc-hpi"
-              className={`flex items-center gap-1 ${isTabCompleted("cc-hpi") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("cc-hpi") ? "text-green-600" : ""}`}
             >
               Complaints
-              {isTabCompleted("cc-hpi") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("cc-hpi") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
             <TabsTrigger 
               value="medical-history"
-              className={`flex items-center gap-1 ${isTabCompleted("medical-history") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("medical-history") ? "text-green-600" : ""}`}
             >
               Medical History
-              {isTabCompleted("medical-history") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("medical-history") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
             <TabsTrigger 
               value="vitals"
-              className={`flex items-center gap-1 ${isTabCompleted("vitals") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("vitals") ? "text-green-600" : ""}`}
             >
               Vitals
-              {isTabCompleted("vitals") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("vitals") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
             <TabsTrigger 
               value="procedure"
-              className={`flex items-center gap-1 ${isTabCompleted("procedure") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("procedure") ? "text-green-600" : ""}`}
             >
               Procedure
-              {isTabCompleted("procedure") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("procedure") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
             <TabsTrigger 
               value="assessment"
-              className={`flex items-center gap-1 ${isTabCompleted("assessment") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("assessment") ? "text-green-600" : ""}`}
             >
               Prescription
-              {isTabCompleted("assessment") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("assessment") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
             <TabsTrigger 
               value="plan"
-              className={`flex items-center gap-1 ${isTabCompleted("plan") ? "text-green-600" : ""}`}
+              className={`flex items-center gap-1 ${shouldShowTabAsCompleted("plan") ? "text-green-600" : ""}`}
             >
               Plan
-              {isTabCompleted("plan") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              {shouldShowTabAsCompleted("plan") && <CheckCircle className="h-3 w-3 text-green-600" />}
             </TabsTrigger>
           </TabsList>
 

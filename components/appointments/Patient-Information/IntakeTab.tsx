@@ -10,6 +10,8 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useGetIntakeByVisitId } from "@/queries/intake/get-intake-by-visit-id"
 import { useCreateIntakeDetail } from "@/queries/intake/create-intake-detail"
 import { useUpdateIntakeDetail } from "@/queries/intake/update-intake-detail"
+import { useDeleteIntakeImage } from "@/queries/intake/delete-intake-image"
+import { useDeleteIntakeFile } from "@/queries/intake/delete-intake-file"
 import { Plus, Trash, Upload, Image, X, ZoomIn, ZoomOut, RotateCw } from "lucide-react"
 import {
   Dialog,
@@ -18,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { Mic } from "lucide-react"
@@ -29,6 +32,21 @@ interface IntakeTabProps {
   appointmentId: string
   onNext?: () => void
 }
+
+// Types to track image sources
+interface StoredImage {
+  id: string;
+  path: string;
+  isServerStored: true;
+  type: 'image' | 'file'; // To differentiate between images and files
+}
+
+interface LocalImage {
+  path: string;
+  isServerStored: false;
+}
+
+type ImageItem = StoredImage | LocalImage;
 
 export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTabProps) {
   const { toast } = useToast()
@@ -48,6 +66,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   
   // Intake tab state
   const [weightKg, setWeightKg] = useState<number | undefined>(undefined)
+  const [imageItems, setImageItems] = useState<ImageItem[]>([])
   const [imagePaths, setImagePaths] = useState<string[]>([])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [notes, setNotes] = useState("")
@@ -57,12 +76,29 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   const [imageZoom, setImageZoom] = useState(1)
   const [imageRotation, setImageRotation] = useState(0)
   
+  // Delete confirmation modal state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [indexToDelete, setIndexToDelete] = useState<number | null>(null)
+  
   // Use mutateAsync pattern for better control flow
   const { mutateAsync: createIntakeDetail, isPending: isCreating } = useCreateIntakeDetail({})
   const { mutateAsync: updateIntakeDetail, isPending: isUpdating } = useUpdateIntakeDetail({})
+  const { mutateAsync: deleteIntakeImage, isPending: isImageDeleting } = useDeleteIntakeImage({
+    onSuccess: () => {
+      // Refresh the intake data after deletion
+      refetchIntake();
+    },
+  });
+
+  const { mutateAsync: deleteIntakeFile, isPending: isFileDeleting } = useDeleteIntakeFile({
+    onSuccess: () => {
+      // Refresh the intake data after deletion
+      refetchIntake();
+    },
+  });
   
   // Combined loading state
-  const isPending = isCreating || isUpdating
+  const isPending = isCreating || isUpdating || isImageDeleting || isFileDeleting
 
   // Audio modal state
   const [audioModalOpen, setAudioModalOpen] = useState(false)
@@ -82,41 +118,51 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       
       // Process both images and files arrays from the API response
       let paths: string[] = [];
+      let items: ImageItem[] = [];
       
       // Process images array if it exists
       if (intakeData.images && intakeData.images.length > 0) {
-        const imagePaths = intakeData.images.map(img => {
+        intakeData.images.forEach(img => {
+          // Determine the full path
+          let fullPath = img.imagePath;
+          
           // Check if the path is already a full URL or a blob URL
-          if (img.imagePath.startsWith('http://') || 
-              img.imagePath.startsWith('https://') || 
-              img.imagePath.startsWith('blob:')) {
-            return img.imagePath;
+          if (!fullPath.startsWith('http://') && 
+              !fullPath.startsWith('https://') && 
+              !fullPath.startsWith('blob:')) {
+            // If it's a relative path, prepend the API URL
+            fullPath = apiBaseUrl ? `${apiBaseUrl}/${fullPath}` : fullPath;
           }
           
-          // If we have filePath instead of imagePath
-          if (img.filePath) {
-            // Format: "Uploads\\file.jpg" - we need to convert backslashes and prepend API URL
-            const formattedPath = img.filePath.replace(/\\/g, '/');
-            return apiBaseUrl ? `${apiBaseUrl}/${formattedPath}` : formattedPath;
-          }
-          
-          // If it's a relative path, prepend the API URL
-          return apiBaseUrl ? `${apiBaseUrl}/${img.imagePath}` : img.imagePath;
+          paths.push(fullPath);
+          items.push({
+            id: img.id,
+            path: fullPath,
+            isServerStored: true,
+            type: 'image'
+          });
         });
-        paths = [...paths, ...imagePaths];
       }
       
-      // Process files array if it exists (from the screenshot, this is where the images are)
+      // Process files array if it exists
       if (intakeData.files && intakeData.files.length > 0) {
-        const filePaths = intakeData.files.map(file => {
-          // Format: "Uploads\\file.jpg" - we need to convert backslashes and prepend API URL
+        intakeData.files.forEach(file => {
+          // Format: "Uploads\\file.jpg" - convert backslashes and prepend API URL
           const formattedPath = file.filePath.replace(/\\/g, '/');
-          return apiBaseUrl ? `${apiBaseUrl}/${formattedPath}` : formattedPath;
+          const fullPath = apiBaseUrl ? `${apiBaseUrl}/${formattedPath}` : formattedPath;
+          
+          paths.push(fullPath);
+          items.push({
+            id: file.id,
+            path: fullPath,
+            isServerStored: true,
+            type: 'file'
+          });
         });
-        paths = [...paths, ...filePaths];
       }
       
       setImagePaths(paths);
+      setImageItems(items);
       setNotes(intakeData.notes || "");
       setHasIntake(true);
       
@@ -216,26 +262,107 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
         return URL.createObjectURL(file)
       })
       
+      // Add to image paths
       setImagePaths(prev => [...prev, ...newPaths])
+      
+      // Add to image items as local images
+      const newItems: LocalImage[] = newPaths.map(path => ({
+        path,
+        isServerStored: false
+      }))
+      setImageItems(prev => [...prev, ...newItems])
       
       // Reset input value so the same file can be selected again if needed
       e.target.value = ''
     }
   }
 
-  const removeImagePath = (index: number) => {
-    // Release the object URL to avoid memory leaks
-    if (imageFiles[index] && imagePaths[index].startsWith('blob:')) {
-      URL.revokeObjectURL(imagePaths[index])
+  // Replace direct delete with confirmation dialog
+  const confirmDelete = (index: number) => {
+    setIndexToDelete(index);
+    setDeleteDialogOpen(true);
+  }
+  
+  // Called after confirmation
+  const handleConfirmedDelete = async () => {
+    if (indexToDelete === null) return;
+    
+    try {
+      await removeImagePath(indexToDelete);
+      setDeleteDialogOpen(false);
+      setIndexToDelete(null);
+    } catch (error) {
+      console.error('Error in handleConfirmedDelete', error);
     }
+  }
+  
+  // Cancel delete operation
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setIndexToDelete(null);
+  }
+
+  // Existing removeImagePath function (unchanged, will be called after confirmation)
+  const removeImagePath = async (index: number) => {
+    const imageItem = imageItems[index];
     
-    const updatedPaths = [...imagePaths]
-    updatedPaths.splice(index, 1)
-    setImagePaths(updatedPaths)
-    
-    const updatedFiles = [...imageFiles]
-    updatedFiles.splice(index, 1)
-    setImageFiles(updatedFiles)
+    try {
+      // If image is stored on server, delete from API first
+      if (imageItem.isServerStored) {
+        if (imageItem.type === 'image') {
+          await deleteIntakeImage({ 
+            imageId: imageItem.id, 
+            intakeDetailId: intakeData?.id 
+          });
+        } else if (imageItem.type === 'file') {
+          await deleteIntakeFile({
+            fileId: imageItem.id,
+            intakeDetailId: intakeData?.id
+          });
+        }
+        
+        toast({
+          title: "Success",
+          description: "Image deleted successfully",
+        });
+      } else {
+        // For local image, release the blob URL
+        if (imagePaths[index].startsWith('blob:')) {
+          URL.revokeObjectURL(imagePaths[index]);
+        }
+      }
+      
+      // Update local state
+      const updatedItems = [...imageItems];
+      updatedItems.splice(index, 1);
+      setImageItems(updatedItems);
+      
+      const updatedPaths = [...imagePaths];
+      updatedPaths.splice(index, 1);
+      setImagePaths(updatedPaths);
+      
+      const updatedFiles = [...imageFiles];
+      // Only remove from imageFiles if it's a local file (not server image)
+      if (!imageItem.isServerStored) {
+        // Find the correct index in the imageFiles array
+        const fileIdx = imageFiles.findIndex((_, i) => {
+          const pathsForFiles = imagePaths.filter((_, i) => !imageItems[i].isServerStored);
+          return pathsForFiles.indexOf(imagePaths[index]) === i;
+        });
+        if (fileIdx !== -1) {
+          updatedFiles.splice(fileIdx, 1);
+        }
+      }
+      setImageFiles(updatedFiles);
+      
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete image",
+        variant: "destructive",
+      });
+    }
   }
   
   // Function to open image viewer
@@ -367,7 +494,8 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                           variant="ghost"
                           size="sm"
                           className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white p-0"
-                          onClick={() => removeImagePath(index)}
+                          onClick={() => confirmDelete(index)}
+                          disabled={isPending}
                         >
                           <Trash className="h-3 w-3" />
                         </Button>
@@ -463,6 +591,36 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this image? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={cancelDelete}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive"
+              onClick={handleConfirmedDelete}
+              disabled={isPending}
+            >
+              {isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

@@ -52,8 +52,9 @@ export async function PUT(
         }
 
         const body = await request.json();
-
-        const response = await fetch(`${apiUrl}/api/Client/${params.id}`,
+        
+        // Send PUT request to /api/Client endpoint (without ID in URL)
+        const response = await fetch(`${apiUrl}/api/Client`,
             {
                 method: 'PUT',
                 headers: {
@@ -65,6 +66,7 @@ export async function PUT(
         );
 
         if (!response.ok) {
+            const errorText = await response.text().catch(() => "Failed to get error details");
             return NextResponse.json(
                 { message: 'Failed to update client' },
                 { status: response.status }
