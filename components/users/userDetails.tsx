@@ -81,9 +81,13 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       // Determine clinicId value: null if not required or empty
       const clinicId = selectedRole?.isClinicRequired && values.clinicId ? values.clinicId : null;
       
+      // Extract lastName to handle separately
+      const { lastName, ...restValues } = values;
+      
       // Create the payload with role and clinic information
       const payload = {
-        ...values,
+        ...restValues,
+        lastName: lastName ? lastName : null, // Set lastName to null if empty
         isActive: true,
         role: roleToSend?.name,
         roleId: roleToSend?.id,
