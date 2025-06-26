@@ -86,12 +86,16 @@ export default function NewUser({ onSuccess }: NewUserProps) {
 
       // Create the payload, excluding the original 'role' value and adding 'roleId' and 'roleName'
       const { role, ...rest } = values; // Exclude the 'role' field
+      
+      // Determine clinicId value: null if not required or empty
+      const clinicId = roleToSend?.isClinicRequired && values.clinicId ? values.clinicId : null;
+      
       const payload = {
         ...rest, // Include all other fields from values
         isActive: true,
         roleId: roleToSend?.id, // Add the roleId
         role: roleToSend?.name, // Add the roleName
-        clinicId: roleToSend?.isClinicRequired ? values.clinicId : null, 
+        clinicId: clinicId, // Set to null if not required or if empty string
       };
 
       await createUser.mutateAsync(payload as any); // Added 'as any' temporarily for type compatibility, you might need to adjust your mutation's expected type

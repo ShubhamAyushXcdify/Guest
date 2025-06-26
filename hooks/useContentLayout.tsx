@@ -87,8 +87,8 @@ export const useContentLayout = () => {
     }, []);
 
     const fetchUser = async (data?: any, role?: any) => {
-        if (role === "Client"){
-            return ;
+        if (role === "Client") {
+            return;
         }
         setLoading(true);
         let userid = getUserId() || data?.user?.id;
@@ -106,8 +106,8 @@ export const useContentLayout = () => {
 
 
         try {
-                const response = await fetch(`/api/user/${userid}`);
-                const userData = await response.json();
+            const response = await fetch(`/api/user/${userid}`);
+            const userData = await response.json();
 
 
             if (!userData || userData.status === 400) {
@@ -147,7 +147,7 @@ export const useContentLayout = () => {
                 isReceptionist: userData.roleName === 'Receptionist',
                 isPatient: userData.roleName === 'Patient',
                 isClient: userData.roleName === 'Client',
-                isProvider: (userData.roleName === 'Provider' || userData?.roleName?.toLocaleLowerCase() === 'veterinarian'),
+                isProvider: (userData.roleName === 'Provider' || userData?.roleName?.toLocaleLowerCase().includes('veterinarian')),
             }
             setUserType((prev) => ({ ...userRolesObject, ...types }));
         }
