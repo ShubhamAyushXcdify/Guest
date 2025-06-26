@@ -8,11 +8,13 @@ import { useUpdateRoom } from "@/queries/rooms/update-room";
 import { toast } from "@/components/ui/use-toast";
 import { useEffect } from "react";
 import { Combobox } from "@/components/ui/combobox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define form values explicitly to avoid TypeScript errors
 type FormValues = {
   name: string;
   roomType: string;
+  isActive: boolean;
 };
 
 type RoomDetailsProps = {
@@ -54,6 +56,7 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
     defaultValues: {
       name: "",
       roomType: "",
+      isActive: true,
     },
   });
 
@@ -63,6 +66,7 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
       form.reset({
         name: roomData.name || "",
         roomType: roomData.roomType || "",
+        isActive: roomData.isActive !== undefined ? roomData.isActive : true,
       });
     }
   }, [room, form]);
@@ -82,7 +86,6 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
         ...values,
         id: roomId,
         clinicId,
-        isActive: true // Always keep active
       };
       
       await updateRoom.mutateAsync({ 
@@ -122,6 +125,20 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )} />
+
+          <FormField name="isActive" control={form.control} render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Active</FormLabel>
+              </div>
             </FormItem>
           )} />
         </div>
