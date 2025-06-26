@@ -393,14 +393,14 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         <SheetContent className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
           <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle>Appointment Details</SheetTitle>
-            <Button
+            {/* <Button
               variant="outline"
               size="icon"
               onClick={() => setIsEditing(!isEditing)}
               className="h-8 w-8"
             >
               <Pencil className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </SheetHeader>
 
           {!isEditing ? (
@@ -448,7 +448,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Appointment Type</h3>
                   <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {appointment?.appointmentType}
+                  {appointment?.appointmentType.name}
                   </p>
                 </div>
                 <div>
