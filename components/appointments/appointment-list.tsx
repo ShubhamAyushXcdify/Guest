@@ -382,6 +382,13 @@ export default function AppointmentList({
     {
       accessorKey: "appointmentType",
       header: "Visit Type",
+      cell: ({ row }) => {
+        const appointmentType = row.original.appointmentType;
+        // Handle case when appointmentType is an object with name property
+        return typeof appointmentType === 'object' && appointmentType?.name 
+          ? appointmentType.name 
+          : appointmentType || 'N/A';
+      },
     },
     {
       accessorKey: "provider",
