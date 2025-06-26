@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from "react";
+import React, { useState, useImperativeHandle, forwardRef } from "react";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -32,7 +32,7 @@ type UserProps = {
   clinicId?: string;
 };
 
-function UserComponent({ clinicId }: UserProps) {
+const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps, ref) {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
@@ -41,7 +41,7 @@ function UserComponent({ clinicId }: UserProps) {
   const safeClinicId = clinicId || '';
   
   // Pass clinicId explicitly
-  const { data: usersData, isLoading, isError } = useGetUsers(pageNumber, pageSize, search, safeClinicId);
+  const { data: usersData, isLoading, isError, refetch } = useGetUsers(pageNumber, pageSize, search, safeClinicId);
   const users = usersData?.items || [];
   const totalPages = usersData?.totalPages || 1;
   
@@ -150,6 +150,16 @@ function UserComponent({ clinicId }: UserProps) {
     },
   ];
 
+  // Filter out users with role 'Veterinarian' (case-insensitive)
+  const filteredUsers = users.filter(
+    (user) => user.roleName && user.roleName.toLowerCase() !== "veterinarian"
+  );
+
+  // Expose refreshUsers method to parent
+  useImperativeHandle(ref, () => ({
+    refreshUsers: () => refetch()
+  }));
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -183,7 +193,7 @@ function UserComponent({ clinicId }: UserProps) {
       ) : (
         <DataTable
           columns={columns}
-          data={users as unknown as User[]}
+          data={filteredUsers as unknown as User[]}
           searchColumn="email"
           searchPlaceholder="Search users..."
           page={pageNumber}
@@ -220,6 +230,6 @@ function UserComponent({ clinicId }: UserProps) {
       />
     </div>
   );
-}
+});
 
 export default withAuth(UserComponent);
