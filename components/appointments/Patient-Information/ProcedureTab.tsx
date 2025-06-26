@@ -54,18 +54,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         markTabAsCompleted("procedure");
       }
     }
-<<<<<<< dev-XC-PA-XX-20
-  }, [existingProcedureDetail, markTabAsCompleted]);
-  
-  // Separate effect for marking the tab as completed based on selectedProcedures
-  useEffect(() => {
-    if (selectedProcedures.length > 0) {
-      markTabAsCompleted("procedure");
-    }
-  }, [selectedProcedures, markTabAsCompleted]);
-=======
   }, [existingProcedureDetail, markTabAsCompleted])
->>>>>>> dev
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
