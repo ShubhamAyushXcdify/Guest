@@ -38,7 +38,7 @@ const appointmentSchema = z.object({
   roomId: z.string().uuid(),
   appointmentDate: z.string(),
   roomSlotId: z.string(),
-  appointmentType: z.string(),
+  appointmentTypeId: z.string(),
   reason: z.string(),
   status: z.string(),
   notes: z.string().optional(),
@@ -88,7 +88,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       roomId: "",
       appointmentDate: "",
       roomSlotId: "",
-      appointmentType: "",
+      appointmentTypeId: "",
       reason: "",
       status: "scheduled",
       notes: "",
@@ -694,7 +694,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
 
                   <FormField
                     control={form.control}
-                    name="appointmentType"
+                    name="appointmentTypeId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Appointment Type</FormLabel>
