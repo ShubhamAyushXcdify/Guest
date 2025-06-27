@@ -265,7 +265,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                             {`${appointment.client?.firstName || ''} ${appointment.client?.lastName || ''}`}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                            {appointment.appointmentType}
+                            {appointment.appointmentType?.name}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <Badge className={getStatusBadgeClass(appointment.status)}>

@@ -432,7 +432,7 @@ export default function AppointmentList({
                       appointmentDate: row.original.appointmentDate,
                       startTime: row.original.startTime,
                       endTime: row.original.endTime,
-                      appointmentType: row.original.appointmentType,
+                      appointmentTypeId: row.original.appointmentTypeId,
                       reason: row.original.reason,
                       status: "in_progress",
                       notes: row.original.notes,
@@ -468,7 +468,7 @@ export default function AppointmentList({
                     appointmentDate: row.original.appointmentDate,
                     startTime: row.original.startTime,
                     endTime: row.original.endTime,
-                    appointmentType: row.original.appointmentType,
+                    appointmentTypeId: row.original.appointmentTypeId,
                     reason: row.original.reason,
                     status: "cancelled",
                     notes: row.original.notes,
@@ -498,7 +498,7 @@ export default function AppointmentList({
                   appointmentDate: row.original.appointmentDate,
                   startTime: row.original.startTime,
                   endTime: row.original.endTime,
-                  appointmentType: row.original.appointmentType,
+                  appointmentTypeId: row.original.appointmentTypeId,
                   reason: row.original.reason,
                   status: "cancelled",
                   notes: row.original.notes,
@@ -510,15 +510,7 @@ export default function AppointmentList({
               Cancel
             </Button>
           )}
-          {/* Keep Delete button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => deleteAppointmentMutation.mutate(row.original.id.toString())}
-            disabled={deleteAppointmentMutation.isPending}
-          >
-            Delete
-          </Button>
+          {/* Delete button removed - appointments should be canceled, not deleted */}
           {/* Keep SOAP buttons */}
           {row.original.status === "In Progress" && (
             <Button

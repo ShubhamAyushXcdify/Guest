@@ -18,6 +18,11 @@ export type Clinic = {
     subscriptionExpiresAt: string | null;
     createdAt: string | null;
     updatedAt: string | null;
+    location: {
+        lat: number;
+        lng: number;
+        address: string;
+    };
 }
 
 export interface PaginatedResponse<T> {

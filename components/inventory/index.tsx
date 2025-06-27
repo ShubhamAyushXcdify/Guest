@@ -39,12 +39,12 @@ export default function Inventory() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Inventory Dashboard</h1>
           <div className="flex flex-wrap gap-3">
-            <Button variant="destructive" className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800">
+            {/* <Button variant="destructive" className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800">
               <AlertTriangle className="mr-2 h-4 w-4" /> Low Stock
             </Button>
             <Button className="theme-button-outline" asChild>
               <Link href="/inventory/stock-adjustment">Adjust Stock</Link>
-            </Button>
+            </Button> */}
             <Button 
               className="theme-button text-white"
               onClick={() => setIsOrderModalOpen(true)}
@@ -87,9 +87,9 @@ export default function Inventory() {
         </div>
 
         {/* Recent Activity and Low Stock Alert */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
           {/* Recent Activity */}
-          <Card className="bg-white dark:bg-slate-800 shadow-sm">
+          {/* <Card className="bg-white dark:bg-slate-800 shadow-sm">
             <CardContent className="p-0">
               <div className="p-4 border-b border-gray-200 dark:border-slate-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
@@ -105,7 +105,7 @@ export default function Inventory() {
                 />
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Low Stock Alert */}
           <Card className="bg-white dark:bg-slate-800 shadow-sm">
@@ -176,7 +176,7 @@ export default function Inventory() {
         </div>
 
         {/* Quick Links */}
-        <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-4">
+        {/* <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-4">
           <div className="flex flex-wrap items-center gap-3">
             <span className="font-medium text-gray-700 dark:text-gray-300">Quick Links:</span>
             <Button
@@ -225,7 +225,7 @@ export default function Inventory() {
               </Link>
             </Button>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <OrderModal 

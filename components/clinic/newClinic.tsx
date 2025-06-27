@@ -7,6 +7,8 @@ import { useCreateClinic } from "@/queries/clinic/create-clinic";
 import { toast } from "../ui/use-toast";
 import { Clinic } from "./index";
 import { DatePicker } from "../ui/datePicker";
+import AdvancedMap from "../map/advanced-map";
+import { LocationData } from "../map/hooks/useMapAdvanced";
 
 type NewClinicProps = {
   onSuccess?: () => void;
@@ -50,10 +52,71 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
       website: "",
       taxId: "",
       licenseNumber: "",
+      location: {
+        lat: 0,
+        lng: 0,
+        address: "",
+      }
       //subscriptionStatus: "Active",
       //subscriptionExpiresAt: "",
     },
   });
+
+  // Handle location selection from map
+  const handleLocationSelect = (location: LocationData) => {
+    form.setValue('location', {
+      lat: location.lat,
+      lng: location.lng,
+      address: location.address
+    },{
+      shouldValidate: true,
+    });
+    form.setValue('addressLine1', location.address);
+    
+    // Parse the address with a more flexible approach for international formats
+    const addressParts = location.address.split(', ');
+    
+    if (addressParts.length >= 4) {
+      // For Indian addresses like: "Sindagi, Kalaburagi taluku, Kalaburagi, Karnataka, 585103, India"
+      // We need to identify the city, state, postal code correctly
+      
+      // Usually format is: [locality], [subdivision], [city], [state], [postal code], [country]
+      const city = addressParts[addressParts.length - 4] || ''; // City is typically 4th from last
+      const state = addressParts[addressParts.length - 3] || ''; // State is typically 3rd from last
+      const postalCode = addressParts[addressParts.length - 2] || ''; // Postal code is typically 2nd from last
+      const country = addressParts[addressParts.length - 1] || ''; // Country is last
+      
+      // Try to detect if postal code is numeric
+      const isPostalNumeric = /^\d+$/.test(postalCode);
+      
+      if (city && !form.getValues('city')) {
+        form.setValue('city', city);
+      }
+      
+      if (state && !form.getValues('state')) {
+        form.setValue('state', state);
+      }
+      
+      if (isPostalNumeric && !form.getValues('postalCode')) {
+        form.setValue('postalCode', postalCode);
+      } else if (!isPostalNumeric && addressParts.some(part => /^\d+$/.test(part))) {
+        // If postal code isn't numeric but there is a numeric part somewhere, use that as postal code
+        const numericPart = addressParts.find(part => /^\d+$/.test(part));
+        if (numericPart) {
+          form.setValue('postalCode', numericPart);
+        }
+      }
+      
+      if (country && !form.getValues('country')) {
+        form.setValue('country', country);
+      }
+    }
+    
+    toast({
+      title: "Location Selected",
+      description: "Location has been set for the clinic",
+    });
+  };
   
   const handleSubmit = async (values: Omit<Clinic, "id" | "createdAt" | "updatedAt">) => {
     try {
@@ -192,8 +255,34 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
             </FormItem>
           )} /> */}
         </div>
+
+        {/* Location Selection Section */}
+        <div className="space-y-4">
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">Clinic Location</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Select the clinic location on the map below. This will automatically capture the coordinates and address.
+            </p>
+            
+            {/* Display current location data if set */}
+            {form.watch('location.address') && (
+              <div className="mb-4 p-3 w-full bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm font-medium text-blue-900">Selected Location</p>
+                <p className="text-sm text-blue-700">{form.watch('location.address')}</p>
+                <p className="text-xs text-blue-600">
+                  Lat: {form.watch('location.lat').toFixed(6)}, Lng: {form.watch('location.lng').toFixed(6)}
+                </p>
+              </div>
+            )}
+            
+            <AdvancedMap 
+              onSaveLocation={handleLocationSelect}
+              className="h-[400px]"
+            />
+          </div>
+        </div>
         
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-6 pt-60">
           <Button type="submit">
             Create Clinic
           </Button>

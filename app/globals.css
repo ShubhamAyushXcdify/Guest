@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet CSS imports */
+@import 'leaflet/dist/leaflet.css';
+
 body {
   font-family: var(--font-geist),ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   overflow: hidden;

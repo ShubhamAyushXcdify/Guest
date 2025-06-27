@@ -86,6 +86,7 @@ function AppointmentTypeComponent({ clinicId }: AppointmentTypeProps) {
 
   const columns: ColumnDef<AppointmentType>[] = [
     { accessorKey: "name", header: "Name" },
+    { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,

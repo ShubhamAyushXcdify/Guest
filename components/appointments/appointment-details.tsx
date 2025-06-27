@@ -19,6 +19,7 @@ import { useGetPatients } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
+import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
@@ -26,6 +27,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { useUpdateSlotAvailability } from '@/queries/slots/update-slot-availability';
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -36,7 +38,7 @@ const appointmentSchema = z.object({
   roomId: z.string().uuid(),
   appointmentDate: z.string(),
   roomSlotId: z.string(),
-  appointmentType: z.string(),
+  appointmentTypeId: z.string(),
   reason: z.string(),
   status: z.string(),
   notes: z.string().optional(),
@@ -86,7 +88,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       roomId: "",
       appointmentDate: "",
       roomSlotId: "",
-      appointmentType: "",
+      appointmentTypeId: "",
       reason: "",
       status: "scheduled",
       notes: "",
@@ -183,10 +185,25 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     setIsSearchDropdownOpen(false); // Close the dropdown
   }
   
+  const updateSlotAvailabilityMutation = useUpdateSlotAvailability();
+  const prevSelectedSlotRef = useRef<string | null>(null);
+
   // Handle slot selection
-  const handleSlotClick = (slotId: string) => {
+  const handleSlotClick = async (slotId: string) => {
+    const prevSlot = prevSelectedSlotRef.current;
     setSelectedSlot(slotId);
     form.setValue("roomSlotId", slotId);
+    try {
+      // Mark new slot as unavailable
+      await updateSlotAvailabilityMutation.mutateAsync({ slotId, isAvailable: false });
+      // Mark previous slot as available (if any and different)
+      if (prevSlot && prevSlot !== slotId) {
+        await updateSlotAvailabilityMutation.mutateAsync({ slotId: prevSlot, isAvailable: true });
+      }
+      prevSelectedSlotRef.current = slotId;
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to update slot availability', variant: 'destructive' });
+    }
   };
   
   // Clear selected patient
@@ -201,6 +218,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const { data: clientsResponse } = useGetClients(1, 100)
   const { data: usersResponse } = useGetUsers(1, 100)
   const { data: roomsResponse } = useGetRoom(1, 100)
+  const { data: appointmentTypes } = useGetAppointmentType(1, 100)
 
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
@@ -270,19 +288,16 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     label: room.name
   }))
 
-  const appointmentTypeOptions = [
-    { value: "Checkup", label: "Check-up" },
-    { value: "Vaccination", label: "Vaccination" },
-    { value: "Surgery", label: "Surgery" },
-    { value: "Consultation", label: "Consultation" },
-    { value: "Follow-up", label: "Follow-up" }
-  ]
+  const appointmentTypeOptions = (appointmentTypes || []).map((type: { appointmentTypeId: string; name: string }) => ({
+    value: type.appointmentTypeId,
+    label: type.name
+  }));
 
   // Update form values when appointment data is loaded
   useEffect(() => {
     if (appointment) {
       const slotId = appointment.roomSlotId || appointment.slotId || "";
-      
+
       form.reset({
         ...appointment,
         appointmentDate: appointment.appointmentDate.split('T')[0], // Convert to YYYY-MM-DD format
@@ -291,6 +306,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       
       // Set the selected slot
       setSelectedSlot(slotId);
+      prevSelectedSlotRef.current = slotId; 
       
       // Set the selected patient for the search component
       if (appointment.patientId && appointment.patient) {
@@ -393,14 +409,14 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         <SheetContent className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
           <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle>Appointment Details</SheetTitle>
-            {/* <Button
+            <Button
               variant="outline"
               size="icon"
               onClick={() => setIsEditing(!isEditing)}
               className="h-8 w-8"
             >
               <Pencil className="h-4 w-4" />
-            </Button> */}
+            </Button>
           </SheetHeader>
 
           {!isEditing ? (
@@ -678,7 +694,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
 
                   <FormField
                     control={form.control}
-                    name="appointmentType"
+                    name="appointmentTypeId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Appointment Type</FormLabel>
@@ -722,14 +738,14 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : slots.items.length === 0 ? (
+                            ) : slots.items.length === 0 || slots.items.every((slot: Slot) => !slot.isAvailable) ? (
                               <div className="text-sm text-gray-500">
                                 No slots available for this room
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
                                 {slots.items
-                                  .filter(slot => slot.isAvailable)
+                                  .filter((slot: Slot) => slot.isAvailable || selectedSlot === slot.id || field.value === slot.id)
                                   .map((slot: Slot) => (
                                   <button
                                     key={slot.id}

@@ -165,7 +165,7 @@ export const ClientsScreen = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Owners</h1>
         <Sheet open={isClientDrawerOpen} onOpenChange={setIsClientDrawerOpen}>
           <SheetTrigger asChild>
-            <Button onClick={() => handleEditClient(null)}>
+            <Button className={`theme-button text-white`} onClick={() => handleEditClient(null)}>
               <Plus className="mr-2 h-4 w-4" /> Add Owner
             </Button>
           </SheetTrigger>
