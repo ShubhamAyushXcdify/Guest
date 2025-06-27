@@ -46,7 +46,8 @@ export default function NewAppointmentType({ clinicId, onSuccess }: NewAppointme
   const handleSubmit = async (values: Omit<AppointmentType, "appointmentTypeId">) => {
     try {
       await createAppointmentType.mutateAsync({
-        ...values
+        ...values,
+        isActive: true, 
       });
     } catch (error) {
       // Error is handled in onError callback
