@@ -8,6 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AppointmentTypeDetailsProps {
   appointmentTypeId: string;
@@ -42,6 +43,7 @@ export default function AppointmentTypeDetails({ appointmentTypeId, clinicId, on
   const form = useForm({
     defaultValues: {
       name: "",
+      isActive: true,
     },
   });
 
@@ -50,6 +52,7 @@ export default function AppointmentTypeDetails({ appointmentTypeId, clinicId, on
     if (appointmentType) {
       form.reset({
         name: appointmentType.name,
+        isActive: appointmentType.isActive ?? true,
       });
     }
   }, [appointmentType, form]);
@@ -98,6 +101,19 @@ export default function AppointmentTypeDetails({ appointmentTypeId, clinicId, on
             </FormItem>
           )}
         />
+        <FormField name="isActive" control={form.control} render={({ field }) => (
+         <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+           <FormControl>
+             <Checkbox
+               checked={field.value}
+               onCheckedChange={field.onChange}
+             />
+           </FormControl>
+           <div className="space-y-1 leading-none">
+             <FormLabel>Active</FormLabel>
+           </div>
+         </FormItem>
+        )} />
 
         <Button type="submit" className="w-full" disabled={isUpdating}>
           {isUpdating ? "Updating..." : "Update Appointment Type"}
