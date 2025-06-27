@@ -43,6 +43,7 @@ export const useUpdateAppointment = ({ onSuccess, onError }: {
       queryClient.invalidateQueries({ queryKey: ['plan'] })
       queryClient.invalidateQueries({ queryKey: ['medicalHistory'] })
       queryClient.invalidateQueries({ queryKey: ['prescription'] })
+      queryClient.invalidateQueries({ queryKey: ['providerStats'] });
 
       onSuccess?.()
     },
