@@ -164,7 +164,7 @@ function Supplier() {
         <h1 className="text-2xl font-bold">Suppliers</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Supplier</Button>
+            <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Supplier</Button>
           </SheetTrigger>
           <SheetContent side="right" className="overflow-y-auto">
             <SheetHeader>
@@ -190,7 +190,7 @@ function Supplier() {
       ) : (
         <DataTable
           columns={columns}
-          data={suppliers as Supplier[]}
+          data={suppliers as unknown as Supplier[]}
           searchColumn="name"
           searchPlaceholder="Search suppliers..."
           page={pageNumber}

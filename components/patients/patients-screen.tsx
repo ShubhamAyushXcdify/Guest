@@ -71,7 +71,7 @@ export const PatientsScreen = () => {
         </h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button>
+            <Button className={`theme-button text-white`}>
               <Plus className="mr-2 h-4 w-4" /> Add Patient
             </Button>
           </SheetTrigger>

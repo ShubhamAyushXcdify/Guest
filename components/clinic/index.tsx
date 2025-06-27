@@ -180,7 +180,7 @@ function Clinic() {
         <h1 className="text-2xl font-bold">Clinics</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Clinic</Button>
+            <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Clinic</Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-hidden overflow-y-auto">
             <SheetHeader>

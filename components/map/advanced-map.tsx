@@ -40,8 +40,10 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
     handleSaveLocation,
     clearLocation,
     setMapRef,
-    setZoom
-  } = useMapAdvanced();
+    setZoom,
+    setSelectedLocation,
+    setMapCenter
+  } = useMapAdvanced({ initialLocation });
 
   const handleSave = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

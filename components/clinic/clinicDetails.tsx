@@ -11,6 +11,8 @@ import { Switch } from "../ui/switch";
 import { Clinic } from ".";
 import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id";
 import { DatePicker } from "../ui/datePicker";
+import AdvancedMap from "../map/advanced-map";
+import { LocationData } from "../map/hooks/useMapAdvanced";
 
 type ClinicDetailsProps = {
   clinicId: string;
@@ -41,6 +43,11 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
       licenseNumber: "",
       // subscriptionStatus: "",
       // subscriptionExpiresAt: "",
+      location: {
+        lat: 0,
+        lng: 0,
+        address: "",
+      }
       // Add any other default fields here
     }
   });
@@ -48,10 +55,80 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
   // Update form values when clinic data is loaded
   useEffect(() => {
     if (clinic) {
-      form.reset(clinic);
+      // If location fields are null, initialize with default values for the form
+      const clinicWithDefaultLocation = {
+        ...clinic,
+        location: clinic.location ? {
+          lat: clinic.location.lat || 0,
+          lng: clinic.location.lng || 0,
+          address: clinic.location.address || "",
+        } : {
+          lat: 0,
+          lng: 0,
+          address: "",
+        }
+      };
+      
+      form.reset(clinicWithDefaultLocation);
       setIsFormReady(true);
     }
   }, [clinic, form]);
+
+  // Handle location selection from map
+  const handleLocationSelect = (location: LocationData) => {
+    form.setValue('location', {
+      lat: location.lat,
+      lng: location.lng,
+      address: location.address
+    }, {
+      shouldValidate: true,
+    });
+    form.setValue('addressLine1', location.address);
+    
+    // Parse the address with a more flexible approach for international formats
+    const addressParts = location.address.split(', ');
+    
+    if (addressParts.length >= 4) {
+      // For Indian addresses like: "Sindagi, Kalaburagi taluku, Kalaburagi, Karnataka, 585103, India"
+      // We need to identify the city, state, postal code correctly
+      
+      // Usually format is: [locality], [subdivision], [city], [state], [postal code], [country]
+      const city = addressParts[addressParts.length - 4] || ''; // City is typically 4th from last
+      const state = addressParts[addressParts.length - 3] || ''; // State is typically 3rd from last
+      const postalCode = addressParts[addressParts.length - 2] || ''; // Postal code is typically 2nd from last
+      const country = addressParts[addressParts.length - 1] || ''; // Country is last
+      
+      // Try to detect if postal code is numeric
+      const isPostalNumeric = /^\d+$/.test(postalCode);
+      
+      if (city) {
+        form.setValue('city', city);
+      }
+      
+      if (state) {
+        form.setValue('state', state);
+      }
+      
+      if (isPostalNumeric) {
+        form.setValue('postalCode', postalCode);
+      } else if (addressParts.some(part => /^\d+$/.test(part))) {
+        // If postal code isn't numeric but there is a numeric part somewhere, use that as postal code
+        const numericPart = addressParts.find(part => /^\d+$/.test(part));
+        if (numericPart) {
+          form.setValue('postalCode', numericPart);
+        }
+      }
+      
+      if (country) {
+        form.setValue('country', country);
+      }
+    }
+    
+    toast({
+      title: "Location Updated",
+      description: "Clinic location has been updated",
+    });
+  };
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -83,159 +160,194 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
   }
   
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
-        <div className="grid grid-cols-2 gap-8">
-          <FormField name="name" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="addressLine1" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Line 1</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="addressLine2" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address Line 2</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="city" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>City</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="state" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>State</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="postalCode" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Postal Code</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="country" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="phone" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="email" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input {...field} type="email" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="website" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Website</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="taxId" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Tax ID</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="licenseNumber" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>License Number</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          {/* <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Subscription Status</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          
-          <FormField name="subscriptionExpiresAt" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Subscription Expires At</FormLabel>
-              <FormControl>
-                <DatePicker 
-                  value={field.value ? new Date(field.value) : null}
-                  onChange={(date) => field.onChange(date ? date.toISOString() : "")}
+    <div className="h-[calc(100vh-10rem)] overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto pr-2">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full pb-20">
+            <div className="grid grid-cols-2 gap-8">
+              <FormField name="name" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="addressLine1" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address Line 1</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="addressLine2" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address Line 2</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="city" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>City</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="state" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>State</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="postalCode" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Postal Code</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="country" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="phone" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="email" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="website" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="taxId" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tax ID</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="licenseNumber" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>License Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              {/* <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subscription Status</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
+              <FormField name="subscriptionExpiresAt" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subscription Expires At</FormLabel>
+                  <FormControl>
+                    <DatePicker 
+                      value={field.value ? new Date(field.value) : null}
+                      onChange={(date) => field.onChange(date ? date.toISOString() : "")}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} /> */}
+            </div>
+
+            {/* Location Selection Section */}
+            <div className="space-y-4">
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium mb-4">Clinic Location</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Update the clinic location by selecting a position on the map below. This will automatically update the coordinates and address.
+                </p>
+                
+                {/* Display current location data if set */}
+                {form.watch('location.lat') !== 0 && form.watch('location.lng') !== 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm font-medium text-blue-900">Current Location</p>
+                    <p className="text-sm text-blue-700">{form.watch('location.address') || form.watch('addressLine1')}</p>
+                    <p className="text-xs text-blue-600">
+                      Lat: {form.watch('location.lat').toFixed(6)}, Lng: {form.watch('location.lng').toFixed(6)}
+                    </p>
+                  </div>
+                )}
+                
+                <AdvancedMap 
+                  onSaveLocation={handleLocationSelect}
+                  className="h-[400px]"
+                  initialLocation={form.watch('location.lat') !== 0 && form.watch('location.lng') !== 0 ? {
+                    lat: form.watch('location.lat'),
+                    lng: form.watch('location.lng'),
+                    address: form.watch('location.address') || form.watch('addressLine1') || ""
+                  } : undefined}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} /> */}
-        </div>
-        
-        <div className="flex justify-end mt-6">
-          <Button type="submit">
-            Update Clinic
-          </Button>
-        </div>
-      </form>
-    </Form>
+              </div>
+            </div>
+            
+            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t mt-8 flex justify-end">
+              <Button type="submit">
+                Update Clinic
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
+    </div>
   );
 }

@@ -206,12 +206,12 @@ export default function Users() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Users</h1>
         <div className="flex flex-row gap-2">
-            <Button onClick={openRolePage}>
+            <Button className={`theme-button text-white`} onClick={openRolePage}>
               Manage Roles
         </Button>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}>
+            <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}>
               <Plus className="mr-2 h-4 w-4" />Add User
             </Button>
           </SheetTrigger>
