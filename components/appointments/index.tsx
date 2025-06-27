@@ -34,7 +34,7 @@ export default function AppointmentsPage() {
 
     const handleViewChange = (view: string) => {
         setActiveView(view)
-        
+
         // Force replace the entire URL with just the view parameter
         window.history.replaceState(null, '', `/appointments?view=${view}`);
     }
@@ -56,9 +56,9 @@ export default function AppointmentsPage() {
 
     return (
         <>
-            <div className="flex justify-between items-center p-6">
+            <div className="flex justify-between items-center p-6 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 dark:from-slate-100 dark:to-blue-100 bg-clip-text text-transparent mb-4">
                         {activeView === "list" && "Appointment List"}
                         {activeView === "calendar" && "Appointment Calendar"}
                         {activeView === "provider" && "Provider View"}
@@ -66,17 +66,17 @@ export default function AppointmentsPage() {
                         {activeView === "waiting" && "Waiting Room"} */}
                     </h1>
                     <div className="max-w-xl">
-                        <PatientSearch 
-                            onPatientSelect={handlePatientSelect} 
-                            className="mb-2" 
+                        <PatientSearch
+                            onPatientSelect={handlePatientSelect}
+                            className="mb-2"
                         />
                         {selectedPatient && (
-                            <div className="flex items-center bg-blue-50 text-blue-700 px-3 py-2 rounded-md">
-                                <span>Filtering appointments for: <strong>{selectedPatient.name}</strong></span>
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="ml-2 h-6 w-6 p-0"
+                            <div className="flex items-center bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm">
+                                <span className="text-sm font-medium">Filtering appointments for: <strong className="text-blue-900 dark:text-blue-100">{selectedPatient.name}</strong></span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-3 h-7 w-7 p-0 hover:bg-blue-200 dark:hover:bg-blue-800 text-blue-600 dark:text-blue-300"
                                     onClick={clearPatientFilter}
                                 >
                                     <span className="sr-only">Clear filter</span>
@@ -87,7 +87,7 @@ export default function AppointmentsPage() {
                     </div>
                 </div>
                 <Button
-                    className="theme-button text-white"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
                     onClick={() => setIsNewAppointmentOpen(true)}
                 >
                     <Plus className="mr-2 h-4 w-4" /> New Appointment
@@ -95,22 +95,22 @@ export default function AppointmentsPage() {
             </div>
 
             {/* View Tabs */}
-            <div className="border-b border-gray-200 dark:border-gray-700">
+            <div className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
                 <nav className="flex -mb-px">
                     <button
                         onClick={() => handleViewChange("list")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "list"
-                            ? "border-theme-primary text-theme-primary dark:text-white"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "list"
+                            ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
                     >
                         List View
                     </button>
                     {/* <button
                         onClick={() => handleViewChange("calendar")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "calendar"
-                            ? "border-theme-primary text-theme-primary dark:text-white"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "calendar"
+                            ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
                     >
                         Calendar View
@@ -118,27 +118,27 @@ export default function AppointmentsPage() {
 
                     <button
                         onClick={() => handleViewChange("provider")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "provider"
-                            ? "border-theme-primary text-theme-primary dark:text-white"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "provider"
+                            ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
                     >
                         Provider View
                     </button>
                     {/* <button
                         onClick={() => handleViewChange("room")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "room"
-                            ? "border-theme-primary text-theme-primary dark:text-white"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "room"
+                            ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
                     >
                         Room View
                     </button>
                     <button
                         onClick={() => handleViewChange("waiting")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeView === "waiting"
-                            ? "border-theme-primary text-theme-primary dark:text-white"
-                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "waiting"
+                            ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
                     >
                         Waiting Room
@@ -147,9 +147,9 @@ export default function AppointmentsPage() {
             </div>
 
             {/* View Content */}
-            <div className="flex-1 overflow-auto">
-                {activeView === "list" && <AppointmentList 
-                    onAppointmentClick={handleAppointmentClick} 
+            <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-900">
+                {activeView === "list" && <AppointmentList
+                    onAppointmentClick={handleAppointmentClick}
                     selectedPatientId={selectedPatient?.id}
                 />}
                 {activeView === "calendar" && <AppointmentCalendar onAppointmentClick={handleAppointmentClick} />}
