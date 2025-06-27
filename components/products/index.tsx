@@ -157,7 +157,7 @@ export default function Products() {
         <h1 className="text-2xl font-bold">Products</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
-            <Button onClick={() => setOpenNew(true)}>
+            <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}>
               <Plus className="mr-2 h-4 w-4" />Add Product
             </Button>
           </SheetTrigger>

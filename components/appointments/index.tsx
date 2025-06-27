@@ -87,7 +87,7 @@ export default function AppointmentsPage() {
                     </div>
                 </div>
                 <Button
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                    className={`theme-button text-white`}
                     onClick={() => setIsNewAppointmentOpen(true)}
                 >
                     <Plus className="mr-2 h-4 w-4" /> New Appointment

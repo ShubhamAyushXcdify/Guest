@@ -72,23 +72,41 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
       shouldValidate: true,
     });
     form.setValue('addressLine1', location.address);
-    form.setValue('addressLine2', location.address);
     
-    // Optionally parse address components and fill in address fields
-    // This is a simple implementation - you might want to enhance this
+    // Parse the address with a more flexible approach for international formats
     const addressParts = location.address.split(', ');
-    if (addressParts.length >= 3) {
-      // Try to extract city, state, country from the address
-      const city = addressParts[addressParts.length - 3] || '';
-      const state = addressParts[addressParts.length - 2] || '';
-      const country = addressParts[addressParts.length - 1] || '';
+    
+    if (addressParts.length >= 4) {
+      // For Indian addresses like: "Sindagi, Kalaburagi taluku, Kalaburagi, Karnataka, 585103, India"
+      // We need to identify the city, state, postal code correctly
+      
+      // Usually format is: [locality], [subdivision], [city], [state], [postal code], [country]
+      const city = addressParts[addressParts.length - 4] || ''; // City is typically 4th from last
+      const state = addressParts[addressParts.length - 3] || ''; // State is typically 3rd from last
+      const postalCode = addressParts[addressParts.length - 2] || ''; // Postal code is typically 2nd from last
+      const country = addressParts[addressParts.length - 1] || ''; // Country is last
+      
+      // Try to detect if postal code is numeric
+      const isPostalNumeric = /^\d+$/.test(postalCode);
       
       if (city && !form.getValues('city')) {
         form.setValue('city', city);
       }
+      
       if (state && !form.getValues('state')) {
         form.setValue('state', state);
       }
+      
+      if (isPostalNumeric && !form.getValues('postalCode')) {
+        form.setValue('postalCode', postalCode);
+      } else if (!isPostalNumeric && addressParts.some(part => /^\d+$/.test(part))) {
+        // If postal code isn't numeric but there is a numeric part somewhere, use that as postal code
+        const numericPart = addressParts.find(part => /^\d+$/.test(part));
+        if (numericPart) {
+          form.setValue('postalCode', numericPart);
+        }
+      }
+      
       if (country && !form.getValues('country')) {
         form.setValue('country', country);
       }
@@ -248,7 +266,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
             
             {/* Display current location data if set */}
             {form.watch('location.address') && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="mb-4 p-3 w-full bg-blue-50 border border-blue-200 rounded-md">
                 <p className="text-sm font-medium text-blue-900">Selected Location</p>
                 <p className="text-sm text-blue-700">{form.watch('location.address')}</p>
                 <p className="text-xs text-blue-600">
@@ -264,7 +282,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
           </div>
         </div>
         
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end mt-6 pt-60">
           <Button type="submit">
             Create Clinic
           </Button>

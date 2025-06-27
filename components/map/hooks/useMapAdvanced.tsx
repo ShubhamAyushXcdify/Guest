@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { LatLng } from "leaflet";
 
 export interface LocationData {
@@ -14,7 +14,12 @@ export interface SearchSuggestion {
   lng: number;
 }
 
-const useMapAdvanced = () => {
+interface UseMapAdvancedProps {
+  initialLocation?: LocationData;
+}
+
+const useMapAdvanced = (props?: UseMapAdvancedProps) => {
+  const { initialLocation } = props || {};
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
@@ -23,7 +28,15 @@ const useMapAdvanced = () => {
   const [zoom, setZoom] = useState(13);
   
   const mapRef = useRef<any>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Initialize with initial location if provided
+  useEffect(() => {
+    if (initialLocation) {
+      setSelectedLocation(initialLocation);
+      setMapCenter([initialLocation.lat, initialLocation.lng]);
+    }
+  }, [initialLocation]);
 
   // Real reverse geocoding using OpenStreetMap Nominatim
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
@@ -165,7 +178,9 @@ const useMapAdvanced = () => {
     handleSaveLocation,
     clearLocation,
     setMapRef,
-    setZoom
+    setZoom,
+    setSelectedLocation,
+    setMapCenter
   };
 };
 
