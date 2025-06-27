@@ -510,15 +510,7 @@ export default function AppointmentList({
               Cancel
             </Button>
           )}
-          {/* Keep Delete button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => deleteAppointmentMutation.mutate(row.original.id.toString())}
-            disabled={deleteAppointmentMutation.isPending}
-          >
-            Delete
-          </Button>
+          {/* Delete button removed - appointments should be canceled, not deleted */}
           {/* Keep SOAP buttons */}
           {row.original.status === "In Progress" && (
             <Button
