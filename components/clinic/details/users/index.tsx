@@ -150,10 +150,10 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
     },
   ];
 
-  // Filter out users with role 'Veterinarian' (case-insensitive)
-  const filteredUsers = users.filter(
-    (user) => user.roleName && user.roleName.toLowerCase() !== "veterinarian"
-  );
+  // Filter users by clinicId if provided
+  const filteredUsers = clinicId
+    ? users.filter(user => (user as any).clinicId === clinicId)
+    : users;
 
   // Expose refreshUsers method to parent
   useImperativeHandle(ref, () => ({
@@ -176,7 +176,10 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
             </SheetHeader>
             <NewUser 
               clinicId={clinicId} 
-              onSuccess={() => setOpenNew(false)} 
+              onSuccess={() => {
+                setOpenNew(false);
+                refetch(); 
+              }} 
             />
           </SheetContent>
         </Sheet>
@@ -214,7 +217,10 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
             <UserDetails 
               userId={selectedUserId}
               clinicId={clinicId}
-              onSuccess={() => setOpenDetails(false)}
+              onSuccess={() => {
+                setOpenDetails(false);
+                refetch(); // Refresh user list after editing
+              }}
             />
           )}
         </SheetContent>
