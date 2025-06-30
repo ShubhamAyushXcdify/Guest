@@ -6,7 +6,7 @@ const getPatientById = async (id: string) => {
       throw new Error("Patient ID is required");
     }
     
-    const url = `/api/patient/${id}`;
+    const url = `/api/patients/${id}`;
     const response = await fetch(url);
     
     if (!response.ok) {

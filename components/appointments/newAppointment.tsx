@@ -28,6 +28,7 @@ import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId"
+import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -102,6 +103,9 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
     debouncedPatientQuery,
     "name" // Always search by name as specified
   )
+  
+  // Fetch specific patient by ID when patientId is provided
+  const { data: specificPatient } = useGetPatientById(patientId || "");
   
   // Cast the search results to our custom interface to handle API variations
   const typedSearchResults = searchResults as SearchPatientResult[];
@@ -421,17 +425,37 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
     if (patientId) {
       form.setValue("patientId", patientId);
       
-      // Find the selected patient in the response to set the selected patient state
-      const patient = patientsResponse?.find((p: Patient) => p.id === patientId);
-      if (patient) {
+      // First try to use the specific patient fetched directly
+      if (specificPatient) {
+        // Handle potentially different API response structures
+        const patientName = specificPatient.name || 
+                           (specificPatient.firstName && specificPatient.lastName ? 
+                            `${specificPatient.firstName} ${specificPatient.lastName}` : 
+                            specificPatient.patientId || `Patient (ID: ${patientId.substring(0, 8)}...)`);
+        
+        // Check for clientId in different possible locations
+        const clientId = specificPatient.clientId || 
+                        (specificPatient.client ? specificPatient.client.id : undefined);
+                        
         setSelectedPatient({
-          id: patient.id,
-          name: patient.name,
-          clientId: patient.clientId
+          id: patientId,
+          name: patientName,
+          clientId: clientId
         });
+      } 
+      // Fallback to finding in the patient list if specificPatient not available
+      else if (patientsResponse) {
+        const patient = patientsResponse.find((p: Patient) => p.id === patientId);
+        if (patient) {
+          setSelectedPatient({
+            id: patient.id,
+            name: patient.name,
+            clientId: patient.clientId
+          });
+        }
       }
     }
-  }, [patientId, form, patientsResponse]);
+  }, [patientId, form, patientsResponse, specificPatient]);
   
   // Set default appointment date to today when component mounts
   useEffect(() => {
