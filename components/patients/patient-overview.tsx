@@ -20,6 +20,24 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
     setSelectedAppointmentId(null);
   };
 
+  // Helper function to get appointment type display name
+  const getAppointmentTypeDisplay = (appointmentType: any): string => {
+    if (!appointmentType) return 'Unknown';
+    
+    // If appointmentType is an object with a name property, use that
+    if (typeof appointmentType === 'object' && appointmentType.name) {
+      return appointmentType.name;
+    }
+    
+    // Otherwise if it's a string, use it directly
+    if (typeof appointmentType === 'string') {
+      return appointmentType;
+    }
+    
+    // Fallback
+    return 'Unknown';
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card className="bg-white dark:bg-slate-800 shadow-sm md:col-span-2 lg:col-span-3">
@@ -61,7 +79,7 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
                         {new Date(appointment.appointmentDate).toLocaleDateString()} {appointment.startTime}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {appointment.appointmentType} - {appointment.reason}
+                        {getAppointmentTypeDisplay(appointment.appointmentType)} - {appointment.reason}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                         {`${appointment.veterinarian.firstName} ${appointment.veterinarian.lastName}`}
