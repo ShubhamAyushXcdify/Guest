@@ -35,7 +35,7 @@ export function Header() {
             </>
           )}
         </div>
-        <Popover>
+        {/* <Popover>
           <PopoverTrigger asChild>
             <div className="relative cursor-pointer">
               <Button variant="ghost" size="icon">
@@ -70,7 +70,7 @@ export function Header() {
               <Button variant="ghost" className="w-full text-sm" size="sm">View all notifications</Button>
             </div>
           </PopoverContent>
-        </Popover>
+        </Popover> */}
       </div>
     </header>
   )

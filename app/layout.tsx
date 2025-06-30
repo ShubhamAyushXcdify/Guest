@@ -37,5 +37,9 @@ export default function RootLayout({
 }
 
 export const metadata = {
-  generator: 'v0.dev'
+  title: "PawTrack - Clinic Management System",
+  description: "Clinic Management System",
+  icons: {
+    icon: "/images/logo.png",
+  },
 };
