@@ -11,7 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import NewAppointmentType from "./newAppointmentType";
 import AppointmentTypeDetails from "./appointmentTypeDetails";
-import { useGetAppointmentType, AppointmentType } from "@/queries/appointmentType/get-appointmentType";
+import { useGetAppointmentTypeByClinicId, AppointmentType } from "@/queries/appointmentType/get-appointmentType-by-clinicId";
 
 interface AppointmentTypeProps {
   clinicId: string;
@@ -22,12 +22,8 @@ function AppointmentTypeComponent({ clinicId }: AppointmentTypeProps) {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
 
-  const { data: appointmentTypes = [], isLoading, isError, refetch } = useGetAppointmentType(
-    pageNumber,
-    pageSize,
-    search,
-    clinicId || ''
-  );
+  // Use the clinic-specific hook
+  const { data: appointmentTypes = [], isLoading, isError, refetch } = useGetAppointmentTypeByClinicId(clinicId);
 
   // For debugging
   useEffect(() => {

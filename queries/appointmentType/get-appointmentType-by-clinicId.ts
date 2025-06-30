@@ -4,6 +4,7 @@ export type AppointmentType = {
     appointmentTypeId: string;
     name: string;
     clinicId: string;
+    isActive: boolean;
 }
 
 const getAppointmentTypeByClinicId = async (clinicId: string) => {

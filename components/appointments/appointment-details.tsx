@@ -20,6 +20,7 @@ import { useGetClients, Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
 import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
+import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
@@ -96,8 +97,20 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     },
   })
   
-  // Get selected room ID for slots
+  // Get selected clinicId and roomId from form
+  const selectedClinicId = form.watch("clinicId");
   const selectedRoomId = form.watch("roomId");
+  
+  // Fetch rooms for the selected clinic
+  const { data: filteredRoomsResponse } = useGetRoom(1, 100, '', selectedClinicId);
+  const filteredRoomOptions = (filteredRoomsResponse?.items || []).filter(room => room.isActive).map(room => ({
+    value: room.id,
+    label: room.name
+  }));
+  
+  // Fetch slots for the selected room
+  const { data: filteredSlotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
+  const filteredSlots = filteredSlotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
   
   // Use patient search query for edit mode
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
@@ -107,12 +120,6 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   
   // Convert search results to our format
   const typedSearchResults = searchResults as ExtendedPatient[];
-  
-  // Fetch slots for the selected room
-  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
-  
-  // Initialize slots with proper default value
-  const slots = slotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
   
   // Format time for display (assuming HH:mm:ss format from API)
   const formatTime = (timeString: string) => {
@@ -218,7 +225,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const { data: clientsResponse } = useGetClients(1, 100)
   const { data: usersResponse } = useGetUsers(1, 100)
   const { data: roomsResponse } = useGetRoom(1, 100)
-  const { data: appointmentTypes } = useGetAppointmentType(1, 100)
+  const { data: appointmentTypes = [] } = useGetAppointmentTypeByClinicId(selectedClinicId);
 
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
@@ -275,9 +282,10 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     value: client.id,
     label: `${client.firstName} ${client.lastName}`
   }))
+  // const selectedClinicId = form.watch("clinicId");
 
   const veterinarianOptions = (usersResponse?.items || [])
-    .filter(user => user.roleName === "Veterinarian")
+    .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId) 
     .map(vet => ({
       value: vet.id,
       label: `Dr. ${vet.firstName} ${vet.lastName}`
@@ -288,7 +296,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     label: room.name
   }))
 
-  const appointmentTypeOptions = (appointmentTypes || []).map((type: { appointmentTypeId: string; name: string }) => ({
+  const appointmentTypeOptions = (appointmentTypes || []).filter(type => type.isActive).map((type: { appointmentTypeId: string; name: string }) => ({
     value: type.appointmentTypeId,
     label: type.name
   }));
@@ -681,7 +689,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                         <FormLabel>Room</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={roomOptions}
+                            options={filteredRoomOptions}
                             value={field.value}
                             onValueChange={field.onChange}
                             placeholder="Select room"
@@ -738,13 +746,13 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : slots.items.length === 0 || slots.items.every((slot: Slot) => !slot.isAvailable) ? (
+                            ) : filteredSlots.items.length === 0 || filteredSlots.items.every((slot: Slot) => !slot.isAvailable) ? (
                               <div className="text-sm text-gray-500">
                                 No slots available for this room
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
-                                {slots.items
+                                {filteredSlots.items
                                   .filter((slot: Slot) => slot.isAvailable || selectedSlot === slot.id || field.value === slot.id)
                                   .map((slot: Slot) => (
                                   <button
