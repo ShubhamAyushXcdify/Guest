@@ -2,7 +2,7 @@
 import withAuth from "@/utils/privateRouter";
 import { SidebarProvider } from "../ui/sidebar";
 import { Header } from "./header";
-import { Sidebar } from "./sidebar";
+import { Sidebar } from "./sidebar/sidebar";
 
 function MainLayout({ children }: { children: React.ReactNode }) {
 
