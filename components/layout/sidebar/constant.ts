@@ -34,13 +34,7 @@ export const navGroups = [
                 color: "text-blue-500",
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
             },
-            {
-                href: "/inventory",
-                label: "Inventory",
-                icon: Package,
-                color: "text-blue-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
-            },
+
             // {
             //     href: "/prescriptions",
             //     label: "Prescriptions",
@@ -54,19 +48,33 @@ export const navGroups = [
         icon: FlaskConical,
         allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
         items: [
+            // {
+            //     href: "/billing",
+            //     label: "Billing",
+            //     icon: FileText,
+            //     color: "text-purple-500",
+            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+            // },
+            // {
+            //     href: "/reports",
+            //     label: "Reports",
+            //     icon: PieChart,
+            //     color: "text-purple-500",
+            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+            // },
             {
-                href: "/billing",
-                label: "Billing",
-                icon: FileText,
+                href: "/inventory",
+                label: "Inventory",
+                icon: Package,
                 color: "text-purple-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
             },
             {
-                href: "/reports",
-                label: "Reports",
-                icon: PieChart,
+                href: "/products",
+                label: "Products",
+                icon: Package,
                 color: "text-purple-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+                allowedRoles: ["Administrator", "Super Admin"],
             },
             // {
             //   href: "/dashboard/shipments",
@@ -95,13 +103,7 @@ export const navGroups = [
                 color: "text-purple-500",
                 allowedRoles: ["Administrator", "Super Admin"],
             },
-            {
-                href: "/products",
-                label: "Products",
-                icon: Package,
-                color: "text-purple-500",
-                allowedRoles: ["Administrator", "Super Admin"],
-            },
+           
             {
                 href: "/supplier",
                 label: "Suppliers",
