@@ -41,12 +41,12 @@ export default function Inventory() {
           <div className="flex flex-wrap gap-3">
             {/* <Button variant="destructive" className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800">
               <AlertTriangle className="mr-2 h-4 w-4" /> Low Stock
-            </Button>
-            <Button className="theme-button-outline" asChild>
-              <Link href="/inventory/stock-adjustment">Adjust Stock</Link>
             </Button> */}
+            <Button className="bg-primary text-white hover:bg-primary/90" asChild>
+              <Link href="/inventory/stock-adjustment">Adjust Stock</Link>
+            </Button>
             <Button 
-              className="theme-button text-white"
+              className="bg-primary text-white hover:bg-primary/90"
               onClick={() => setIsOrderModalOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" /> Order
