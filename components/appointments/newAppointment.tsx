@@ -172,7 +172,7 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
 
   const { data: usersResponse = { items: [] } } = useGetUsers(1, 100);
   const veterinarianOptions = (usersResponse.items || [])
-  .filter(user => user.roleName === "Veterinarian")
+  .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
   .map(vet => ({
     value: vet.id,
     label: `Dr. ${vet.firstName} ${vet.lastName}`
@@ -190,14 +190,14 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   
   const roomOptions = isLoadingRooms 
   ? [] 
-  : (rooms || []).map((room: any) => ({
+  : (rooms || []).filter((room: any) => room.isActive).map((room: any) => ({
     value: room.id,
     label: `${room.name} (${room.roomType})`
   }));
   
   const appointmentTypeOptions = isLoadingAppointmentTypes
   ? []
-  : (appointmentTypes || []).map((type) => ({
+  : (appointmentTypes || []).filter((type) => type.isActive).map((type) => ({
     value: type.appointmentTypeId,
     label: type.name
   }));
