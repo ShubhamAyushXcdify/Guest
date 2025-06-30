@@ -4,35 +4,35 @@ export const navGroups = [
     {
         title: "Core Operations",
         icon: ClipboardList,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
         items: [
             {
                 href: "/dashboard",
                 label: "Dashboard",
                 icon: LayoutDashboard,
                 color: "text-blue-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
             {
                 href: "/appointments",
                 label: "Appointments",
                 icon: Calendar,
                 color: "text-blue-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
             {
                 href: "/patients",
                 label: "Patients",
                 icon: Users,
                 color: "text-blue-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
             {
                 href: "/clients",
                 label: "Clients",
                 icon: Users,
                 color: "text-blue-500",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
 
             // {
@@ -46,21 +46,21 @@ export const navGroups = [
     {
         title: "Products & Services",
         icon: FlaskConical,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Provider"],
+        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
         items: [
             // {
             //     href: "/billing",
             //     label: "Billing",
             //     icon: FileText,
             //     color: "text-purple-500",
-            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             // },
             // {
             //     href: "/reports",
             //     label: "Reports",
             //     icon: PieChart,
             //     color: "text-purple-500",
-            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Provider"],
+            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             // },
             {
                 href: "/inventory",
