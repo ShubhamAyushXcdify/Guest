@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import PatientOverview from "@/components/patients/patient-overview"
-import PatientMedical from "@/components/patients/patient-medical"
+//import PatientMedical from "@/components/patients/patient-medical"
 import PatientVisits from "@/components/patients/patient-visits"
 import PatientLabResults from "@/components/patients/patient-lab-results"
 import PatientPrescriptions from "@/components/patients/patient-prescriptions"
@@ -152,7 +152,7 @@ export const PatientDetailScreen = () => {
       >
     Overview
   </TabsTrigger>
-  <TabsTrigger
+  {/* <TabsTrigger
     value="medical"
     className={`px-6 py-3 rounded-none border-b-2 ${
       activeTab === "medical"
@@ -161,7 +161,7 @@ export const PatientDetailScreen = () => {
     }`}
   >
     Medical
-  </TabsTrigger>
+  </TabsTrigger> */}
   <TabsTrigger
     value="visits"
     className={`px-6 py-3 rounded-none border-b-2 ${
@@ -217,9 +217,9 @@ export const PatientDetailScreen = () => {
 <TabsContent value="overview">
   <PatientOverview patient={patient} patientId={patientId} />
 </TabsContent>
-<TabsContent value="medical">
+{/* <TabsContent value="medical">
   <PatientMedical />
-</TabsContent>
+</TabsContent> */}
 <TabsContent value="visits">
   <PatientVisits />
 </TabsContent>

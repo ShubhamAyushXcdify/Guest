@@ -130,7 +130,7 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
       </Card>
 
       {/* Alerts & Warnings */}
-      <Card className="bg-white dark:bg-slate-800 shadow-sm">
+      {/* <Card className="bg-white dark:bg-slate-800 shadow-sm">
         <CardContent className="p-0">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Alerts & Warnings</h3>
@@ -147,10 +147,10 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Active Care Plans */}
-      <Card className="bg-white dark:bg-slate-800 shadow-sm">
+      {/* <Card className="bg-white dark:bg-slate-800 shadow-sm">
         <CardContent className="p-0">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Active Care Plans</h3>
@@ -174,7 +174,7 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
             <Button className="w-full theme-button text-white">View Plan Details</Button>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {selectedAppointmentId && (
         <PatientInformation
