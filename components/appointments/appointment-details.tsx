@@ -278,7 +278,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     }
   })
 
-  const clientOptions = (clientsResponse?.items || []).map((client: Client) => ({
+  const clientOptions = (clientsResponse?.items || []).filter(client => client.isActive).map((client: Client) => ({
     value: client.id,
     label: `${client.firstName} ${client.lastName}`
   }))

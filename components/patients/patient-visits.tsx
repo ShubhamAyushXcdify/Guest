@@ -9,60 +9,66 @@ import { CalendarIcon, ChevronLeft, ChevronRight, Clock, Plus } from "lucide-rea
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
+import { useParams, useRouter } from "next/navigation"
+import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import NewAppointment from "@/components/appointments/newAppointment"
+import AppointmentDetails from "@/components/appointments/appointment-details"
 
 export default function PatientVisits() {
-  const [date, setDate] = useState<Date | undefined>(new Date())
+  const params = useParams();
+  const router = useRouter();
+  const patientId = params.id as string;
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [viewAppointmentId, setViewAppointmentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('upcoming');
 
-  const upcomingAppointments = [
-    {
-      id: 1,
-      date: "May 15, 2025",
-      time: "2:00 PM",
-      type: "Dental Cleaning",
-      vet: "Dr. Sarah Johnson",
-      status: "scheduled",
+  // Fetch all appointments for this patient
+  const { data: appointments = [], isLoading, refetch: refetchAppointments } = useGetAppointmentByPatientId(patientId);
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      refetchAppointments(); // Refetch to update the lists
+      setActiveTab('upcoming'); // Switch to upcoming tab after rescheduling
+      setViewAppointmentId(null); // Close the details/reschedule modal if open
     },
-    {
-      id: 2,
-      date: "Aug 20, 2025",
-      time: "10:30 AM",
-      type: "Annual Check-up",
-      vet: "Dr. Michael Chen",
-      status: "scheduled",
-    },
-  ]
+    onError: (error) => {
+      alert(error?.message || 'Failed to update appointment');
+    }
+  });
 
-  const pastAppointments = [
-    {
-      id: 3,
-      date: "May 1, 2025",
-      time: "1:30 PM",
-      type: "Annual Check-up",
-      vet: "Dr. Sarah Johnson",
-      notes: "Healthy overall. Weight stable. Mild tartar buildup recommended for dental cleaning.",
-    },
-    {
-      id: 4,
-      date: "Mar 15, 2025",
-      time: "11:00 AM",
-      type: "Vaccination",
-      vet: "Dr. Michael Chen",
-      notes: "Rabies and DHPP vaccines administered. No adverse reactions.",
-    },
-    {
-      id: 5,
-      date: "Nov 10, 2024",
-      time: "3:30 PM",
-      type: "Sick Visit - Digestive Issues",
-      vet: "Dr. Sarah Johnson",
-      notes: "Mild gastrointestinal upset. Prescribed probiotics and special diet for 3 days.",
-    },
-  ]
+  // Helper to parse date string to Date object
+  const parseDate = (dateStr: string) => {
+    // Try ISO, fallback to MM/DD/YYYY
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Split into upcoming and past
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const upcomingAppointments = (appointments || []).filter((appt: any) => {
+    const apptDate = parseDate(appt.date || appt.appointmentDate);
+    // Only show if date is today or in future AND status is not 'checked' and is 'scheduled'
+    return (
+      apptDate &&
+      apptDate >= today &&
+      (!appt.status || appt.status.toLowerCase() === 'scheduled')
+    );
+  });
+  const pastAppointments = (appointments || []).filter((appt: any) => {
+    const apptDate = parseDate(appt.date || appt.appointmentDate);
+    // Past is before today OR status is 'checked'
+    return (
+      apptDate &&
+      (apptDate < today || (appt.status && appt.status.toLowerCase() === 'checked' || appt.status.toLowerCase() === 'completed' || appt.status.toLowerCase() === 'cancelled'))
+    );
+  });
 
   return (
     <div className="space-y-6">
       {/* Appointment Calendar */}
-      <Card className="bg-white dark:bg-slate-800 shadow-sm">
+      {/* <Card className="bg-white dark:bg-slate-800 shadow-sm">
         <CardContent className="p-0">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Appointment Calendar</h3>
@@ -94,26 +100,26 @@ export default function PatientVisits() {
 
           <div className="px-6 py-8">
             {/* Calendar preview would go here */}
-            <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/50 text-gray-500 dark:text-gray-400">
+            {/* <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/50 text-gray-500 dark:text-gray-400">
               <CalendarIcon className="h-12 w-12 mb-2" />
               <p className="text-sm">Calendar view would be displayed here</p>
               <p className="text-xs mt-1">Showing appointments for {format(date || new Date(), "MMMM yyyy")}</p>
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card>  */}
 
       {/* Appointments List */}
       <Card className="bg-white dark:bg-slate-800 shadow-sm">
         <CardContent className="p-0">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Visits & Appointments</h3>
-            <Button className="theme-button text-white">
+            <Button className="theme-button text-white" onClick={() => setShowNewAppointment(true)}>
               <Plus className="mr-2 h-4 w-4" /> New Appointment
             </Button>
           </div>
 
-          <Tabs defaultValue="upcoming" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="px-4 pt-4">
               <TabsList>
                 <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
@@ -127,7 +133,7 @@ export default function PatientVisits() {
                   <thead className="bg-gray-50 dark:bg-slate-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Date & Time
+                        Date 
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Type
@@ -144,32 +150,57 @@ export default function PatientVisits() {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                    {upcomingAppointments.map((appointment) => (
+                    {(upcomingAppointments as any[]).map((appointment) => (
                       <tr key={appointment.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-200">{appointment.date}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                            <Clock className="h-3.5 w-3.5 mr-1" />
-                            {appointment.time}
+                         <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">
+                            {(appointment.date || appointment.appointmentDate)?.split("T")[0]}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.type}
+                          {appointment.appointmentType.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.vet}
+                          {appointment.veterinarian.firstName} {appointment.veterinarian.lastName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
-                            Scheduled
+                            {appointment.status ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1) : 'Scheduled'}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" onClick={() => setViewAppointmentId(appointment.id)}>
                               Reschedule
                             </Button>
-                            <Button variant="outline" size="sm" className="text-red-500 border-red-200 hover:bg-red-50">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-500 border-red-200 hover:bg-red-50"
+                              onClick={async () => {
+                                await updateAppointmentMutation.mutateAsync({
+                                  id: appointment.id.toString(),
+                                  data: {
+                                    id: appointment.id,
+                                    clinicId: appointment.clinicId,
+                                    patientId: appointment.patientId,
+                                    clientId: appointment.clientId,
+                                    veterinarianId: appointment.veterinarianId,
+                                    roomId: appointment.roomId,
+                                    appointmentDate: appointment.appointmentDate,
+                                    startTime: appointment.startTime,
+                                    endTime: appointment.endTime,
+                                    appointmentTypeId: appointment.appointmentTypeId,
+                                    reason: appointment.reason,
+                                    status: "cancelled",
+                                    notes: appointment.notes,
+                                    createdBy: appointment.createdBy,
+                                  }
+                                });
+                                // No reload, just refetch and switch tab
+                              }}
+                              disabled={updateAppointmentMutation.isPending}
+                            >
                               Cancel
                             </Button>
                           </div>
@@ -187,7 +218,7 @@ export default function PatientVisits() {
                   <thead className="bg-gray-50 dark:bg-slate-700">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Date & Time
+                        Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Type
@@ -196,7 +227,7 @@ export default function PatientVisits() {
                         Vet
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Notes
+                        Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Actions
@@ -204,26 +235,26 @@ export default function PatientVisits() {
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                    {pastAppointments.map((appointment) => (
+                    {(pastAppointments as any[]).map((appointment) => (
                       <tr key={appointment.id}>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-200">{appointment.date}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                            <Clock className="h-3.5 w-3.5 mr-1" />
-                            {appointment.time}
+                          <div className="text-sm text-gray-900 dark:text-gray-200">
+                            {(appointment.date || appointment.appointmentDate)?.split("T")[0]}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.type}
+                          {appointment.appointmentType.name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.vet}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200 max-w-md">
-                          {appointment.notes}
+                          {appointment.veterinarian.firstName} {appointment.veterinarian.lastName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Button variant="secondary" size="sm">
+                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                            {appointment.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Button variant="secondary" size="sm" onClick={() => setViewAppointmentId(appointment.id)}>
                             View Details
                           </Button>
                         </td>
@@ -236,6 +267,25 @@ export default function PatientVisits() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {showNewAppointment && (
+        <NewAppointment
+          isOpen={showNewAppointment}
+          onClose={() => {
+            setShowNewAppointment(false);
+            setActiveTab('upcoming'); // Switch to upcoming tab after closing new appointment modal
+            refetchAppointments();    // Refetch appointments to show the new one
+          }}
+          patientId={patientId}
+        />
+      )}
+
+      {viewAppointmentId && (
+        <AppointmentDetails
+          appointmentId={viewAppointmentId}
+          onClose={() => setViewAppointmentId(null)}
+        />
+      )}
     </div>
   )
-} 
+}

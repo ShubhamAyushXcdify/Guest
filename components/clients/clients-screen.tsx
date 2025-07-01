@@ -116,6 +116,7 @@ export const ClientsScreen = () => {
     { accessorKey: "email", header: "Email" },
     { accessorKey: "phonePrimary", header: "Phone" },
     ...(clinic?.id ? [] : [{ accessorKey: "clinicName", header: "Clinic Name" }]),
+    { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
@@ -141,7 +142,7 @@ export const ClientsScreen = () => {
           >
             <Eye className="h-4 w-4" />
           </Button>
-          <Button 
+          {/* <Button 
             variant="ghost" 
             size="icon"
             className="text-red-500 hover:text-red-700 hover:bg-red-100"
@@ -151,7 +152,7 @@ export const ClientsScreen = () => {
             }}
           >
             <Trash2 className="h-4 w-4" />
-          </Button>
+          </Button> */}
         </div>
       ),
       meta: { className: "text-center" },
