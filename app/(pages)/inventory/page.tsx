@@ -1,4 +1,4 @@
-import Inventory from "@/components/inventory";
+import Inventory from "@/components/newInventory";
 
 export default function InventoryPage() {
   return (

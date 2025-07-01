@@ -12,11 +12,12 @@ import ProductDetails from "./productsDetails";
 import { useDeleteProduct } from "@/queries/products/delete-products";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
-
+ 
 // Product type based on the provided API schema
 export type Product = {
   id: string;
   clinicId: string;
+  productNumber: string;
   name: string;
   genericName: string;
   category: string;
@@ -30,44 +31,46 @@ export type Product = {
   controlledSubstanceSchedule: string;
   storageRequirements: string;
   isActive: boolean;
+  reorderThreshold?: number | null; // Added optional reorderThreshold field
+  price?: number; // Added price field
 };
-
+ 
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
-
+ 
 export default function Products() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
-  
+ 
   const { data: productsData, isLoading, isError } = useGetProducts(pageNumber, pageSize, search);
-  
+ 
   // Extract product items from the paginated response
   const products = productsData?.items || [];
   const totalPages = productsData?.totalPages || 1;
-  
+ 
   const [openNew, setOpenNew] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const deleteProduct = useDeleteProduct();
-  
+ 
   // State for delete confirmation dialog
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
+ 
   const handleProductClick = (productId: string) => {
     setSelectedProductId(productId);
     setOpenDetails(true);
   };
-
+ 
   const openDeleteDialog = (product: Product) => {
     setProductToDelete(product);
     setIsDeleteDialogOpen(true);
   };
-
+ 
   const handleDeleteProduct = async () => {
     if (!productToDelete) return;
-    
+   
     setIsDeleting(true);
     try {
       await deleteProduct.mutateAsync({ id: productToDelete.id });
@@ -87,46 +90,47 @@ export default function Products() {
       setProductToDelete(null);
     }
   };
-  
+ 
   const handlePageChange = (page: number) => {
     setPageNumber(page);
   };
-
+ 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(Number(newPageSize));
     setPageNumber(1); // Reset to first page when changing page size
   };
-
+ 
   const handleSearch = (value: string) => {
     setSearch(value);
     setPageNumber(1); // Reset to first page when searching
   };
-
+ 
   const columns: ColumnDef<Product>[] = [
     { accessorKey: "name", header: "Name" },
     { accessorKey: "genericName", header: "Generic Name" },
     { accessorKey: "category", header: "Category" },
     { accessorKey: "productType", header: "Product Type" },
-    { accessorKey: "manufacturer", header: "Manufacturer" },
-    { accessorKey: "strength", header: "Strength" },
-    { 
-      accessorKey: "requiresPrescription", 
-      header: "Rx Required", 
+    // { accessorKey: "manufacturer", header: "Manufacturer" },
+    // { accessorKey: "strength", header: "Strength" },
+    {
+      accessorKey: "requiresPrescription",
+      header: "Rx Required",
       cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "outline"}>{getValue() ? "Yes" : "No"}</Badge>
     },
-    { 
-      accessorKey: "isActive", 
-      header: "Status", 
+    {
+      accessorKey: "isActive",
+      header: "Status",
       cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "destructive"}>{getValue() ? "Active" : "Inactive"}</Badge>
     },
+    { accessorKey: "reorderThreshold", header: "Threshold", cell: ({ getValue }) => getValue() ?? '-' },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => (
         <div className="flex gap-2 justify-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               handleProductClick(row.original.id);
@@ -134,8 +138,8 @@ export default function Products() {
           >
             <Edit className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             className="text-red-500 hover:text-red-700 hover:bg-red-100"
             onClick={(e) => {
@@ -150,7 +154,7 @@ export default function Products() {
       meta: { className: "text-center" },
     },
   ];
-
+ 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -169,7 +173,7 @@ export default function Products() {
           </SheetContent>
         </Sheet>
       </div>
-      
+     
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <p>Loading products...</p>
@@ -197,7 +201,7 @@ export default function Products() {
           onEditButtonClick={handleProductClick}
         />
       )}
-      
+     
       {/* Product Details Sheet */}
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
         <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
@@ -205,14 +209,14 @@ export default function Products() {
             <SheetTitle>Product Details</SheetTitle>
           </SheetHeader>
           {selectedProductId && (
-            <ProductDetails 
+            <ProductDetails
               productId={selectedProductId}
               onSuccess={() => setOpenDetails(false)}
             />
           )}
         </SheetContent>
       </Sheet>
-
+ 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
