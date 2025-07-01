@@ -15,6 +15,7 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface ComplaintsTabProps {
   patientId: string
@@ -36,6 +37,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const { data: existingComplaint, refetch: refetchComplaint } = useGetComplaintByVisitId(
     visitData?.id || ""
   )
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
   // Initialize selected symptoms and notes from existing data
   useEffect(() => {
@@ -139,6 +141,8 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     // eslint-disable-next-line
   }, [transcriber.output?.isBusy])
 
+  const isReadOnly =appointmentData?.status === "completed"
+
   if (visitLoading || isLoading) {
     return (
       <Card>
@@ -169,6 +173,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
             size="sm" 
             className="flex items-center gap-1"
             onClick={() => setIsAddingSymptom(!isAddingSymptom)}
+            disabled={isReadOnly}
           >
             <PlusCircle className="h-4 w-4" /> 
             Add Symptom
@@ -182,10 +187,11 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
               value={newSymptomName}
               onChange={(e) => setNewSymptomName(e.target.value)}
               className="max-w-md"
+              disabled={isReadOnly}
             />
             <Button 
               onClick={handleAddSymptom}
-              disabled={!newSymptomName.trim() || createSymptomMutation.isPending}
+              disabled={!newSymptomName.trim() || createSymptomMutation.isPending || isReadOnly}
             >
               Add
             </Button>
@@ -195,6 +201,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
                 setIsAddingSymptom(false)
                 setNewSymptomName("")
               }}
+              disabled={isReadOnly}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -220,6 +227,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
                         <button 
                           className="ml-2 hover:text-red-500"
                           onClick={() => handleSymptomClick(symptom.id)}
+                          disabled={isReadOnly}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -242,6 +250,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
                         ? 'bg-green-100 border-green-300 text-green-800'
                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
+                    disabled={isReadOnly}
                   >
                     {symptom.name}
                   </button>
@@ -260,6 +269,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
                   variant="ghost"
                   onClick={() => setAudioModalOpen(true)}
                   title="Record voice note"
+                  disabled={isReadOnly}
                 >
                   <Mic className="w-4 h-4" />
                 </Button>
@@ -269,6 +279,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
                 placeholder="Add any additional details about the complaint..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                disabled={isReadOnly}
               />
               <AudioManager
                 open={audioModalOpen}
@@ -284,7 +295,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={createComplaintMutation.isPending || updateComplaintMutation.isPending || selectedSymptoms.length === 0}
+                disabled={createComplaintMutation.isPending || updateComplaintMutation.isPending || selectedSymptoms.length === 0 || isReadOnly}
                 className="ml-2"
               >
                 {createComplaintMutation.isPending || updateComplaintMutation.isPending 
@@ -297,4 +308,4 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
       </CardContent>
     </Card>
   )
-} 
+}

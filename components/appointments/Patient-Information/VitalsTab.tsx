@@ -16,6 +16,7 @@ import { useTabCompletion } from "@/context/TabCompletionContext"
 import { Mic } from "lucide-react"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface VitalsTabProps {
   patientId: string
@@ -33,6 +34,9 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
   const { data: vitalDetail, refetch: refetchVitalDetail } = useGetVitalDetailByVisitId(
     visitData?.id || ""
   )
+
+  // Get appointment data
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
 
   // State for form fields
   const [temperatureC, setTemperatureC] = useState<number | undefined>(undefined)
@@ -136,6 +140,8 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
     }
   }
 
+  const isReadOnly =appointmentData?.status === "completed"
+
   if (visitLoading) {
     return (
       <Card>
@@ -174,6 +180,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
                 placeholder="38.5"
                 value={temperatureC || ""}
                 onChange={(e) => setTemperatureC(e.target.value ? parseFloat(e.target.value) : undefined)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -185,6 +192,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
                 placeholder="80"
                 value={heartRateBpm || ""}
                 onChange={(e) => setHeartRateBpm(e.target.value ? parseFloat(e.target.value) : undefined)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -196,6 +204,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
                 placeholder="20"
                 value={respiratoryRateBpm || ""}
                 onChange={(e) => setRespiratoryRateBpm(e.target.value ? parseFloat(e.target.value) : undefined)}
+                disabled={isReadOnly}
               />
             </div>
           </div>
@@ -206,6 +215,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
               <Select 
                 value={mucousMembraneColor} 
                 onValueChange={setMucousMembraneColor}
+                disabled={isReadOnly}
               >
                 <SelectTrigger id="mucousMembraneColor">
                   <SelectValue placeholder="Select color" />
@@ -229,6 +239,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
                 placeholder="1.5"
                 value={capillaryRefillTimeSec || ""}
                 onChange={(e) => setCapillaryRefillTimeSec(e.target.value ? parseFloat(e.target.value) : undefined)}
+                disabled={isReadOnly}
               />
             </div>
 
@@ -237,6 +248,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
               <Select 
                 value={hydrationStatus} 
                 onValueChange={setHydrationStatus}
+                disabled={isReadOnly}
               >
                 <SelectTrigger id="hydrationStatus">
                   <SelectValue placeholder="Select status" />
@@ -274,6 +286,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
             placeholder="Add any additional details..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            disabled={isReadOnly}
           />
           <AudioManager
             open={audioModalOpen}
@@ -289,7 +302,7 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={handleSave}
-            disabled={isPending}
+            disabled={isPending || isReadOnly}
             className="ml-2"
           >
             {isPending 
@@ -300,4 +313,4 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
       </CardContent>
     </Card>
   )
-} 
+}

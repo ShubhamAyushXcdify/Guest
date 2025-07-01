@@ -13,6 +13,7 @@ import { useGetProcedureDetailByVisitId } from "@/queries/ProcedureDetails/get-p
 import { useUpdateProcedureDetail } from "@/queries/ProcedureDetails/update-procedure-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface ProcedureTabProps {
   patientId: string
@@ -34,7 +35,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const { data: existingProcedureDetail, refetch: refetchProcedureDetail } = useGetProcedureDetailByVisitId(
     visitData?.id || ""
   )
-  
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
   // Initialize selected procedures and notes from existing data
   useEffect(() => {
     if (existingProcedureDetail) {
@@ -73,6 +74,8 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   
   // Combined loading state
   const isPending = isCreating || isUpdating
+
+  const isReadOnly = appointmentData?.status === "completed"
 
   const handleProcedureClick = (id: string) => {
     setSelectedProcedures(prev => 
@@ -163,6 +166,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             size="sm" 
             className="flex items-center gap-1"
             onClick={() => setIsAddingProcedure(!isAddingProcedure)}
+            disabled={isReadOnly}
           >
             <PlusCircle className="h-4 w-4" /> 
             Add Procedure
@@ -176,10 +180,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
               value={newProcedureName}
               onChange={(e) => setNewProcedureName(e.target.value)}
               className="max-w-md"
+              disabled={isReadOnly}
             />
             <Button 
               onClick={handleAddProcedure}
-              disabled={!newProcedureName.trim() || createProcedureMutation.isPending}
+              disabled={!newProcedureName.trim() || createProcedureMutation.isPending || isReadOnly}
             >
               Add
             </Button>
@@ -189,6 +194,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                 setIsAddingProcedure(false)
                 setNewProcedureName("")
               }}
+              disabled={isReadOnly}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -214,6 +220,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                         <button 
                           className="ml-2 hover:text-red-500"
                           onClick={() => handleProcedureClick(procedure.id)}
+                          disabled={isReadOnly}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -236,6 +243,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                         ? 'bg-green-100 border-green-300 text-green-800'
                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
+                    disabled={isReadOnly}
                   >
                     {procedure.name}
                   </button>
@@ -250,13 +258,14 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                 placeholder="Add any additional details about the procedures..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
 
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={isPending}
+                disabled={isPending || isReadOnly}
                 className="ml-2"
               >
                 {isPending 

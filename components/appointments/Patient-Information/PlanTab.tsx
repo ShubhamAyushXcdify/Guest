@@ -254,6 +254,8 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     // eslint-disable-next-line
   }, [transcriber.output?.isBusy])
 
+  const isReadOnly = appointmentData?.status === "completed"
+
   if (visitLoading || isLoading) {
     return (
       <Card>
@@ -284,6 +286,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
             size="sm" 
             className="flex items-center gap-1"
             onClick={() => setIsAddingPlan(!isAddingPlan)}
+            disabled={isReadOnly}
           >
             <PlusCircle className="h-4 w-4" /> 
             Add Plan
@@ -297,10 +300,11 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               value={newPlanName}
               onChange={(e) => setNewPlanName(e.target.value)}
               className="max-w-md"
+              disabled={isReadOnly}
             />
             <Button 
               onClick={handleAddPlan}
-              disabled={!newPlanName.trim() || createPlanMutation.isPending}
+              disabled={!newPlanName.trim() || createPlanMutation.isPending || isReadOnly}
             >
               Add
             </Button>
@@ -310,6 +314,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
                 setIsAddingPlan(false)
                 setNewPlanName("")
               }}
+              disabled={isReadOnly}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -347,6 +352,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
                         <button 
                           className="ml-2 hover:text-red-500"
                           onClick={() => handlePlanClick(plan.id)}
+                          disabled={isReadOnly}
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -369,6 +375,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
                         ? 'bg-green-100 border-green-300 text-green-800'
                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                     }`}
+                    disabled={isReadOnly}
                   >
                     {plan.name}
                   </button>
@@ -394,6 +401,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
                 placeholder="Add any additional details about the treatment plan..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                disabled={isReadOnly}
               />
               <AudioManager
                 open={audioModalOpen}
@@ -409,14 +417,14 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
             <div className="mt-6 flex justify-end gap-2">
               <Button 
                 onClick={handleSave}
-                disabled={isPending || selectedPlans.length === 0}
+                disabled={isPending || selectedPlans.length === 0 || isReadOnly}
                 className="ml-2"
               >
                 {isPending ? "Saving..." : existingPlanDetail ? "Update" : "Save"}
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isPending || !areAllTabsCompleted || !existingPlanDetail || selectedPlans.length === 0}
+                disabled={isPending || !areAllTabsCompleted || !existingPlanDetail || selectedPlans.length === 0 || isReadOnly}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 Checkout

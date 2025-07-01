@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { useTabCompletion } from "@/context/TabCompletionContext"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface PrescriptionTabProps {
   patientId: string
@@ -47,6 +48,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   // Get existing prescription detail
   const { data: existingPrescriptionDetail, refetch: refetchPrescriptionDetail } = 
     useGetPrescriptionDetailByVisitId(visitData?.id || "")
+
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
   // Initialize from existing data
   useEffect(() => {
@@ -171,6 +174,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     }
   }
 
+  const isReadOnly = appointmentData?.status === "completed"
+
   if (visitLoading || productsLoading) {
     return (
       <Card>
@@ -209,6 +214,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             size="sm" 
             className="flex items-center gap-1"
             onClick={openAddSheet}
+            disabled={isReadOnly}
           >
             <PlusCircle className="h-4 w-4" /> 
             Add Medicine
@@ -243,6 +249,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                           size="icon"
                           onClick={() => openEditSheet(index)}
                           className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                          disabled={isReadOnly}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -251,6 +258,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                           size="icon"
                           onClick={() => handleRemoveProduct(index)}
                           className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          disabled={isReadOnly}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -271,6 +279,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             placeholder="Add any additional details about the prescription..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+            disabled={isReadOnly}
           />
         </div>
 
@@ -280,7 +289,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             disabled={
               createPrescriptionDetailMutation.isPending || 
               updatePrescriptionDetailMutation.isPending ||
-              productMappings.length === 0
+              productMappings.length === 0 ||
+              isReadOnly
             }
           >
             {createPrescriptionDetailMutation.isPending || updatePrescriptionDetailMutation.isPending 
@@ -306,7 +316,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                   label: product.name
                 }))}
                 value={currentMapping.productId}
-                onValueChange={(value) => setCurrentMapping({...currentMapping, productId: value})}
+                onValueChange={(value) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, productId: value})}
                 placeholder="Select a medicine"
               />
             </div>
@@ -317,7 +327,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 id="dosage"
                 placeholder="e.g., 10mg"
                 value={currentMapping.dosage}
-                onChange={(e) => setCurrentMapping({...currentMapping, dosage: e.target.value})}
+                onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, dosage: e.target.value})}
+                disabled={isReadOnly}
               />
             </div>
             
@@ -327,7 +338,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 id="frequency"
                 placeholder="e.g., Twice daily"
                 value={currentMapping.frequency}
-                onChange={(e) => setCurrentMapping({...currentMapping, frequency: e.target.value})}
+                onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, frequency: e.target.value})}
+                disabled={isReadOnly}
               />
               <div className="flex gap-2 mt-2 flex-wrap">
                 {[
@@ -344,7 +356,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                     key={value}
                     type="button"
                     className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
-                    onClick={() => setCurrentMapping({...currentMapping, frequency: value})}
+                    onClick={() => !isReadOnly && setCurrentMapping({...currentMapping, frequency: value})}
+                    disabled={isReadOnly}
                   >
                     {value}
                   </button>
@@ -354,8 +367,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           </div>
           
           <SheetFooter className="pt-4">
-            <Button variant="outline" onClick={() => setIsAddSheetOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveMapping}>Save</Button>
+            <Button variant="outline" onClick={() => setIsAddSheetOpen(false)} disabled={isReadOnly}>Cancel</Button>
+            <Button onClick={handleSaveMapping} disabled={isReadOnly}>Save</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
