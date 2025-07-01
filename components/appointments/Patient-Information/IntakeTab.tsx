@@ -26,6 +26,7 @@ import { useTabCompletion } from "@/context/TabCompletionContext"
 import { Mic } from "lucide-react"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface IntakeTabProps {
   patientId: string
@@ -63,6 +64,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   const { data: intakeData, isLoading: intakeLoading, refetch: refetchIntake } = useGetIntakeByVisitId(
     visitData?.id || ""
   )
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
   // Intake tab state
   const [weightKg, setWeightKg] = useState<number | undefined>(undefined)
@@ -103,6 +105,8 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   // Audio modal state
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const transcriber = useTranscriber()
+
+  const isReadOnly = appointmentData?.status === "completed";
 
   // Initialize form with existing data when available
   useEffect(() => {
@@ -444,6 +448,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                 value={weightKg || ""}
                 onChange={(e) => setWeightKg(parseFloat(e.target.value))}
                 className="w-full max-w-xs"
+                disabled={isReadOnly}
               />
             </div>
 
@@ -465,6 +470,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                   size="sm"
                   onClick={triggerFileInput}
                   className="flex items-center"
+                  disabled={isReadOnly}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Photo
@@ -495,7 +501,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                           size="sm"
                           className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white p-0"
                           onClick={() => confirmDelete(index)}
-                          disabled={isPending}
+                          disabled={isPending || isReadOnly}
                         >
                           <Trash className="h-3 w-3" />
                         </Button>
@@ -519,6 +525,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                   variant="ghost"
                   onClick={() => setAudioModalOpen(true)}
                   title="Record voice note"
+                  disabled={isReadOnly}
                 >
                   <Mic className="w-4 h-4" />
                 </Button>
@@ -528,6 +535,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full h-32"
+                disabled={isReadOnly}
               />
             </div>
             <AudioManager
@@ -543,7 +551,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSaveIntake}
-                disabled={weightKg === undefined || isPending}
+                disabled={weightKg === undefined || isPending || isReadOnly}
                 className="ml-2"
               >
                 {isPending 
@@ -625,4 +633,4 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       </Dialog>
     </>
   )
-} 
+}

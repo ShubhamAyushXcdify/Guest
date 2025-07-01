@@ -15,6 +15,7 @@ import {
 } from "@/queries/MedicalHistoryDetail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface MedicalHistoryTabProps {
   patientId: string
@@ -41,11 +42,14 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
   const { data: medicalHistoryDetail, isLoading: historyLoading } = useGetMedicalHistoryDetailByVisitId(
     visitData?.id || ""
   )
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
   const { mutateAsync: createMedicalHistory, isPending: isCreating } = useCreateMedicalHistoryDetail()
   const { mutateAsync: updateMedicalHistory, isPending: isUpdating } = useUpdateMedicalHistoryDetail()
 
   const isPending = isCreating || isUpdating || visitLoading
+
+  const isReadOnly = appointmentData?.status === "completed"
 
   useEffect(() => {
     if (medicalHistoryDetail) {
@@ -159,6 +163,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               value={formData.chronicConditionsNotes}
               onChange={(e) => handleInputChange('chronicConditionsNotes', e.target.value)}
               className="min-h-[100px]"
+              disabled={isReadOnly}
             />
           </div>
           
@@ -170,6 +175,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               value={formData.surgeriesNotes}
               onChange={(e) => handleInputChange('surgeriesNotes', e.target.value)}
               className="min-h-[100px]"
+              disabled={isReadOnly}
             />
           </div>
           
@@ -181,6 +187,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               value={formData.currentMedicationsNotes}
               onChange={(e) => handleInputChange('currentMedicationsNotes', e.target.value)}
               className="min-h-[100px]"
+              disabled={isReadOnly}
             />
           </div>
           
@@ -192,13 +199,14 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               value={formData.generalNotes}
               onChange={(e) => handleInputChange('generalNotes', e.target.value)}
               className="min-h-[100px]"
+              disabled={isReadOnly}
             />
           </div>
           
           <div className="flex justify-end space-x-2">
             <Button 
               onClick={handleSave} 
-              disabled={isPending}
+              disabled={isPending || isReadOnly}
               className="mt-4"
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -210,4 +218,4 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
       </CardContent>
     </Card>
   )
-} 
+}
