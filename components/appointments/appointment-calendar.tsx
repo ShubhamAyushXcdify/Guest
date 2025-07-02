@@ -100,34 +100,46 @@ export default function AppointmentCalendar({
   
   // Process appointments to match the calendar structure
   const processedAppointments: ProcessedAppointment[] = useMemo(() => {
+    if (!Array.isArray(allAppointments)) return [];
+    
     return allAppointments.map(appointment => {
-      // Extract date and time parts
-      const appointmentDate = appointment.appointmentDate ? parseISO(appointment.appointmentDate) : null
-      // Try to get the time from different possible sources
-      const timeStr = appointment.startTime || appointment.roomSlot?.startTime || '00:00'
-      
       // Skip invalid appointments
-      if (!appointmentDate) return null
+      if (!appointment || typeof appointment !== 'object') return null;
       
-      // Extract hour and minute from time string
-      const [hours, minutes] = timeStr.split(':').map(Number)
-      
-      // Determine which hour block this appointment belongs to
-      // Format hour to match our grid hours
-      const hourBlock = `${hours}:00`
-      
-      // Format appointment for the calendar
-      return {
-        id: appointment.id,
-        date: appointmentDate,
-        day: format(appointmentDate, 'EEE'),
-        dayNumber: format(appointmentDate, 'd'),
-        time: timeStr.substring(0, 5), // Extract HH:MM from HH:MM:SS
-        hourBlock,
-        patient: appointment.patient?.name || 'Unknown',
-        type: appointment.appointmentType || 'Appointment',
-        status: appointment.status,
-        duration: 60, // Default duration - could be calculated from start/end times if available
+      try {
+        // Extract date and time parts
+        const appointmentDate = appointment.appointmentDate ? parseISO(appointment.appointmentDate) : null
+        // Try to get the time from different possible sources
+        const timeStr = appointment.startTime || 
+                        (appointment.roomSlot && appointment.roomSlot.startTime) || 
+                        '00:00'
+        
+        // Skip invalid appointments
+        if (!appointmentDate) return null
+        
+        // Extract hour and minute from time string
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        
+        // Determine which hour block this appointment belongs to
+        // Format hour to match our grid hours
+        const hourBlock = `${hours}:00`
+        
+        // Format appointment for the calendar
+        return {
+          id: appointment.id,
+          date: appointmentDate,
+          day: format(appointmentDate, 'EEE'),
+          dayNumber: format(appointmentDate, 'd'),
+          time: timeStr.substring(0, 5), // Extract HH:MM from HH:MM:SS
+          hourBlock,
+          patient: appointment.patient?.name || 'Unknown',
+          type: appointment.appointmentType?.name || 'Appointment',
+          status: appointment.status,
+          duration: 60, // Default duration - could be calculated from start/end times if available
+        }
+      } catch (error) {
+        // Silently handle the error without logging
+        return null;
       }
     }).filter(Boolean) as ProcessedAppointment[]
   }, [allAppointments])
