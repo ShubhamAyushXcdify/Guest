@@ -17,7 +17,9 @@ import { getClientId } from "@/utils/clientCookie"
 interface Appointment {
   id: string;
   status: string;
-  appointmentType?: string;
+  appointmentType?: {
+    name: string;
+  };
   appointmentDate?: string;
   patient?: {
     name?: string;
@@ -109,7 +111,7 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -246,7 +248,7 @@ export default function PatientDashboard() {
                           </Avatar>
                           <div>
                             <p className="font-medium text-gray-900">{appointment.patient?.name}</p>
-                            <p className="text-sm text-gray-600">{appointment.appointmentType}</p>
+                            <p className="text-sm text-gray-600">{appointment.appointmentType?.name || "Unknown"}</p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -337,7 +339,7 @@ export default function PatientDashboard() {
                                 <h3 className="font-semibold text-lg">{appointment.patient?.name}</h3>
                                 {getStatusBadge(appointment.status)}
                               </div>
-                              <p className="text-gray-600 font-medium">{appointment.appointmentType}</p>
+                              <p className="text-gray-600 font-medium">{appointment.appointmentType?.name}</p>
                               <div className="flex items-center gap-4 text-sm text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <Calendar className="h-4 w-4" />
