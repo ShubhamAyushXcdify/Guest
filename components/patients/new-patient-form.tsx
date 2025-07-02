@@ -32,7 +32,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { format } from "date-fns"
-import { CalendarIcon, Plus,Mic,Loader2} from "lucide-react"
+import { CalendarIcon, Plus,Mic,Loader2, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCreatePatient } from "@/queries/patients/create-patients"
 import { ClientSelect } from "@/components/clients/client-select"
@@ -44,6 +44,7 @@ import { useRootContext } from '@/context/RootContext'
 import { useGetClients } from "@/queries/clients/get-client"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { useDebounce } from "@/hooks/use-debounce"
 
 const patientFormSchema = z.object({
  clientId: z.string().nonempty("Owner is required"),
@@ -90,7 +91,16 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
   const [showClientForm, setShowClientForm] = useState(false)
   const { user, userType, clinic } = useRootContext()
   const createPatientMutation = useCreatePatient()
-  const { data: clientsData } = useGetClients(1, 100, clinic?.id || "")
+  
+  // New states for client search
+  const [clientSearchQuery, setClientSearchQuery] = useState("")
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const debouncedClientQuery = useDebounce(clientSearchQuery, 300)
+  const [selectedClient, setSelectedClient] = useState<{ id: string, name: string, clinicId?: string } | null>(null)
+  
+  const { data: clientsData, isLoading: isLoadingClients } = useGetClients(
+    1, 100, clinic?.id || "", debouncedClientQuery, 'firstName', !!debouncedClientQuery
+  )
   const clients = clientsData?.items || []
 
   const form = useForm<PatientFormValues>({
@@ -110,6 +120,29 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
       }
     }
   }, [form.watch("clientId")]);
+
+  // Handle client selection
+  const handleClientSelect = (client: Client) => {
+    setSelectedClient({
+      id: client.id,
+      name: `${client.firstName} ${client.lastName}`,
+      clinicId: client.clinicId
+    });
+    
+    form.setValue("clientId", client.id);
+    if (client.clinicId) {
+      form.setValue("clinicId", client.clinicId);
+    }
+    
+    setClientSearchQuery(""); // Clear the search input
+    setIsSearchDropdownOpen(false); // Close the dropdown
+  };
+  
+  // Clear the selected client
+  const clearSelectedClient = () => {
+    setSelectedClient(null);
+    form.setValue("clientId", "");
+  };
 
   async function onSubmit(data: PatientFormValues) {
     setIsPending(true)
@@ -208,13 +241,110 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
           <div className="flex-1 space-y-6">
             <h3 className="text-lg font-medium">Owner Information</h3>
             {!showClientForm ? (
-              <div className="space-y-2">
-                <ClientSelect 
-                  control={form.control} 
-                  name="clientId" 
-                  label="Select Owner" 
-                  onAddNewClick={() => setShowClientForm(true)}
+              <div className="space-y-4">
+                {/* Clinic selection - KEEP THIS */}
+                {!clinic?.id && (
+                  <FormField
+                    control={form.control}
+                    name="clinicId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <ClinicSelect 
+                            control={form.control} 
+                            name="clinicId"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                
+                {/* New owner search */}
+                <FormField
+                  control={form.control}
+                  name="clientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Owner</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          <div className="relative flex-grow">
+                            {selectedClient ? (
+                              <div className="flex items-center justify-between p-2 border rounded-md">
+                                <span>{selectedClient.name}</span>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="p-1 h-auto"
+                                  onClick={clearSelectedClient}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="relative w-full">
+                                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                                  <Input
+                                    placeholder="Search owners by name"
+                                    className="pl-10"
+                                    value={clientSearchQuery}
+                                    onChange={(e) => {
+                                      setClientSearchQuery(e.target.value);
+                                      setIsSearchDropdownOpen(true);
+                                    }}
+                                    onFocus={() => setIsSearchDropdownOpen(true)}
+                                  />
+                                </div>
+                                
+                                {/* Search results dropdown */}
+                                {isSearchDropdownOpen && clientSearchQuery && (
+                                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                                    {isLoadingClients ? (
+                                      <div className="p-2 text-center text-gray-500">Searching...</div>
+                                    ) : clients.length === 0 ? (
+                                      <div className="p-2 text-center text-gray-500">No owners found</div>
+                                    ) : (
+                                      <ul>
+                                        {clients.map((client) => (
+                                          <li
+                                            key={client.id}
+                                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                            onClick={() => handleClientSelect(client)}
+                                          >
+                                            <div className="font-medium">{client.firstName} {client.lastName}</div>
+                                            <div className="text-sm text-gray-500">
+                                              {client.email}
+                                            </div>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={() => setShowClientForm(!showClientForm)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <input type="hidden" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
+                
                 <Button
                   type="button"
                   variant="link"
