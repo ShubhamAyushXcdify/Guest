@@ -1,5 +1,5 @@
 'use client';
-
+ 
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
@@ -11,22 +11,32 @@ import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Product } from ".";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
-
+ 
 type ProductFormValues = Omit<Product, "id">;
-
+ 
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
-
+const UNIT_OF_MEASURE_OPTIONS = [
+  { value: "EA", label: "Each (EA)" },
+  { value: "STRIP", label: "Strip" },
+  { value: "BOTTLE", label: "Bottle" },
+  { value: "BOX", label: "Box" },
+  { value: "ML", label: "Milliliter (ML)" },
+  { value: "L", label: "Liter (L)" },
+  { value: "G", label: "Gram (G)" },
+  { value: "KG", label: "Kilogram (KG)" }
+];
+ 
 interface NewProductProps {
   onSuccess?: () => void;
 }
-
+ 
 export default function NewProduct({ onSuccess }: NewProductProps) {
   const router = useRouter();
   const { data: clinicData } = useGetClinic();
-  
+ 
   // Extract clinic items from the paginated response
   const clinics = clinicData?.items || [];
-  
+ 
   const createProduct = useCreateProduct({
     onSuccess: () => {
       toast({
@@ -37,6 +47,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
         onSuccess();
       } else {
         router.push("/products");
+        router.refresh(); // Ensure the product list is refreshed after navigation
       }
     },
     onError: (error) => {
@@ -47,10 +58,11 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       });
     },
   });
-  
+ 
   const form = useForm<ProductFormValues>({
     defaultValues: {
       clinicId: "",
+      productNumber: "",
       name: "",
       genericName: "",
       category: "",
@@ -59,14 +71,16 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       ndcNumber: "",
       strength: "",
       dosageForm: "",
-      unitOfMeasure: "",
+      unitOfMeasure: "EA",
       requiresPrescription: false,
       controlledSubstanceSchedule: "",
       storageRequirements: "",
+      reorderThreshold: null,
+      price: 0,
       isActive: true,
     },
   });
-  
+ 
   const handleSubmit = async (values: ProductFormValues) => {
     try {
       await createProduct.mutateAsync(values);
@@ -74,7 +88,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       // Error is handled in onError callback
     }
   };
-  
+ 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
@@ -82,8 +96,8 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
           <FormField name="clinicId" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Clinic</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
+              <Select
+                onValueChange={field.onChange}
                 defaultValue={field.value}
               >
                 <FormControl>
@@ -103,6 +117,14 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             </FormItem>
           )} />
           
+          <FormField name="productNumber" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Product Number</FormLabel>
+              <FormControl><Input {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+         
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
@@ -110,7 +132,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
+         
           <FormField name="genericName" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Generic Name</FormLabel>
@@ -118,7 +140,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
+         
           <FormField name="category" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Category</FormLabel>
@@ -126,12 +148,12 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
+         
           <FormField name="productType" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Product Type</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
+              <Select
+                onValueChange={field.onChange}
                 defaultValue={field.value}
               >
                 <FormControl>
@@ -150,15 +172,15 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
-          <FormField name="manufacturer" control={form.control} render={({ field }) => (
+         
+          {/* <FormField name="manufacturer" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Manufacturer</FormLabel>
               <FormControl><Input {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )} />
-          
+          )} /> */}
+         
           <FormField name="ndcNumber" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>NDC Number</FormLabel>
@@ -166,15 +188,15 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
-          <FormField name="strength" control={form.control} render={({ field }) => (
+         
+          {/* <FormField name="strength" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Strength</FormLabel>
               <FormControl><Input {...field} /></FormControl>
               <FormMessage />
             </FormItem>
-          )} />
-          
+          )} /> */}
+         
           <FormField name="dosageForm" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Dosage Form</FormLabel>
@@ -182,15 +204,31 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
+         
           <FormField name="unitOfMeasure" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Unit of Measure</FormLabel>
-              <FormControl><Input {...field} /></FormControl>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value || "EA"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit of measure" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {UNIT_OF_MEASURE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )} />
-          
+         
           <FormField name="controlledSubstanceSchedule" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Controlled Substance Schedule</FormLabel>
@@ -199,6 +237,41 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             </FormItem>
           )} />
           
+          <FormField name="price" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Price</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  placeholder="Enter price"
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                  min={0}
+                  step="0.01"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          
+          <FormField name="reorderThreshold" control={form.control} render={({ field }) => (
+          <FormItem>
+            <FormLabel>Reorder Threshold</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                placeholder="Enter reorder threshold"
+                {...field}
+                value={field.value ?? ''}
+                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                min={0}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+          )} />
+         
           <FormField name="storageRequirements" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Storage Requirements</FormLabel>
@@ -207,7 +280,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             </FormItem>
           )} />
         </div>
-        
+       
         <div className="grid grid-cols-2 gap-6">
           <FormField name="requiresPrescription" control={form.control} render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -223,7 +296,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
+         
           <FormField name="isActive" control={form.control} render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
               <div className="space-y-0.5">
@@ -239,7 +312,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             </FormItem>
           )} />
         </div>
-        
+       
         <div className="flex justify-end mt-6">
           <Button type="submit">
             Create Product
