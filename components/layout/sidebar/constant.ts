@@ -46,7 +46,7 @@ export const navGroups = [
     {
         title: "Products & Services",
         icon: FlaskConical,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
         items: [
             // {
             //     href: "/billing",
