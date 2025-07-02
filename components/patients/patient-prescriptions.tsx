@@ -82,7 +82,38 @@ export default function PatientPrescriptions() {
     return <div className="p-6 text-center">Loading prescriptions...</div>;
   }
   if (isError) {
-    return <div className="p-6 text-center text-red-500">{error instanceof Error ? error.message : "Error loading prescriptions"}</div>;
+    return (
+      <div className="space-y-6">
+        <Card className="bg-white dark:bg-slate-800 shadow-sm">
+          <CardContent className="p-6 text-center">
+            <div className="py-10">
+              <h3 className="text-lg font-medium mb-2">No Prescriptions Found</h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                This patient doesn't have any prescriptions yet.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Handle empty prescriptions array
+  if (!prescriptions || prescriptions.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-white dark:bg-slate-800 shadow-sm">
+          <CardContent className="p-6 text-center">
+            <div className="py-10">
+              <h3 className="text-lg font-medium mb-2">No Prescriptions Found</h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                This patient doesn't have any prescriptions yet.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
