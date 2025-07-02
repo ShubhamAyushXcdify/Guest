@@ -61,7 +61,7 @@ export default function PatientVisits() {
     // Past is before today OR status is 'checked'
     return (
       apptDate &&
-      (apptDate < today || (appt.status && appt.status.toLowerCase() === 'checked' || appt.status.toLowerCase() === 'completed' || appt.status.toLowerCase() === 'cancelled'))
+      (apptDate < today || (appt.status && appt.status.toLowerCase() === 'checked' || appt.status.toLowerCase() === 'completed' || appt.status.toLowerCase() === 'cancelled' || appt.status.toLowerCase() === 'in_progress'))
     );
   });
 

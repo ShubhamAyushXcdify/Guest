@@ -36,7 +36,7 @@ export default function PatientPrescriptions() {
 
   // Flatten productMappings for card view (current medications)
   const activeMedications = (prescriptions as PrescriptionDetail[])
-    .filter((p) => p.status === "completed" || p.status === "active" || p.status === "in_progress")
+    .filter((p) => p.status === "active" || p.status === "in_progress")
     .flatMap((p) =>
       (p.productMappings || []).map((pm: any) => ({
         id: `active-${pm.id}`,
@@ -47,7 +47,7 @@ export default function PatientPrescriptions() {
         //endDate: "Ongoing", // API does not provide end date per product
         //refills: 0, // API does not provide refills
         prescribedBy: p.veterinarianName || "-",
-        status: p.status === "completed" ? "active" : p.status,
+        status: p.status === "active" ? "Active" : p.status === "in_progress" ? "In Progress" : p.status,
       }))
     );
 
@@ -64,7 +64,7 @@ export default function PatientPrescriptions() {
         endDate: "Ongoing",
         refills: 0,
         prescribedBy: p.veterinarianName || "-",
-        status: p.status,
+        status: p.status === "completed" ? "Completed" : "Inactive",
       }))
     );
 
