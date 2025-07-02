@@ -17,6 +17,7 @@ import NewRoom from "./newRoom";
 import RoomDetails from "./roomDetails";
 import { useGetRoom } from "@/queries/rooms/get-room";
 import { useRouter } from "next/navigation";
+import { NewAppointmentDrawer } from "@/components/new-appointment-drawer";
 
 // Room type based on API response
 export type Room = {
@@ -42,6 +43,10 @@ function Room({ clinicId }: RoomProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<Room | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // New states for appointment drawer
+  const [isAppointmentDrawerOpen, setIsAppointmentDrawerOpen] = useState(false);
+  const [selectedRoomForAppointment, setSelectedRoomForAppointment] = useState<string | null>(null);
+  
   const deleteRoom = useDeleteRoom({
     onSuccess: () => {
       toast({
@@ -66,6 +71,11 @@ function Room({ clinicId }: RoomProps) {
 
   const handleSlotsClick = (roomId: string) => {
     router.push(`/clinic/${clinicId}/rooms/${roomId}/slots`);
+  };
+
+  const handleNewAppointmentClick = (roomId: string) => {
+    setSelectedRoomForAppointment(roomId);
+    setIsAppointmentDrawerOpen(true);
   };
 
   const handleDeleteRoom = async () => {
@@ -123,7 +133,7 @@ function Room({ clinicId }: RoomProps) {
             size="icon"
             onClick={(e) => {
               e.stopPropagation();
-              handleSlotsClick(row.original.id);
+              handleNewAppointmentClick(row.original.id);
             }}
           >
             <Calendar className="h-4 w-4" />
@@ -197,6 +207,14 @@ function Room({ clinicId }: RoomProps) {
         title="Delete Room"
         itemName={roomToDelete?.name}
         isDeleting={isDeleting}
+      />
+
+      {/* New Appointment Drawer */}
+      <NewAppointmentDrawer 
+        isOpen={isAppointmentDrawerOpen} 
+        onClose={() => setIsAppointmentDrawerOpen(false)}
+        preSelectedClinic={clinicId}
+        preSelectedRoom={selectedRoomForAppointment}
       />
     </div>
   );

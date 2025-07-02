@@ -75,6 +75,8 @@ interface NewAppointmentProps {
   isOpen: boolean
   onClose: () => void
   patientId?: string
+  preSelectedClinic?: string
+  preSelectedRoom?: string | null
 }
 
 // Define the SlotResponse interface to match your API
@@ -86,7 +88,7 @@ interface SlotResponse {
   items: Slot[];
 }
 
-function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
+function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSelectedRoom }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
@@ -412,8 +414,16 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
   }
 
   const handleClinicDefaultState = () => {
-    if (clinic.id && !userType.isAdmin && !userType.isSuperAdmin) {
-      form.setValue("clinicId", clinic.id)
+    // Don't overwrite preSelectedClinic if it's already set
+    if (preSelectedClinic) {
+      return;
+    }
+    
+    // Only set default clinic if no preSelectedClinic was provided
+    if (clinic?.id) {
+      form.setValue("clinicId", clinic.id);
+    } else if (clinicOptions.length === 1) {
+      form.setValue("clinicId", clinicOptions[0].value);
     }
   }
 
@@ -421,41 +431,40 @@ function NewAppointment({ isOpen, onClose, patientId }: NewAppointmentProps) {
     handleClinicDefaultState()
   }, [clinic])
 
+  // Make sure this runs when component mounts and when preSelectedClinic/preSelectedRoom changes
   useEffect(() => {
-    if (patientId) {
-      form.setValue("patientId", patientId);
-      
-      // First try to use the specific patient fetched directly
-      if (specificPatient) {
-        // Handle potentially different API response structures
-        const patientName = specificPatient.name || 
-                           (specificPatient.firstName && specificPatient.lastName ? 
-                            `${specificPatient.firstName} ${specificPatient.lastName}` : 
-                            specificPatient.patientId || `Patient (ID: ${patientId.substring(0, 8)}...)`);
+    console.log("Init form with selections:", { preSelectedClinic, preSelectedRoom, isOpen });
+    
+    if (isOpen) {
+      // Force a slight delay to ensure the form is ready
+      setTimeout(() => {
+        // Set clinic ID (from props or context)
+        if (preSelectedClinic) {
+          console.log("Setting clinic ID:", preSelectedClinic);
+          form.setValue("clinicId", preSelectedClinic);
+        } else if (clinic?.id) {
+          console.log("Setting clinic ID from context:", clinic.id);
+          form.setValue("clinicId", clinic.id);
+        }
         
-        // Check for clientId in different possible locations
-        const clientId = specificPatient.clientId || 
-                        (specificPatient.client ? specificPatient.client.id : undefined);
-                        
-        setSelectedPatient({
-          id: patientId,
-          name: patientName,
-          clientId: clientId
-        });
-      } 
-      // Fallback to finding in the patient list if specificPatient not available
-      else if (patientsResponse) {
-        const patient = patientsResponse.find((p: Patient) => p.id === patientId);
-        if (patient) {
+        // Set room ID if provided
+        if (preSelectedRoom) {
+          console.log("Setting room ID:", preSelectedRoom);
+          form.setValue("roomId", preSelectedRoom);
+        }
+        
+        // If patientId is provided, set it in the form
+        if (patientId && specificPatient) {
+          form.setValue("patientId", patientId);
           setSelectedPatient({
-            id: patient.id,
-            name: patient.name,
-            clientId: patient.clientId
+            id: specificPatient.id,
+            name: specificPatient.name,
+            clientId: specificPatient.clientId
           });
         }
-      }
+      }, 100);
     }
-  }, [patientId, form, patientsResponse, specificPatient]);
+  }, [isOpen, preSelectedClinic, preSelectedRoom, patientId, specificPatient, form, clinic]);
   
   // Set default appointment date to today when component mounts
   useEffect(() => {
