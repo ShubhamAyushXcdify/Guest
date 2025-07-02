@@ -219,8 +219,8 @@ function Clinic() {
       )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
-          <SheetHeader>
+      <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-hidden overflow-y-auto">
+      <SheetHeader>
             <SheetTitle>Clinic Details</SheetTitle>
           </SheetHeader>
           {selectedClinicId && (

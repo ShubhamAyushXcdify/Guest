@@ -340,8 +340,8 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
               </div>
             </div>
             
-            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t mt-8 flex justify-end">
-              <Button type="submit">
+            <div className="flex justify-end mt-6 pt-60">
+            <Button type="submit">
                 Update Clinic
               </Button>
             </div>
