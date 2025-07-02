@@ -343,6 +343,11 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
           name: patientName
         });
       }
+      
+      // Reset editing state if appointment is completed or cancelled
+      if (appointment.status && ["Completed", "Cancelled", "completed", "cancelled"].includes(appointment.status)) {
+        setIsEditing(false);
+      }
     }
   }, [appointment, form]);
 
@@ -417,17 +422,20 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         <SheetContent className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
           <SheetHeader className="flex flex-row items-center justify-between">
             <SheetTitle>Appointment Details</SheetTitle>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setIsEditing(!isEditing)}
-              className="h-8 w-8"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            {appointment && appointment.status && 
+             !["Completed", "Cancelled", "completed", "cancelled"].includes(appointment.status) && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsEditing(!isEditing)}
+                className="h-8 w-8"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
           </SheetHeader>
 
-          {!isEditing ? (
+          {!isEditing || (appointment?.status && ["Completed", "Cancelled", "completed", "cancelled"].includes(appointment.status)) ? (
             // View Mode
             <div className="space-y-6 py-4">
               <div className="grid grid-cols-2 gap-6">
