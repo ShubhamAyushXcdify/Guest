@@ -344,6 +344,19 @@ export default function AppointmentList({
 
   const columns: ColumnDef<any>[] = [
     {
+      accessorKey: "appointmentDate",
+      header: "Date",
+      cell: ({ row }) => {
+        const appointment = row.original;
+        if (appointment.appointmentDate) {
+          // Format date as MM/DD/YYYY
+          const date = new Date(appointment.appointmentDate);
+          return date.toLocaleDateString();
+        }
+        return 'N/A';
+      },
+    },
+    {
       accessorKey: "startTime",
       header: "Time",
       cell: ({ row }) => {
@@ -584,13 +597,17 @@ export default function AppointmentList({
             setDate={async (date) => {
               try {
                 if (date?.from && date?.to) {
-                  // Format dates as YYYY-MM-DD
-                  const formattedFrom = date.from.toISOString().split('T')[0];
-                  const formattedTo = date.to.toISOString().split('T')[0];
+                  // Create copies to avoid mutating the original objects
+                  const fromDate = new Date(date.from);
+                  const toDate = new Date(date.to);
                   
-                  // Reset to page 1 and set date range
+                  // Set proper time components - start of day for from date, end of day for to date
+                  fromDate.setHours(0, 0, 0, 0);
+                  toDate.setHours(23, 59, 59, 999);
+                  
+                  // Pass ISO strings to preserve time components
                   setCurrentPage(1);
-                  handleDate(formattedFrom, formattedTo);
+                  handleDate(fromDate.toISOString(), toDate.toISOString());
                 } else {
                   // If date is cleared, reset date filters
                   setCurrentPage(1);
