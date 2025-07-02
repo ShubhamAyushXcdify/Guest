@@ -265,7 +265,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             <div className="mt-6 flex justify-end">
               <Button 
                 onClick={handleSave}
-                disabled={isPending || isReadOnly}
+                disabled={isPending || selectedProcedures.length === 0 || isReadOnly}
                 className="ml-2"
               >
                 {isPending 
