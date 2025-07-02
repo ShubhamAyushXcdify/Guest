@@ -206,17 +206,17 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
     
     createPurchaseOrder(purchaseOrderData, {
       onSuccess: () => {
-        toast({
-          title: "Success",
+      toast({
+        title: "Success",
           description: "Purchase order created successfully",
         });
         onClose();
       },
       onError: (error) => {
-        toast({
-          title: "Error",
+      toast({
+        title: "Error",
           description: `Failed to create purchase order: ${error.message}`,
-          variant: "destructive",
+        variant: "destructive",
         });
       }
     });
@@ -294,68 +294,68 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
             <div className="bg-slate-50 p-4 rounded-md">
               <h3 className="text-md font-semibold mb-4">Order Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
+                  <FormField
                   control={form.control}
-                  name="clinicId"
-                  render={({ field }) => (
-                    <FormItem>
+                      name="clinicId"
+                      render={({ field }) => (
+                        <FormItem>
                       <FormLabel>Clinic *</FormLabel>
-                      <FormControl>
-                        <Combobox
-                          options={clinicOptions}
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Select clinic"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          <FormControl>
+                            <Combobox
+                              options={clinicOptions}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Select clinic"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
+                    <FormField
                   control={form.control}
-                  name="supplierId"
-                  render={({ field }) => (
-                    <FormItem>
+                      name="supplierId"
+                      render={({ field }) => (
+                        <FormItem>
                       <FormLabel>Supplier *</FormLabel>
-                      <FormControl>
-                        <Combobox
-                          options={supplierOptions}
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          placeholder="Select supplier"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          <FormControl>
+                            <Combobox
+                              options={supplierOptions}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Select supplier"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
+                    <FormField
                   control={form.control}
                   name="expectedDeliveryDate"
-                  render={({ field }) => (
-                    <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                       <FormLabel>Expected Delivery Date *</FormLabel>
-                      <FormControl>
+                          <FormControl>
                         <DatePicker 
                           value={field.value ? new Date(field.value) : null}
                           onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
+                    <FormField
                   control={form.control}
                   name="discount"
-                  render={({ field }) => (
-                    <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                       <FormLabel>Discount</FormLabel>
-                      <FormControl>
+                          <FormControl>
                         <Input 
                           type="number" 
                           step="0.01" 
@@ -363,19 +363,19 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
                           {...field} 
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} 
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
+                    <FormField
                   control={form.control}
                   name="taxAmount"
-                  render={({ field }) => (
-                    <FormItem>
+                      render={({ field }) => (
+                        <FormItem>
                       <FormLabel>Tax Amount</FormLabel>
-                      <FormControl>
+                          <FormControl>
                         <Input 
                           type="number" 
                           step="0.01" 
@@ -383,11 +383,11 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
                           {...field} 
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)} 
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
               </div>
             </div>
 
@@ -545,12 +545,12 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
                     </div>
 
                     <div className="col-span-1">
-                      <FormField
+                    <FormField
                         control={form.control}
                         name={`items.${index}.unitsPerPackage`}
-                        render={({ field }) => (
+                      render={({ field }) => (
                           <FormItem className="mb-0">
-                            <FormControl>
+                          <FormControl>
                               <Input
                                 type="number"
                                 min="0"
@@ -558,12 +558,12 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
                                 {...field}
                                 onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                     <div className="col-span-1 flex justify-end">
                       <Button
@@ -599,23 +599,23 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
             </div>
 
             {/* Notes Section */}
-            <FormField
+                  <FormField
               control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
                     <Textarea 
                       placeholder="Add any additional notes or instructions for this order" 
                       className="min-h-[100px]" 
                       {...field} 
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
             <SheetFooter className="pt-4 border-t gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
@@ -623,10 +623,10 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
               </Button>
               <Button type="submit" className="theme-button text-white" disabled={isPending}>
                 {isPending ? "Creating..." : "Create Purchase Order"}
-              </Button>
+                  </Button>
             </SheetFooter>
-          </form>
-        </Form>
+                </form>
+              </Form>
       </SheetContent>
     </Sheet>
   )

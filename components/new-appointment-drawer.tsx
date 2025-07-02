@@ -15,9 +15,11 @@ import NewAppointment from "@/components/appointments/newAppointment"
 interface NewAppointmentDrawerProps {
   isOpen: boolean
   onClose: () => void
+  preSelectedClinic?: string
+  preSelectedRoom?: string | null
 }
 
-export function NewAppointmentDrawer({ isOpen, onClose }: NewAppointmentDrawerProps) {
+export function NewAppointmentDrawer({ isOpen, onClose, preSelectedClinic, preSelectedRoom }: NewAppointmentDrawerProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent className="w-[90%] sm:max-w-[800px] overflow-y-auto">
@@ -25,7 +27,12 @@ export function NewAppointmentDrawer({ isOpen, onClose }: NewAppointmentDrawerPr
           <SheetTitle className="text-2xl font-bold">Schedule New Appointment</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
-          <NewAppointment isOpen={isOpen} onClose={onClose} />
+          <NewAppointment 
+            isOpen={isOpen} 
+            onClose={onClose} 
+            preSelectedClinic={preSelectedClinic}
+            preSelectedRoom={preSelectedRoom}
+          />
         </div>
       </SheetContent>
     </Sheet>
