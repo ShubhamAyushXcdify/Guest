@@ -10,19 +10,20 @@ export interface PrescriptionDetail extends BasePrescriptionDetail {
 const getPrescriptionDetailByPatient = async (patientId: string): Promise<PrescriptionDetail[]> => {
   try {
     if (!patientId) {
-      throw new Error("Patient ID is required");
+      return [];
     }
     const response = await fetch(`/api/PrescriptionDetail/patient/${patientId}`);
     if (!response.ok) {
       if (response.status === 404) {
         return [];
       }
-      throw new Error("Failed to fetch prescription details by patient ID");
+      console.warn("Failed to fetch prescription details by patient ID:", response.status);
+      return [];
     }
     return await response.json();
   } catch (error) {
     console.error("Error fetching prescription details by patient ID:", error);
-    throw error;
+    return [];
   }
 };
 
