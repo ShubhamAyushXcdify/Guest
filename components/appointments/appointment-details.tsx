@@ -29,6 +29,7 @@ import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useUpdateSlotAvailability } from '@/queries/slots/update-slot-availability';
+import { DatePicker } from "@/components/ui/datePicker"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -37,7 +38,12 @@ const appointmentSchema = z.object({
   clientId: z.string().uuid(),
   veterinarianId: z.string().uuid(),
   roomId: z.string().uuid(),
-  appointmentDate: z.string(),
+  appointmentDate: z.string()
+    .refine(date => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return new Date(date) >= today;
+    }, "Appointment date cannot be in the past"),
   roomSlotId: z.string(),
   appointmentTypeId: z.string(),
   reason: z.string(),
@@ -730,15 +736,27 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                   <FormField
                     control={form.control}
                     name="appointmentDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Set minDate to start of today (midnight)
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={new Date(field.value)}
+                              onChange={(date) => {
+                                field.onChange(date ? date.toISOString().split('T')[0] : '');
+                              }}
+                              minDate={today}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
