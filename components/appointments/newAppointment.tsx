@@ -471,6 +471,17 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     form.setValue("appointmentDate", new Date());
   }, []);
 
+  // Auto-select the current user as veterinarian if they have the Veterinarian role
+  useEffect(() => {
+    if (isOpen && user && veterinarianOptions.length > 0) {
+      // Check if the current user is in the veterinarian options list
+      const currentVetOption = veterinarianOptions.find(vet => vet.value === user.id);
+      if (currentVetOption) {
+        form.setValue("veterinarianId", user.id);
+      }
+    }
+  }, [isOpen, user, veterinarianOptions, form]);
+
   // Clear the selected patient
   const clearSelectedPatient = () => {
     setSelectedPatient(null);

@@ -288,7 +288,7 @@ export const DashboardScreen = () => {
                         <div className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border border-green-200 dark:border-green-800">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-green-700 dark:text-green-300">Completion Rate</span>
-                            <span className="text-lg font-bold text-green-600 dark:text-green-400">{ratios.percentageOfCompleting || 0}%</span>
+                            <span className="text-lg font-bold text-green-600 dark:text-green-400">{ratios.percentageOfCompleting || 0}</span>
                           </div>
                         </div>
                         <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
