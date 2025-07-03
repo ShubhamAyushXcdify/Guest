@@ -31,26 +31,26 @@ export const DashboardScreen = () => {
   const startOfDay = new Date(startOfDayLocal.getTime() - startOfDayLocal.getTimezoneOffset() * 60000);
   const endOfDay = new Date(endOfDayLocal.getTime() - endOfDayLocal.getTimezoneOffset() * 60000);
 
+  const { IsAdmin, clinic } = useRootContext();
+
   const searchParams = useMemo(() => ({
     search: null,
     status: null,
     provider: null,
     dateFrom: startOfDay.toISOString(),
     dateTo: endOfDay.toISOString(),
-    clinicId: null,
+    clinicId: clinic?.id ?? null,
     patientId: null,
     clientId: null,
     veterinarianId: null,
     roomId: null,
     pageNumber: 1,
     pageSize: 10,
-  }), [startOfDay, endOfDay]);
+  }), [startOfDay, endOfDay, clinic?.id]);
 
   const { data: appointmentsData } = useGetAppointments(searchParams);
 
   const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary();
-
-  const { IsAdmin } = useRootContext();
 
   // Helper to check if a date is today
   const isToday = (dateString: string) => {
@@ -328,4 +328,4 @@ export const DashboardScreen = () => {
       <NewInvoiceDrawer isOpen={showNewInvoiceDrawer} onClose={() => setShowNewInvoiceDrawer(false)} />
     </>
   )
-} 
+}
