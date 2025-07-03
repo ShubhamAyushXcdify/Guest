@@ -19,6 +19,17 @@ import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
+// Interface for extended visit data
+interface ExtendedVisitData {
+  isIntakeCompleted: boolean;
+  isComplaintsCompleted: boolean;
+  isMedicalHistoryCompleted: boolean;
+  isVitalsCompleted: boolean;
+  isProceduresCompleted: boolean;
+  isPrescriptionCompleted: boolean;
+  isPlanCompleted: boolean;
+}
+
 interface PlanTabProps {
   patientId: string
   appointmentId: string
@@ -56,6 +67,25 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   
   // Combined loading state
   const isPending = isCreating || isUpdating
+
+  // Function to check if all visit tabs are completed
+  const areAllVisitTabsCompleted = (): boolean => {
+    if (!visitData) return false;
+    
+    // Cast visitData to access all completion properties
+    const visit = visitData as unknown as ExtendedVisitData;
+    
+    return (
+      visit.isIntakeCompleted &&
+      visit.isComplaintsCompleted &&
+      visit.isMedicalHistoryCompleted &&
+      visit.isVitalsCompleted &&
+      visit.isProceduresCompleted &&
+      visit.isPrescriptionCompleted
+      // Note: We don't check isPlanCompleted here as that's the current tab
+    );
+  };
+  
   // Initialize selected plans and notes from existing data
   useEffect(() => {
     if (existingPlanDetail) {
@@ -69,7 +99,15 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
         markTabAsCompleted("plan")
       }
     }
-  }, [existingPlanDetail, markTabAsCompleted])
+    
+    // Also check if the plan tab is completed based on visitData
+    if (visitData) {
+      const visit = visitData as unknown as ExtendedVisitData;
+      if (visit.isPlanCompleted) {
+        markTabAsCompleted("plan")
+      }
+    }
+  }, [existingPlanDetail, visitData, markTabAsCompleted])
   
   // Update allTabsCompleted state when tabs are completed
   useEffect(() => {
@@ -173,14 +211,14 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           id: existingPlanDetail.id,
           planIds: selectedPlans,
           notes,
-          isCompleted: false // Only set true on checkout
+          isCompleted: true
         })
       } else {
         await createPlanDetailMutation.mutateAsync({
           visitId: visitData.id,
           planIds: selectedPlans,
           notes,
-          isCompleted: false // Only set true on checkout
+          isCompleted: true
         })
       }
       toast.success("Plan details saved successfully")
@@ -198,9 +236,8 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       toast.error("No appointment data found")
       return
     }
-    // Check if all required tabs have been completed
-    // Skip this check if the appointment is already completed
-    if (!isAppointmentCompleted && !allTabsCompleted()) {
+    // Check if all required tabs have been completed using visitData
+    if (!isAppointmentCompleted && !areAllVisitTabsCompleted()) {
       toast.error("Please complete all tabs before checking out")
       return
     }
@@ -276,6 +313,9 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     )
   }
   
+  // Check all tabs completion state for UI display
+  const allVisitTabsComplete = areAllVisitTabsCompleted();
+  
   return (
     <Card>
       <CardContent className="p-6">
@@ -321,8 +361,8 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           </div>
         )}
 
-        {/* Only show the warning if appointment isn't already completed */}
-        {!isAppointmentCompleted && !areAllTabsCompleted && (
+        {/* Only show the warning if appointment isn't already completed and not all tabs are complete */}
+        {!isAppointmentCompleted && !allVisitTabsComplete && (
           <Alert variant="default" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Incomplete Patient Information</AlertTitle>
@@ -424,7 +464,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isPending || !areAllTabsCompleted || !existingPlanDetail || selectedPlans.length === 0 || isReadOnly}
+                disabled={isPending || !allVisitTabsComplete || selectedPlans.length === 0 || isReadOnly}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 Checkout
