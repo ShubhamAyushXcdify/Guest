@@ -15,6 +15,18 @@ import { ArrowRight, CheckCircle } from "lucide-react"
 import NewAppointment from "../newAppointment"
 import { TabCompletionProvider, useTabCompletion, TabId } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+
+// Extended interface to include all completion fields from the API response
+interface ExtendedVisitDetail {
+  isIntakeCompleted: boolean;
+  isComplaintsCompleted: boolean;
+  isMedicalHistoryCompleted: boolean;
+  isVitalsCompleted: boolean;
+  isProceduresCompleted: boolean;
+  isPrescriptionCompleted: boolean;
+  isPlanCompleted: boolean;
+}
 
 interface PatientInformationProps {
   patientId: string
@@ -28,8 +40,8 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
   const [showNewAppointment, setShowNewAppointment] = useState(false)
   const { isTabCompleted } = useTabCompletion()
   const { data: appointment } = useGetAppointmentById(appointmentId)
-  const isCompleted = appointment?.status?.toLowerCase() === "completed"
-
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+  
   // Define tab navigation functions
   const navigateToNextTab = () => {
     const tabOrder = ["intake", "cc-hpi", "medical-history", "vitals", "procedure", "assessment", "plan"];
@@ -40,9 +52,31 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
     }
   };
 
-  // Function to determine if a tab should appear completed/green
+  // Function to determine if a tab should appear completed/green based on visit data
   const shouldShowTabAsCompleted = (tabId: TabId) => {
-    return isCompleted || isTabCompleted(tabId);
+    if (!visitData) return false;
+    
+    // Use type assertion to access all properties
+    const visit = visitData as unknown as ExtendedVisitDetail;
+    
+    switch(tabId) {
+      case "intake":
+        return visit.isIntakeCompleted || false;
+      case "cc-hpi":
+        return visit.isComplaintsCompleted || false;
+      case "medical-history":
+        return visit.isMedicalHistoryCompleted || false;
+      case "vitals":
+        return visit.isVitalsCompleted || false;
+      case "procedure":
+        return visit.isProceduresCompleted || false;
+      case "assessment":
+        return visit.isPrescriptionCompleted || false;
+      case "plan":
+        return visit.isPlanCompleted || false;
+      default:
+        return false;
+    }
   };
 
   return (
