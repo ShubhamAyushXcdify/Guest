@@ -735,18 +735,25 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                   <FormField
                     control={form.control}
                     name="appointmentDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Set minDate to start of today (midnight)
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Date</FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              value={field.value}
+                              onChange={field.onChange}
+                              minDate={today}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
 
