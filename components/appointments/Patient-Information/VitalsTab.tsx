@@ -84,10 +84,13 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
     }
   }, [temperatureC, heartRateBpm, respiratoryRateBpm, markTabAsCompleted])
 
-  const output = transcriber.output;
-  if (output && !output.isBusy && output.text) {
-    setNotes(prev => prev ? prev + "\n" + output.text : output.text);
-  }
+  // Handle transcription output in useEffect
+  useEffect(() => {
+    const output = transcriber.output;
+    if (output && !output.isBusy && output.text) {
+      setNotes(prev => prev ? prev + "\n" + output.text : output.text);
+    }
+  }, [transcriber.output?.isBusy, transcriber.output?.text]);
   // eslint-disable-next-line
 
   const handleSave = async () => {

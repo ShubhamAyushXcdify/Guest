@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Combobox } from "@/components/ui/combobox"
-import { PlusCircle, X, Trash2, Pencil } from "lucide-react"
+import { PlusCircle, X, Trash2, Pencil, Mic } from "lucide-react"
 import { toast } from "sonner"
 import { useGetProducts } from "@/queries/products/get-products"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
@@ -17,6 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface PrescriptionTabProps {
   patientId: string
@@ -37,7 +39,10 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [currentMapping, setCurrentMapping] = useState<ProductMapping>({ productId: "", dosage: "", frequency: "" })
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
   const { markTabAsCompleted } = useTabCompletion()
+  
+  const transcriber = useTranscriber()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -74,6 +79,15 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       }
     }
   }, [existingPrescriptionDetail, markTabAsCompleted])
+  
+  // Handle transcription output
+  useEffect(() => {
+    const output = transcriber.output
+    if (output && !output.isBusy && output.text) {
+      setNotes(prev => prev ? prev + "\n" + output.text : output.text)
+    }
+    // eslint-disable-next-line
+  }, [transcriber.output?.isBusy])
   
   const createPrescriptionDetailMutation = useCreatePrescriptionDetail({
     onSuccess: () => {
@@ -272,7 +286,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         )}
 
         <div className="mt-6">
-          <Label htmlFor="notes">Additional Notes</Label>
+          <div className="flex items-center gap-2 mb-2">
+            <Label htmlFor="notes">Additional Notes</Label>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setAudioModalOpen(true)}
+              title="Record voice note"
+              disabled={isReadOnly}
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+          </div>
           <textarea
             id="notes"
             className="w-full border rounded-md p-2 min-h-[100px] mt-2"
@@ -372,6 +398,16 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           </SheetFooter>
         </SheetContent>
       </Sheet>
+      
+      <AudioManager
+        open={audioModalOpen}
+        onClose={() => setAudioModalOpen(false)}
+        transcriber={transcriber}
+        onTranscriptionComplete={(transcript: string) => {
+          setNotes(prev => prev ? prev + "\n" + transcript : transcript)
+          setAudioModalOpen(false)
+        }}
+      />
     </Card>
   )
 }
