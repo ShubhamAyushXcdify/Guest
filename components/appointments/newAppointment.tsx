@@ -210,6 +210,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         title: "Success",
         description: "Appointment created successfully",
       })
+      form.reset() // Clear the form after successful creation
+      setSelectedPatient(null) // Clear selected patient after creation
       onClose()
     },
     onError: (error) => {
@@ -410,6 +412,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   const handleCancel = () => {
     setShowNewPatientForm(false)
+    form.reset() // Clear the form on close
+    setSelectedPatient(null) // Clear selected patient on close
     onClose()
   }
 
