@@ -15,6 +15,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Pie, PieChart } from "recharts"
 import { TrendingUp, Users, Stethoscope, Package, Truck, Building2 } from "lucide-react"
 import { useRootContext } from "@/context/RootContext"
+import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
+import type { DateRange } from "react-day-picker";
 
 export const DashboardScreen = () => {
   const [mounted, setMounted] = useState(false)
@@ -33,6 +35,13 @@ export const DashboardScreen = () => {
 
   const { IsAdmin, clinic } = useRootContext();
 
+  // Date range state for admin dashboard
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfDay,
+    to: endOfDay
+  });
+
+  // Update searchParams to use dateRange
   const searchParams = useMemo(() => ({
     search: null,
     status: null,
@@ -50,7 +59,12 @@ export const DashboardScreen = () => {
 
   const { data: appointmentsData } = useGetAppointments(searchParams);
 
-  const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary();
+  const dashboardSummaryParams = useMemo(() => ({
+    fromDate: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : startOfDay.toISOString().split('T')[0],
+    toDate: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : endOfDay.toISOString().split('T')[0],
+  }), [dateRange, startOfDay, endOfDay]);
+
+  const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary(dashboardSummaryParams);
 
   // Helper to check if a date is today
   const isToday = (dateString: string) => {
@@ -110,6 +124,16 @@ export const DashboardScreen = () => {
       {/* Admin-only section */}
       {IsAdmin && (
         <div className="p-6 space-y-8">
+          {/* Date Range Picker */}
+          <div className="mb-4">
+            <DatePickerWithRangeV2
+              date={dateRange}
+              setDate={setDateRange}
+              showYear={true}
+              className="w-[350px]"
+            />
+          </div>
+
           {/* Admin Header */}
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>
