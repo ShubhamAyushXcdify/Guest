@@ -424,8 +424,8 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
-              <div className="flex flex-row items-center gap-2 mb-1">
+              <div className="flex flex-row items-center gap-2 mb-2">
+                <h3 className="text-sm font-medium">Additional Notes</h3>
                 <Button
                   type="button"
                   size="icon"

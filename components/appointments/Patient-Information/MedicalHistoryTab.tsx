@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Save } from "lucide-react"
+import { Loader2, Save, Mic } from "lucide-react"
 import { 
   useGetMedicalHistoryDetailByVisitId, 
   useCreateMedicalHistoryDetail, 
@@ -16,6 +16,8 @@ import {
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface MedicalHistoryTabProps {
   patientId: string
@@ -34,6 +36,10 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
     isCompleted: false,
   })
   const [medicalHistoryId, setMedicalHistoryId] = useState<string | null>(null)
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
+  const [activeField, setActiveField] = useState<keyof MedicalHistoryDetail | null>(null)
+  
+  const transcriber = useTranscriber()
 
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -69,8 +75,25 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
     }
   }, [medicalHistoryDetail, markTabAsCompleted])
 
+  // Handle transcription output
+  useEffect(() => {
+    const output = transcriber.output
+    if (output && !output.isBusy && output.text && activeField) {
+      setFormData(prev => ({
+        ...prev,
+        [activeField]: prev[activeField] ? prev[activeField] + "\n" + output.text : output.text
+      }))
+    }
+    // eslint-disable-next-line
+  }, [transcriber.output?.isBusy])
+
   const handleInputChange = (field: keyof MedicalHistoryDetail, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleOpenAudioModal = (field: keyof MedicalHistoryDetail) => {
+    setActiveField(field)
+    setAudioModalOpen(true)
   }
 
   const handleSave = async () => {
@@ -156,7 +179,19 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="chronicConditions">Chronic Conditions</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="chronicConditions">Chronic Conditions</Label>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => handleOpenAudioModal('chronicConditionsNotes')}
+                title="Record voice note"
+                disabled={isReadOnly}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+            </div>
             <Textarea
               id="chronicConditions"
               placeholder="Enter any chronic conditions..."
@@ -168,7 +203,19 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           </div>
           
           <div className="space-y-1">
-            <Label htmlFor="surgeries">Surgeries</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="surgeries">Surgeries</Label>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => handleOpenAudioModal('surgeriesNotes')}
+                title="Record voice note"
+                disabled={isReadOnly}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+            </div>
             <Textarea
               id="surgeries"
               placeholder="Enter any surgeries..."
@@ -180,7 +227,19 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="currentMedications">Current Medications</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="currentMedications">Current Medications</Label>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => handleOpenAudioModal('currentMedicationsNotes')}
+                title="Record voice note"
+                disabled={isReadOnly}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+            </div>
             <Textarea
               id="currentMedications"
               placeholder="Enter current medications..."
@@ -192,7 +251,19 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="generalNotes">General Notes</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="generalNotes">General Notes</Label>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => handleOpenAudioModal('generalNotes')}
+                title="Record voice note"
+                disabled={isReadOnly}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+            </div>
             <Textarea
               id="generalNotes"
               placeholder="Enter any additional notes..."
@@ -215,6 +286,21 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
             </Button>
           </div>
         </div>
+
+        <AudioManager
+          open={audioModalOpen}
+          onClose={() => setAudioModalOpen(false)}
+          transcriber={transcriber}
+          onTranscriptionComplete={(transcript: string) => {
+            if (activeField) {
+              setFormData(prev => ({
+                ...prev,
+                [activeField]: prev[activeField] ? prev[activeField] + "\n" + transcript : transcript
+              }))
+            }
+            setAudioModalOpen(false)
+          }}
+        />
       </CardContent>
     </Card>
   )
