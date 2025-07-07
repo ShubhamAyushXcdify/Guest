@@ -464,7 +464,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isPending || !allVisitTabsComplete || selectedPlans.length === 0 || isReadOnly}
+                disabled={isPending || !allVisitTabsComplete || selectedPlans.length === 0 || isReadOnly || !completedTabs.includes("plan")}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 Checkout
