@@ -21,7 +21,6 @@ import { Separator } from "@/components/ui/separator"
 import { Plus, Search, X, Loader2, Mic } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
-import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
@@ -186,7 +185,13 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     label: clinic.name
   }))
   
-  const { data: patientsResponse, refetch: refetchPatients } = useGetPatientsByClinicId(selectedClinicId);
+  const { data: patientsResponse, refetch: refetchPatients } = useGetPatients(
+    1, // page
+    100, // pageSize
+    '', // search
+    '' // clientId
+  );
+  
   const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByClinicId(selectedClinicId);
   const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentTypeByClinicId(selectedClinicId, !!selectedClinicId);
   
@@ -313,7 +318,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       if (!clientId && patientsResponse) {
         const patientId = selectedPatient.id;
         // Find the patient in our full patient data
-        const fullPatientData = patientsResponse.find((p: any) => p.id === patientId);
+        const fullPatientData = patientsResponse.items?.find((p: any) => p.id === patientId);
         
         if (fullPatientData && fullPatientData.clientId) {
           clientId = fullPatientData.clientId;
@@ -384,7 +389,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   const handlePatientCreated = async () => {
     await refetchPatients()
-    const latestPatient = patientsResponse?.items?.[patientsResponse.items.length - 1]
+    const latestPatient = patientsResponse?.items?.[patientsResponse.items?.length - 1]
     if (latestPatient) {
       form.setValue("patientId", latestPatient.id)
       

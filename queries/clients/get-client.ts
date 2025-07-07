@@ -2,8 +2,6 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export interface Client {
   id: string;
-  clinicId: string;
-  clinicName: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -35,11 +33,10 @@ interface ClientResponse {
 const getClients = async (
   pageNumber = 1,
   pageSize = 10,
-  clinicId = '',
   search = '',
   type = 'first_name'
 ) => {
-  const url = `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&type=${type}&query=${encodeURIComponent(search)}`;
+  const url = `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}`;
   const response = await fetch(url);
   
   if (!response.ok) {
@@ -54,15 +51,14 @@ const getClients = async (
 export function useGetClients(
   pageNumber = 1,
   pageSize = 10,
-  clinicId = '',
   search = '',
   type = 'first_name',
   enabled = true
 ) {
   return useQuery({
-    queryKey: ['clients', pageNumber, pageSize, clinicId, search, type],
-    queryFn: () => getClients(pageNumber, pageSize, clinicId, search, type),
-    enabled,
+    queryKey: ['clients', pageNumber, pageSize, search, type],
+    queryFn: () => getClients(pageNumber, pageSize, search, type),
+    enabled: !!enabled,
     retry: 1,
     staleTime: 30000,
     refetchOnWindowFocus: false,

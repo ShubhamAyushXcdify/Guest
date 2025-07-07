@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/command";
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Control } from "react-hook-form";
-import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useRootContext } from '@/context/RootContext';
-import { Combobox } from "@/components/ui/combobox";
 import { useGetClients } from "@/queries/clients/get-client"
 
 interface ClientSelectProps {
@@ -36,7 +34,6 @@ export function ClientSelect({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<{id: string, name: string} | null>(null);
-  const { clinic } = useRootContext();
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,47 +43,15 @@ export function ClientSelect({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Get clinic data for dropdown
-  const { data: clinicsData } = useGetClinic(1, 100);
-  const clinicOptions = (clinicsData?.items || []).map(clinic => ({
-    value: clinic.id,
-    label: clinic.name
-  }));
-
-  // Get selected clinic ID from form or context
-  const selectedClinicId = control._formValues.clinicId || clinic?.id || "";
-  
-  // Use the new hook to get clients by clinic ID
-  const { data: clientsData, isLoading, isError, refetch } = useGetClients(
-    1, 100, selectedClinicId, debouncedSearch, 'firstName', !!debouncedSearch
+  // Use the updated hook to get clients with search
+  const { data: clientsData, isLoading, isError } = useGetClients(
+    1, 100, debouncedSearch, 'firstName', !!debouncedSearch
   );
   // Always use items array from the response
   const clients = clientsData?.items || [];
 
   return (
     <div className="space-y-4">
-      {/* Add Clinic selection if no clinic.id */}
-      {!clinic?.id && (
-        <FormField
-          control={control}
-          name="clinicId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Clinic</FormLabel>
-              <FormControl>
-                <Combobox
-                  options={clinicOptions}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  placeholder="Select clinic"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-
       <FormField
         control={control}
         name={name}
@@ -105,7 +70,7 @@ export function ClientSelect({
                       setSelectedClient(null);
                     }
                   }}
-                  disabled={disabled || !selectedClinicId}
+                  disabled={disabled}
                   className="focus:ring-0 focus:ring-offset-0"
                 />
                 {(debouncedSearch || isLoading) && (

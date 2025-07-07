@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -32,14 +32,12 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { format } from "date-fns"
-import { CalendarIcon, Plus,Mic,Loader2, Search, X } from "lucide-react"
+import { CalendarIcon, Plus, Mic, Loader2, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCreatePatient } from "@/queries/patients/create-patients"
-import { ClientSelect } from "@/components/clients/client-select"
 import { ClientForm } from "@/components/clients/client-form"
 import { Separator } from "@/components/ui/separator"
 import { Client } from "@/queries/clients/get-client"
-import { ClinicSelect } from "@/components/clinics/clinic-select"
 import { useRootContext } from '@/context/RootContext'
 import { useGetClients } from "@/queries/clients/get-client"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
@@ -47,8 +45,7 @@ import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscrib
 import { useDebounce } from "@/hooks/use-debounce"
 
 const patientFormSchema = z.object({
- clientId: z.string().nonempty("Owner is required"),
-  clinicId: z.string().min(1, "Clinic is required"),
+  clientId: z.string().nonempty("Owner is required"),
   name: z.string().min(1, "Name is required"),
   species: z.string().min(1, "Species is required"),
   breed: z.string().min(1, "Breed is required"),
@@ -71,7 +68,6 @@ type PatientFormValues = z.infer<typeof patientFormSchema>
 
 const defaultValues: Partial<PatientFormValues> = {
   clientId: "",
-  clinicId: "",
   name: "",
   species: "",
   breed: "",
@@ -96,43 +92,26 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
   const [clientSearchQuery, setClientSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const debouncedClientQuery = useDebounce(clientSearchQuery, 300)
-  const [selectedClient, setSelectedClient] = useState<{ id: string, name: string, clinicId?: string } | null>(null)
+  const [selectedClient, setSelectedClient] = useState<{ id: string, name: string } | null>(null)
   
   const { data: clientsData, isLoading: isLoadingClients } = useGetClients(
-    1, 100, clinic?.id || "", debouncedClientQuery, 'firstName', !!debouncedClientQuery
+    1, 100, debouncedClientQuery, 'firstName', !!debouncedClientQuery
   )
   const clients = clientsData?.items || []
 
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
-    defaultValues: {
-      ...defaultValues,
-      clinicId: clinic?.id || "",
-    },
+    defaultValues
   })
-
-  useEffect(() => {
-    const selectedClientId = form.watch("clientId");
-    if (selectedClientId) {
-      const selectedClient = clients?.find(client => client.id === selectedClientId);
-      if (selectedClient) {
-        form.setValue("clinicId", selectedClient.clinicId);
-      }
-    }
-  }, [form.watch("clientId")]);
 
   // Handle client selection
   const handleClientSelect = (client: Client) => {
     setSelectedClient({
       id: client.id,
-      name: `${client.firstName} ${client.lastName}`,
-      clinicId: client.clinicId
+      name: `${client.firstName} ${client.lastName}`
     });
     
     form.setValue("clientId", client.id);
-    if (client.clinicId) {
-      form.setValue("clinicId", client.clinicId);
-    }
     
     setClientSearchQuery(""); // Clear the search input
     setIsSearchDropdownOpen(false); // Close the dropdown
@@ -147,13 +126,9 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
   async function onSubmit(data: PatientFormValues) {
     setIsPending(true)
     try {
-      // Get the selected client to access its clinicId
-      const selectedClientId = data.clientId;
-      
       // Use the selected client ID from the form
       const patientData = {
         ...data,
-        clinicId: data.clinicId, // Use the selected clinic ID
         dateOfBirth: format(data.dateOfBirth, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
       }
 
@@ -242,25 +217,6 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
             <h3 className="text-lg font-medium">Owner Information</h3>
             {!showClientForm ? (
               <div className="space-y-4">
-                {/* Clinic selection - KEEP THIS */}
-                {!clinic?.id && (
-                  <FormField
-                    control={form.control}
-                    name="clinicId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <ClinicSelect 
-                            control={form.control} 
-                            name="clinicId"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
                 {/* New owner search */}
                 <FormField
                   control={form.control}
@@ -740,28 +696,6 @@ export function NewPatientForm({ onSuccess }: NewPatientFormProps) {
                   </FormItem>
                 )}
               />
-
-              {/* <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Active</FormLabel>
-                      <FormDescription>
-                        This indicates whether the patient is currently active.
-                      </FormDescription>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              /> */}
             </div>
           </div>
         </div>

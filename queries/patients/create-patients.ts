@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Patient } from "./get-patients";
 
 interface CreatePatientRequest {
-  clinicId: string;
   clientId: string;
   name: string;
   species: string;

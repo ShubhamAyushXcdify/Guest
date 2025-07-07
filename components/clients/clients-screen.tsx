@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, Eye } from "lucide-react"
+import { Plus, Edit, Eye } from "lucide-react"
 import { 
   Sheet, 
   SheetContent, 
@@ -18,12 +18,10 @@ import { DataTable } from "@/components/ui/data-table"
 import { useDeleteClient } from "@/queries/clients/delete-client"
 import { toast } from "@/components/ui/use-toast"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
-import { useRootContext } from '@/context/RootContext'
 import { useRouter } from "next/navigation"
 
 
 export const ClientsScreen = () => {
-  const { clinic } = useRootContext()
   const [isClientDrawerOpen, setIsClientDrawerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
@@ -35,7 +33,6 @@ export const ClientsScreen = () => {
   const { data: clientsData, isLoading, isError } = useGetClients(
     page,
     pageSize,
-    clinic?.id || '',
     debouncedSearchQuery
   )
   
@@ -115,7 +112,6 @@ export const ClientsScreen = () => {
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "phonePrimary", header: "Phone" },
-    ...(clinic?.id ? [] : [{ accessorKey: "clinicName", header: "Clinic Name" }]),
     { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
     {
       id: "actions",
