@@ -17,12 +17,27 @@ import { TrendingUp, Users, Stethoscope, Package, Truck, Building2 } from "lucid
 import { useRootContext } from "@/context/RootContext"
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
 import type { DateRange } from "react-day-picker";
+import { useGetPendingClientRegistrations } from "@/queries/clientRegistration/get-registration-pending";
+import { useApproveClientRegistration } from "@/queries/clientRegistration/create-approve";
+import { useDeleteClientRegistration } from "@/queries/clientRegistration/delete-clinetRegistration";
+import { useGetClientRegistrationById } from "@/queries/clientRegistration/get-registration-by-id";
+import { Eye, Check, X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast";
 
 export const DashboardScreen = () => {
   const [mounted, setMounted] = useState(false)
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
   const [showNewAppointmentDrawer, setShowNewAppointmentDrawer] = useState(false)
   const [showNewInvoiceDrawer, setShowNewInvoiceDrawer] = useState(false)
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [selectedRegistrationId, setSelectedRegistrationId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
 
   const today = new Date();
 
@@ -87,6 +102,12 @@ export const DashboardScreen = () => {
   const todayAppointmentsCount = todaysAppointments.length;
   const todayCompletedCount = todaysAppointments.filter((a: any) => a.status === "completed").length;
 
+  // Add these hooks but don't modify any existing hooks
+  const { data: pendingRegistrations = [], isLoading: isLoadingPending } = useGetPendingClientRegistrations(true);
+  const approveMutation = useApproveClientRegistration();
+  const deleteMutation = useDeleteClientRegistration();
+  const { data: drawerData, isLoading: isDrawerLoading } = useGetClientRegistrationById(drawerId || "");
+
   // Ensure we only access browser APIs on the client side
   useEffect(() => {
     setMounted(true)
@@ -117,6 +138,7 @@ export const DashboardScreen = () => {
           />
           <DashboardScheduleTable 
             appointments={todaysAppointments}
+            pendingRegistrations={pendingRegistrations}
           />
         </div>
       )}
@@ -140,69 +162,101 @@ export const DashboardScreen = () => {
             <p className="text-muted-foreground">Monitor and manage all clinics across the system</p>
           </div>
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/50">
-                    <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          {/* NEW LAYOUT: Summary Cards in Grid */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Summary Cards - 50% width on desktop, 2 columns if pending card is present */}
+            <div className={`grid ${pendingRegistrations.length > 0 ? 'md:grid-cols-2' : 'md:grid-cols-4'} grid-cols-1 gap-6 flex-1 lg:w-1/2`}>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/50">
+                      <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Clinics</p>
+                      <p className="text-2xl font-bold theme-text-primary">{clinics.length}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Clinics</p>
-                    <p className="text-2xl font-bold theme-text-primary">{clinics.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                    <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                      <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Veterinarians</p>
+                      <p className="text-2xl font-bold theme-text-secondary">
+                        {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfVeterinarians || 0), 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Veterinarians</p>
-                    <p className="text-2xl font-bold theme-text-secondary">
-                      {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfVeterinarians || 0), 0)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
-                    <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
+                      <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
+                      <p className="text-2xl font-bold theme-text-accent">
+                        {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfPatients || 0), 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
-                    <p className="text-2xl font-bold theme-text-accent">
-                      {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfPatients || 0), 0)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                    <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                      <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                        {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfProducts || 0), 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Products</p>
-                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfProducts || 0), 0)}
-                    </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pending User Registrations Card - 50% width on desktop */}
+            {pendingRegistrations.length > 0 && (
+              <Card className="col-span-1 border-0 shadow-lg bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/50 dark:to-pink-900/50 lg:w-1/2 flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-2xl">Pending User Registrations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: '112px' }}>
+                    {pendingRegistrations.map((reg: any) => (
+                      <div key={reg.id} className="flex items-center justify-between p-2">
+                        <span className="font-semibold text-lg text-primary">{reg.firstName}</span>
+                        <div className="flex gap-2">
+                          <Button size="icon" variant="ghost" onClick={() => { setDrawerId(reg.id); setDrawerOpen(true); }} title="View Details">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => approveMutation.mutate({ registrationId: reg.id, isApproved: true })} title="Approve">
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="destructive" className="bg-red-400 hover:bg-red-500" onClick={() => { setSelectedRegistrationId(reg.id); setRejectDialogOpen(true); }} title="Reject">
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Clinic Cards */}
@@ -345,6 +399,109 @@ export const DashboardScreen = () => {
           </div>
         </div>
       )}
+
+      {/* Add drawer and dialog below existing content */}
+      {/* User registration details sheet */}
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Registration Details</SheetTitle>
+          </SheetHeader>
+          <div className="p-6">
+            {isDrawerLoading ? (
+              <div>Loading...</div>
+            ) : drawerData ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">First Name</h3>
+                    <p className="font-semibold">{drawerData.firstName}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Last Name</h3>
+                    <p className="font-semibold">{drawerData.lastName}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
+                    <p className="font-semibold">{drawerData.email}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                    <p className="font-semibold">{drawerData.phonePrimary}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
+                  <p className="font-semibold">{drawerData.addressLine1}</p>
+                  <p className="font-semibold">{drawerData.city}, {drawerData.state} {drawerData.postalCode}</p>
+                </div>
+                {drawerData.notes && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
+                    <p>{drawerData.notes}</p>
+                  </div>
+                )}
+                <div className="pt-4 flex justify-end gap-2">
+                  <Button 
+                    variant="default"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      approveMutation.mutate({ registrationId: drawerData.id, isApproved: true });
+                      setDrawerOpen(false);
+                    }}
+                  >
+                    Approve
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    onClick={() => {
+                      setSelectedRegistrationId(drawerData.id);
+                      setRejectDialogOpen(true);
+                      setDrawerOpen(false);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ) : <div>No data found.</div>}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Registration</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              placeholder="Enter rejection reason"
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedRegistrationId) {
+                  approveMutation.mutate({ registrationId: selectedRegistrationId, isApproved: false, rejectionReason: rejectReason });
+                }
+                setRejectDialogOpen(false);
+                setRejectReason("");
+              }}
+              disabled={approveMutation.isPending}
+            >
+              Reject
+            </Button>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modals and Drawers (keep these outside the conditional so they work for both) */}
       <NewPatientModal isOpen={showNewPatientModal} onClose={() => setShowNewPatientModal(false)} />
