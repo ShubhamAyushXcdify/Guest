@@ -5,13 +5,14 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import { useGetProducts, PaginatedResponse } from "@/queries/products/get-products";
+import { useGetProducts, PaginatedResponse, ProductFilters } from "@/queries/products/get-products";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewProduct from "./newProduct";
 import ProductDetails from "./productsDetails";
 import { useDeleteProduct } from "@/queries/products/delete-products";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
+import { ProductFiltersComponent } from "./product-filters";
  
 // Product type based on the provided API schema
 export type Product = {
@@ -38,11 +39,12 @@ export type Product = {
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
  
 export default function Products() {
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<ProductFilters>({
+    pageNumber: 1,
+    pageSize: 10
+  });
  
-  const { data: productsData, isLoading, isError } = useGetProducts(pageNumber, pageSize, search);
+  const { data: productsData, isLoading, isError } = useGetProducts(filters);
  
   // Extract product items from the paginated response
   const products = productsData?.items || [];
@@ -92,17 +94,29 @@ export default function Products() {
   };
  
   const handlePageChange = (page: number) => {
-    setPageNumber(page);
+    setFilters(prev => ({ ...prev, pageNumber: page }));
   };
  
   const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(Number(newPageSize));
-    setPageNumber(1); // Reset to first page when changing page size
+    setFilters(prev => ({ 
+      ...prev, 
+      pageSize: Number(newPageSize),
+      pageNumber: 1 // Reset to first page when changing page size
+    }));
   };
  
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    setPageNumber(1); // Reset to first page when searching
+  const handleFiltersChange = (newFilters: ProductFilters) => {
+    setFilters(prev => ({ 
+      ...newFilters, 
+      pageNumber: 1 // Reset to first page when filters change
+    }));
+  };
+ 
+  const handleClearFilters = () => {
+    setFilters({
+      pageNumber: 1,
+      pageSize: filters.pageSize || 10
+    });
   };
  
   const columns: ColumnDef<Product>[] = [
@@ -174,6 +188,13 @@ export default function Products() {
         </Sheet>
       </div>
      
+      {/* Product Filters */}
+      <ProductFiltersComponent
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onClearFilters={handleClearFilters}
+      />
+     
       {isLoading ? (
         <div className="flex items-center justify-center h-32">
           <p>Loading products...</p>
@@ -192,12 +213,12 @@ export default function Products() {
           data={products as Product[]}
           searchColumn="name"
           searchPlaceholder="Search products..."
-          page={pageNumber}
-          pageSize={pageSize}
+          page={filters.pageNumber || 1}
+          pageSize={filters.pageSize || 10}
           totalPages={totalPages}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          onSearch={handleSearch}
+          onSearch={(value) => handleFiltersChange({ ...filters, search: value, pageNumber: 1 })}
           onEditButtonClick={handleProductClick}
         />
       )}

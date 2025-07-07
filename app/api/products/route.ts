@@ -9,9 +9,46 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
+        
+        // Extract all possible filter parameters
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
         const search = searchParams.get('search') || '';
+        const category = searchParams.get('category') || '';
+        const productType = searchParams.get('productType') || '';
+        const dosageForm = searchParams.get('dosageForm') || '';
+        const unitOfMeasure = searchParams.get('unitOfMeasure') || '';
+        const requiresPrescription = searchParams.get('requiresPrescription') || '';
+        const controlledSubstanceSchedule = searchParams.get('controlledSubstanceSchedule') || '';
+        const isActive = searchParams.get('isActive') || '';
+        const minPrice = searchParams.get('minPrice') || '';
+        const maxPrice = searchParams.get('maxPrice') || '';
+        const lowStock = searchParams.get('lowStock') || '';
+        const createdFrom = searchParams.get('createdFrom') || '';
+        const createdTo = searchParams.get('createdTo') || '';
+        const sortBy = searchParams.get('sortBy') || '';
+        const sortOrder = searchParams.get('sortOrder') || '';
+        
+        // Build query string with all parameters
+        const queryParams = new URLSearchParams();
+        queryParams.append('pageNumber', pageNumber);
+        queryParams.append('pageSize', pageSize);
+        
+        if (search) queryParams.append('search', search);
+        if (category) queryParams.append('category', category);
+        if (productType) queryParams.append('productType', productType);
+        if (dosageForm) queryParams.append('dosageForm', dosageForm);
+        if (unitOfMeasure) queryParams.append('unitOfMeasure', unitOfMeasure);
+        if (requiresPrescription) queryParams.append('requiresPrescription', requiresPrescription);
+        if (controlledSubstanceSchedule) queryParams.append('controlledSubstanceSchedule', controlledSubstanceSchedule);
+        if (isActive) queryParams.append('isActive', isActive);
+        if (minPrice) queryParams.append('minPrice', minPrice);
+        if (maxPrice) queryParams.append('maxPrice', maxPrice);
+        if (lowStock) queryParams.append('lowStock', lowStock);
+        if (createdFrom) queryParams.append('createdFrom', createdFrom);
+        if (createdTo) queryParams.append('createdTo', createdTo);
+        if (sortBy) queryParams.append('sortBy', sortBy);
+        if (sortOrder) queryParams.append('sortOrder', sortOrder);
         
         // Get token from cookie or use test token as fallback
         let token = getJwtToken(request);
@@ -20,7 +57,7 @@ export async function GET(request: NextRequest) {
         }
 
         const response = await fetch(
-            `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
+            `${apiUrl}/api/Product?${queryParams.toString()}`,
             {
                 headers: {
                     'Content-Type': 'application/json',
