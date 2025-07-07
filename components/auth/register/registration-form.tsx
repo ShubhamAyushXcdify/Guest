@@ -127,23 +127,23 @@ export function RegistrationForm() {
 
   if (isSuccess) {
     return (
-      <Card className="mx-auto max-w-sm">
+      <Card className="mx-auto max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl mx-auto">Registration Successful</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <p className="mb-4">Thank you for registering! Your account is pending for approval.</p>
+          <p className="mb-4">Thank you for registering! Your account is pending for approval. You will receive an email notification once your account has been approved.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="mx-auto max-w-sm">
+    <Card className="mx-auto max-w-2xl">
       <CardHeader>
         <CardTitle className="text-2xl mx-auto">Register</CardTitle>
         <CardDescription className="mx-auto text-center">
-          Create a new client account
+          Create a new account
         </CardDescription>
       </CardHeader>
       <CardContent>

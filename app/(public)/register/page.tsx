@@ -136,7 +136,7 @@ export default function RegisterPage() {
       </div>
       {/* Right side - Registration Form */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-2xl w-full p-8">
           <RegistrationForm />
         </div>
       </div>

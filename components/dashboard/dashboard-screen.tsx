@@ -233,7 +233,7 @@ export const DashboardScreen = () => {
             {pendingRegistrations.length > 0 && (
               <Card className="col-span-1 border-0 shadow-lg bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/50 dark:to-pink-900/50 lg:w-1/2 flex flex-col">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Pending User Registrations</CardTitle>
+                  <CardTitle className="text-2xl">Pending Client Registrations</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: '112px' }}>
