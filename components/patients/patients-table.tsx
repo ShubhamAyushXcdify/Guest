@@ -110,11 +110,7 @@ export function PatientsTable({
     //   )
     // },
     ...(showClinicColumn ? [
-      { 
-        accessorKey: "clinicName", 
-        header: "Clinic",
-        cell: ({ row }: { row: { original: Patient } }) => row.original.clinicName || 'N/A'
-      }
+     
     ] : []),
     {
       id: "actions",

@@ -19,7 +19,6 @@ import { Client } from "@/queries/clients/get-client";
 import { useCreateClient } from "@/queries/clients/create-client";
 import { useUpdateClient } from "@/queries/clients/update-client";
 import { toast } from "@/components/ui/use-toast";
-import { ClinicSelect } from "@/components/clinics/clinic-select";
 import { useRootContext } from '@/context/RootContext';
 import { Mic, Loader2 } from "lucide-react";
 import { AudioManager } from "@/components/audioTranscriber/AudioManager";
@@ -40,7 +39,6 @@ const clientFormSchema = z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   notes: z.string().optional(),
-  clinicId: z.string().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -49,7 +47,6 @@ type ClientFormValues = z.infer<typeof clientFormSchema>;
 interface ClientFormProps {
   defaultValues?: Partial<ClientFormValues>;
   onSuccess?: (client: Client) => void;
-  clinicId?: string;
   nestedForm?: boolean;
   isUpdate?: boolean;
 }
@@ -73,7 +70,6 @@ export function ClientForm({
     isActive: true,
   },
   onSuccess,
-  clinicId,
   nestedForm = false,
   isUpdate = false,
 }: ClientFormProps) {
@@ -97,15 +93,9 @@ export function ClientForm({
     // eslint-disable-next-line
   }, [notesTranscriber.output?.isBusy]);
 
-  // Use the current clinic from context if available, otherwise fall back to props or defaultValues
-  const formDefaultValues = {
-    ...defaultValues,
-    clinicId: clinic?.id || clinicId || defaultValues.clinicId || "",
-  };
-
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
-    defaultValues: formDefaultValues,
+    defaultValues: defaultValues,
   });
 
   const onSubmit = async (data: ClientFormValues) => {
@@ -113,7 +103,6 @@ export function ClientForm({
     try {
       const clientData = {
         ...data,
-        clinicId: clinic?.id || data.clinicId || "",
         isActive: data.isActive !== undefined ? data.isActive : true
       };
       
@@ -128,7 +117,6 @@ export function ClientForm({
         console.log("Using UPDATE mutation - ID:", data.id);
         updatedClient = await updateClientMutation.mutateAsync({
           id: (data.id || defaultValues.id || "") as string,  // Ensure we have the ID with string typecast
-          clinicId: clientData.clinicId,
           firstName: clientData.firstName,
           lastName: clientData.lastName, 
           email: clientData.email,
@@ -184,16 +172,6 @@ export function ClientForm({
           render={({ field }) => (
             <input type="hidden" {...field} />
           )}
-        />
-      )}
-      
-      {/* Clinic Selection Field - Only show if clinic.id is not present */}
-      {!clinic?.id && (
-        <ClinicSelect
-          control={form.control}
-          name="clinicId"
-          label="Select Clinic*"
-          description="Select the clinic this owner will be associated with"
         />
       )}
 

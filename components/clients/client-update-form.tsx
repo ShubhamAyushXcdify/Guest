@@ -18,7 +18,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Client } from "@/queries/clients/get-client";
 import { useUpdateClient } from "@/queries/clients/update-client";
 import { toast } from "@/components/ui/use-toast";
-import { useRootContext } from '@/context/RootContext';
 import { CheckCircle } from "lucide-react";
 
 const updateClientSchema = z.object({
@@ -50,14 +49,12 @@ interface ClientUpdateFormProps {
 export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const updateClientMutation = useUpdateClient();
-  const { clinic } = useRootContext();
 
   // Initialize form with client data
   const form = useForm<UpdateClientFormValues>({
     resolver: zodResolver(updateClientSchema),
     defaultValues: {
       id: client.id,
-      clinicId: client.clinicId || clinic?.id || "",
       firstName: client.firstName || "",
       lastName: client.lastName || "",
       email: client.email || "",
@@ -84,7 +81,6 @@ export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
       // Direct call to updateClient mutation
       await updateClientMutation.mutateAsync({
         id: data.id,
-        clinicId: data.clinicId,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
