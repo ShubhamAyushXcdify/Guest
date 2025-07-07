@@ -95,6 +95,11 @@ export default function Roles() {
         ></div>
       )
     },
+    {
+      accessorKey: "priority",
+      header: "Priority",
+      cell: ({ getValue }) => <Badge variant="default">{getValue() as number}</Badge>
+    },
     { 
       accessorKey: "isPrivileged", 
       header: "Privileged", 

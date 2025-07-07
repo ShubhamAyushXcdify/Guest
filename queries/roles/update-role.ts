@@ -7,6 +7,7 @@ interface UpdateRoleData {
   metadata: string | null;
   isClinicRequired: boolean;
   colourName: string;
+  priority: number;
 }
 
 const updateRole = async ({ id, ...data }: { id: string } & UpdateRoleData) => {
