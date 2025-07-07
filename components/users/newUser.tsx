@@ -14,6 +14,7 @@ import { Role, useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import React from "react";
 import { Combobox } from "../ui/combobox";
+import { useRootContext } from "@/context/RootContext";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
   clinicId?: string;
@@ -25,6 +26,7 @@ interface NewUserProps {
 
 export default function NewUser({ onSuccess }: NewUserProps) {
   const router = useRouter();
+  const { user: currentUser } = useRootContext();
   
   const createUser = useCreateUser({
     onSuccess: () => {
@@ -66,11 +68,21 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const showClinicField = selectedRole?.isClinicRequired;
 
   const roleOptions = React.useMemo(() => {
-    return rolesData?.data?.map((role: Role) => ({
+    // Get the current user's role priority
+    const currentRolePriority = rolesData?.data?.find((role: Role) => 
+      role.id === currentUser?.roleId
+    )?.priority || 0;
+
+    // Filter roles to only show those with higher priority numbers (lower privilege)
+    const filteredRoles = rolesData?.data?.filter((role: Role) => 
+      role.priority > currentRolePriority
+    ) || [];
+
+    return filteredRoles.map((role: Role) => ({
       value: role.value,
       label: role.name
-    })) || [];
-  }, [rolesData?.data]);
+    }));
+  }, [rolesData?.data, currentUser]);
 
   const clinicOptions = React.useMemo(() => {
     return clinicData?.items?.map((clinic) => ({
