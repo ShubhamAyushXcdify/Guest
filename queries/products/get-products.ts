@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { Product } from "@/components/products";
+import { ProductSearchParamsType, proudctSearchParser } from "@/components/products/hooks/useFilter";
 
 export interface PaginatedResponse<T> {
     items: T[];
@@ -12,19 +13,21 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
 }
 
-const getProducts = async (pageNumber = 1, pageSize = 10, search = '') => {
-    const response = await fetch(`/api/products?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
+const getProducts = async (pageNumber = 1, pageSize = 10, search: string) => {
+
+    const response = await fetch(`/api/products${search ? `${search}&` : '?'}pageNumber=${pageNumber}&pageSize=${pageSize}`);
     if (!response.ok) {
         throw new Error('Failed to fetch product data');
     }
     return response.json() as Promise<PaginatedResponse<Product>>;
 };
 
-export const useGetProducts = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
+export const useGetProducts = (pageNumber = 1, pageSize = 10, search: ProductSearchParamsType, enabled = true) => { 
     return useQuery({
         queryKey: ["products", pageNumber, pageSize, search],
         queryFn: async () => {
-            return getProducts(pageNumber, pageSize, search);
+            const searchParams = proudctSearchParser({...search});
+            return getProducts(pageNumber, pageSize, searchParams);
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,
