@@ -1,49 +1,17 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import { Check, Moon, Settings, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+
+import type React from "react"
+import Image from "next/image"
+import { Moon, Sun, Calendar, PawPrint, Heart, FileText, Bell } from "lucide-react"
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { RegistrationForm } from "@/components/auth/register/registration-form";
+} from "@/components/ui/dropdown-menu"
+
+import { Button } from "@/components/ui/button"
+import { RegistrationForm } from "@/components/auth/register/registration-form"
 
 export default function RegisterPage() {
-  const [mounted, setMounted] = useState(false);
-  const [colorTheme, setColorTheme] = useState("purple");
-  const { theme, setTheme } = useTheme();
-
-  // Theme options
-  const themeOptions = [
-    { name: "Purple (Default)", value: "purple", primaryColor: "bg-purple-600", secondaryColor: "bg-indigo-800" },
-    { name: "Teal", value: "teal", primaryColor: "bg-teal-600", secondaryColor: "bg-teal-800" },
-    { name: "Blue", value: "blue", primaryColor: "bg-blue-600", secondaryColor: "bg-blue-800" },
-    { name: "Rose", value: "rose", primaryColor: "bg-rose-600", secondaryColor: "bg-rose-800" },
-    { name: "Amber", value: "amber", primaryColor: "bg-amber-600", secondaryColor: "bg-amber-800" },
-    { name: "Emerald", value: "emerald", primaryColor: "bg-emerald-600", secondaryColor: "bg-emerald-800" },
-  ];
-
-  useEffect(() => {
-    setMounted(true);
-    const savedColorTheme = localStorage.getItem("pawtrack-color-theme") || "purple";
-    setColorTheme(savedColorTheme);
-    document.documentElement.setAttribute("data-color-theme", savedColorTheme);
-  }, []);
-
-  const changeColorTheme = (value: string) => {
-    setColorTheme(value);
-    localStorage.setItem("pawtrack-color-theme", value);
-    document.documentElement.setAttribute("data-color-theme", value);
-  };
-
-  if (!mounted) return null;
 
   return (
     <div
@@ -55,46 +23,7 @@ export default function RegisterPage() {
       {/* Theme Dropdown */}
       <div className="absolute top-4 right-4 z-10">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9 border-0 bg-white/10 text-white hover:bg-white/20">
-              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-            <DropdownMenuSeparator />
 
-            <DropdownMenuLabel className="text-xs font-normal text-gray-500">Mode</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-              <DropdownMenuRadioItem value="light">
-                <Sun className="mr-2 h-4 w-4" />
-                <span>Light</span>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="dark">
-                <Moon className="mr-2 h-4 w-4" />
-                <span>Dark</span>
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="system">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>System</span>
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs font-normal text-gray-500">Color Theme</DropdownMenuLabel>
-
-            <DropdownMenuRadioGroup value={colorTheme} onValueChange={changeColorTheme}>
-              {themeOptions.map((option) => (
-                <DropdownMenuRadioItem key={option.value} value={option.value} className="flex items-center">
-                  <div className={`w-4 h-4 rounded-full mr-2 ${option.primaryColor}`}></div>
-                  <span>{option.name}</span>
-                  {colorTheme === option.value && <Check className="ml-auto h-4 w-4" />}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
         </DropdownMenu>
       </div>
       {/* Left side - Branding */}
@@ -105,41 +34,60 @@ export default function RegisterPage() {
               <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
             </div>
             <h1 className="text-4xl font-bold tracking-tight">PawTrack</h1>
-            <p className="mt-2 text-xl">Veterinary Practice Management</p>
+            <p className="mt-2 text-xl">Your Pet's Health Journey</p>
           </div>
+
           <div className="mt-10 hidden md:block">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-              <h2 className="text-xl font-semibold mb-4">Streamline Your Veterinary Practice</h2>
+              <h2 className="text-xl font-semibold mb-4">Stay Connected with Your Pet's Care</h2>
               <ul className="space-y-3">
                 <li className="flex items-start">
                   <div className="flex-shrink-0 h-6 w-6 rounded-full bg-white/20 flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-sm">✓</span>
+                    <Calendar className="h-4 w-4" />
                   </div>
-                  <p>Manage appointments and patient records</p>
+                  <p>View and manage your pet's appointments</p>
                 </li>
                 <li className="flex items-start">
                   <div className="flex-shrink-0 h-6 w-6 rounded-full bg-white/20 flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-sm">✓</span>
+                    <PawPrint className="h-4 w-4" />
                   </div>
-                  <p>Track inventory and prescriptions</p>
+                  <p>Access your pet's medical records</p>
                 </li>
                 <li className="flex items-start">
                   <div className="flex-shrink-0 h-6 w-6 rounded-full bg-white/20 flex items-center justify-center mr-3 mt-0.5">
-                    <span className="text-sm">✓</span>
+                    <Heart className="h-4 w-4" />
                   </div>
-                  <p>Process billing and generate reports</p>
+                  <p>Track vaccinations and treatments</p>
+                </li>
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-white/20 flex items-center justify-center mr-3 mt-0.5">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <p>Get appointment reminders and updates</p>
+                </li>
+                <li className="flex items-start">
+                  <div className="flex-shrink-0 h-6 w-6 rounded-full bg-white/20 flex items-center justify-center mr-3 mt-0.5">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <p>View prescriptions and billing history</p>
                 </li>
               </ul>
             </div>
           </div>
         </div>
       </div>
+
       {/* Right side - Registration Form */}
       <div className="flex-1 flex items-center justify-center p-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-2xl w-full p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl h-[calc(100vh-100px)] w-full p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Create your account to access your pet's health portal</p>
+          </div>
+          
           <RegistrationForm />
         </div>
       </div>
     </div>
-  );
+  )
 } 

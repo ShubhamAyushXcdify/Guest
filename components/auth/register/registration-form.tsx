@@ -293,7 +293,7 @@ export function RegistrationForm() {
         </Form>
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
-          <Link href="/"  className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80">
+          <Link href="/login"  className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80">
             Login here
           </Link>
         </div>

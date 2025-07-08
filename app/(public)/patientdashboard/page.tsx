@@ -22,6 +22,7 @@ import {
   SheetTitle 
 } from "@/components/ui/sheet"
 
+
 interface Appointment {
   id: string;
   status: string;
@@ -44,6 +45,7 @@ interface Appointment {
 export default function PatientDashboard() {
   // Add a hydration safety flag
   const [isClient, setIsClient] = useState(false)
+
   const [activeTab, setActiveTab] = useState("overview")
   const rootContext = useContext(RootContext);
   const handleLogout = rootContext?.handleLogout;
@@ -85,6 +87,7 @@ export default function PatientDashboard() {
     refetch(); // Refresh the pets list
     setIsNewPetFormOpen(false); // Close the form
   };
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -143,8 +146,12 @@ export default function PatientDashboard() {
     }
   }
 
+
+
+
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" suppressHydrationWarning>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
