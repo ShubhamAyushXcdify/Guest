@@ -28,6 +28,8 @@ import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId"
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -66,6 +68,8 @@ const newAppointmentSchema = z.object({
   status: z.string(),
   notes: z.string().optional(),
   isActive: z.boolean().optional(),
+  isRegistered: z.boolean().optional(),
+  sendEmail: z.boolean().optional(),
 })
 
 type NewAppointmentFormValues = z.infer<typeof newAppointmentSchema>
@@ -76,6 +80,8 @@ interface NewAppointmentProps {
   patientId?: string
   preSelectedClinic?: string
   preSelectedRoom?: string | null
+  appointmentId?: string | null
+  sendEmail?: boolean
 }
 
 // Define the SlotResponse interface to match your API
@@ -87,7 +93,7 @@ interface SlotResponse {
   items: Slot[];
 }
 
-function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSelectedRoom }: NewAppointmentProps) {
+function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSelectedRoom, appointmentId, sendEmail = false }: NewAppointmentProps) {
   const { toast } = useToast()
   const { user, userType, clinic } = useRootContext()
   const [showNewPatientForm, setShowNewPatientForm] = useState(false)
@@ -108,6 +114,9 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   // Fetch specific patient by ID when patientId is provided
   const { data: specificPatient } = useGetPatientById(patientId || "");
   
+  // Fetch appointment by ID when editing
+  const { data: appointmentData, isLoading: isLoadingAppointment } = useGetAppointmentById(appointmentId || "");
+
   // Cast the search results to our custom interface to handle API variations
   const typedSearchResults = searchResults as SearchPatientResult[];
   
@@ -125,7 +134,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       status: "scheduled",
       notes: "",
       isActive: true,
-      },
+      isRegistered: false,
+        },
   })
 
   // Get selected room ID for slots
@@ -223,6 +233,26 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Error",
         description: error.message || "Failed to create appointment",
+        variant: "destructive",
+      })
+    }
+  })
+  
+  // Update appointment mutation
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Appointment updated successfully",
+      })
+      form.reset() // Clear the form after successful update
+      setSelectedPatient(null) // Clear selected patient after update
+      onClose()
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update appointment",
         variant: "destructive",
       })
     }
@@ -360,7 +390,22 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         createdBy: user?.id,
       };
       
-      createAppointment(formattedData);
+      // Add isRegistered and sendEmail for appointment approvals
+      if (appointmentId) {
+        formattedData.isRegistered = false; // Mark as not registered (approved)
+        if (sendEmail) {
+          formattedData.sendEmail = true; // Send confirmation email
+        }
+        
+        // Update existing appointment
+        updateAppointmentMutation.mutate({
+          id: appointmentId,
+          data: formattedData
+        });
+      } else {
+        // Create new appointment
+        createAppointment(formattedData);
+      }
     } catch (error) {
       console.error("Error submitting form:", error);
       if (error instanceof z.ZodError) {
@@ -503,6 +548,44 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     }
   }, [isOpen, user, veterinarianOptions, form]);
 
+  // Pre-fill form with appointment data when editing
+  useEffect(() => {
+    if (isOpen && appointmentId && appointmentData) {
+      // Set form values from appointment data
+      form.setValue("clinicId", appointmentData.clinicId);
+      form.setValue("patientId", appointmentData.patientId);
+      form.setValue("veterinarianId", appointmentData.veterinarianId);
+      form.setValue("roomId", appointmentData.roomId);
+      
+      // Handle date
+      if (appointmentData.appointmentDate) {
+        const appointmentDate = new Date(appointmentData.appointmentDate);
+        form.setValue("appointmentDate", appointmentDate);
+      }
+      
+      // Set other fields
+      form.setValue("slotId", appointmentData.roomSlotId || appointmentData.slotId);
+      form.setValue("appointmentTypeId", appointmentData.appointmentTypeId);
+      form.setValue("reason", appointmentData.reason);
+      form.setValue("notes", appointmentData.notes || "");
+      form.setValue("status", appointmentData.status || "scheduled");
+      
+      // Set selected slot
+      if (appointmentData.roomSlotId || appointmentData.slotId) {
+        setSelectedSlot(appointmentData.roomSlotId || appointmentData.slotId);
+      }
+      
+      // Set selected patient
+      if (appointmentData.patient) {
+        setSelectedPatient({
+          id: appointmentData.patientId,
+          name: appointmentData.patient.name,
+          clientId: appointmentData.clientId
+        });
+      }
+    }
+  }, [isOpen, appointmentId, appointmentData, form]);
+
   // Clear the selected patient
   const clearSelectedPatient = () => {
     setSelectedPatient(null);
@@ -543,7 +626,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     <Sheet open={isOpen} onOpenChange={handleCancel}>
       <SheetContent className={`w-[95%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '95%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '95%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
         <SheetHeader>
-          <SheetTitle>New Appointment</SheetTitle>
+          <SheetTitle>{appointmentId ? 'Update Appointment' : 'New Appointment'}</SheetTitle>
         </SheetHeader>
 
         <div className="flex gap-6 mt-6">
@@ -915,7 +998,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                     Cancel
                   </Button>
                   <Button type="submit" className="theme-button text-white" disabled={isPending || showNewPatientForm}>
-                    {isPending ? "Creating..." : "Create Appointment"}
+                    {isPending ? (appointmentId ? "Updating..." : "Creating...") : (appointmentId ? "Update Appointment" : "Create Appointment")}
                   </Button>
                 </SheetFooter>
               </form>

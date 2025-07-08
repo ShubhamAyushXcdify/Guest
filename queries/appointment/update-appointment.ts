@@ -1,7 +1,23 @@
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 
-const updateAppointment = async ({ id, data }: { id: string; data: any }) => {
+interface UpdateAppointmentData {
+  id: string;
+  data: {
+    isRegistered?: boolean;
+    status?: string;
+    rejectionReason?: string;
+    appointmentDate?: string;
+    reason?: string;
+    notes?: string;
+    roomId?: string;
+    veterinarianId?: string;
+    [key: string]: any; // Allow other properties
+    sendEmail?: boolean;
+  };
+}
+
+const updateAppointment = async ({ id, data }: UpdateAppointmentData) => {
   try {
     const url = `/api/appointment/${id}`;
     
@@ -32,6 +48,7 @@ export const useUpdateAppointment = ({ onSuccess, onError }: {
   return useMutation({
     mutationFn: updateAppointment,
     onSuccess: () => {
+      // Invalidate and refetch all appointment-related queries
       queryClient.invalidateQueries({ queryKey: ['appointment'] })
       queryClient.invalidateQueries({ queryKey: ['appointmentList'] })
       queryClient.invalidateQueries({ queryKey: ['appointments'] })

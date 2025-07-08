@@ -96,6 +96,7 @@ export default function AppointmentList({
     roomId: searchParams.roomId,
     pageNumber: currentPage,
     pageSize: pageSize,
+    isRegistered: false // Ensure we don't show appointment requests
   });
   
   // Use patient-specific appointments when selectedPatientId is provided, otherwise use all appointments
@@ -200,21 +201,22 @@ export default function AppointmentList({
 
   // Use the enriched appointments directly and filter in the frontend
   const filteredAppointments = useMemo(() => {
-    let filtered = enrichedAppointments;
+    // First filter out any appointments with status "requested"
+    let filtered = enrichedAppointments.filter(a => a.status !== "requested");
 
     // Apply status filter based on active tab
     if (activeTab === "all") {
-      filtered = enrichedAppointments;
+      // No additional filtering needed, we already filtered out "requested"
     } else if (activeTab === "scheduled") {
-      filtered = enrichedAppointments.filter(
+      filtered = filtered.filter(
         (a) => a.status === "scheduled" || a.status === "confirmed"
       );
     } else if (activeTab === "checked-in") {
-      filtered = enrichedAppointments.filter((a) => a.status === "in_progress");
+      filtered = filtered.filter((a) => a.status === "in_progress");
     } else if (activeTab === "completed") {
-      filtered = enrichedAppointments.filter((a) => a.status === "completed");
+      filtered = filtered.filter((a) => a.status === "completed");
     } else if (activeTab === "cancelled") {
-      filtered = enrichedAppointments.filter((a) => a.status === "cancelled");
+      filtered = filtered.filter((a) => a.status === "cancelled");
     }
 
     // Apply search filter client-side

@@ -1,19 +1,28 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar, Clock, MapPin, Phone, Mail, Heart, PawPrint, CalendarDays, User, Building } from "lucide-react"
+import { Calendar, Clock, MapPin, Phone, Mail, Heart, PawPrint, CalendarDays, User, Building, Plus } from "lucide-react"
 import { useContext } from "react";
 import { RootContext } from "@/context/RootContext";
 import { useGetPatients } from "@/queries/patients/get-patients";
 import { useGetClientById } from "@/queries/clients/get-client";
 import { useGetAppointments } from "@/queries/appointment/get-appointment";
 import { getClientId } from "@/utils/clientCookie"
+import PatientAppointmentForm from "@/components/patients/patient-appointment-form"
+import { NewPatientForm } from "@/components/patients/new-patient-form"
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle 
+} from "@/components/ui/sheet"
 import { useRouter } from "next/navigation";
+
 
 interface Appointment {
   id: string;
@@ -34,36 +43,19 @@ interface Appointment {
   };
 }
 
-// const { user } = useContext(RootContext);
-
-const medicalRecords = [
-  {
-    id: 1,
-    petName: "Buddy",
-    date: "2024-01-15",
-    type: "Vaccination",
-    description: "Annual vaccinations including rabies, distemper, and bordetella",
-    doctor: "Dr. Michael Rodriguez"
-  },
-  {
-    id: 2,
-    petName: "Luna",
-    date: "2024-01-10",
-    type: "Dental Procedure",
-    description: "Professional dental cleaning and examination",
-    doctor: "Dr. Sarah Wilson"
-  }
-]
-
 export default function PatientDashboard() {
+  // Add a hydration safety flag
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview")
   const rootContext = useContext(RootContext);
   const handleLogout = rootContext?.handleLogout;
   const user = rootContext?.user;
+  const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false)
+  const [isNewPetFormOpen, setIsNewPetFormOpen] = useState(false)
 
   const clientId = getClientId() || "";
-  const { data, isLoading, error } = useGetPatients(1, 100, "", clientId);
+  const { data, isLoading, error, refetch } = useGetPatients(1, 100, "", clientId);
   const pets = data?.items || [];
 
   const { data: clientData, isLoading: isClientLoading, error: clientError } = useGetClientById(clientId);
@@ -81,10 +73,21 @@ export default function PatientDashboard() {
     roomId: null,
     pageNumber: 1,
     pageSize: 100,
+    isRegistered: false
   });
   const appointments = appointmentQuery.data?.items || [];
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;
+
+  // Set isClient to true once component mounts on client
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  const handleNewPetSuccess = () => {
+    refetch(); // Refresh the pets list
+    setIsNewPetFormOpen(false); // Close the form
+  };
 
   useEffect(() => {
     if((!clientId || clientError) && !isClientLoading) {
@@ -92,9 +95,6 @@ export default function PatientDashboard() {
     }
   }, [clientId, isClientLoading, clientError]);
 
-  if (!clientId) {
-    return <div>Loading user...</div>;
-  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -109,18 +109,49 @@ export default function PatientDashboard() {
     }
   }
 
+  // Safe date formatting to prevent hydration mismatches
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    if (!isClient) return ''; // Return empty string during SSR
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return '';
+    }
   }
 
+  // Safe time formatting
+  const formatTime = (dateString: string) => {
+    if (!isClient) return ''; // Return empty string during SSR
+    
+    try {
+      return new Date(dateString).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch (e) {
+      return '';
+    }
+  }
 
-
-
+  // Safe age calculation
+  const calculateAge = (dateOfBirth: string) => {
+    if (!isClient || !dateOfBirth) return 'Unknown';
+    
+    try {
+      return `${Math.floor(
+        (new Date().getTime() - new Date(dateOfBirth).getTime()) /
+        (365.25 * 24 * 60 * 60 * 1000)
+      )} years`;
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
 
   return (
     <div className="min-h-screen" suppressHydrationWarning>
@@ -136,7 +167,7 @@ export default function PatientDashboard() {
               <Avatar className="h-16 w-16">
                 <AvatarImage src="/images/logo.png" alt={`${clientData.firstName} ${clientData.lastName}`} />
                 <AvatarFallback className="text-lg font-semibold">
-                  {clientData.firstName[0]}{clientData.lastName[0]}
+                  {clientData.firstName?.[0]}{clientData.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
               <div>
@@ -265,7 +296,7 @@ export default function PatientDashboard() {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-gray-900">
-                            {appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
+                            {isClient && appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
                           </p>
                           {getStatusBadge(appointment.status)}
                         </div>
@@ -300,19 +331,10 @@ export default function PatientDashboard() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{pet.name}</p>
                           <p className="text-sm text-gray-600">
-                            {pet.breed} • {
-                              pet.dateOfBirth
-                                ? `${Math.floor(
-                                    (new Date().getTime() - new Date(pet.dateOfBirth).getTime()) /
-                                      (365.25 * 24 * 60 * 60 * 1000)
-                                  )} years`
-                                : "Unknown age"}
+                            {pet.breed} • {isClient && pet.dateOfBirth ? calculateAge(pet.dateOfBirth) : "Unknown age"}
                           </p>
                           <p className="text-sm text-gray-600">{pet.weightKg} kg</p>
                         </div>
-                        {/* <Button variant="outline" size="sm">
-                          View Details
-                        </Button> */}
                       </div>
                     ))
                   )}
@@ -322,13 +344,23 @@ export default function PatientDashboard() {
           </TabsContent>
 
           {/* Appointments Tab */}
-          <TabsContent value="appointments" className="space-y-6">
+          <TabsContent value="appointments" className="space-y-6 overflow-y-auto max-h-[calc(100vh-250px)]">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">My Appointments</h2>
+              <Button 
+                onClick={() => setIsAppointmentFormOpen(true)} 
+                className="theme-button text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Appointment
+              </Button>
+            </div>
             <Card className="bg-white shadow-lg border-0">
               <CardHeader>
                 <CardTitle>All Appointments</CardTitle>
                 <CardDescription>View and manage your pet appointments</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[500px] overflow-y-auto">
                 <div className="space-y-4">
                   {isAppointmentsLoading ? (
                     <div>Loading appointments...</div>
@@ -355,11 +387,11 @@ export default function PatientDashboard() {
                               <div className="flex items-center gap-4 text-sm text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <Calendar className="h-4 w-4" />
-                                  {appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
+                                  {isClient && appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-4 w-4" />
-                                  {appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                                  {isClient && appointment.appointmentDate ? formatTime(appointment.appointmentDate) : ""}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <User className="h-4 w-4" />
@@ -372,14 +404,6 @@ export default function PatientDashboard() {
                               </div>
                             </div>
                           </div>
-                          {/* <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              Reschedule
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              Cancel
-                            </Button>
-                          </div> */}
                         </div>
                       </div>
                     ))
@@ -391,13 +415,38 @@ export default function PatientDashboard() {
 
           {/* Pets Tab */}
           <TabsContent value="pets" className="space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">My Pets</h2>
+              <Button 
+                onClick={() => setIsNewPetFormOpen(true)} 
+                className="theme-button text-white"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Register New Pet
+              </Button>
+            </div>
+
             {isLoading ? (
               <div>Loading pets...</div>
             ) : error ? (
               <div>Error loading pets.</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pets.map((pet) => (
+                {pets.length === 0 ? (
+                  <div className="col-span-full text-center py-10">
+                    <PawPrint className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                    <h3 className="text-lg font-medium text-gray-900">No pets registered yet</h3>
+                    <p className="text-gray-500 mt-1 mb-4">Register your pet to book appointments and access medical records</p>
+                    <Button 
+                      onClick={() => setIsNewPetFormOpen(true)}
+                      className="theme-button text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Register Your First Pet
+                    </Button>
+                  </div>
+                ) : (
+                  pets.map((pet) => (
                   <Card key={pet.id} className="bg-white shadow-lg border-0 overflow-hidden">
                     <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                       <div className="flex items-center gap-4">
@@ -417,12 +466,7 @@ export default function PatientDashboard() {
                         <div>
                           <p className="text-sm font-medium text-gray-600">Age</p>
                           <p className="text-lg font-semibold">
-                            {pet.dateOfBirth
-                              ? `${Math.floor(
-                                  (new Date().getTime() - new Date(pet.dateOfBirth).getTime()) /
-                                    (365.25 * 24 * 60 * 60 * 1000)
-                                )} years`
-                              : "Unknown"}
+                            {isClient && pet.dateOfBirth ? calculateAge(pet.dateOfBirth) : "Unknown"}
                           </p>
                         </div>
                         <div>
@@ -440,13 +484,10 @@ export default function PatientDashboard() {
                           <p className="text-lg font-semibold">—</p>
                         </div>
                       </div>
-                      {/* <div className="flex gap-2">
-                        <Button className="flex-1">View Medical Records</Button>
-                        <Button variant="outline">Book Appointment</Button>
-                      </div> */}
                     </CardContent>
                   </Card>
-                ))}
+                  ))
+                )}
               </div>
             )}
           </TabsContent>
@@ -471,6 +512,33 @@ export default function PatientDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Only show forms on client-side */}
+      {isClient && (
+        <>
+          <PatientAppointmentForm
+            isOpen={isAppointmentFormOpen}
+            onClose={() => setIsAppointmentFormOpen(false)}
+            clientId={clientId}
+            patients={pets}
+          />
+
+          <Sheet open={isNewPetFormOpen} onOpenChange={setIsNewPetFormOpen}>
+            <SheetContent side="right" className="w-full sm:w-full md:!max-w-[70%] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Register New Pet</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <NewPatientForm 
+                  onSuccess={handleNewPetSuccess} 
+                  defaultClientId={clientId}
+                  hideOwnerSection={true}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
   )
 }

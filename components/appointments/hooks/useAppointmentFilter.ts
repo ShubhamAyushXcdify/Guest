@@ -1,4 +1,4 @@
-import { createSerializer, inferParserType, parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
+import { createSerializer, inferParserType, parseAsBoolean, parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 
 export const appointmentSearchParamsParser = {
     search: parseAsString,
@@ -13,6 +13,7 @@ export const appointmentSearchParamsParser = {
     roomId: parseAsString,
     pageNumber: parseAsInteger.withDefault(1),
     pageSize: parseAsInteger.withDefault(10),
+    isRegistered: parseAsBoolean.withDefault(false),
 }
 
 export const appointmentSearchParamsSerializer = createSerializer(appointmentSearchParamsParser);
@@ -101,6 +102,7 @@ function useAppointmentFilter() {
             provider: null,
             veterinarianId: null,
             pageNumber: 1,
+            isRegistered: true,
         });
     }
 

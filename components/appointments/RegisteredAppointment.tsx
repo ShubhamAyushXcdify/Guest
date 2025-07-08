@@ -68,6 +68,7 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
     roomId: null,
     pageNumber: currentPage,
     pageSize: pageSize,
+    isRegistered: true,
   })
 
   // Filter appointments to show only those that need assignment (no veterinarian assigned)

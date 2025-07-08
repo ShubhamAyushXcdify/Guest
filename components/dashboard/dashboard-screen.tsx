@@ -17,15 +17,7 @@ import { TrendingUp, Users, Stethoscope, Package, Truck, Building2 } from "lucid
 import { useRootContext } from "@/context/RootContext"
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
 import type { DateRange } from "react-day-picker";
-import { useGetPendingClientRegistrations } from "@/queries/clientRegistration/get-registration-pending";
-import { useApproveClientRegistration } from "@/queries/clientRegistration/create-approve";
-import { useDeleteClientRegistration } from "@/queries/clientRegistration/delete-clinetRegistration";
-import { useGetClientRegistrationById } from "@/queries/clientRegistration/get-registration-by-id";
-import { Eye, Check, X } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 
 export const DashboardScreen = () => {
@@ -33,11 +25,8 @@ export const DashboardScreen = () => {
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
   const [showNewAppointmentDrawer, setShowNewAppointmentDrawer] = useState(false)
   const [showNewInvoiceDrawer, setShowNewInvoiceDrawer] = useState(false)
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [selectedRegistrationId, setSelectedRegistrationId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [requestAppointments, setRequestAppointments] = useState<any[]>([]);
+  const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null);
 
   const today = new Date();
 
@@ -70,9 +59,36 @@ export const DashboardScreen = () => {
     roomId: null,
     pageNumber: 1,
     pageSize: 10,
+    isRegistered: false
   }), [startOfDay, endOfDay, clinic?.id]);
 
   const { data: appointmentsData } = useGetAppointments(searchParams);
+
+  // Request appointments search params
+  const requestAppointmentsParams = useMemo(() => ({
+    search: null,
+    status: null,
+    provider: null,
+    dateFrom: null,
+    dateTo: null,
+    clinicId: null,
+    patientId: null,
+    clientId: null,
+    veterinarianId: null,
+    roomId: null,
+    pageNumber: 1,
+    pageSize: 5,
+    isRegistered: true
+  }), []);
+
+  // Fetch appointment requests
+  const { data: appointmentRequestsData } = useGetAppointments(requestAppointmentsParams);
+
+  // Handle appointment approval
+  const handleApproveAppointment = (appointmentId: string) => {
+    setEditAppointmentId(appointmentId);
+    setShowNewAppointmentDrawer(true);
+  };
 
   const dashboardSummaryParams = useMemo(() => ({
     fromDate: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : startOfDay.toISOString().split('T')[0],
@@ -101,12 +117,9 @@ export const DashboardScreen = () => {
 
   const todayAppointmentsCount = todaysAppointments.length;
   const todayCompletedCount = todaysAppointments.filter((a: any) => a.status === "completed").length;
-
-  // Add these hooks but don't modify any existing hooks
-  const { data: pendingRegistrations = [], isLoading: isLoadingPending } = useGetPendingClientRegistrations(true);
-  const approveMutation = useApproveClientRegistration();
-  const deleteMutation = useDeleteClientRegistration();
-  const { data: drawerData, isLoading: isDrawerLoading } = useGetClientRegistrationById(drawerId || "");
+  
+  // Get appointment requests
+  const appointmentRequests = appointmentRequestsData?.items || [];
 
   // Ensure we only access browser APIs on the client side
   useEffect(() => {
@@ -138,7 +151,7 @@ export const DashboardScreen = () => {
           />
           <DashboardScheduleTable 
             appointments={todaysAppointments}
-            pendingRegistrations={pendingRegistrations}
+            pendingRegistrations={[]}
           />
         </div>
       )}
@@ -164,8 +177,8 @@ export const DashboardScreen = () => {
 
           {/* NEW LAYOUT: Summary Cards in Grid */}
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Summary Cards - 50% width on desktop, 2 columns if pending card is present */}
-            <div className={`grid ${pendingRegistrations.length > 0 ? 'md:grid-cols-2' : 'md:grid-cols-4'} grid-cols-1 gap-6 flex-1 lg:w-1/2`}>
+            {/* Summary Cards - 50% width on desktop, 2 columns if appointment requests are present */}
+            <div className={`grid ${appointmentRequests.length > 0 ? 'md:grid-cols-2' : 'md:grid-cols-4'} grid-cols-1 gap-6 flex-1 lg:w-1/2`}>
               <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
@@ -229,26 +242,23 @@ export const DashboardScreen = () => {
               </Card>
             </div>
 
-            {/* Pending User Registrations Card - 50% width on desktop */}
-            {pendingRegistrations.length > 0 && (
-              <Card className="col-span-1 border-0 shadow-lg bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/50 dark:to-pink-900/50 lg:w-1/2 flex flex-col">
+            {/* Appointment Requests Card - 50% width on desktop */}
+            {appointmentRequests.length > 0 && (
+              <Card className="col-span-1 border-0 shadow-lg bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950/50 dark:to-cyan-900/50 lg:w-1/2 flex flex-col">
                 <CardHeader>
-                  <CardTitle className="text-2xl">Pending Client Registrations</CardTitle>
+                  <CardTitle className="text-xl">Appointment Requests</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: '112px' }}>
-                    {pendingRegistrations.map((reg: any) => (
-                      <div key={reg.id} className="flex items-center justify-between p-2">
-                        <span className="font-semibold text-lg text-primary">{reg.firstName}</span>
+                    {appointmentRequests.map((appointment: any) => (
+                      <div key={appointment.id} className="flex items-center justify-between p-2">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-base text-primary">{appointment.patient?.name || "Unknown"}</span>
+                          <span className="text-sm text-muted-foreground">{new Date(appointment.appointmentDate).toLocaleDateString()}</span>
+                        </div>
                         <div className="flex gap-2">
-                          <Button size="icon" variant="ghost" onClick={() => { setDrawerId(reg.id); setDrawerOpen(true); }} title="View Details">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => approveMutation.mutate({ registrationId: reg.id, isApproved: true })} title="Approve">
+                          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproveAppointment(appointment.id)} title="Approve">
                             Approve
-                          </Button>
-                          <Button size="sm" variant="destructive" className="bg-red-400 hover:bg-red-500" onClick={() => { setSelectedRegistrationId(reg.id); setRejectDialogOpen(true); }} title="Reject">
-                            Reject
                           </Button>
                         </div>
                       </div>
@@ -400,112 +410,17 @@ export const DashboardScreen = () => {
         </div>
       )}
 
-      {/* Add drawer and dialog below existing content */}
-      {/* User registration details sheet */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Registration Details</SheetTitle>
-          </SheetHeader>
-          <div className="p-6">
-            {isDrawerLoading ? (
-              <div>Loading...</div>
-            ) : drawerData ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">First Name</h3>
-                    <p className="font-semibold">{drawerData.firstName}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Last Name</h3>
-                    <p className="font-semibold">{drawerData.lastName}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
-                    <p className="font-semibold">{drawerData.email}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
-                    <p className="font-semibold">{drawerData.phonePrimary}</p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
-                  <p className="font-semibold">{drawerData.addressLine1}</p>
-                  <p className="font-semibold">{drawerData.city}, {drawerData.state} {drawerData.postalCode}</p>
-                </div>
-                {drawerData.notes && (
-                  <div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Notes</h3>
-                    <p>{drawerData.notes}</p>
-                  </div>
-                )}
-                <div className="pt-4 flex justify-end gap-2">
-                  <Button 
-                    variant="default"
-                    className="bg-green-600 hover:bg-green-700"
-                    onClick={() => {
-                      approveMutation.mutate({ registrationId: drawerData.id, isApproved: true });
-                      setDrawerOpen(false);
-                    }}
-                  >
-                    Approve
-                  </Button>
-                  <Button 
-                    variant="destructive"
-                    onClick={() => {
-                      setSelectedRegistrationId(drawerData.id);
-                      setRejectDialogOpen(true);
-                      setDrawerOpen(false);
-                    }}
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </div>
-            ) : <div>No data found.</div>}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Reject Reason Dialog */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Registration</DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <Input
-              placeholder="Enter rejection reason"
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (selectedRegistrationId) {
-                  approveMutation.mutate({ registrationId: selectedRegistrationId, isApproved: false, rejectionReason: rejectReason });
-                }
-                setRejectDialogOpen(false);
-                setRejectReason("");
-              }}
-              disabled={approveMutation.isPending}
-            >
-              Reject
-            </Button>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Modals and Drawers (keep these outside the conditional so they work for both) */}
       <NewPatientModal isOpen={showNewPatientModal} onClose={() => setShowNewPatientModal(false)} />
-      <NewAppointmentDrawer isOpen={showNewAppointmentDrawer} onClose={() => setShowNewAppointmentDrawer(false)} />
+      <NewAppointmentDrawer 
+        isOpen={showNewAppointmentDrawer} 
+        onClose={() => {
+          setShowNewAppointmentDrawer(false);
+          setEditAppointmentId(null);
+        }} 
+        appointmentId={editAppointmentId}
+        sendEmail={!!editAppointmentId} // Send email when editing an appointment from requests
+      />
       <NewInvoiceDrawer isOpen={showNewInvoiceDrawer} onClose={() => setShowNewInvoiceDrawer(false)} />
     </>
   )
