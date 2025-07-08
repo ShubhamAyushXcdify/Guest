@@ -28,12 +28,12 @@ export const ClientsScreen = () => {
   const [pageSize, setPageSize] = useState(10)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   
-  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const debouncedSearchQuery = useDebounce(handleSearch, 300)
   
   const { data: clientsData, isLoading, isError } = useGetClients(
     page,
     pageSize,
-    debouncedSearchQuery
+    searchQuery
   )
   
   const clients = clientsData?.items || []
@@ -48,7 +48,7 @@ export const ClientsScreen = () => {
   const router = useRouter()
 
 
-  const handleSearch = (searchTerm: string) => {
+  function handleSearch(searchTerm: string) {
     setSearchQuery(searchTerm)
     setPage(1) // Reset to first page on new search
     
@@ -211,7 +211,7 @@ export const ClientsScreen = () => {
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
                 onPageSizeChange={handlePageSizeChange}
-                onSearch={handleSearch}
+                onSearch={debouncedSearchQuery}
               />
             </div>
           </>

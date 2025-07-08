@@ -39,7 +39,7 @@ export default function Users() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
-  const debouncedSearch = useDebounce(search, 300);
+  const debouncedSearch = useDebounce(handleSearch, 300);
   
   const queryClient = useQueryClient();
 
@@ -55,11 +55,12 @@ export default function Users() {
   const { data: usersData, isLoading: isUsersLoading, isError: isUsersError } = useGetUsers(
     pageNumber, 
     pageSize, 
-    debouncedSearch, 
+    search, 
     '', // clinicId
     !!rolesData, // enabled
     '' // roleId
   );
+
 
   const users = usersData?.items || [];
   const totalPages = usersData?.totalPages || 1;
@@ -134,7 +135,7 @@ export default function Users() {
     setPageNumber(1); // Reset to first page when changing page size
   };
 
-  const handleSearch = (value: string) => {
+  function handleSearch(value: string) {
     setSearch(value);
     setPageNumber(1); // Reset to first page when searching
     
@@ -247,7 +248,7 @@ export default function Users() {
             totalPages={totalPages}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
-            onSearch={handleSearch}
+            onSearch={debouncedSearch}
           />
         </div>
       )}

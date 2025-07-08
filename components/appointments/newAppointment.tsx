@@ -96,12 +96,12 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   // Patient search state
   const [patientSearchQuery, setPatientSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
-  const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
+  
   const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
   
   // Use patient search query
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
-    debouncedPatientQuery,
+    patientSearchQuery,
     "name" // Always search by name as specified
   )
   
@@ -415,6 +415,18 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     setShowNewPatientForm(false)
   }
 
+  const handlePatientSearch = (searchTerm: string) => {
+    setPatientSearchQuery(searchTerm)
+    
+    // Update URL with search parameter but don't expose specific fields
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', encodeURIComponent(searchTerm));
+    
+    // Update the URL without page reload
+    window.history.pushState({}, '', url.toString());
+  }
+  const debouncedPatientQuery = useDebounce(handlePatientSearch, 300)
+
   const handleCancel = () => {
     setShowNewPatientForm(false)
     form.reset() // Clear the form on close
@@ -529,7 +541,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
-      <SheetContent className={`w-[90%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '70%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '70%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
+      <SheetContent className={`w-[95%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '95%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '95%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
         <SheetHeader>
           <SheetTitle>New Appointment</SheetTitle>
         </SheetHeader>
@@ -595,7 +607,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                         className="pl-10"
                                         value={patientSearchQuery}
                                         onChange={(e) => {
-                                          setPatientSearchQuery(e.target.value);
+                                          handlePatientSearch(e.target.value);
                                           setIsSearchDropdownOpen(true);
                                         }}
                                         onFocus={() => setIsSearchDropdownOpen(true)}

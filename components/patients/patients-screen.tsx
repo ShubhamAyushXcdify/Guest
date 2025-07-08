@@ -23,12 +23,12 @@ export const PatientsScreen = () => {
   const [pageSize, setPageSize] = useState(10)
   const { userType, clinic, user } = useRootContext()
   
-  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const debouncedSearchQuery = useDebounce(handleSearch, 300)  
   
   const { data: patientsData, isLoading, isError } = useGetPatients(
     page,
     pageSize,
-    debouncedSearchQuery,
+    searchQuery,
     '' // clientId
   )
   
@@ -36,7 +36,7 @@ export const PatientsScreen = () => {
   const patients = patientsData?.items || []
   const totalPages = patientsData?.totalPages || 1
 
-  const handleSearch = (searchTerm: string) => {
+  function handleSearch(searchTerm: string) {
     setSearchQuery(searchTerm)
     setPage(1) // Reset to first page on new search
     
@@ -101,7 +101,7 @@ export const PatientsScreen = () => {
             pageSize={pageSize}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
-            onSearch={handleSearch}
+            onSearch={debouncedSearchQuery}
             showClinicColumn={!user?.clinicId}
           />
         )}
