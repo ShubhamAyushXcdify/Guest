@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 
-const createRole = async (data: { name: string; value: string; isPrivileged: boolean; metadata: string; isClinicRequired: boolean; colourName: string; }) => {
+const createRole = async (data: { name: string; value: string; isPrivileged: boolean; metadata: string; isClinicRequired: boolean; colourName: string; priority: number; }) => {
   try {
     const url = `/api/role`;
     const response = await fetch(url, {

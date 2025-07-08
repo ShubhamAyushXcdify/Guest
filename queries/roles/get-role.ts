@@ -10,6 +10,7 @@ export type Role = {
     updatedAt: string;
     isClinicRequired: boolean;
     colourName: string;
+    priority: number;
 };
 
 const getRole = async (pageNumber = 1, pageSize = 10, search = '') => {
