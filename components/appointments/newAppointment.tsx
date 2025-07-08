@@ -388,11 +388,14 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         appointmentDate: formattedAppointmentDate,
         roomSlotId: data.slotId, // Use slotId as roomSlotId
         createdBy: user?.id,
-      };
+      } as any; // Use type assertion to allow adding id property
       
       // Add isRegistered and sendEmail for appointment approvals
       if (appointmentId) {
         formattedData.isRegistered = false; // Mark as not registered (approved)
+        formattedData.id = appointmentId; // Include the ID in the payload data
+        formattedData.status = "scheduled"; // Ensure status is set to scheduled when updating
+        
         if (sendEmail) {
           formattedData.sendEmail = true; // Send confirmation email
         }
