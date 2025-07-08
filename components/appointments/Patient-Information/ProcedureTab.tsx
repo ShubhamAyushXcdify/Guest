@@ -6,7 +6,7 @@ import { useGetProcedures } from "@/queries/procedure/get-procedures"
 import { useCreateProcedure } from "@/queries/procedure/create-procedure"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X } from "lucide-react"
+import { PlusCircle, X, Mic } from "lucide-react"
 import { toast } from "sonner"
 import { useCreateProcedureDetail } from "@/queries/ProcedureDetails/create-procedure-detail"
 import { useGetProcedureDetailByVisitId } from "@/queries/ProcedureDetails/get-procedure-detail-by-visit-id"
@@ -14,6 +14,8 @@ import { useUpdateProcedureDetail } from "@/queries/ProcedureDetails/update-proc
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 
 interface ProcedureTabProps {
   patientId: string
@@ -26,7 +28,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [isAddingProcedure, setIsAddingProcedure] = useState(false)
   const [newProcedureName, setNewProcedureName] = useState("")
   const [notes, setNotes] = useState("")
+  const [audioModalOpen, setAudioModalOpen] = useState(false)
   const { markTabAsCompleted } = useTabCompletion()
+  
+  const transcriber = useTranscriber()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -56,6 +61,15 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       }
     }
   }, [existingProcedureDetail, markTabAsCompleted])
+  
+  // Handle transcription output
+  useEffect(() => {
+    const output = transcriber.output
+    if (output && !output.isBusy && output.text) {
+      setNotes(prev => prev ? prev + "\n" + output.text : output.text)
+    }
+    // eslint-disable-next-line
+  }, [transcriber.output?.isBusy])
   
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
@@ -252,7 +266,19 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-sm font-medium">Additional Notes</h3>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setAudioModalOpen(true)}
+                  title="Record voice note"
+                  disabled={isReadOnly}
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              </div>
               <textarea
                 className="w-full border rounded-md p-2 min-h-[100px]"
                 placeholder="Add any additional details about the procedures..."
@@ -275,6 +301,16 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             </div>
           </>
         )}
+        
+        <AudioManager
+          open={audioModalOpen}
+          onClose={() => setAudioModalOpen(false)}
+          transcriber={transcriber}
+          onTranscriptionComplete={(transcript: string) => {
+            setNotes(prev => prev ? prev + "\n" + transcript : transcript)
+            setAudioModalOpen(false)
+          }}
+        />
       </CardContent>
     </Card>
   )

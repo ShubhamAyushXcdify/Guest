@@ -1,5 +1,5 @@
-import { ClientsScreen } from "@/components/clients/clients-screen"
+import ClientsPage from "@/components/clients"
 
-export default function ClientsPage() {
-  return <ClientsScreen />
+export default function ClientsPageRoot() {
+  return <ClientsPage />
 }

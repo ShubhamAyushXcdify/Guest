@@ -13,14 +13,13 @@ export async function GET(request: NextRequest) {
         let token = getJwtToken(request);
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
-        const clinicId = searchParams.get('clinicId') || '';
         const patientId = searchParams.get('patientId') || '';
         const medicalRecordId = searchParams.get('medicalRecordId') || '';
         const search = searchParams.get('search') || '';
         const clientId = searchParams.get('clientId') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&clinicId=${clinicId}&patientId=${patientId}&medicalRecordId=${medicalRecordId}&search=${search}&clientId=${clientId}`,
+            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&patientId=${patientId}&medicalRecordId=${medicalRecordId}&search=${search}&clientId=${clientId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

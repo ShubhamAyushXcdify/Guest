@@ -424,8 +424,8 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
             </div>
 
             <div className="mt-6">
-              <h3 className="text-sm font-medium mb-2">Additional Notes</h3>
-              <div className="flex flex-row items-center gap-2 mb-1">
+              <div className="flex flex-row items-center gap-2 mb-2">
+                <h3 className="text-sm font-medium">Additional Notes</h3>
                 <Button
                   type="button"
                   size="icon"
@@ -464,7 +464,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isPending || !allVisitTabsComplete || selectedPlans.length === 0 || isReadOnly}
+                disabled={isPending || !allVisitTabsComplete || selectedPlans.length === 0 || isReadOnly || !completedTabs.includes("plan")}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 Checkout

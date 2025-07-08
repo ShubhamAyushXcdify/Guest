@@ -17,12 +17,16 @@ import { TrendingUp, Users, Stethoscope, Package, Truck, Building2 } from "lucid
 import { useRootContext } from "@/context/RootContext"
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
 import type { DateRange } from "react-day-picker";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 
 export const DashboardScreen = () => {
   const [mounted, setMounted] = useState(false)
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
   const [showNewAppointmentDrawer, setShowNewAppointmentDrawer] = useState(false)
   const [showNewInvoiceDrawer, setShowNewInvoiceDrawer] = useState(false)
+  const [requestAppointments, setRequestAppointments] = useState<any[]>([]);
+  const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null);
 
   const today = new Date();
 
@@ -55,9 +59,36 @@ export const DashboardScreen = () => {
     roomId: null,
     pageNumber: 1,
     pageSize: 10,
+    isRegistered: false
   }), [startOfDay, endOfDay, clinic?.id]);
 
   const { data: appointmentsData } = useGetAppointments(searchParams);
+
+  // Request appointments search params
+  const requestAppointmentsParams = useMemo(() => ({
+    search: null,
+    status: null,
+    provider: null,
+    dateFrom: null,
+    dateTo: null,
+    clinicId: null,
+    patientId: null,
+    clientId: null,
+    veterinarianId: null,
+    roomId: null,
+    pageNumber: 1,
+    pageSize: 5,
+    isRegistered: true
+  }), []);
+
+  // Fetch appointment requests
+  const { data: appointmentRequestsData } = useGetAppointments(requestAppointmentsParams);
+
+  // Handle appointment approval
+  const handleApproveAppointment = (appointmentId: string) => {
+    setEditAppointmentId(appointmentId);
+    setShowNewAppointmentDrawer(true);
+  };
 
   const dashboardSummaryParams = useMemo(() => ({
     fromDate: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : startOfDay.toISOString().split('T')[0],
@@ -86,6 +117,9 @@ export const DashboardScreen = () => {
 
   const todayAppointmentsCount = todaysAppointments.length;
   const todayCompletedCount = todaysAppointments.filter((a: any) => a.status === "completed").length;
+  
+  // Get appointment requests
+  const appointmentRequests = appointmentRequestsData?.items || [];
 
   // Ensure we only access browser APIs on the client side
   useEffect(() => {
@@ -117,6 +151,7 @@ export const DashboardScreen = () => {
           />
           <DashboardScheduleTable 
             appointments={todaysAppointments}
+            pendingRegistrations={[]}
           />
         </div>
       )}
@@ -140,69 +175,98 @@ export const DashboardScreen = () => {
             <p className="text-muted-foreground">Monitor and manage all clinics across the system</p>
           </div>
 
-          {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/50">
-                    <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+          {/* NEW LAYOUT: Summary Cards in Grid */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Summary Cards - 50% width on desktop, 2 columns if appointment requests are present */}
+            <div className={`grid ${appointmentRequests.length > 0 ? 'md:grid-cols-2' : 'md:grid-cols-4'} grid-cols-1 gap-6 flex-1 lg:w-1/2`}>
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/50">
+                      <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Clinics</p>
+                      <p className="text-2xl font-bold theme-text-primary">{clinics.length}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Clinics</p>
-                    <p className="text-2xl font-bold theme-text-primary">{clinics.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                    <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                      <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Veterinarians</p>
+                      <p className="text-2xl font-bold theme-text-secondary">
+                        {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfVeterinarians || 0), 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Veterinarians</p>
-                    <p className="text-2xl font-bold theme-text-secondary">
-                      {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfVeterinarians || 0), 0)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
-                    <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
+                      <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
+                      <p className="text-2xl font-bold theme-text-accent">
+                        {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfPatients || 0), 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
-                    <p className="text-2xl font-bold theme-text-accent">
-                      {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfPatients || 0), 0)}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/50">
-                    <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                      <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                        {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfProducts || 0), 0)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Products</p>
-                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                      {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfProducts || 0), 0)}
-                    </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Appointment Requests Card - 50% width on desktop */}
+            {appointmentRequests.length > 0 && (
+              <Card className="col-span-1 border-0 shadow-lg bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950/50 dark:to-cyan-900/50 lg:w-1/2 flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-xl">Appointment Requests</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-4 overflow-y-auto" style={{ maxHeight: '112px' }}>
+                    {appointmentRequests.map((appointment: any) => (
+                      <div key={appointment.id} className="flex items-center justify-between p-2">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-base text-primary">{appointment.patient?.name || "Unknown"}</span>
+                          <span className="text-sm text-muted-foreground">{new Date(appointment.appointmentDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproveAppointment(appointment.id)} title="Approve">
+                            Approve
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Clinic Cards */}
@@ -348,7 +412,15 @@ export const DashboardScreen = () => {
 
       {/* Modals and Drawers (keep these outside the conditional so they work for both) */}
       <NewPatientModal isOpen={showNewPatientModal} onClose={() => setShowNewPatientModal(false)} />
-      <NewAppointmentDrawer isOpen={showNewAppointmentDrawer} onClose={() => setShowNewAppointmentDrawer(false)} />
+      <NewAppointmentDrawer 
+        isOpen={showNewAppointmentDrawer} 
+        onClose={() => {
+          setShowNewAppointmentDrawer(false);
+          setEditAppointmentId(null);
+        }} 
+        appointmentId={editAppointmentId}
+        sendEmail={!!editAppointmentId} // Send email when editing an appointment from requests
+      />
       <NewInvoiceDrawer isOpen={showNewInvoiceDrawer} onClose={() => setShowNewInvoiceDrawer(false)} />
     </>
   )

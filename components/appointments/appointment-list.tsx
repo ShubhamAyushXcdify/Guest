@@ -20,6 +20,7 @@ import { useRootContext } from "@/context/RootContext"
 import { User } from "@/hooks/useContentLayout"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 import { useGetUsers, User as ApiUser } from "@/queries/users/get-users"
+import { usePathname, useSearchParams } from "next/navigation"
 
 // Extended API user type with clinicId
 interface ExtendedUser extends ApiUser {
@@ -50,6 +51,8 @@ export default function AppointmentList({
   onAppointmentClick: (id: string) => void,
   selectedPatientId?: string 
 }) {
+  const pathname = usePathname();
+
   const { user, userType, IsAdmin, clinic } = useRootContext()
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -96,6 +99,7 @@ export default function AppointmentList({
     roomId: searchParams.roomId,
     pageNumber: currentPage,
     pageSize: pageSize,
+    isRegistered: false // Ensure we don't show appointment requests
   });
   
   // Use patient-specific appointments when selectedPatientId is provided, otherwise use all appointments
@@ -200,21 +204,22 @@ export default function AppointmentList({
 
   // Use the enriched appointments directly and filter in the frontend
   const filteredAppointments = useMemo(() => {
-    let filtered = enrichedAppointments;
+    // First filter out any appointments with status "requested"
+    let filtered = enrichedAppointments.filter(a => a.status !== "requested");
 
     // Apply status filter based on active tab
     if (activeTab === "all") {
-      filtered = enrichedAppointments;
+      // No additional filtering needed, we already filtered out "requested"
     } else if (activeTab === "scheduled") {
-      filtered = enrichedAppointments.filter(
+      filtered = filtered.filter(
         (a) => a.status === "scheduled" || a.status === "confirmed"
       );
     } else if (activeTab === "checked-in") {
-      filtered = enrichedAppointments.filter((a) => a.status === "in_progress");
+      filtered = filtered.filter((a) => a.status === "in_progress");
     } else if (activeTab === "completed") {
-      filtered = enrichedAppointments.filter((a) => a.status === "completed");
+      filtered = filtered.filter((a) => a.status === "completed");
     } else if (activeTab === "cancelled") {
-      filtered = enrichedAppointments.filter((a) => a.status === "cancelled");
+      filtered = filtered.filter((a) => a.status === "cancelled");
     }
 
     // Apply search filter client-side
@@ -298,8 +303,9 @@ export default function AppointmentList({
   // Function to initialize today's date filter
   const initializeTodayDateFilter = () => {
     // Only set the date filter if it's not already set and we haven't initialized it yet
-    if ((!searchParams.dateFrom || !searchParams.dateTo) && !datesInitializedRef.current) {
-      const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    //console.log("function call" , !searchParams.dateFrom , !searchParams.dateTo , !datesInitializedRef.current)
+    if ((!searchParams.dateFrom || !searchParams.dateTo) ) {
+      const today = new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
       handleDate(today, today);
       datesInitializedRef.current = true;
     }
@@ -311,8 +317,9 @@ export default function AppointmentList({
 
   // Initialize with today's date when component mounts
   useEffect(() => {
+    //console.log("pathname", pathname , searchParams);
     initializeTodayDateFilter();
-  }, []);
+  }, [pathname , searchParams.dateTo , searchParams.dateFrom]);
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.

@@ -76,13 +76,13 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
                   appointments?.map((appointment: any) => (
                     <tr key={appointment.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {new Date(appointment.appointmentDate).toLocaleDateString()} {appointment.startTime}
+                        {new Date(appointment.appointmentDate).toLocaleDateString()} {appointment.startTime}  
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                         {getAppointmentTypeDisplay(appointment.appointmentType)} - {appointment.reason}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {`${appointment.veterinarian.firstName} ${appointment.veterinarian.lastName}`}
+                        {`${appointment?.veterinarian?.firstName} ${appointment?.veterinarian?.lastName}`}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <Button 

@@ -88,6 +88,7 @@ export const useContentLayout = () => {
 
     const fetchUser = async (data?: any, role?: any) => {
         if (role === "Client") {
+            setUser(data?.user);
             return;
         }
         setLoading(true);

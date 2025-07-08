@@ -4,7 +4,7 @@ import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2, Filter } from "lucide-react";
 import { useGetProducts, PaginatedResponse } from "@/queries/products/get-products";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewProduct from "./newProduct";
@@ -12,6 +12,8 @@ import ProductDetails from "./productsDetails";
 import { useDeleteProduct } from "@/queries/products/delete-products";
 import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
+import { useFilter } from "./hooks/useFilter";
+import ProductFilterDialog from "./ProductFilterDialog";
  
 // Product type based on the provided API schema
 export type Product = {
@@ -38,11 +40,16 @@ export type Product = {
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
  
 export default function Products() {
+  const { searchParam, setSearchParam, handleSearch } = useFilter();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
  
-  const { data: productsData, isLoading, isError } = useGetProducts(pageNumber, pageSize, search);
+  const { data: productsData, isLoading, isError } = useGetProducts(
+    pageNumber, 
+    pageSize, 
+    searchParam
+  );
  
   // Extract product items from the paginated response
   const products = productsData?.items || [];
@@ -51,6 +58,7 @@ export default function Products() {
   const [openNew, setOpenNew] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
+  const [openFilter, setOpenFilter] = useState(false);
   const deleteProduct = useDeleteProduct();
  
   // State for delete confirmation dialog
@@ -100,10 +108,19 @@ export default function Products() {
     setPageNumber(1); // Reset to first page when changing page size
   };
  
-  const handleSearch = (value: string) => {
+  const handleTableSearch = (value: string) => {
     setSearch(value);
+    // Only update URL params if there are no active filters, otherwise let the filter dialog handle it
+    if (!searchParam.category && !searchParam.productType) {
+      handleSearch("searchByname", value);
+    }
     setPageNumber(1); // Reset to first page when searching
   };
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setPageNumber(1);
+  }, [searchParam.searchByname, searchParam.category, searchParam.productType]);
  
   const columns: ColumnDef<Product>[] = [
     { accessorKey: "name", header: "Name" },
@@ -158,20 +175,60 @@ export default function Products() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Products</h1>
-        <Sheet open={openNew} onOpenChange={setOpenNew}>
-          <SheetTrigger asChild>
-            <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}>
-              <Plus className="mr-2 h-4 w-4" />Add Product
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
-            <SheetHeader>
-              <SheetTitle>New Product</SheetTitle>
-            </SheetHeader>
-            <NewProduct onSuccess={() => setOpenNew(false)} />
-          </SheetContent>
-        </Sheet>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Products</h1>
+          {/* Active Filters Display */}
+          {(searchParam.searchByname || searchParam.category || searchParam.productType) && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              <div className="flex gap-1">
+                {searchParam.searchByname && (
+                  <Badge variant="secondary" className="text-xs">
+                    Name: {searchParam.searchByname}
+                  </Badge>
+                )}
+                {searchParam.category && (
+                  <Badge variant="secondary" className="text-xs">
+                    Category: {searchParam.category.replace(/_/g, " ")}
+                  </Badge>
+                )}
+                {searchParam.productType && (
+                  <Badge variant="secondary" className="text-xs">
+                    Type: {searchParam.productType}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setOpenFilter(true)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filter
+            {(searchParam.searchByname || searchParam.category || searchParam.productType) && (
+              <Badge variant="default" className="ml-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center">
+                {(searchParam.searchByname ? 1 : 0) + (searchParam.category ? 1 : 0) + (searchParam.productType ? 1 : 0)}
+              </Badge>
+            )}
+          </Button>
+          <Sheet open={openNew} onOpenChange={setOpenNew}>
+            <SheetTrigger asChild>
+              <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}>
+                <Plus className="mr-2 h-4 w-4" />Add Product
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+              <SheetHeader>
+                <SheetTitle>New Product</SheetTitle>
+              </SheetHeader>
+              <NewProduct onSuccess={() => setOpenNew(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
      
       {isLoading ? (
@@ -197,7 +254,7 @@ export default function Products() {
           totalPages={totalPages}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
-          onSearch={handleSearch}
+          onSearch={handleTableSearch}
           onEditButtonClick={handleProductClick}
         />
       )}
@@ -225,6 +282,12 @@ export default function Products() {
         title="Delete Product"
         itemName={productToDelete?.name}
         isDeleting={isDeleting}
+      />
+
+      {/* Filter Dialog */}
+      <ProductFilterDialog
+        isOpen={openFilter}
+        onOpenChange={setOpenFilter}
       />
     </div>
   );

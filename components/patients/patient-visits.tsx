@@ -136,6 +136,9 @@ export default function PatientVisits() {
                         Date 
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -157,11 +160,16 @@ export default function PatientVisits() {
                             {(appointment.date || appointment.appointmentDate)?.split("T")[0]}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.appointmentType.name}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">
+                             {appointment?.roomSlot?.startTime?.slice(0,5)} - {appointment?.roomSlot?.endTime?.slice(0,5)}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.veterinarian.firstName} {appointment.veterinarian.lastName}
+                          {appointment?.appointmentType?.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                          {appointment?.veterinarian?.firstName} {appointment?.veterinarian?.lastName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
@@ -221,6 +229,9 @@ export default function PatientVisits() {
                         Date
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Time
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Type
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -242,11 +253,16 @@ export default function PatientVisits() {
                             {(appointment.date || appointment.appointmentDate)?.split("T")[0]}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.appointmentType.name}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-200">
+                             {appointment?.roomSlot?.startTime?.slice(0,5)} - {appointment?.roomSlot?.endTime?.slice(0,5)}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                          {appointment.veterinarian.firstName} {appointment.veterinarian.lastName}
+                          {appointment?.appointmentType?.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                          {appointment?.veterinarian?.firstName} {appointment?.veterinarian?.lastName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">

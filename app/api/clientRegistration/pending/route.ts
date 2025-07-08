@@ -4,10 +4,7 @@ import { getJwtToken } from '@/utils/serverCookie';
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
-export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
     try {
         let token = getJwtToken(request);
 
@@ -15,7 +12,7 @@ export async function GET(
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/Patient/clinic/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/ClientRegistration/pending`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -24,7 +21,7 @@ export async function GET(
 
         if (!response.ok) {
             return NextResponse.json(
-                { message: 'Failed to fetch patient by clinicId ID' },
+                { message: 'Failed to fetch pending client registrations' },
                 { status: response.status }
             );
         }
@@ -32,10 +29,10 @@ export async function GET(
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error fetching patient by clinicId ID:', error);
+        console.error('Error fetching pending client registrations:', error);
         return NextResponse.json(
-            { message: 'Error fetching patient by clinicId ID' },
+            { message: 'Error fetching pending client registration data' },
             { status: 500 }
         );
     }
-}
+} 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import React from "react";
 import { useGetUserById } from "@/queries/users/get-user-by-id";
 import { useUpdateUser } from "@/queries/users/update-user";
 import { Button } from "../ui/button";
@@ -15,6 +16,7 @@ import { useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import clinic from "../clinic";
 import { Combobox } from "../ui/combobox";
+import { useRootContext } from "@/context/RootContext";
 
 interface UserDetailsProps {
   userId: string;
@@ -23,6 +25,7 @@ interface UserDetailsProps {
 
 export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   const router = useRouter();
+  const { user: currentUser } = useRootContext();
   
   const { data: user, isLoading } = useGetUserById(userId);
   const { data: rolesData } = useGetRole();
@@ -64,6 +67,35 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
 
   const selectedRole = rolesData?.data?.find((role:any) => role.id === form.watch("roleId"));
   const showClinicField = selectedRole?.isClinicRequired;
+
+  // Filter roles based on current user's role priority
+  const roleOptions = React.useMemo(() => {
+    if (!rolesData?.data || !currentUser) return [];
+
+    // Get the current user's role priority
+    const currentRolePriority = rolesData.data.find((role:any) => 
+      role.id === currentUser.roleId
+    )?.priority || 0;
+
+    // Filter roles to only show those with higher priority numbers (lower privilege)
+    const filteredRoles = rolesData.data.filter((role:any) => 
+      role.priority > currentRolePriority
+    );
+
+    // If the user being edited already has a role with equal or lower priority number,
+    // we should still include that role in the options to avoid removing their current role
+    if (user?.roleId) {
+      const userCurrentRole = rolesData.data.find((role:any) => role.id === user.roleId);
+      if (userCurrentRole && userCurrentRole.priority <= currentRolePriority) {
+        filteredRoles.push(userCurrentRole);
+      }
+    }
+
+    return filteredRoles.map((role:any) => ({
+      value: role.id,
+      label: role.name
+    }));
+  }, [rolesData?.data, currentUser, user]);
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -148,10 +180,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
               <FormLabel>Role</FormLabel>
               <FormControl>
                 <Combobox
-                  options={rolesData?.data?.map((role: any) => ({
-                    value: role.id,
-                    label: role.name
-                  })) || []}
+                  options={roleOptions}
                   value={field.value?.toString()}
                   onValueChange={(value) => {
                     field.onChange(value);

@@ -19,7 +19,6 @@ import { useGetPatients } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
-import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
 import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"

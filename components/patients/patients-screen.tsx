@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/sheet"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { useGetPatients } from "@/queries/patients/get-patients"
-import { useGetPatientsByClinicId } from "@/queries/patients/get-patient-by-clinic-id"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useRootContext } from "@/context/RootContext"
 
@@ -24,25 +23,20 @@ export const PatientsScreen = () => {
   const [pageSize, setPageSize] = useState(10)
   const { userType, clinic, user } = useRootContext()
   
-  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const debouncedSearchQuery = useDebounce(handleSearch, 300)  
   
-  const { data: patientsData, isLoading: isLoadingPatients, isError: isErrorPatients } = useGetPatients(
+  const { data: patientsData, isLoading, isError } = useGetPatients(
     page,
     pageSize,
-    debouncedSearchQuery,
-    '', // clientId
-    user?.clinicId || undefined // Use user.clinicId for filtering
+    searchQuery,
+    '' // clientId
   )
-
-  const { data: clinicPatientsData, isLoading: isLoadingClinicPatients, isError: isErrorClinicPatients } = useGetPatientsByClinicId(clinic?.id || '')
   
-  // Extract patients from the appropriate data source
-  const patients = userType?.isReceptionist ? (clinicPatientsData || []) : (patientsData?.items || [])
-  const totalPages = userType?.isReceptionist ? 1 : (patientsData?.totalPages || 1)
-  const isLoading = userType?.isReceptionist ? isLoadingClinicPatients : isLoadingPatients
-  const isError = userType?.isReceptionist ? isErrorClinicPatients : isErrorPatients
+  // Extract patients from the data source
+  const patients = patientsData?.items || []
+  const totalPages = patientsData?.totalPages || 1
 
-  const handleSearch = (searchTerm: string) => {
+  function handleSearch(searchTerm: string) {
     setSearchQuery(searchTerm)
     setPage(1) // Reset to first page on new search
     
@@ -67,7 +61,7 @@ export const PatientsScreen = () => {
     <div className="p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">
-          {userType?.isReceptionist ? 'Clinic Patients' : 'Patients'}
+          Patients
         </h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
@@ -96,7 +90,7 @@ export const PatientsScreen = () => {
         ) : patients.length === 0 ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">
-              {userType?.isReceptionist ? 'No patients found in this clinic.' : 'No patients found. Add a patient to get started.'}
+              No patients found. Add a patient to get started.
             </p>
           </div>
         ) : (
@@ -107,7 +101,7 @@ export const PatientsScreen = () => {
             pageSize={pageSize}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
-            onSearch={handleSearch}
+            onSearch={debouncedSearchQuery}
             showClinicColumn={!user?.clinicId}
           />
         )}

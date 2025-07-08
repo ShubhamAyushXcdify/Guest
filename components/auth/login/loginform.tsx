@@ -78,11 +78,11 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="mx-auto max-w-sm">
+    <Card className="mx-auto max-w-sm max-h-full md:max-h-[calc(100vh-15rem)] overflow-y-auto">
       <CardHeader>
-        <CardTitle className="text-2xl mx-auto">Login</CardTitle>
+        <CardTitle className="text-2xl mx-auto">Pet Health Portal</CardTitle>
         <CardDescription className="mx-auto text-center">
-          Enter your email below to login to your account
+          Enter your credentials to access your pet's health information
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -93,9 +93,9 @@ export function LoginForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input placeholder="email" {...field} data-testid="email-input" />
+                    <Input placeholder="your.email@example.com" {...field} data-testid="email-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,27 +112,28 @@ export function LoginForm() {
                       href="/forgot-password"
                       className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80"
                     >
-                      Forgot your password?
+                      Forgot password?
                     </Link>
                   </div>
                   <FormControl>
-                    <Input type="password" {...field} data-testid="password-input" />
+                    <Input type="password" placeholder="Enter your password" {...field} data-testid="password-input" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button type="submit" className="w-full" disabled={loginMutation.isPending} data-testid="login-submit">
-              {loginMutation.isPending ? <Loader2 className="animate-spin" /> : 'Login'}
+              {loginMutation.isPending ? <Loader2 className="animate-spin" /> : 'Access Pet Portal'}
             </Button>
           </form>
         </Form>
-        {/* <div className="mt-4 text-center text-sm">
+        <div className="mt-4 text-center text-sm">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="underline" data-testid="register-link">
+          <Link href="/register"  className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80" data-testid="register-link">
+          
             Register here
           </Link>
-        </div> */}
+        </div>
       </CardContent>
     </Card>
   );
