@@ -20,7 +20,7 @@ import { useRootContext } from "@/context/RootContext"
 import { User } from "@/hooks/useContentLayout"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 import { useGetUsers, User as ApiUser } from "@/queries/users/get-users"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 
 // Extended API user type with clinicId
 interface ExtendedUser extends ApiUser {
@@ -52,6 +52,7 @@ export default function AppointmentList({
   selectedPatientId?: string 
 }) {
   const pathname = usePathname();
+
   const { user, userType, IsAdmin, clinic } = useRootContext()
   const [activeTab, setActiveTab] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
@@ -302,8 +303,9 @@ export default function AppointmentList({
   // Function to initialize today's date filter
   const initializeTodayDateFilter = () => {
     // Only set the date filter if it's not already set and we haven't initialized it yet
-    if ((!searchParams.dateFrom || !searchParams.dateTo) && !datesInitializedRef.current) {
-      const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    //console.log("function call" , !searchParams.dateFrom , !searchParams.dateTo , !datesInitializedRef.current)
+    if ((!searchParams.dateFrom || !searchParams.dateTo) ) {
+      const today = new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
       handleDate(today, today);
       datesInitializedRef.current = true;
     }
@@ -315,8 +317,9 @@ export default function AppointmentList({
 
   // Initialize with today's date when component mounts
   useEffect(() => {
+    //console.log("pathname", pathname , searchParams);
     initializeTodayDateFilter();
-  }, [pathname]);
+  }, [pathname , searchParams.dateTo , searchParams.dateFrom]);
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.
