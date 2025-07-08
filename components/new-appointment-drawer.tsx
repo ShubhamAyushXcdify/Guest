@@ -17,14 +17,23 @@ interface NewAppointmentDrawerProps {
   onClose: () => void
   preSelectedClinic?: string
   preSelectedRoom?: string | null
+  appointmentId?: string | null
+  sendEmail?: boolean
 }
 
-export function NewAppointmentDrawer({ isOpen, onClose, preSelectedClinic, preSelectedRoom }: NewAppointmentDrawerProps) {
+export function NewAppointmentDrawer({ 
+  isOpen, 
+  onClose, 
+  preSelectedClinic, 
+  preSelectedRoom, 
+  appointmentId, 
+  sendEmail = false 
+}: NewAppointmentDrawerProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent className="w-[90%] sm:max-w-[800px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="text-2xl font-bold">Schedule New Appointment</SheetTitle>
+          <SheetTitle className="text-2xl font-bold">{appointmentId ? 'Update Appointment' : 'Schedule New Appointment'}</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
           <NewAppointment 
@@ -32,6 +41,8 @@ export function NewAppointmentDrawer({ isOpen, onClose, preSelectedClinic, preSe
             onClose={onClose} 
             preSelectedClinic={preSelectedClinic}
             preSelectedRoom={preSelectedRoom}
+            appointmentId={appointmentId}
+            sendEmail={sendEmail}
           />
         </div>
       </SheetContent>

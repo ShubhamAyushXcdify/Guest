@@ -74,6 +74,10 @@ export async function GET(request: NextRequest) {
             formattedParams.set('search', searchParams.get('search')!);
         }
         
+        if (searchParams.has('isRegistered')) {
+            formattedParams.set('isRegistered', searchParams.get('isRegistered')!);
+        }
+
         // Copy any other parameters we haven't explicitly handled
         searchParams.forEach((value, key) => {
             if (!formattedParams.has(key)) {
