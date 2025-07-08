@@ -21,6 +21,7 @@ import {
   SheetHeader, 
   SheetTitle 
 } from "@/components/ui/sheet"
+import { useRouter } from "next/navigation";
 
 
 interface Appointment {
@@ -45,7 +46,7 @@ interface Appointment {
 export default function PatientDashboard() {
   // Add a hydration safety flag
   const [isClient, setIsClient] = useState(false)
-
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview")
   const rootContext = useContext(RootContext);
   const handleLogout = rootContext?.handleLogout;
@@ -87,6 +88,12 @@ export default function PatientDashboard() {
     refetch(); // Refresh the pets list
     setIsNewPetFormOpen(false); // Close the form
   };
+
+  useEffect(() => {
+    if((!clientId || clientError) && !isClientLoading) {
+      router.push("/login");
+    }
+  }, [clientId, isClientLoading, clientError]);
 
 
   const getStatusBadge = (status: string) => {
@@ -145,10 +152,6 @@ export default function PatientDashboard() {
       return 'Unknown';
     }
   }
-
-
-
-
 
   return (
     <div className="min-h-screen" suppressHydrationWarning>

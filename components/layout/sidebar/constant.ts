@@ -14,7 +14,7 @@ export const navGroups = [
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
             {
-                href: "/appointments",
+                href: "/appointments/confirmed",
                 label: "Appointments",
                 icon: Calendar,
                 color: "text-blue-500",
