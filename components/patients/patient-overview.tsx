@@ -9,8 +9,13 @@ import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointm
 import PatientInformation from "@/components/appointments/Patient-Information"
 
 export default function PatientOverview({ patient, patientId }: { patient: any , patientId: string }) {
-  const { data: appointments, isLoading } = useGetAppointmentByPatientId(patientId);
+  const { data: allAppointments, isLoading } = useGetAppointmentByPatientId(patientId);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+
+  // Filter only completed appointments
+  const appointments = allAppointments?.filter((appointment: any) => 
+    appointment.status?.toLowerCase() === "completed"
+  );
 
   const handleViewAppointment = (appointmentId: string) => {
     setSelectedAppointmentId(appointmentId);
@@ -70,7 +75,7 @@ export default function PatientOverview({ patient, patientId }: { patient: any ,
                   </tr>
                 ) : appointments?.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">No appointments found</td>
+                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">No completed visits found</td>
                   </tr>
                 ) : (
                   appointments?.map((appointment: any) => (
