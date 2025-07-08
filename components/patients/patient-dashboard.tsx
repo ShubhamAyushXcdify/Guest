@@ -57,7 +57,15 @@ export default function PatientDashboard() {
   const [isNewPetFormOpen, setIsNewPetFormOpen] = useState(false)
   const isMobile = useIsMobile();
 
-  const clientId = getClientId() || "";
+  // Safely get clientId only on client side
+  const [clientId, setClientId] = useState<string>("");
+  
+  useEffect(() => {
+    // Only get clientId on client side
+    if (typeof window !== 'undefined') {
+      setClientId(getClientId() || "");
+    }
+  }, []);
   const { data, isLoading, error, refetch } = useGetPatients(1, 100, "", clientId);
   const pets = data?.items || [];
 
