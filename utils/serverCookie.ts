@@ -17,7 +17,22 @@ const parseCookieString = (cookieString: string): { [key: string]: string } => {
 };
 
 export const parseCookies = (req?: NextRequest): { [key: string]: string | undefined } => {
-  const cookieString = req ? req.headers.get('cookie') || '' : document.cookie;
+  let cookieString = '';
+  
+  if (req) {
+    // Handle different types of request objects
+    if (req.headers && typeof req.headers.get === 'function') {
+      // Standard NextRequest
+      cookieString = req.headers.get('cookie') || '';
+    } else if (req.cookies && typeof req.cookies.get === 'function') {
+      // Next.js App Router request with cookies property
+      cookieString = req.cookies.get('cookie')?.value || '';
+    } else if (typeof req === 'object' && req !== null) {
+      // Try to access cookies directly if it's a different request format
+      cookieString = (req as any).cookie || (req as any).cookies || '';
+    }
+  }
+  
   return parseCookieString(cookieString);
 };
 
@@ -31,3 +46,7 @@ export const getWorkspaceId = (req?: NextRequest): string | null => {
   return cookies.workspaceId || null;
 };
 
+export const getClientId = async (req?: NextRequest): Promise<string | null> => {
+  const cookies = parseCookies(req);
+  return cookies.clientId || null;
+};
