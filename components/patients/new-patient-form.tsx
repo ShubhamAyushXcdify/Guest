@@ -93,11 +93,11 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
   // New states for client search
   const [clientSearchQuery, setClientSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
-  const debouncedClientQuery = useDebounce(clientSearchQuery, 300)
+  const debouncedClientQuery = useDebounce(handleClientSearch, 300)  // Debounce the client search query
   const [selectedClient, setSelectedClient] = useState<{ id: string, name: string } | null>(null)
   
   const { data: clientsData, isLoading: isLoadingClients } = useGetClients(
-    1, 100, debouncedClientQuery, 'firstName', !!debouncedClientQuery
+    1, 100, clientSearchQuery, 'firstName', !!clientSearchQuery
   )
   const clients = clientsData?.items || []
 
@@ -167,6 +167,10 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
     }
   }
 
+  function handleClientSearch(searchTerm: string) {
+    setClientSearchQuery(searchTerm);
+  }
+
   const handleClientCreated = (client: Client) => {
     // Set the client ID in the form
     form.setValue("clientId", client.id);
@@ -229,7 +233,8 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                                       className="pl-10"
                                       value={clientSearchQuery}
                                       onChange={(e) => {
-                                        setClientSearchQuery(e.target.value);
+                                        debouncedClientQuery(e.target.value);
+                                      
                                         setIsSearchDropdownOpen(true);
                                       }}
                                       onFocus={() => setIsSearchDropdownOpen(true)}

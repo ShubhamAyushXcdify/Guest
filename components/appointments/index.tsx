@@ -36,7 +36,7 @@ export default function AppointmentsPage() {
         setActiveView(view)
 
         // Force replace the entire URL with just the view parameter
-        window.history.replaceState(null, '', `/appointments?view=${view}`);
+        window.history.replaceState(null, '', `/appointments/confirmed?view=${view}`);
     }
 
     const handleAppointmentClick = useCallback((id: string | number) => {
