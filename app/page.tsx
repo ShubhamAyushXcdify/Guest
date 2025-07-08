@@ -37,16 +37,7 @@ import { Button } from "@/components/ui/button"
             {/* CTA Buttons */}
             <div className="flex items-center space-x-4">
               {/* Theme Toggle */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-9 w-9">
-                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">Toggle theme</span>
-                  </Button>
-                </DropdownMenuTrigger>
-              </DropdownMenu>
-
+      
               <Link href="/patientdashboard">
                 <Button variant="outline" className="hidden sm:inline-flex">
                   Patient Portal
@@ -57,11 +48,11 @@ import { Button } from "@/components/ui/button"
                   Staff Login
                 </Button>
               </Link>
-              <Link href="/login">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  Book Appointment
-                </Button>
-              </Link>
+                <Link href="/patientdashboard">
+                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                    Book Appointment
+                  </Button>
+                </Link>
             </div>
           </div>
         </div>
@@ -84,7 +75,7 @@ import { Button } from "@/components/ui/button"
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/login">
+                <Link href="/register">
                   <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
                     Book Your First Appointment
                     <ArrowRight className="ml-2 h-5 w-5" />

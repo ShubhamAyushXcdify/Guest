@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,6 +13,7 @@ import { useGetPatients } from "@/queries/patients/get-patients";
 import { useGetClientById } from "@/queries/clients/get-client";
 import { useGetAppointments } from "@/queries/appointment/get-appointment";
 import { getClientId } from "@/utils/clientCookie"
+import { useRouter } from "next/navigation";
 
 interface Appointment {
   id: string;
@@ -55,6 +56,7 @@ const medicalRecords = [
 ]
 
 export default function PatientDashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview")
   const rootContext = useContext(RootContext);
   const handleLogout = rootContext?.handleLogout;
@@ -84,6 +86,12 @@ export default function PatientDashboard() {
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;
 
+  useEffect(() => {
+    if((!clientId || clientError) && !isClientLoading) {
+      router.push("/login");
+    }
+  }, [clientId, isClientLoading, clientError]);
+
   if (!clientId) {
     return <div>Loading user...</div>;
   }
@@ -110,8 +118,12 @@ export default function PatientDashboard() {
     })
   }
 
+
+
+
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" suppressHydrationWarning>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
