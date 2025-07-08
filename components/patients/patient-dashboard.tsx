@@ -197,7 +197,7 @@ export default function PatientDashboard() {
             <div>Error loading client info.</div>
           ) : clientData && (
             <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
                 <Avatar className="h-16 w-16">
                   <AvatarImage src="/images/logo.png" alt={`${clientData.firstName} ${clientData.lastName}`} />
                   <AvatarFallback className="text-lg font-semibold">
@@ -220,7 +220,9 @@ export default function PatientDashboard() {
                   <Phone className="h-4 w-4" />
                   <span>{clientData.phonePrimary}</span>
                 </div>
-                <Button variant="secondary" onClick={handleLogout} className="md:ml-auto w-full md:w-auto">Logout</Button>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="secondary" onClick={handleLogout} className="w-full md:w-auto">Logout</Button>
               </div>
             </div>
           )}
