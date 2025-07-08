@@ -139,7 +139,7 @@ export function RegistrationForm() {
   }
 
   return (
-    <Card className="mx-auto max-w-2xl">
+    <Card className="mx-auto max-w-2xl max-h-full md:max-h-[calc(100vh-15rem)] overflow-y-auto">
       <CardHeader>
         <CardTitle className="text-2xl mx-auto">Register</CardTitle>
         <CardDescription className="mx-auto text-center">

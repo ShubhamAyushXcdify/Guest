@@ -15,7 +15,7 @@ export default function RegisterPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col md:flex-row"
+      className="min-h-screen flex flex-col md:flex-row max-h-screen overflow-y-auto"
       style={{
         background: `linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)`,
       }}
@@ -26,17 +26,52 @@ export default function RegisterPage() {
 
         </DropdownMenu>
       </div>
+      
       {/* Left side - Branding */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 text-white">
-        <div className="max-w-md w-full space-y-8">
+      <div className="flex-1 flex flex-col justify-center items-center p-4 md:p-8 text-white">
+        <div className="max-w-md w-full space-y-6 md:space-y-8">
           <div className="flex flex-col items-center">
-            <div className="relative w-40 h-40 mb-6">
+            <div className="relative w-24 h-24 md:w-40 md:h-40 mb-4 md:mb-6">
               <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">PawTrack</h1>
-            <p className="mt-2 text-xl">Your Pet's Health Journey</p>
+            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
+            <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p>
           </div>
 
+          {/* Mobile Features Preview */}
+          <div className="md:hidden">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 shadow-lg">
+              <h2 className="text-lg font-semibold mb-3 text-center">Stay Connected with Your Pet's Care</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Manage appointments</p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <PawPrint className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Medical records</p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <Heart className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Track treatments</p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Get reminders</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Features List */}
           <div className="mt-10 hidden md:block">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-4">Stay Connected with Your Pet's Care</h2>
@@ -78,11 +113,11 @@ export default function RegisterPage() {
       </div>
 
       {/* Right side - Registration Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl h-[calc(100vh-100px)] w-full p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Create your account to access your pet's health portal</p>
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl w-full max-w-md p-4 md:p-8">
+          <div className="text-center mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">Create your account to access your pet's health portal</p>
           </div>
           
           <RegistrationForm />

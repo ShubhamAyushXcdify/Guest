@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col md:flex-row"
+      className="min-h-screen flex flex-col md:flex-row max-h-screen overflow-y-auto"
       style={{
         background: `linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)`,
       }}
@@ -33,17 +33,52 @@ export default function LoginPage() {
           </DropdownMenuTrigger>
         </DropdownMenu>
       </div>
+      
       {/* Left side - Branding */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 text-white">
-        <div className="max-w-md w-full space-y-8">
+      <div className="flex-1 flex flex-col justify-center items-center p-4 md:p-8 text-white">
+        <div className="max-w-md w-full space-y-6 md:space-y-8">
           <div className="flex flex-col items-center">
-            <div className="relative w-40 h-40 mb-6">
+            <div className="relative w-24 h-24 md:w-40 md:h-40 mb-4 md:mb-6">
               <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">PawTrack</h1>
-            <p className="mt-2 text-xl">Your Pet's Health Journey</p>
+            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
+            <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p>
           </div>
 
+          {/* Mobile Features Preview */}
+          <div className="md:hidden">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 shadow-lg">
+              <h2 className="text-lg font-semibold mb-3 text-center">Stay Connected with Your Pet's Care</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Manage appointments</p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <PawPrint className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Medical records</p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <Heart className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Track treatments</p>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mb-2">
+                    <Bell className="h-4 w-4" />
+                  </div>
+                  <p className="text-xs">Get reminders</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Features List */}
           <div className="mt-10 hidden md:block">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-4">Stay Connected with Your Pet's Care</h2>
@@ -85,21 +120,21 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to access your pet's health portal</p>
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl max-w-md w-full p-4 md:p-8  max-h-full md:max-h-[calc(100vh-3rem)] overflow-y-auto">
+          <div className="text-center mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">Sign in to access your pet's health portal</p>
           </div>
           
           {/* Google Sign In Button */}
-          <div className="mb-6">
+          <div className="mb-4 md:mb-6">
             <Button
               onClick={() => signIn("google", { callbackUrl: "/patientdashboard" })}
               variant="outline"
-              className="w-full flex items-center justify-center gap-2 py-3"
+              className="w-full flex items-center justify-center gap-2 py-2 md:py-3 text-sm md:text-base"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24">
                 <path
                   fill="currentColor"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -122,7 +157,7 @@ export default function LoginPage() {
           </div>
           
           {/* Divider */}
-          <div className="relative mb-6">
+          <div className="relative mb-4 md:mb-6">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-gray-300 dark:border-gray-600" />
             </div>
@@ -136,7 +171,7 @@ export default function LoginPage() {
           <LoginForm />
           
           {/* Additional Info */}
-          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          <div className="mt-4 md:mt-6 text-center text-xs md:text-sm text-gray-500 dark:text-gray-400">
             <p>Need help? Contact your veterinary clinic</p>
             <p className="mt-1">New patient? Ask your clinic for registration</p>
           </div>
