@@ -329,7 +329,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       if (!data.appointmentDate) {
         throw new Error("Appointment date is required");
       }
-      const formattedAppointmentDate = data.appointmentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      // Format date in local timezone to prevent day shifting
+      const formattedAppointmentDate = `${data.appointmentDate.getFullYear()}-${String(data.appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(data.appointmentDate.getDate()).padStart(2, '0')}`; // YYYY-MM-DD
 
       // Check for the selected patient
       if (!selectedPatient) {
