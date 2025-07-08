@@ -347,13 +347,18 @@ export default function PatientDashboard() {
           <TabsContent value="appointments" className="space-y-6 overflow-y-auto max-h-[calc(100vh-250px)]">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">My Appointments</h2>
+              <div className="flex flex-col items-center gap-2">
               <Button 
                 onClick={() => setIsAppointmentFormOpen(true)} 
                 className="theme-button text-white"
+                disabled={pets.length === 0}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 New Appointment
+           
               </Button>
+              {pets.length === 0 && <span className="text-red-500 text-xs"> (No pets registered)</span>}
+              </div>
             </div>
             <Card className="bg-white shadow-lg border-0">
               <CardHeader>
