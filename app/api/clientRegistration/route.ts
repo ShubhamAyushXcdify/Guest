@@ -65,9 +65,20 @@ export async function POST(request: NextRequest) {
         );
 
         if (!response.ok) {
-            const errorText = await response.text().catch(() => "Failed to get error details");
-            console.error("Error response from backend:", errorText);
-            throw new Error('Failed to create client registration');
+            // Try to parse backend error as JSON and forward the message
+            let errorMessage = 'Failed to create client registration';
+            try {
+                const errorJson = await response.json();
+                if (errorJson && errorJson.message) {
+                    errorMessage = errorJson.message;
+                }
+            } catch {
+                // fallback to text if not JSON
+                const errorText = await response.text().catch(() => '');
+                if (errorText) errorMessage = errorText;
+            }
+            console.error("Error response from backend:", errorMessage);
+            return NextResponse.json({ message: errorMessage }, { status: response.status });
         }
 
         const data = await response.json();
