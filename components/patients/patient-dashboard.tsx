@@ -83,9 +83,8 @@ export default function PatientDashboard() {
     veterinarianId: null,
     roomId: null,
     pageNumber: 1,
-    pageSize: 100,
-    isRegistered: false
-  });
+    pageSize: 100
+  } as any);
   const appointments = appointmentQuery.data?.items || [];
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;

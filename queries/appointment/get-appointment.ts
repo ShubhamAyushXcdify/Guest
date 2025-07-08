@@ -66,7 +66,6 @@ const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
     }
     
     // Always include the isRegistered parameter since it's important for filtering
-    params.set('isRegistered', searchParams.isRegistered !== undefined ? String(searchParams.isRegistered) : 'false');
     
     // Construct URL with query string only if we have parameters
     const queryString = params.toString();
@@ -122,8 +121,7 @@ export const useGetAppointments = (searchParams: AppointmentSearchParamsType) =>
       searchParams.roomId || '',
       searchParams.pageNumber || 1,
       searchParams.pageSize || 10,
-      searchParams.isRegistered !== undefined ? searchParams.isRegistered : false
-    ];
+     ];
   }, [searchParams]);
 
   return useQuery({
