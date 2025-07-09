@@ -1,5 +1,5 @@
 'use client';
- 
+
 import { useState, useEffect } from "react";
 import { useGetProductById } from "@/queries/products/get-product-by-id";
 import { useUpdateProduct } from "@/queries/products/update-product";
@@ -12,10 +12,17 @@ import { Product } from ".";
 import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { Combobox } from "../ui/combobox";
- 
-const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
+
+// const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
+const PRODUCT_TYPES = [
+  { value: "medication", label: "Medication" },
+  { value: "vaccine", label: "Vaccine" },
+  { value: "supply", label: "Medical Supply" },
+  { value: "food", label: "Food Item" },
+  { value: "supplement", label: "Supplement" }
+];
+
 const UNIT_OF_MEASURE_OPTIONS = [
   { value: "EA", label: "Each (EA)" },
   { value: "STRIP", label: "Strip" },
@@ -37,42 +44,64 @@ const PRODUCT_CATEGORIES = [
   { value: "food", label: "Food" },
   { value: "other", label: "Other" }
 ];
- 
+
 interface ProductDetailsProps {
   productId: string;
   onSuccess?: () => void;
 }
- 
+
 export default function ProductDetails({ productId, onSuccess }: ProductDetailsProps) {
   const router = useRouter();
- 
+  const [isFormReady, setIsFormReady] = useState(false);
+
   const { data: product, isLoading } = useGetProductById(productId);
-  const { data: clinicData } = useGetClinic();
- 
-  // Extract clinic items from the paginated response
-  const clinics = clinicData?.items || [];
- 
+
+  console.log("Product Details Data:", product);
+
   const updateProduct = useUpdateProduct();
- 
-  const form = useForm<Product>({
-    defaultValues: product,
-  });
- 
+
+  // Don't initialize the form until we have product data
+  const form = useForm<Product>();
+
   // Update form values when product data is loaded
   useEffect(() => {
-    if (product) {
-      form.reset(product);
+    if (product && !isFormReady) {
+      const formData = {
+        ...product,
+        productType: product.productType || '',
+        unitOfMeasure: product.unitOfMeasure || '',
+        price: product.price ?? 0,
+        reorderThreshold: product.reorderThreshold ?? null,
+        category: product.category || '',
+        requiresPrescription: product.requiresPrescription ?? false,
+        isActive: product.isActive ?? true,
+        productNumber: product.productNumber || '',
+        name: product.name || '',
+        genericName: product.genericName || '',
+        ndcNumber: product.ndcNumber || '',
+        dosageForm: product.dosageForm || '',
+        controlledSubstanceSchedule: product.controlledSubstanceSchedule || '',
+        storageRequirements: product.storageRequirements || '',
+      };
+      
+      form.reset(formData);
+      setIsFormReady(true);
     }
-  }, [product, form]);
- 
+  }, [product, form, isFormReady]);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
- 
+
   if (!product) {
     return <div>Product not found</div>;
   }
- 
+
+  // Don't render the form until it's ready with data
+  if (!isFormReady) {
+    return <div>Preparing form...</div>;
+  }
+
   const handleSubmit = async (values: Product) => {
     try {
       await updateProduct.mutateAsync(values);
@@ -91,73 +120,52 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
       });
     }
   };
- 
+
+  console.log("Product Details Form Values:", form.getValues());
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
         <div className="flex-1 overflow-y-auto pb-4">
           <div className="grid grid-cols-2 gap-8">
-            <FormField name="clinicId" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Clinic</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a clinic" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clinics.map((clinic) => (
-                      <SelectItem key={clinic.id} value={clinic.id}>
-                        {clinic.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
-            
+
             <FormField name="productNumber" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Product Number</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="name" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="genericName" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Generic Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="category" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
                 <FormControl>
                   <Combobox
                     options={PRODUCT_CATEGORIES}
-                    value={field.value}
+                    value={field.value || ''}
                     onValueChange={field.onChange}
                     placeholder="Select or search category"
                     searchPlaceholder="Search categories..."
@@ -166,13 +174,14 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="productType" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Product Type</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value || ''}
+                  defaultValue={field.value || ''}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -180,9 +189,9 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {PRODUCT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                    {PRODUCT_TYPES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -190,53 +199,34 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 <FormMessage />
               </FormItem>
             )} />
-           
-            {/* <FormField name="manufacturer" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Manufacturer</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} /> */}
-           
+
             <FormField name="ndcNumber" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>NDC Number</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
-            {/* <FormField name="strength" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Strength</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} /> */}
-           
+
             <FormField name="dosageForm" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Dosage Form</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="unitOfMeasure" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Unit of Measure</FormLabel>
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value || "EA"}
+                  value={field.value || ''}
+                  defaultValue={field.value || ''}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -254,7 +244,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 <FormMessage />
               </FormItem>
             )} />
-            
+
             <FormField name="price" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Price</FormLabel>
@@ -272,7 +262,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 <FormMessage />
               </FormItem>
             )} />
-            
+
             <FormField name="reorderThreshold" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Reorder Threshold</FormLabel>
@@ -289,28 +279,28 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="controlledSubstanceSchedule" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Controlled Substance Schedule</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="storageRequirements" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Storage Requirements</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
           </div>
-         
+
           <div className="grid grid-cols-2 gap-6 mt-12">
             <FormField name="requiresPrescription" control={form.control} render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -319,14 +309,14 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 </div>
                 <FormControl>
                   <Switch
-                    checked={field.value}
+                    checked={field.value || false}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-           
+
             <FormField name="isActive" control={form.control} render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                 <div className="space-y-0.5">
@@ -334,7 +324,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
                 </div>
                 <FormControl>
                   <Switch
-                    checked={field.value}
+                    checked={field.value || false}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
@@ -343,7 +333,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
             )} />
           </div>
         </div>
-       
+
         <div className="flex justify-end border-t pt-4 mt-2 sticky bottom-0 bg-white">
           <Button type="submit">
             Update Product
