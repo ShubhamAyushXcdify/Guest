@@ -12,7 +12,7 @@ import { toast } from "../ui/use-toast";
 import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
-import React from "react";
+import React, { useEffect } from "react";
 import { Combobox } from "../ui/combobox";
 import { useRootContext } from "@/context/RootContext";
 
@@ -26,7 +26,7 @@ interface NewUserProps {
 
 export default function NewUser({ onSuccess }: NewUserProps) {
   const router = useRouter();
-  const { user: currentUser } = useRootContext();
+  const { user: currentUser, userType, clinic } = useRootContext();
   
   const createUser = useCreateUser({
     onSuccess: () => {
@@ -65,7 +65,14 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const { data: clinicData } = useGetClinic();
   
   const selectedRole = rolesData?.data?.find((role: Role) => role.value === form.watch("role"));
-  const showClinicField = selectedRole?.isClinicRequired;
+  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin;
+
+  // Set clinic ID for clinicAdmin users
+  useEffect(() => {
+    if (userType.isClinicAdmin && clinic.id) {
+      form.setValue("clinicId", clinic.id);
+    }
+  }, [userType.isClinicAdmin, clinic.id, form]);
 
   const roleOptions = React.useMemo(() => {
     // Get the current user's role priority
@@ -99,8 +106,15 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       // Create the payload, excluding the original 'role' value and adding 'roleId' and 'roleName'
       const { role, lastName, ...rest } = values; // Exclude the 'role' field
       
-      // Determine clinicId value: null if not required or empty
-      const clinicId = roleToSend?.isClinicRequired && values.clinicId ? values.clinicId : null;
+      // Determine clinicId value based on user role
+      let clinicId = null;
+      if (userType.isClinicAdmin && clinic.id) {
+        // For clinicAdmin, always use their clinic ID
+        clinicId = clinic.id;
+      } else if (roleToSend?.isClinicRequired && values.clinicId) {
+        // For others, use the selected clinic if required
+        clinicId = values.clinicId;
+      }
       
       const payload = {
         ...rest, // Include all other fields from values
@@ -108,7 +122,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
         isActive: true,
         roleId: roleToSend?.id, // Add the roleId
         role: roleToSend?.name, // Add the roleName
-        clinicId: clinicId, // Set to null if not required or if empty string
+        clinicId: clinicId, // Set based on conditions above
       };
 
       await createUser.mutateAsync(payload as any); // Added 'as any' temporarily for type compatibility, you might need to adjust your mutation's expected type
@@ -161,7 +175,13 @@ export default function NewUser({ onSuccess }: NewUserProps) {
                 <Combobox
                   options={roleOptions}
                   value={field.value || ""}
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // Only reset clinic ID if not a clinicAdmin
+                    if (!userType.isClinicAdmin) {
+                      form.setValue("clinicId", "");
+                    }
+                  }}
                   placeholder="Select role"
                   searchPlaceholder="Search roles..."
                   emptyText="No roles found"
