@@ -77,7 +77,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
   // Patient search state
-  const [patientSearchQuery, setPatientSearchQuery] = useState("")
+  const [patientSearchQuery, setPatientSearchQuery] = useState<any>("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null)
   const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
@@ -119,7 +119,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   
   // Use patient search query for edit mode
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
-    debouncedPatientQuery,
+    debouncedPatientQuery as any,
     "name" // Always search by name as specified
   )
   
