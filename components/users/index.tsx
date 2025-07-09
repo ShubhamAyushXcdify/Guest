@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Badge, BadgeProps } from "../ui/badge";
@@ -16,6 +16,7 @@ import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useRootContext } from "@/context/RootContext";
 
 // User type based on the provided API schema
 export type User = {
@@ -38,6 +39,7 @@ export default function Users() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const { userType, clinic, user: currentUser } = useRootContext();
   
   const debouncedSearch = useDebounce(handleSearch, 300);
   
@@ -52,21 +54,41 @@ export default function Users() {
 
   const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useGetRole(1, 1000, '', true); // Fetch all roles for color mapping
 
+  // If user is clinicAdmin, filter users by clinic ID
+  const clinicId = userType.isClinicAdmin ? clinic.id || '' : '';
+
   const { data: usersData, isLoading: isUsersLoading, isError: isUsersError } = useGetUsers(
     pageNumber, 
     pageSize, 
     search, 
-    '', // clinicId
+    clinicId, // Pass the clinic ID based on user role
     !!rolesData, // enabled
     '' // roleId
   );
 
+  // Filter users based on role priority
+  const filteredUsers = useMemo(() => {
+    if (!usersData?.items || !rolesData?.data || !currentUser?.roleId) {
+      return [];
+    }
 
-  const users = usersData?.items || [];
+    // Get current user's role priority
+    const currentUserRole = rolesData.data.find((role: any) => role.id === currentUser.roleId);
+    const currentUserPriority = currentUserRole?.priority || 0;
+
+    // Filter users to show only those with higher priority number (lower privilege)
+    return usersData.items.filter(user => {
+      const userRole = rolesData.data.find((role: any) => role.id === user.roleId);
+      const userPriority = userRole?.priority || 0;
+      
+      // Keep users with higher priority values (lower privilege)
+      return userPriority > currentUserPriority;
+    });
+  }, [usersData?.items, rolesData?.data, currentUser?.roleId]);
+
   const totalPages = usersData?.totalPages || 1;
-  
 
-   const roleColors = React.useMemo(() => {
+  const roleColors = React.useMemo(() => {
     const colors: { [key: string]: string } = {};
     if (rolesData?.data) {
       rolesData.data.forEach((role: any) => {
@@ -207,9 +229,11 @@ export default function Users() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Users</h1>
         <div className="flex flex-row gap-2">
-            <Button className={`theme-button text-white`} onClick={openRolePage}>
-              Manage Roles
-        </Button>
+            {!userType.isClinicAdmin && (
+              <Button className={`theme-button text-white`} onClick={openRolePage}>
+                Manage Roles
+              </Button>
+            )}
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
             <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}>
@@ -240,7 +264,7 @@ export default function Users() {
         <div onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}>
           <DataTable
             columns={columns}
-            data={users as User[]}
+            data={filteredUsers as User[]}
             searchColumn="firstName"
             searchPlaceholder="Search users by name or email..."
             page={pageNumber}

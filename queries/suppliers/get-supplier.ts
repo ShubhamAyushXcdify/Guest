@@ -27,19 +27,19 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
 }
 
-const getSupplier = async (pageNumber = 1, pageSize = 10, search = '') => {
-    const response = await fetch(`/api/supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
+const getSupplier = async (pageNumber = 1, pageSize = 10, search = '', clinicId = '') => {
+    const response = await fetch(`/api/supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clinicId=${clinicId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch supplier data');
     }
     return response.json() as Promise<PaginatedResponse<Supplier>>;
 };
 
-export const useGetSupplier = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
+export const useGetSupplier = (pageNumber = 1, pageSize = 10, search = '', clinicId = '', enabled = true) => {
     return useQuery({
-        queryKey: ["supplier", pageNumber, pageSize, search],
+        queryKey: ["supplier", pageNumber, pageSize, search, clinicId],
         queryFn: async () => {
-            return getSupplier(pageNumber, pageSize, search);
+            return getSupplier(pageNumber, pageSize, search, clinicId);
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

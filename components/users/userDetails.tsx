@@ -25,7 +25,7 @@ interface UserDetailsProps {
 
 export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   const router = useRouter();
-  const { user: currentUser } = useRootContext();
+  const { user: currentUser, userType, clinic: userClinic } = useRootContext();
   
   const { data: user, isLoading } = useGetUserById(userId);
   const { data: rolesData } = useGetRole();
@@ -65,8 +65,15 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
     }
   }, [user, form]);
 
+  // Set clinic ID for clinicAdmin users and prevent changes
+  useEffect(() => {
+    if (userType.isClinicAdmin && userClinic.id) {
+      form.setValue("clinicId", userClinic.id);
+    }
+  }, [userType.isClinicAdmin, userClinic.id, form]);
+
   const selectedRole = rolesData?.data?.find((role:any) => role.id === form.watch("roleId"));
-  const showClinicField = selectedRole?.isClinicRequired;
+  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin;
 
   // Filter roles based on current user's role priority
   const roleOptions = React.useMemo(() => {
@@ -110,8 +117,16 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       // Find the selected role to ensure we have the correct data
       const roleToSend = rolesData?.data?.find((role : any) => role.id === values.roleId);
       
-      // Determine clinicId value: null if not required or empty
-      const clinicId = selectedRole?.isClinicRequired && values.clinicId ? values.clinicId : null;
+      // Determine clinicId value: 
+      // - Use userClinic.id if user is clinicAdmin
+      // - Use form value if role requires clinic and not empty
+      // - Null otherwise
+      let clinicId = null;
+      if (userType.isClinicAdmin && userClinic.id) {
+        clinicId = userClinic.id;
+      } else if (selectedRole?.isClinicRequired && values.clinicId) {
+        clinicId = values.clinicId;
+      }
       
       // Extract lastName to handle separately
       const { lastName, ...restValues } = values;
@@ -123,7 +138,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
         isActive: true,
         role: roleToSend?.name,
         roleId: roleToSend?.id,
-        clinicId: clinicId, // Set to null if not required or if empty string
+        clinicId: clinicId, // Set based on conditions above
       };
 
       await updateUser.mutateAsync(payload);
@@ -184,10 +199,14 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
                   value={field.value?.toString()}
                   onValueChange={(value) => {
                     field.onChange(value);
-                    // Reset clinicId when role changes
-                    form.setValue("clinicId", "");
+                    // Reset clinicId when role changes (unless clinicAdmin)
+                    if (!userType.isClinicAdmin) {
+                      form.setValue("clinicId", "");
+                    }
                   }}
                   placeholder="Select role"
+                  searchPlaceholder="Search roles..."
+                  emptyText="No roles found"
                 />
               </FormControl>
               <FormMessage />

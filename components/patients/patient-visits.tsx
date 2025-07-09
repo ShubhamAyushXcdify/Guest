@@ -53,7 +53,7 @@ export default function PatientVisits() {
     return (
       apptDate &&
       apptDate >= today &&
-      (!appt.status || appt.status.toLowerCase() === 'scheduled')
+      (!appt.status || appt.status.toLowerCase() === 'scheduled' || appt.status.toLowerCase() === 'requested')
     );
   });
   const pastAppointments = (appointments || []).filter((appt: any) => {
