@@ -31,7 +31,7 @@ export function NavItem({ href, label, icon: Icon, isActive, isPending, color }:
         isCollapsed && "justify-center px-2"
       )}
     >
-      <Icon className={cn("h-5 w-5", color || (isActive ? "text-white" : "text-white/80 group-hover:text-white"))} />
+      <Icon className={cn("h-5 w-5 min-h-[1.25rem] min-w-[1.25rem]", color || (isActive ? "text-white" : "text-white/80 group-hover:text-white"))} />
       {!isCollapsed && label}
     </Link>
   )
