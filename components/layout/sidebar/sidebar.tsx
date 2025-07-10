@@ -54,19 +54,19 @@ export function Sidebar() {
                             >
                                 <SidebarGroupLabel>
                                     <CollapsibleTrigger className={cn(
-                                        "flex w-full items-center justify-between font-medium rounded-md px-2 py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
+                                        "flex w-full items-center justify-between font-medium rounded-md py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
                                         state === "collapsed" && "justify-center"
                                     )}>
                                         <div className={cn(
                                             "flex items-center gap-2",
                                             state === "collapsed" && "justify-center"
                                         )}>
-                                            <group.icon className="h-4 w-4" />
+                                            <group.icon className="h-5 w-5 min-h-[1.25rem] min-w-[1.25rem]" />
                                             {state !== "collapsed" && <span>{group.title}</span>}
                                         </div>
                                         {state !== "collapsed" && (
                                             <ChevronDown
-                                                className={`h-4 w-4 transition-transform duration-200 ${expandedGroups[group.title] ? "rotate-180" : ""
+                                                className={`h-5 w-5 min-h-[1.25rem] min-w-[1.25rem] transition-transform duration-200 ${expandedGroups[group.title] ? "rotate-180" : ""
                                                     }`}
                                             />
                                         )}
