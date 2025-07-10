@@ -193,22 +193,6 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
             </FormItem>
           )} />
           
-          <FormField name="isActive" control={form.control} render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Active Status</FormLabel>
-                <div className="text-sm text-muted-foreground">
-                  Set whether this supplier is active or not
-                </div>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )} />
         </div>
         
         <div className="flex justify-end mt-6">
