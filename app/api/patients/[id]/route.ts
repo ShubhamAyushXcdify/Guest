@@ -55,7 +55,7 @@ export async function PUT(
         // Ensure the ID in the URL matches the ID in the body
         const updatedBody = { ...body, id: params.id };
 
-        const response = await fetch(`${apiUrl}/api/Patient/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/Patient`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
