@@ -15,6 +15,7 @@ import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import SupplierDetails from "./supplierDetails";
+import { useRootContext } from "@/context/RootContext";
 
 // Supplier type based on provided schema
 export type Supplier = {
@@ -40,11 +41,15 @@ type SupplierFormValues = Omit<Supplier, "id" | "createdAt" | "updatedAt">;
 
 function Supplier() {
   const router = useRouter();
+  const { userType, clinic } = useRootContext();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
-  const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search);
+  // If user is clinicAdmin, filter suppliers by clinic ID
+  const clinicId = userType.isClinicAdmin ? clinic.id || '' : '';
+  
+  const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search, clinicId);
   
   // Extract suppliers from the paginated response
   const suppliers = supplierData?.items || [];

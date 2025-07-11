@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
         const search = searchParams.get('search') || '';
+        const clinicId = searchParams.get('clinicId') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
+            `${apiUrl}/api/Supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clinicId=${clinicId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

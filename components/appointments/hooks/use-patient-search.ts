@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useDebouncedValue } from "@/hooks/use-debounce"
 import { useSearchPatients, Patient as ApiPatient } from "@/queries/patients/get-patients-by-search"
 
 export interface Patient {
@@ -12,7 +12,7 @@ export interface Patient {
 }
 
 export function usePatientSearch(query: string, searchType: string) {
-    const debouncedQuery = useDebounce(query, 300)
+    const debouncedQuery = useDebouncedValue(query, 300)
     
     // Use the React Query hook we created
     const { data, isLoading, error } = useSearchPatients(debouncedQuery, searchType)

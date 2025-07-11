@@ -10,7 +10,7 @@ import { useCreateProduct } from "@/queries/products/create-products";
 import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Product } from ".";
-import { useGetClinic } from "@/queries/clinic/get-clinic";
+
 import { Combobox } from "../ui/combobox";
  
 type ProductFormValues = Omit<Product, "id">;
@@ -44,10 +44,10 @@ interface NewProductProps {
  
 export default function NewProduct({ onSuccess }: NewProductProps) {
   const router = useRouter();
-  const { data: clinicData } = useGetClinic();
+  // const { data: clinicData } = useGetClinic();
  
   // Extract clinic items from the paginated response
-  const clinics = clinicData?.items || [];
+  // const clinics = clinicData?.items || [];
  
   const createProduct = useCreateProduct({
     onSuccess: () => {
@@ -73,7 +73,6 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
  
   const form = useForm<ProductFormValues>({
     defaultValues: {
-      clinicId: "",
       productNumber: "",
       name: "",
       genericName: "",
@@ -106,29 +105,6 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
         <div className="flex-1 overflow-y-auto pb-4">
           <div className="grid grid-cols-2 gap-8">
-            <FormField name="clinicId" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Clinic</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a clinic" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clinics.map((clinic) => (
-                      <SelectItem key={clinic.id} value={clinic.id}>
-                        {clinic.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
             
             <FormField name="productNumber" control={form.control} render={({ field }) => (
               <FormItem>

@@ -1,5 +1,5 @@
 'use client'
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "../ui/sheet";
@@ -18,7 +18,8 @@ import { toast } from "../ui/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useDebouncedValue } from "@/hooks/use-debounce";
+import { useRootContext } from "@/context/RootContext";
 
 // Clinic type based on provided schema
 export type Clinic = {
@@ -50,11 +51,13 @@ type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
 
 function Clinic() {
   const router = useRouter();
+  const { userType, clinic: userClinic } = useRootContext();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   
-  const debouncedSearch = useDebounce(search, 300);
+  // Use the useDebouncedValue hook to debounce the search string
+  const debouncedSearch = useDebouncedValue(search, 300);
   
   const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, debouncedSearch);
   
@@ -70,6 +73,13 @@ function Clinic() {
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteClinic = useDeleteClinic();
   const queryClient = useQueryClient();
+
+  // Redirect clinicAdmin users to the details page with rooms tab
+  useEffect(() => {
+    if (userType.isClinicAdmin && userClinic.id) {
+      router.push(`/clinic/${userClinic.id}/rooms`);
+    }
+  }, [userType.isClinicAdmin, userClinic.id, router]);
 
   const handleEditClinicClick = (clinicId: string) => {
     setSelectedClinicId(clinicId);
@@ -97,7 +107,7 @@ function Clinic() {
   };
 
   const handleRowClick = (clinic: Clinic) => {
-    router.push(`/clinic/${clinic.id}`);
+    router.push(`/clinic/${clinic.id}/rooms`);
   };
   
   const handlePageChange = (page: number) => {
@@ -150,7 +160,7 @@ function Clinic() {
             size="icon" 
             onClick={(e) => {
               e.stopPropagation();
-              handleEditClinicClick(row.original.id);
+              router.push(`/clinic/${row.original.id}/rooms`);
             }}
           >
             <Edit className="h-4 w-4" />
