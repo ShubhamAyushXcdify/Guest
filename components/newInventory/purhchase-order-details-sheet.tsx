@@ -3,6 +3,19 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { useGetPurchaseOrderById } from "@/queries/purchaseOrder/get-purchaseOrder-by-id"
+import { formatDate } from "@/lib/utils"
+import { PurchaseOrderData, PurchaseOrderItem } from "@/queries/purchaseOrder/create-purchaseOrder"
+
+// Format currency consistently
+const formatCurrency = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return "-"
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', 
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value)
+}
 
 interface PurchaseOrderDetailsSheetProps {
   orderId: string | null
@@ -32,7 +45,7 @@ export default function PurchaseOrderDetailsSheet({
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Order #</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.orderNumber}</p>
+                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.orderNumber || "-"}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Supplier</h3>
@@ -41,53 +54,55 @@ export default function PurchaseOrderDetailsSheet({
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Order Date</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "-"}
+                  {order.orderDate ? formatDate(order.orderDate) : "-"}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Expected Delivery</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "-"}
+                  {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : "-"}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Actual Delivery</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.actualDeliveryDate ? new Date(order.actualDeliveryDate).toLocaleDateString() : "-"}
+                  {order.actualDeliveryDate ? formatDate(order.actualDeliveryDate) : "-"}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.status}</p>
+                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.status || "-"}</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Subtotal</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.subtotal ? `$${order.subtotal.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"}
+                  {/* Calculate subtotal as extendedAmount + discountedAmount */}
+                  {formatCurrency((order.extendedAmount || 0) + (order.discountedAmount || 0))}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Tax</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.taxAmount ? `$${order.taxAmount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"}
+                  {/* Sum up tax amounts from items */}
+                  {formatCurrency(order.items?.reduce((sum, item) => sum + (item.taxAmount || 0), 0) || 0)}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Discount</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.discount ? `$${order.discount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"}
+                  {formatCurrency(order.discountedAmount || 0)}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Extended Amount</h3>
                 <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.extendedAmount ? `$${order.extendedAmount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"}
+                  {formatCurrency(order.extendedAmount || 0)}
                 </p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                  {order.totalAmount ? `$${order.totalAmount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"}
+                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {formatCurrency(order.totalAmount || 0)}
                 </p>
               </div>
               <div className="col-span-2">
@@ -101,29 +116,42 @@ export default function PurchaseOrderDetailsSheet({
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Items</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead>
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-left px-2 py-1">Product</th>
-                        <th className="text-left px-2 py-1">Quantity Ordered</th>
-                        <th className="text-left px-2 py-1">Unit Cost</th>
-                        <th className="text-left px-2 py-1">Total Cost</th>
-                        <th className="text-left px-2 py-1">Discount</th>
-                        <th className="text-left px-2 py-1">Extended Amount</th>
-                        <th className="text-left px-2 py-1">Total Units</th>
+                        <th className="text-left px-2 py-2 font-medium">Product</th>
+                        <th className="text-center px-2 py-2 font-medium">Quantity</th>
+                        <th className="text-right px-2 py-2 font-medium">Unit Cost</th>
+                        <th className="text-right px-2 py-2 font-medium">Discount %</th>
+                        <th className="text-right px-2 py-2 font-medium">Disc. Amount</th>
+                        <th className="text-right px-2 py-2 font-medium">Extended</th>
+                        <th className="text-right px-2 py-2 font-medium">Tax</th>
+                        <th className="text-right px-2 py-2 font-medium">Total</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {order.items.map((item: any) => (
-                        <tr key={item.id}>
-                          <td className="px-2 py-1">{item.product?.name || item.productName || "-"}</td>
-                          <td className="px-2 py-1">{item.quantityOrdered}</td>
-                          <td className="px-2 py-1">{item.unitCost ? `$${item.unitCost.toFixed(2)}` : "-"}</td>
-                          <td className="px-2 py-1">{item.totalCost ? `$${item.totalCost.toFixed(2)}` : "-"}</td>
-                          <td className="px-2 py-1">{item.discount ? `$${item.discount.toFixed(2)}` : "-"}</td>
-                          <td className="px-2 py-1">{item.extendedAmount ? `$${item.extendedAmount.toFixed(2)}` : "-"}</td>
-                          <td className="px-2 py-1">{item.totalUnits}</td>
-                        </tr>
-                      ))}
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {(order.items as PurchaseOrderItem[]).map((item) => {
+                        // Calculate total cost (quantity * unit cost)
+                        const totalCost = item.quantityOrdered * item.unitCost
+                        
+                        return (
+                          <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <td className="px-2 py-2 align-top">
+                              <div className="font-medium">{item.product?.name || "-"}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {item.product?.productNumber || ""}
+                                {item.product?.unitOfMeasure ? ` • ${item.product.unitOfMeasure}` : ""}
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 text-center">{item.quantityOrdered}</td>
+                            <td className="px-2 py-2 text-right">{formatCurrency(item.unitCost)}</td>
+                            <td className="px-2 py-2 text-right">{item.discountPercentage}%</td>
+                            <td className="px-2 py-2 text-right">{formatCurrency(item.discountedAmount)}</td>
+                            <td className="px-2 py-2 text-right">{formatCurrency(item.extendedAmount)}</td>
+                            <td className="px-2 py-2 text-right">{formatCurrency(item.taxAmount)}</td>
+                            <td className="px-2 py-2 text-right font-medium">{formatCurrency(item.totalAmount)}</td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

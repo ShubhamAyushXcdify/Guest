@@ -1,49 +1,93 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Plus } from "lucide-react"
+import { Plus, PackageCheck, Clock, Check, AlertCircle, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { useGetPurchaseOrders } from "@/queries/purchaseOrder/get-purchaseOrder"
 import PurchaseOrderFilterDialog, { PurchaseOrderFilters } from "./PurchaseOrderFilterDialog"
-import type { PurchaseOrderData } from "@/queries/purchaseOrder/create-purchaseOrder";
+import type { PurchaseOrderData } from "@/queries/purchaseOrder/create-purchaseOrder"
 import PurchaseOrderDetailsSheet from "./purhchase-order-details-sheet"
+import { formatDate } from "@/lib/utils"
 
 interface PurchaseOrdersTabProps {
   clinicId: string
   onNewOrder: () => void
 }
 
+// Function to determine status badge color
+const getStatusBadge = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'ordered':
+      return {
+        color: 'bg-blue-100 text-blue-800',
+        icon: <Clock className="w-3 h-3 mr-1" />
+      }
+    case 'received':
+      return {
+        color: 'bg-green-100 text-green-800',
+        icon: <Check className="w-3 h-3 mr-1" />
+      }
+    case 'partial':
+      return {
+        color: 'bg-amber-100 text-amber-800',
+        icon: <PackageCheck className="w-3 h-3 mr-1" />
+      }
+    case 'cancelled':
+      return {
+        color: 'bg-red-100 text-red-800',
+        icon: <AlertCircle className="w-3 h-3 mr-1" />
+      }
+    default:
+      return {
+        color: 'bg-gray-100 text-gray-800',
+        icon: null
+      }
+  }
+}
+
+// Format currency
+const formatCurrency = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return "-"
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', 
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value)
+}
+
 export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrdersTabProps) {
   // Filters state
-  const [filters, setFilters] = useState<PurchaseOrderFilters>({});
-  const [openFilter, setOpenFilter] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<PurchaseOrderFilters>({})
+  const [openFilter, setOpenFilter] = useState(false)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   // Always include clinicId in filters
-  const apiFilters = useMemo(() => ({ 
-    ...filters, 
-    clinicId,
-    search: searchQuery,
-    pageNumber: page,
-    pageSize
-  }), [filters, clinicId, searchQuery, page, pageSize]);
+  const apiFilters = useMemo(() => ({ ...filters, clinicId }), [filters, clinicId])
+
 
   // Fetch purchase orders
-  const { data: purchaseOrders = [], isLoading, refetch } = useGetPurchaseOrders(apiFilters, !!clinicId);
+  const { 
+    data: purchaseOrders = [], 
+    isLoading, 
+    isError,
+    error,
+    refetch 
+  } = useGetPurchaseOrders(apiFilters, !!clinicId)
 
   // Refetch when clinicId or filters change
   useEffect(() => {
-    if (clinicId) refetch();
-  }, [clinicId, filters, refetch]);
+    if (clinicId) {
+      refetch().then(() => setIsLoaded(true))
+    }
+  }, [clinicId, filters, refetch])
 
   // Count active filters (excluding clinicId)
-  const activeFilterCount = Object.entries(filters).filter(([k, v]) => v && k !== 'clinicId').length;
+  const activeFilterCount = Object.entries(filters).filter(([k, v]) => v && k !== 'clinicId').length
 
   const handleSearch = (searchTerm: string) => {
     setSearchQuery(searchTerm)
@@ -155,13 +199,20 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">Status: {filters.status}</span>
           )}
           {filters.dateFrom && (
-            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">From: {filters.dateFrom}</span>
+            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">From: {formatDate(filters.dateFrom)}</span>
           )}
           {filters.dateTo && (
-            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">To: {filters.dateTo}</span>
+            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">To: {formatDate(filters.dateTo)}</span>
           )}
+          <button 
+            className="text-xs text-gray-500 underline"
+            onClick={() => setFilters({})}
+          >
+            Clear all
+          </button>
         </div>
       )}
+
 
       <DataTable
         columns={columns}
