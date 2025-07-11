@@ -17,7 +17,6 @@ import { getUserId } from "@/utils/clientCookie"
 
 import { toast, useToast } from "@/components/ui/use-toast"
 import { useCreatePurchaseOrder } from '@/queries/purchaseOrder/create-purchaseOrder'
-import { useGetClinic } from '@/queries/clinic/get-clinic'
 import { useGetSupplier } from '@/queries/suppliers/get-supplier'
 import { useGetProducts } from '@/queries/products/get-products'
 import { DatePicker } from "@/components/ui/datePicker"
@@ -37,7 +36,6 @@ const purchaseOrderItemSchema = z.object({
 
 // Main purchase order schema
 const purchaseOrderSchema = z.object({
-  clinicId: z.string().uuid("Please select a clinic"),
   supplierId: z.string().uuid("Please select a supplier"),
   expectedDeliveryDate: z.string().min(1, "Expected delivery date is required"),
   taxAmount: z.number().default(0),
@@ -60,14 +58,14 @@ type PurchaseOrderFormValues = z.infer<typeof purchaseOrderSchema>
 interface OrderModalProps {
   isOpen: boolean
   onClose: () => void
+  clinicId: string
 }
 
-function OrderModal({ isOpen, onClose }: OrderModalProps) {
+function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
   const { toast } = useToast()
   const { user } = useRootContext()
   
   // Get data for dropdowns
-  const { data: clinicsData, isLoading: isLoadingClinics } = useGetClinic()
   const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier()
   const { data: productsData, isLoading: isLoadingProducts } = useGetProducts()
 
@@ -78,11 +76,6 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
   // Create dropdown options
-  const clinicOptions = clinicsData?.items?.map(clinic => ({
-    value: clinic.id,
-    label: clinic.name
-  })) || []
-
   const supplierOptions = suppliersData?.items?.map(supplier => ({
     value: supplier.id,
     label: supplier.name
@@ -92,7 +85,6 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
   const form = useForm<PurchaseOrderFormValues>({
     resolver: zodResolver(purchaseOrderSchema),
     defaultValues: {
-      clinicId: "",
       supplierId: "",
       expectedDeliveryDate: "",
       taxAmount: 0,
@@ -193,7 +185,7 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
     
     // Create the final purchase order data
     const purchaseOrderData = {
-      clinicId: data.clinicId,
+      clinicId: clinicId,
       supplierId: data.supplierId,
       expectedDeliveryDate: formattedExpectedDeliveryDate,
       status: "ordered", // Always set to "ordered" when creating
@@ -294,25 +286,6 @@ function OrderModal({ isOpen, onClose }: OrderModalProps) {
             <div className="bg-slate-50 p-4 rounded-md">
               <h3 className="text-md font-semibold mb-4">Order Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                  control={form.control}
-                      name="clinicId"
-                      render={({ field }) => (
-                        <FormItem>
-                      <FormLabel>Clinic *</FormLabel>
-                          <FormControl>
-                            <Combobox
-                              options={clinicOptions}
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              placeholder="Select clinic"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                   control={form.control}
                       name="supplierId"
