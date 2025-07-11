@@ -3,41 +3,51 @@
 import { Package, AlertTriangle, Clock, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useGetInventoryDashboard } from "@/queries/inventory/get-dashboard";
 
 interface DashboardTabProps {
   clinicId: string
 }
 
 export default function DashboardTab({ clinicId }: DashboardTabProps) {
+  const { data, isLoading, isError } = useGetInventoryDashboard(clinicId);
+
+  if (isLoading) {
+    return <div>Loading dashboard...</div>;
+  }
+  if (isError || !data) {
+    return <div>Error loading dashboard data.</div>;
+  }
+
   return (
     <>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total Items"
-          value="1,287"
-          trend="+2.5% from last month"
+          value={data.totalItems}
+          trend=""
           trendColor="text-green-500"
           icon={<Package className="h-8 w-8 text-blue-500" />}
         />
         <StatsCard
           title="Low Stock Items"
-          value="23"
-          trend="+4 since last week"
+          value={data.lowStockItemsCount}
+          trend=""
           trendColor="text-red-500"
           icon={<AlertTriangle className="h-8 w-8 text-red-500" />}
         />
         <StatsCard
           title="Expiring Soon"
-          value="12"
-          trend="Within next 30 days"
+          value={data.expiringSoonItems}
+          trend=""
           trendColor="text-amber-500"
           icon={<Clock className="h-8 w-8 text-amber-500" />}
         />
         <StatsCard
           title="Pending Orders"
-          value="4"
-          trend="Expected delivery: May 15"
+          value={data.pendingPurchaseOrders}
+          trend=""
           trendColor="text-blue-500"
           icon={<ShoppingCart className="h-8 w-8 text-blue-500" />}
         />
@@ -69,11 +79,22 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                  <LowStockItem name="Cephalexin 500mg" current={3} threshold={10} />
-                  <LowStockItem name="Rimadyl 75mg" current={5} threshold={15} />
-                  <LowStockItem name="Syringes 3ml" current={12} threshold={25} />
-                  <LowStockItem name="Heartworm Test Kits" current={4} threshold={10} />
-                  <LowStockItem name="Vetmedin 5mg" current={2} threshold={8} />
+                  {data.lowStockItems && data.lowStockItems.length > 0 ? (
+                    data.lowStockItems.map((item) => (
+                      <LowStockItem
+                        key={item.productId}
+                        name={item.productName}
+                        current={item.currentItemUnits}
+                        threshold={item.threshold}
+                      />
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                        No low stock items.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -87,25 +108,25 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <CategoryCard
             title="Medications"
-            count="423"
+            count={data.numberOfAntibiotics + data.numberOfPainManagement}
             bgColor="bg-blue-50 dark:bg-blue-900/20"
             textColor="text-blue-500"
           />
           <CategoryCard
             title="Vaccines"
-            count="57"
+            count={data.numberOfVaccines}
             bgColor="bg-green-50 dark:bg-green-900/20"
             textColor="text-green-500"
           />
           <CategoryCard
             title="Medical Supplies"
-            count="315"
+            count={data.numberOfMedicalSupplies}
             bgColor="bg-red-50 dark:bg-red-900/20"
             textColor="text-red-500"
           />
           <CategoryCard
             title="Food & Supplements"
-            count="172"
+            count={data.numberOfFood + data.numberOfSupplements}
             bgColor="bg-purple-50 dark:bg-purple-900/20"
             textColor="text-purple-500"
           />
