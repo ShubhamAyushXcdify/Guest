@@ -1,46 +1,82 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export interface Supplier {
-  id: string;
-  clinicId: string;
-  name: string;
-  // ...other supplier fields
-}
-
 export interface PurchaseOrderItem {
   id?: string;
-  purchaseOrderId?: string;
+  purchaseOrderId: string;
   productId: string;
   quantityOrdered: number;
   quantityReceived?: number;
   unitCost: number;
-  totalCost: number;
-  discount?: number;
-  extendedAmount?: number;
-  unitOfMeasure?: string;
-  unitsPerPackage?: number;
-  totalUnits?: number;
+  discountPercentage: number;
+  discountedAmount: number;
+  extendedAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  unitsPerPackage: number;
+  totalUnits: number;
+  lotNumber?: string | null;
+  batchNumber?: string | null;
+  expirationDate?: string | null;
+  dateOfManufacture?: string | null;
+  actualDeliveryDate?: string | null;
+  receivedBy?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  product?: {
+    id: string;
+    productNumber?: string;
+    name: string;
+    genericName?: string;
+    category?: string;
+    productType?: string;
+    manufacturer?: string | null;
+    ndcNumber?: string;
+    strength?: string | null;
+    dosageForm?: string;
+    unitOfMeasure?: string;
+    requiresPrescription?: boolean;
+    controlledSubstanceSchedule?: string;
+    storageRequirements?: string;
+    isActive?: boolean;
+    price?: number;
+  };
 }
 
 export interface PurchaseOrderData {
-  id: string;
+  id?: string;
   clinicId: string;
   supplierId: string;
-  orderNumber: string;
-  orderDate: string;
+  orderNumber?: string;
+  orderDate?: string;
   expectedDeliveryDate: string;
-  actualDeliveryDate: string | null;
+  actualDeliveryDate?: string | null;
   status: string;
-  subtotal: number;
-  taxAmount: number;
-  discount: number;
+  discountPercentage: number;
+  discountedAmount: number;
   extendedAmount: number;
   totalAmount: number;
   notes: string;
   createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  supplier?: Supplier; // <-- Make sure this is present
+  createdAt?: string;
+  updatedAt?: string;
+  supplier?: {
+    id: string;
+    clinicId: string;
+    name: string;
+    contactPerson?: string;
+    email?: string;
+    phone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    accountNumber?: string;
+    paymentTerms?: string;
+    isActive?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+  };
   items: PurchaseOrderItem[];
 }
 
