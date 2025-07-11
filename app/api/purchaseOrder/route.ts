@@ -12,8 +12,32 @@ export async function GET(request: NextRequest) {
       token = testToken;
     }
 
+    // Parse query parameters from the request URL
+    const { searchParams } = new URL(request.url);
+    const params = [
+      'clinicId',
+      'dateFrom',
+      'dateTo',
+      'supplierId',
+      'status',
+      'orderNumber',
+      'createdBy',
+      'expectedDeliveryFrom',
+      'expectedDeliveryTo',
+      'actualDeliveryFrom',
+      'actualDeliveryTo',
+    ];
+    const query: string[] = [];
+    params.forEach((key) => {
+      const value = searchParams.get(key);
+      if (value !== null && value !== undefined && value !== '') {
+        query.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+      }
+    });
+    const queryString = query.length > 0 ? `?${query.join('&')}` : '';
+
     const response = await fetch(
-      `${apiUrl}/api/PurchaseOrder`,
+      `${apiUrl}/api/PurchaseOrder${queryString}`,
       {
         headers: {
           'Content-Type': 'application/json',
