@@ -2,11 +2,14 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
 import { useGetPurchaseOrders } from "@/queries/purchaseOrder/get-purchaseOrder"
 import { useState } from "react";
 import { PurchaseOrderReceivingSheet } from "./purchase-order-receiving-sheet";
 import PurchaseOrderFilterDialog, { PurchaseOrderFilters } from "./PurchaseOrderFilterDialog";
 import { Filter } from "lucide-react";
+import { PurchaseOrderData } from "@/queries/purchaseOrder/create-purchaseOrder";
 
 interface ReceivingTabProps {
   clinicId: string
@@ -16,9 +19,19 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
   // Filter dialog state
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [filters, setFilters] = useState<PurchaseOrderFilters>({});
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Always filter by clinicId and status: "ordered"
-  const queryFilters = { ...filters, clinicId, status: "ordered" };
+  const queryFilters = { 
+    ...filters, 
+    clinicId, 
+    status: "ordered",
+    search: searchQuery,
+    pageNumber: page,
+    pageSize
+  };
 
   const { data: purchaseOrders = [], isLoading } = useGetPurchaseOrders(
     queryFilters,
@@ -31,6 +44,68 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
   const hasActiveFilters = Object.entries(filters).some(
     ([key, value]) => key !== "clinicId" && key !== "status" && value
   );
+
+  const handleSearch = (searchTerm: string) => {
+    setSearchQuery(searchTerm)
+    setPage(1)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setPage(1)
+  }
+
+  const columns: ColumnDef<PurchaseOrderData>[] = [
+    { 
+      accessorKey: "orderNumber", 
+      header: "Order #",
+      cell: ({ getValue }) => (
+        <div className="font-medium">{getValue() as string}</div>
+      )
+    },
+    { 
+      accessorKey: "supplier.name", 
+      header: "Supplier",
+      cell: ({ row }) => row.original.supplier?.name || "-"
+    },
+    { 
+      accessorKey: "expectedDate", 
+      header: "Expected Date",
+      cell: ({ getValue }) => {
+        const date = getValue() as string
+        return date ? new Date(date).toLocaleDateString() : "-"
+      }
+    },
+    {
+      accessorKey: "items",
+      header: "Items",
+      cell: ({ row }) => {
+        const items = row.original.items
+        return items?.length ? `${items.length} items` : "-"
+      }
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-center">Actions</div>,
+      cell: ({ row }) => (
+        <div className="flex gap-2 justify-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            className="theme-button-secondary"
+            onClick={() => setSelectedOrderId(row.original.id)}
+          >
+            Receive
+          </Button>
+        </div>
+      ),
+      meta: { className: "text-center" },
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -68,65 +143,19 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
         </div>
       )}
       
-      <Card className="bg-white dark:bg-slate-800 shadow-sm">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-slate-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Order #
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Supplier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Expected Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Items
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-6">Loading...</td>
-                  </tr>
-                ) : purchaseOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-6">No purchase orders to receive.</td>
-                  </tr>
-                ) : purchaseOrders.map((order: any) => (
-                  <tr key={order.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{order.orderNumber}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{order.supplier?.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                      {order.expectedDate ? new Date(order.expectedDate).toLocaleDateString() : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                      {order.items?.length ? `${order.items.length} items` : "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="theme-button-secondary"
-                        onClick={() => setSelectedOrderId(order.id)}
-                      >
-                        Receive
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={purchaseOrders}
+        searchColumn="orderNumber"
+        searchPlaceholder="Search orders..."
+        onSearch={handleSearch}
+        page={page}
+        pageSize={pageSize}
+        totalPages={1} // You'll need to get this from your API response
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
+
       <PurchaseOrderReceivingSheet
         isOpen={!!selectedOrderId}
         onClose={() => setSelectedOrderId(null)}

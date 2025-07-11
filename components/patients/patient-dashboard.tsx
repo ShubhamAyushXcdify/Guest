@@ -29,10 +29,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface Appointment {
   id: string;
   status: string;
+  patientId: string;
   appointmentType?: {
     name: string;
   };
-  appointmentDate?: string;
+  roomSlot: {
+    startTime: string;
+    endTime: string;
+  };
+  appointmentDate: string;
   patient?: {
     name?: string;
   };
@@ -185,6 +190,50 @@ export default function PatientDashboard() {
       </div>
     )
   }
+  
+const getLastVisit = (petId: string, appointments: Appointment[]): string | null => {
+  const now = new Date();
+
+  const completedPastAppointments = appointments
+    .filter(apt =>
+      apt.patientId === petId &&
+      apt.status === "completed" &&
+      apt.appointmentDate &&
+      new Date(apt.appointmentDate) <= now
+    );
+
+  if (completedPastAppointments.length === 0) return null;
+
+  const lastVisit = completedPastAppointments.reduce((latest, current) => {
+    const currentDate = new Date(current.appointmentDate!);
+    const latestDate = new Date(latest.appointmentDate!);
+    return currentDate > latestDate ? current : latest;
+  });
+
+  return lastVisit.appointmentDate!;
+};
+
+const getNextAppointment = (petId: string, appointments: Appointment[]): string | null => {
+  const now = new Date();
+now.setHours(0, 0, 0, 0); 
+
+const futureScheduledAppointments = appointments.filter(apt => {
+  if (apt.patientId !== petId || apt.status !== "scheduled" || !apt.appointmentDate) return false;
+
+  const aptDate = new Date(apt.appointmentDate);
+  aptDate.setHours(0, 0, 0, 0); 
+
+  return aptDate >= now;
+  });
+
+  if (futureScheduledAppointments.length === 0) return null;
+  const nextAppointment = futureScheduledAppointments.reduce((earliest, current) => {
+    const currentDate = new Date(current.appointmentDate!);
+    const earliestDate = new Date(earliest.appointmentDate!);
+    return currentDate < earliestDate ? current : earliest;
+  });
+  return nextAppointment.appointmentDate!;
+};
 
   return (
     <div className="min-h-screen max-h-screen overflow-y-auto">
@@ -532,11 +581,25 @@ export default function PatientDashboard() {
                                 </div>
                                 <div>
                                   <p className="text-xs font-medium text-gray-600">Last Visit</p>
-                                  <p className="text-sm font-semibold">—</p>
+                                  {(() => {
+                                    const lastVisit = getLastVisit(pet.id, appointments);
+                                    return (
+                                      <p className="text-lg font-semibold">
+                                        {lastVisit ? formatDate(lastVisit) : "—"}
+                                      </p>
+                                    );
+                                  })()}
                                 </div>
                                 <div>
                                   <p className="text-xs font-medium text-gray-600">Next Appointment</p>
-                                  <p className="text-sm font-semibold">—</p>
+                                  {(() => {
+                                    const nextAppointment = getNextAppointment(pet.id, appointments);
+                                    return (
+                                      <p className="text-lg font-semibold">
+                                        {nextAppointment ? formatDate(nextAppointment) : "—"}
+                                      </p>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             </CardContent>
@@ -773,7 +836,7 @@ export default function PatientDashboard() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-4 w-4" />
-                                  {isClient && appointment.appointmentDate ? formatTime(appointment.appointmentDate) : ""}
+                                  {isClient && appointment.roomSlot.startTime.slice(0, 5) + " - " + appointment.roomSlot.endTime.slice(0, 5)}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <User className="h-4 w-4" />
@@ -859,11 +922,25 @@ export default function PatientDashboard() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-600">Last Visit</p>
-                          <p className="text-lg font-semibold">—</p>
+                          {(() => {
+                            const lastVisit = getLastVisit(pet.id, appointments);
+                            return (
+                              <p className="text-lg font-semibold">
+                                {lastVisit ? formatDate(lastVisit) : "—"}
+                              </p>
+                            );
+                          })()}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-600">Next Appointment</p>
-                          <p className="text-lg font-semibold">—</p>
+                          {(() => {
+                            const nextAppointment = getNextAppointment(pet.id, appointments);
+                           return (
+                             <p className="text-lg font-semibold">
+                               {nextAppointment ? formatDate(nextAppointment) : "—"}
+                             </p>
+                           );
+                          })()}
                         </div>
                       </div>
                     </CardContent>
