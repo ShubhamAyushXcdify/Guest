@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
       'expectedDeliveryTo',
       'actualDeliveryFrom',
       'actualDeliveryTo',
+      'page',
+      'pageSize'
     ];
     const query: string[] = [];
     params.forEach((key) => {
@@ -52,7 +54,37 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data, { 
+    
+    // Process response to ensure consistent format
+    let responseData;
+    if (Array.isArray(data)) {
+      // If data is an array, wrap it in the expected format
+      responseData = {
+        data: data,
+        meta: {
+          currentPage: 1,
+          pageSize: data.length,
+          totalItems: data.length,
+          totalPages: 1
+        }
+      };
+    } else if (data && data.data && Array.isArray(data.data)) {
+      // Already in the correct format
+      responseData = data;
+    } else {
+      // Unexpected format, try to handle it
+      responseData = {
+        data: Array.isArray(data) ? data : data ? [data] : [],
+        meta: {
+          currentPage: 1,
+          pageSize: Array.isArray(data) ? data.length : data ? 1 : 0,
+          totalItems: Array.isArray(data) ? data.length : data ? 1 : 0,
+          totalPages: 1
+        }
+      };
+    }
+    
+    return NextResponse.json(responseData, { 
       status: 200,
       headers: {
         'Cache-Control': 'no-store, max-age=0',

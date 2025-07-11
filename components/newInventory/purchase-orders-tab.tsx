@@ -65,9 +65,18 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [isLoaded, setIsLoaded] = useState(false)
+  // Add pagination and search state
+  const [searchQuery, setSearchQuery] = useState<string>("")
+  const [page, setPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
 
   // Always include clinicId in filters
-  const apiFilters = useMemo(() => ({ ...filters, clinicId }), [filters, clinicId])
+  const apiFilters = useMemo(() => ({ 
+    ...filters, 
+    clinicId,
+    page,
+    pageSize
+  }), [filters, clinicId, page, pageSize])
 
 
   // Fetch purchase orders
@@ -78,6 +87,11 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
     error,
     refetch 
   } = useGetPurchaseOrders(apiFilters, !!clinicId)
+
+  // Debug log
+  useEffect(() => {
+    console.log("Purchase Orders Received:", purchaseOrders);
+  }, [purchaseOrders]);
 
   // Refetch when clinicId or filters change
   useEffect(() => {
@@ -127,11 +141,16 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
     { 
       accessorKey: "status", 
       header: "Status",
-      cell: ({ getValue }) => (
-        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-          {getValue() as string}
-        </span>
-      )
+      cell: ({ getValue }) => {
+        const status = getValue() as string;
+        const badge = getStatusBadge(status);
+        return (
+          <span className={`px-2 py-1 text-xs font-medium ${badge.color} rounded-full flex items-center justify-center w-fit`}>
+            {badge.icon}
+            {status}
+          </span>
+        );
+      }
     },
     { 
       accessorKey: "totalAmount", 
@@ -151,7 +170,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
             size="sm"
             className="theme-button-secondary"
             onClick={() => {
-              setSelectedOrderId(row.original.id);
+              setSelectedOrderId(row.original.id || null);
               setIsSheetOpen(true);
             }}
           >
@@ -222,7 +241,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
         onSearch={handleSearch}
         page={page}
         pageSize={pageSize}
-        totalPages={1} // You'll need to get this from your API response
+        totalPages={1} // This will be updated when API returns proper pagination
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />
