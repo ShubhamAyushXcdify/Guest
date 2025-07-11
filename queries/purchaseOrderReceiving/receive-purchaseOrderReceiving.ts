@@ -1,6 +1,24 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export async function receivePurchaseOrderReceiving(data: any) {
+// Define types based on API schema
+export interface ReceiveItemData {
+  purchaseOrderItemId: string;
+  productId?: string;
+  quantityReceived: number;
+  batchNumber: string;
+  expiryDate?: string; // ISO format date string or empty
+  dateOfManufacture?: string; // ISO format date string or empty
+  notes?: string;
+}
+
+export interface ReceivePurchaseOrderData {
+  purchaseOrderId: string;
+  notes?: string;
+  receivedBy: string;
+  receivedItems: ReceiveItemData[];
+}
+
+export async function receivePurchaseOrderReceiving(data: ReceivePurchaseOrderData) {
   const response = await fetch("/api/purchaseOrderReceiving/receive", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -14,5 +32,14 @@ export async function receivePurchaseOrderReceiving(data: any) {
 }
 
 export function useReceivePurchaseOrderReceiving() {
-  return useMutation({ mutationFn: receivePurchaseOrderReceiving });
+  const queryClient = useQueryClient();
+  
+  return useMutation({ 
+    mutationFn: receivePurchaseOrderReceiving,
+    onSuccess: () => {
+      // Invalidate purchase orders query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrder'] });
+    }
+  });
 } 

@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getUserId } from "@/utils/clientCookie";
+import { toast } from "@/components/ui/use-toast";
+import { DatePicker } from "@/components/ui/datePicker";
 
 // 1. Define a schema for the form data
 const formSchema = z.object({
@@ -60,21 +63,51 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
   }, [order, form]);
 
   const onSubmit = (data: FormValues) => {
+    // Filter out items with zero quantity received
+    const filteredItems = data.receivedItems.filter(item => item.quantityReceived > 0);
+    
+    if (filteredItems.length === 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter quantity for at least one item",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Get user ID from client cookie
+    const currentUserId = getUserId() || "system";
+    
     receiveOrder(
       {
-        ...data,
-        receivedBy: "TODO_USER_ID", // Replace with actual user ID
-        receivedItems: data.receivedItems.map(item => ({
-          ...item,
+        purchaseOrderId: data.purchaseOrderId,
+        notes: data.notes || "",
+        receivedBy: currentUserId,
+        receivedItems: filteredItems.map(item => ({
+          purchaseOrderItemId: item.purchaseOrderItemId,
+          productId: order?.items.find(orderItem => orderItem.id === item.purchaseOrderItemId)?.productId || "",
           quantityReceived: Number(item.quantityReceived),
-          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString() : "",
-          dateOfManufacture: item.dateOfManufacture ? new Date(item.dateOfManufacture).toISOString() : "",
+          batchNumber: item.batchNumber || "",
+          expiryDate: item.expiryDate ? new Date(item.expiryDate).toISOString() : undefined,
+          dateOfManufacture: item.dateOfManufacture ? new Date(item.dateOfManufacture).toISOString() : undefined,
+          notes: item.notes || "",
         })),
       },
       {
         onSuccess: () => {
           onClose();
+          toast({
+            title: "Success",
+            description: "Order received successfully",
+          });
         },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: `Failed to receive order: ${error.message}`,
+            variant: "destructive"
+          });
+        }
       }
     );
   };
@@ -153,7 +186,11 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                         render={({ field }) => (
                           <FormItem className="mb-0">
                             <FormControl>
-                              <Input type="date" {...field} />
+                              <DatePicker
+                                value={field.value ? new Date(field.value) : null}
+                                onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                                placeholder="Select expiry date"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -167,7 +204,11 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                         render={({ field }) => (
                           <FormItem className="mb-0">
                             <FormControl>
-                              <Input type="date" {...field} />
+                              <DatePicker
+                                value={field.value ? new Date(field.value) : null}
+                                onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                                placeholder="Select mfg date"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
