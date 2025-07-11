@@ -2,114 +2,162 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { DataTable } from "@/components/ui/data-table"
+import { ColumnDef } from "@tanstack/react-table"
 import Link from "next/link"
+import { useGetInventoryInfinite } from "@/queries/inventory/get-inventory"
+import { useEffect, useState } from "react"
+import { Loader2 } from "lucide-react"
+import { InventoryData } from "@/queries/inventory/get-inventory"
 
 interface StockTabProps {
   clinicId: string
 }
 
 export default function StockTab({ clinicId }: StockTabProps) {
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError
+  } = useGetInventoryInfinite(
+    { 
+      clinicId,
+      pageSize,
+      search: searchQuery
+    },
+    true
+  )
+
+  const getStockStatus = (quantityOnHand: number, reorderLevel: number) => {
+    if (quantityOnHand <= 0) {
+      return { text: "Out of Stock", color: "bg-red-100 text-red-800" }
+    } else if (quantityOnHand <= reorderLevel) {
+      return { text: "Low Stock", color: "bg-red-100 text-red-800" }
+    } else if (quantityOnHand <= reorderLevel * 1.5) {
+      return { text: "Warning", color: "bg-amber-100 text-amber-800" }
+    } else {
+      return { text: "In Stock", color: "bg-green-100 text-green-800" }
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString()
+  }
+
+  const handleSearch = (searchTerm: string) => {
+    setSearchQuery(searchTerm)
+    setPage(1)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setPage(1)
+  }
+
+  const columns: ColumnDef<InventoryData>[] = [
+    { 
+      accessorKey: "productName", 
+      header: "Item Name",
+      cell: ({ getValue }) => (
+        <div className="font-medium">{getValue() as string}</div>
+      )
+    },
+    { 
+      accessorKey: "lotNumber", 
+      header: "Lot Number" 
+    },
+    { 
+      accessorKey: "quantityOnHand", 
+      header: "Current Stock",
+      cell: ({ row }) => {
+        const quantity = row.original.quantityOnHand
+        const reorderLevel = row.original.reorderLevel
+        const isLowStock = quantity <= reorderLevel
+        const isWarning = quantity <= reorderLevel * 1.5
+        
+        return (
+          <div className={`font-medium ${
+            isLowStock ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-gray-900 dark:text-gray-200'
+          }`}>
+            {quantity}
+          </div>
+        )
+      }
+    },
+    { 
+      accessorKey: "reorderLevel", 
+      header: "Min Threshold" 
+    },
+    { 
+      accessorKey: "expirationDate", 
+      header: "Expiration",
+      cell: ({ getValue }) => formatDate(getValue() as string)
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = getStockStatus(row.original.quantityOnHand, row.original.reorderLevel)
+        return (
+          <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}>
+            {status.text}
+          </span>
+        )
+      }
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-center">Actions</div>,
+      cell: ({ row }) => {
+        const isLowStock = row.original.quantityOnHand <= row.original.reorderLevel
+        return (
+          <div className="flex gap-2 justify-center">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="theme-button-secondary"
+            >
+              {isLowStock ? 'Order' : 'Adjust'}
+            </Button>
+          </div>
+        )
+      },
+      meta: { className: "text-center" },
+    },
+  ]
+  const allItems = data?.pages.flatMap(page => page.items) || []
+  const totalPages = data?.pages[0]?.totalPages || 1
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Stock Management</h3>
-        <Button className="theme-button text-white" asChild>
-          <Link href="/inventory/stock-adjustment">Adjust Stock</Link>
-        </Button>
       </div>
       
-      <Card className="bg-white dark:bg-slate-800 shadow-sm">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-slate-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Item Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Current Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Min Threshold
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Amoxicillin 250mg</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Medications</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">45</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">20</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">In Stock</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Button variant="secondary" size="sm" className="theme-button-secondary">Adjust</Button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Cephalexin 500mg</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Medications</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">3</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">10</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Low Stock</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Button variant="secondary" size="sm" className="theme-button-secondary">Order</Button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Rabies Vaccine</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Vaccines</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">28</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">15</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">In Stock</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Button variant="secondary" size="sm" className="theme-button-secondary">Adjust</Button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Rimadyl 75mg</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Medications</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-600 font-medium">5</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">15</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Warning</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Button variant="secondary" size="sm" className="theme-button-secondary">Order</Button>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Syringes 3ml</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">Medical Supplies</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-600 font-medium">12</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">25</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Warning</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <Button variant="secondary" size="sm" className="theme-button-secondary">Order</Button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={allItems}
+        searchColumn="productName"
+        searchPlaceholder="Search inventory..."
+        onSearch={handleSearch}
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+      />
     </div>
   )
 }
