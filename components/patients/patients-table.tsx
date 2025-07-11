@@ -13,6 +13,8 @@ import { toast } from "@/components/ui/use-toast"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { formatDate } from "@/lib/utils"
 import NewAppointment from "@/components/appointments/newAppointment"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { PatientEditDetails } from "./patient-edit-details"
 
 interface PatientsTableProps {
   patients: Patient[]
@@ -40,6 +42,8 @@ export function PatientsTable({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [showNewAppointment, setShowNewAppointment] = useState(false)
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
+  const [showEditSheet, setShowEditSheet] = useState(false)
+  const [patientToEdit, setPatientToEdit] = useState<string | null>(null)
   
   const deletePatientMutation = useDeletePatient()
 
@@ -73,7 +77,8 @@ export function PatientsTable({
   }
 
   const handleEditPatient = (patientId: string) => {
-    router.push(`/patients/${patientId}/edit`)
+    setPatientToEdit(patientId)
+    setShowEditSheet(true)
   }
 
   const handleBookAppointment = (patientId: string) => {
@@ -127,6 +132,16 @@ export function PatientsTable({
           >
             <Eye className="h-4 w-4" />
           </Button>
+             <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditPatient(row.original.id);
+              }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
           <Button 
             variant="ghost" 
             size="icon"
@@ -187,6 +202,23 @@ export function PatientsTable({
         }}
         patientId={selectedPatientId || undefined}
       />
+
+      <Sheet open={showEditSheet} onOpenChange={setShowEditSheet}>
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[62%] overflow-auto">
+          <SheetHeader>
+            <SheetTitle>Edit Patient</SheetTitle>
+          </SheetHeader>
+          {patientToEdit && (
+            <PatientEditDetails 
+              patientId={patientToEdit} 
+              onSuccess={() => {
+                setShowEditSheet(false)
+                setPatientToEdit(null)
+              }} 
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </>
   )
 } 
