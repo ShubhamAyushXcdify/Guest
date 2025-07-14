@@ -73,7 +73,7 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
       cell: ({ row }) => row.original.supplier?.name || "-"
     },
     { 
-      accessorKey: "expectedDate", 
+      accessorKey: "expectedDeliveryDate", 
       header: "Expected Date",
       cell: ({ getValue }) => {
         const date = getValue() as string
@@ -97,7 +97,7 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
             variant="secondary"
             size="sm"
             className="theme-button-secondary"
-            onClick={() => setSelectedOrderId(row.original.id)}
+            onClick={() => setSelectedOrderId(row.original.id || null)}
           >
             Receive
           </Button>
