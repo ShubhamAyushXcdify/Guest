@@ -94,12 +94,12 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
       cell: ({ row }) => (
         <div className="flex gap-2 justify-center">
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
-            className="theme-button-secondary"
+            className="hover:bg-blue-50 border-blue-500 text-blue-500 hover:text-blue-600 hover:border-blue-600"
             onClick={() => setSelectedOrderId(row.original.id || null)}
           >
-            Receive
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-package-check mr-1 h-4 w-4"><path d="M16 16h6" /><path d="m22 10-5.5 5.5-3-3" /><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 4 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14" /><path d="M16 5.3V8L12 10 8 8V5.3" /></svg> Receive
           </Button>
         </div>
       ),

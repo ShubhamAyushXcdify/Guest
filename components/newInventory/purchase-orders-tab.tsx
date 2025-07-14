@@ -166,15 +166,15 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
       cell: ({ row }) => (
         <div className="flex gap-2 justify-center">
           <Button
-            variant="secondary"
+            variant="outline"
             size="sm"
-            className="theme-button-secondary"
+            className="hover:bg-blue-50 border-blue-500 text-blue-500 hover:text-blue-600 hover:border-blue-600"
             onClick={() => {
               setSelectedOrderId(row.original.id || null);
               setIsSheetOpen(true);
             }}
           >
-            View
+            <Eye className="mr-1 h-4 w-4" /> View
           </Button>
         </div>
       ),
@@ -197,7 +197,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
             )}
           </button>
           <Button 
-            className="theme-button text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={onNewOrder}
           >
             <Plus className="mr-2 h-4 w-4" /> New Order
