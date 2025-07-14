@@ -1,12 +1,33 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
+// Define the product type
+export interface Product {
+  id: string;
+  productNumber: string;
+  name: string;
+  genericName: string;
+  category: string;
+  productType: string;
+  ndcNumber: string;
+  dosageForm: string;
+  unitOfMeasure: string;
+  requiresPrescription: boolean;
+  controlledSubstanceSchedule: string;
+  storageRequirements: string;
+  isActive: boolean;
+  price: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  reorderThreshold: number;
+}
+
 // Define the inventory data type based on the API response
 export interface InventoryData {
   id: string;
   clinicId: string;
   productId: string;
-  productName: string;
-  lotNumber: string;
+  product: Product;
+  lotNumber: string | null;
   batchNumber: string;
   expirationDate: string;
   dateOfManufacture: string;
@@ -16,10 +37,10 @@ export interface InventoryData {
   reorderQuantity: number;
   unitCost: number;
   wholesaleCost: number;
-  retailPrice: number;
+  retailPrice: number | null;
   unitOfMeasure: string;
   unitsPerPackage: number;
-  location: string;
+  location: string | null;
   receivedFromPo: boolean;
   poItemId: string;
   receivedDate: string;

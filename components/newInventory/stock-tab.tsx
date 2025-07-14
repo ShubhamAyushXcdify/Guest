@@ -36,12 +36,12 @@ export default function StockTab({ clinicId }: StockTabProps) {
     true
   )
 
-  const getStockStatus = (quantityOnHand: number, reorderLevel: number) => {
+  const getStockStatus = (quantityOnHand: number, reorderThreshold: number) => {
     if (quantityOnHand <= 0) {
       return { text: "Out of Stock", color: "bg-red-100 text-red-800" }
-    } else if (quantityOnHand <= reorderLevel) {
+    } else if (reorderThreshold > 0 && quantityOnHand <= reorderThreshold) {
       return { text: "Low Stock", color: "bg-red-100 text-red-800" }
-    } else if (quantityOnHand <= reorderLevel * 1.5) {
+    } else if (reorderThreshold > 0 && quantityOnHand <= reorderThreshold * 1.5) {
       return { text: "Warning", color: "bg-amber-100 text-amber-800" }
     } else {
       return { text: "In Stock", color: "bg-green-100 text-green-800" }
@@ -68,24 +68,34 @@ export default function StockTab({ clinicId }: StockTabProps) {
 
   const columns: ColumnDef<InventoryData>[] = [
     { 
-      accessorKey: "productName", 
+      accessorKey: "product.name", 
       header: "Item Name",
-      cell: ({ getValue }) => (
-        <div className="font-medium">{getValue() as string}</div>
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.product?.name || 'N/A'}</div>
       )
     },
+    // { 
+    //   accessorKey: "lotNumber", 
+    //   header: "Lot Number",
+    //   cell: ({ row }) => (
+    //     <div>{row.original.lotNumber || 'N/A'}</div>
+    //   )
+    // },
     { 
-      accessorKey: "lotNumber", 
-      header: "Lot Number" 
+      accessorKey: "batchNumber", 
+      header: "Batch Number",
+      cell: ({ row }) => (
+        <div>{row.original.batchNumber || 'N/A'}</div>
+      )
     },
     { 
       accessorKey: "quantityOnHand", 
       header: "Current Stock",
       cell: ({ row }) => {
         const quantity = row.original.quantityOnHand
-        const reorderLevel = row.original.reorderLevel
-        const isLowStock = quantity <= reorderLevel
-        const isWarning = quantity <= reorderLevel * 1.5
+        const reorderThreshold = row.original.product?.reorderThreshold || 0
+        const isLowStock = reorderThreshold > 0 && quantity <= reorderThreshold
+        const isWarning = reorderThreshold > 0 && quantity <= reorderThreshold * 1.5
         
         return (
           <div className={`font-medium ${
@@ -97,8 +107,18 @@ export default function StockTab({ clinicId }: StockTabProps) {
       }
     },
     { 
-      accessorKey: "reorderLevel", 
-      header: "Min Threshold" 
+      accessorKey: "product.reorderThreshold", 
+      header: "Min Threshold",
+      cell: ({ row }) => (
+        <div>{row.original.product?.reorderThreshold || 'N/A'}</div>
+      )
+    },
+    { 
+      accessorKey: "unitCost", 
+      header: "Unit Cost",
+      cell: ({ row }) => (
+        <div>${row.original.unitCost?.toFixed(2) || '0.00'}</div>
+      )
     },
     { 
       accessorKey: "expirationDate", 
@@ -109,7 +129,7 @@ export default function StockTab({ clinicId }: StockTabProps) {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = getStockStatus(row.original.quantityOnHand, row.original.reorderLevel)
+        const status = getStockStatus(row.original.quantityOnHand, row.original.product?.reorderThreshold || 0)
         return (
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}>
             {status.text}
@@ -121,7 +141,8 @@ export default function StockTab({ clinicId }: StockTabProps) {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => {
-        const isLowStock = row.original.quantityOnHand <= row.original.reorderLevel
+        const reorderThreshold = row.original.product?.reorderThreshold || 0
+        const isLowStock = reorderThreshold > 0 && row.original.quantityOnHand <= reorderThreshold
         return (
           <div className="flex gap-2 justify-center">
             <Button 
@@ -149,7 +170,6 @@ export default function StockTab({ clinicId }: StockTabProps) {
       <DataTable
         columns={columns}
         data={allItems}
-        searchColumn="productName"
         searchPlaceholder="Search inventory..."
         onSearch={handleSearch}
         page={page}
