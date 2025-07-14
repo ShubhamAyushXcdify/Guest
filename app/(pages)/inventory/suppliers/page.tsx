@@ -12,6 +12,37 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+// Define interfaces at the top level
+interface Supplier {
+  id: string | number;
+  name: string;
+  accountNumber: string;
+  phone: string;
+  email: string;
+  description: string;
+  contactName: string;
+  website: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  isPreferred: boolean;
+  hasDirectOrdering: boolean;
+  hasAutoNotifications: boolean;
+  paymentTerms: string;
+  status?: string;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  sku: string;
+  category: string;
+  availability: string;
+  unitPrice: number;
+  quantity: number;
+}
+
 export default function SuppliersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [status, setStatus] = useState("All")
@@ -21,12 +52,12 @@ export default function SuppliersPage() {
   const [addDrawerOpen, setAddDrawerOpen] = useState(false)
   const [editDrawerOpen, setEditDrawerOpen] = useState(false)
   const [catalogDrawerOpen, setCatalogDrawerOpen] = useState(false)
-  const [selectedSupplier, setSelectedSupplier] = useState(null)
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null)
 
   // Sample suppliers data
-  const suppliers = [
+  const suppliers: Supplier[] = [
     {
-      id: 1,
+      id: "1",
       name: "Covetrus",
       accountNumber: "SUP001",
       phone: "(800) 555-1234",
@@ -42,9 +73,10 @@ export default function SuppliersPage() {
       hasDirectOrdering: true,
       hasAutoNotifications: true,
       paymentTerms: "Net 30",
+      status: "Active",
     },
     {
-      id: 2,
+      id: "2",
       name: "IDEXX Laboratories",
       accountNumber: "SUP002",
       phone: "(800) 555-4321",
@@ -60,9 +92,10 @@ export default function SuppliersPage() {
       hasDirectOrdering: true,
       hasAutoNotifications: false,
       paymentTerms: "Net 45",
+      status: "Inactive",
     },
     {
-      id: 3,
+      id: "3",
       name: "Zoetis",
       accountNumber: "SUP003",
       phone: "(800) 555-7890",
@@ -78,9 +111,10 @@ export default function SuppliersPage() {
       hasDirectOrdering: false,
       hasAutoNotifications: true,
       paymentTerms: "Net 30",
+      status: "Active",
     },
     {
-      id: 4,
+      id: "4",
       name: "MWI Animal Health",
       accountNumber: "SUP004",
       phone: "(800) 555-3456",
@@ -96,11 +130,12 @@ export default function SuppliersPage() {
       hasDirectOrdering: false,
       hasAutoNotifications: false,
       paymentTerms: "Net 15",
+      status: "Inactive",
     },
   ]
 
   // Sample catalog products for the selected supplier
-  const catalogProducts = [
+  const catalogProducts: Product[] = [
     {
       id: 1,
       name: "Cephalexin 500mg",
@@ -148,12 +183,12 @@ export default function SuppliersPage() {
     },
   ]
 
-  const handleOpenEditDrawer = (supplier) => {
+  const handleOpenEditDrawer = (supplier: Supplier) => {
     setSelectedSupplier(supplier)
     setEditDrawerOpen(true)
   }
 
-  const handleOpenCatalogDrawer = (supplier) => {
+  const handleOpenCatalogDrawer = (supplier: Supplier) => {
     setSelectedSupplier(supplier)
     setCatalogDrawerOpen(true)
   }
@@ -295,7 +330,15 @@ export default function SuppliersPage() {
   )
 }
 
-function SupplierCard({ supplier, onViewCatalog, onEdit }) {
+function SupplierCard({ 
+  supplier, 
+  onViewCatalog, 
+  onEdit 
+}: { 
+  supplier: Supplier; 
+  onViewCatalog: () => void; 
+  onEdit: () => void;
+}) {
   return (
     <Card className="bg-white dark:bg-slate-800 shadow-sm">
       <CardContent className="p-6">
@@ -328,7 +371,15 @@ function SupplierCard({ supplier, onViewCatalog, onEdit }) {
   )
 }
 
-function StatCard({ title, value, textColor }) {
+function StatCard({ 
+  title, 
+  value, 
+  textColor 
+}: {
+  title: string;
+  value: string;
+  textColor: string;
+}) {
   return (
     <Card className="bg-white dark:bg-slate-800 shadow-sm">
       <CardContent className="p-6">
@@ -339,7 +390,15 @@ function StatCard({ title, value, textColor }) {
   )
 }
 
-function SupplierForm({ supplier = null, isEdit = false, onCancel }) {
+function SupplierForm({ 
+  supplier = null, 
+  isEdit = false, 
+  onCancel 
+}: {
+  supplier?: Supplier | null;
+  isEdit?: boolean;
+  onCancel: () => void;
+}) {
   const [formData, setFormData] = useState({
     name: supplier?.name || "",
     accountNumber: supplier?.accountNumber || "",
@@ -359,11 +418,11 @@ function SupplierForm({ supplier = null, isEdit = false, onCancel }) {
     paymentTerms: supplier?.paymentTerms || "",
   })
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     // Here you would handle the form submission
     console.log("Form submitted:", formData)
@@ -596,14 +655,25 @@ function SupplierForm({ supplier = null, isEdit = false, onCancel }) {
   )
 }
 
-function SupplierCatalog({ supplier, products, onClose, onEditSupplier }) {
+function SupplierCatalog({ 
+  supplier, 
+  products, 
+  onClose, 
+  onEditSupplier 
+}: {
+  supplier: Supplier;
+  products: Product[];
+  onClose: () => void;
+  onEditSupplier: () => void;
+}) {
   const [searchQuery, setSearchQuery] = useState("")
   const [category, setCategory] = useState("All")
   const [sortBy, setSortBy] = useState("Name")
   const [activeTab, setActiveTab] = useState("Medications")
 
-  const handleAddToOrder = (product) => {
-    console.log("Add to order:", product)
+  const handleAddToOrder = (product: Product) => {
+    // In a real app, this would add to cart or create order
+    console.log("Add to order:", product);
   }
 
   return (

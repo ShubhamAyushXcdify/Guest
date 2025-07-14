@@ -13,7 +13,11 @@ export default function InventorySettingsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [category, setCategory] = useState("all")
   const [sortBy, setSortBy] = useState("name")
-  const [reorderPoints, setReorderPoints] = useState({
+  type ReorderPointsType = {
+    [key: string]: { point: string; supplier: string }
+  }
+  
+  const [reorderPoints, setReorderPoints] = useState<ReorderPointsType>({
     "cephalexin-500mg": { point: "10", supplier: "Covetrus" },
     "rimadyl-75mg": { point: "15", supplier: "Zoetis" },
     "rabies-vaccine": { point: "20", supplier: "Zoetis" },
@@ -21,14 +25,14 @@ export default function InventorySettingsPage() {
     "heartworm-test-kits": { point: "10", supplier: "IDEXX" },
   })
 
-  const handleReorderPointChange = (productId, value) => {
+  const handleReorderPointChange = (productId: string, value: string) => {
     setReorderPoints((prev) => ({
       ...prev,
       [productId]: { ...prev[productId], point: value },
     }))
   }
 
-  const handleSupplierChange = (productId, value) => {
+  const handleSupplierChange = (productId: string, value: string) => {
     setReorderPoints((prev) => ({
       ...prev,
       [productId]: { ...prev[productId], supplier: value },
@@ -297,6 +301,15 @@ function ReorderPointRow({
   supplier,
   onReorderPointChange,
   onSupplierChange,
+}: {
+  id: string;
+  name: string;
+  category: string;
+  stock: number;
+  reorderPoint: string;
+  supplier: string;
+  onReorderPointChange: (id: string, value: string) => void;
+  onSupplierChange: (id: string, value: string) => void;
 }) {
   const stockSeverity =
     stock <= Number.parseInt(reorderPoint) * 0.25

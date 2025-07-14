@@ -4,14 +4,17 @@ import { getJwtToken } from "@/utils/serverCookie";
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
-export async function GET(request: NextRequest, { params }: { params: { clinicId: string } }) {
+export async function GET(
+  request: NextRequest,
+  ctx: { params: Promise<{ clinicId: string }> }
+) {
   try {
+    const { clinicId } = await ctx.params;
     let token = getJwtToken(request);
     if (!token) {
       token = testToken;
     }
 
-    const { clinicId } = params;
     if (!clinicId) {
       return NextResponse.json({ message: "clinicId is required" }, { status: 400 });
     }
