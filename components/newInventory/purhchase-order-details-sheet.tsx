@@ -9,9 +9,9 @@ import { PurchaseOrderData, PurchaseOrderItem } from "@/queries/purchaseOrder/cr
 // Format currency consistently
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "-"
-  return new Intl.NumberFormat('en-US', { 
+  return new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
-    currency: 'USD',
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value)

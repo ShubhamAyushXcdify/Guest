@@ -20,7 +20,7 @@ export function LowStockReport() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-2">Value of Low Stock Items</h3>
-            <p className="text-4xl font-bold text-purple-600">$428.75</p>
+            <p className="text-4xl font-bold text-purple-600">₹428.75</p>
             <p className="text-sm text-amber-600 mt-2">Potential reorder cost</p>
           </CardContent>
         </Card>
@@ -66,21 +66,21 @@ export function LowStockReport() {
                   category="Medications"
                   current={3}
                   reorderPoint={10}
-                  value="$47.25"
+                  value="₹47.25"
                 />
                 <LowStockItem
                   product="Heartworm Test Kit"
                   category="Diagnostics"
                   current={4}
                   reorderPoint={10}
-                  value="$102.00"
+                  value="₹102.00"
                 />
                 <LowStockItem
                   product="Rimadyl 75mg"
                   category="Medications"
                   current={5}
                   reorderPoint={15}
-                  value="$171.25"
+                  value="₹171.25"
                 />
               </tbody>
             </table>

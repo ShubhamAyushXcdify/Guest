@@ -117,7 +117,7 @@ export default function StockTab({ clinicId }: StockTabProps) {
       accessorKey: "unitCost", 
       header: "Unit Cost",
       cell: ({ row }) => (
-        <div>${row.original.unitCost?.toFixed(2) || '0.00'}</div>
+        <div>₹{row.original.unitCost?.toFixed(2) || '0.00'}</div>
       )
     },
     { 

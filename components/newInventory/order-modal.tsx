@@ -183,6 +183,7 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const formattedDate = `${year}-${month}-${day}`;
+  
     
     form.setValue("expectedDeliveryDate", formattedDate);
   };
@@ -253,11 +254,13 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
       totalTaxAmount += item.taxAmount || 0
     })
     
-    // Remove order-level discount since it's now handled at item level only
-    const extendedAmount = subtotal
+    // Apply order-level discount
+    const discountPercentage = form.watch("discountPercentage") || 0
+    const discountedAmount = (subtotal * discountPercentage) / 100
+    const extendedAmount = subtotal - discountedAmount
     const totalAmount = extendedAmount + totalTaxAmount
     
-    form.setValue("discountedAmount", 0) // No order-level discount
+    form.setValue("discountedAmount", discountedAmount)
     form.setValue("extendedAmount", extendedAmount)
     form.setValue("totalAmount", totalAmount)
   }
@@ -471,6 +474,49 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                     />
 
                     <FormField
+                      control={form.control}
+                      name="discountPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Order Discount (%)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              placeholder="0.00"
+                              value={field.value}
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value) || 0
+                                handleOrderDiscountPercentageChange(value)
+                              }}
+                            />
+                          </FormControl>
+                          {formSubmitted && <FormMessage />}
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="discountedAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Discount Amount</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              readOnly
+                              value={field.value.toFixed(2)}
+                              className="bg-gray-50"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
                   control={form.control}
                   name="notes"
                       render={({ field }) => (
@@ -565,7 +611,7 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                                           <div className="flex flex-col">
                                             <span className="font-medium">{product.name}</span>
                                             <span className="text-sm text-gray-500">
-                                        {product.productNumber || ''} {product.unitOfMeasure ? `| ${product.unitOfMeasure}` : ''} {product.price ? `| $${product.price.toFixed(2)}` : ''}
+                                        {product.productNumber || ''} {product.unitOfMeasure ? `| ${product.unitOfMeasure}` : ''} {product.price ? `| ₹${product.price.toFixed(2)}` : ''}
                                             </span>
                                           </div>
                                         </div>
@@ -721,15 +767,27 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                   <div className="w-1/3">
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-medium">Subtotal:</span>
-                      <span>${form.watch("extendedAmount").toFixed(2)}</span>
+                      <span>₹{items.reduce((total, item) => total + item.extendedAmount, 0).toFixed(2)}</span>
                     </div>
+                    
+                    {/* Order-level discount */}
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium">Order Discount:</span>
+                      <span>-₹{form.watch("discountedAmount").toFixed(2)} ({form.watch("discountPercentage")}%)</span>
+                    </div>
+                    
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium">Subtotal after discount:</span>
+                      <span>₹{form.watch("extendedAmount").toFixed(2)}</span>
+                    </div>
+                    
                     <div className="flex justify-between mb-2">
                       <span className="text-sm font-medium">Tax:</span>
-                      <span>${items.reduce((total, item) => total + (item.taxAmount || 0), 0).toFixed(2)}</span>
+                      <span>₹{items.reduce((total, item) => total + (item.taxAmount || 0), 0).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between border-t pt-2 mt-2">
                       <span className="text-base font-medium">Total:</span>
-                      <span className="text-base font-medium">${form.watch("totalAmount").toFixed(2)}</span>
+                      <span className="text-base font-medium">₹{form.watch("totalAmount").toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

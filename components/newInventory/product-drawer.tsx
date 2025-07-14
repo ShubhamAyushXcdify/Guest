@@ -322,7 +322,7 @@ export function ProductDrawer({ open, onOpenChange, mode, productId }: ProductDr
               <h3 className="text-lg font-medium mb-4">Pricing</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="costPrice">Cost Price ($):</Label>
+                  <Label htmlFor="costPrice">Cost Price (₹):</Label>
                   <Input
                     id="costPrice"
                     type="number"
@@ -334,7 +334,7 @@ export function ProductDrawer({ open, onOpenChange, mode, productId }: ProductDr
                   />
                 </div>
                 <div>
-                  <Label htmlFor="salePrice">Sale Price ($):</Label>
+                  <Label htmlFor="salePrice">Sale Price (₹):</Label>
                   <Input
                     id="salePrice"
                     type="number"
