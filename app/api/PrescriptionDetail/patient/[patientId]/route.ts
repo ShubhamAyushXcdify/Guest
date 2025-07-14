@@ -6,15 +6,16 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { patientId: string } }
+    ctx: { params: Promise<{ patientId: string }> }
 ) {
+    const { patientId } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/patient/${params.patientId}`, {
+        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/patient/${patientId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,

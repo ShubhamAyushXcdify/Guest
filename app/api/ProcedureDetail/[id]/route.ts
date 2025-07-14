@@ -6,15 +6,16 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/ProcedureDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/ProcedureDetail/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -42,8 +43,9 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
@@ -55,10 +57,10 @@ export async function PUT(
         // Make sure the payload includes the ID
         const fullPayload = {
             ...body,
-            id: params.id 
+            id: id 
         };
-        
-        const response = await fetch(`${apiUrl}/api/ProcedureDetail/${params.id}`, {
+
+        const response = await fetch(`${apiUrl}/api/ProcedureDetail/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -88,15 +90,16 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const response = await fetch(`${apiUrl}/api/ProcedureDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/ProcedureDetail/${id}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`,

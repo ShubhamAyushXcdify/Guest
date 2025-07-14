@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJwtToken } from '@/utils/serverCookie';
+import { parseAsNumberLiteral } from 'nuqs';
 
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+   ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -42,8 +44,9 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
@@ -51,7 +54,7 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -81,15 +84,16 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
             return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/PrescriptionDetail/${id}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`,

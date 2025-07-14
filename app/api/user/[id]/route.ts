@@ -5,8 +5,9 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -17,7 +18,7 @@ export async function GET(
             );
         }
 
-        const response = await fetch(`${apiUrl}/api/User/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/User/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -44,8 +45,9 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -57,7 +59,7 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/User/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/User/${id}`, {
             method: 'PUT',
             body: JSON.stringify(body),
             headers: {
@@ -93,8 +95,9 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -106,7 +109,7 @@ export async function DELETE(
         }
 
         const response = await fetch(
-            `${apiUrl}/api/User/${params.id}`,
+            `${apiUrl}/api/User/${id}`,
             {
                 method: 'DELETE',
                 headers: {

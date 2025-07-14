@@ -48,7 +48,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
   // Get all products
-  const { data: productsData, isLoading: productsLoading } = useGetProducts(1, 100, '', true)
+  const { data: productsData, isLoading: productsLoading } = useGetProducts(1, 100, {
+  searchByname: '',
+  category: '',
+  productType: ''
+}, true);
   
   // Get existing prescription detail
   const { data: existingPrescriptionDetail, refetch: refetchPrescriptionDetail } = 

@@ -22,7 +22,7 @@ export default function InventoryReportsPage() {
     // This is now just for refreshing the report with new parameters
   }
 
-  const handleTabChange = (value) => {
+  const handleTabChange = (value: string) => {
     setActiveTab(value)
   }
 
@@ -269,7 +269,19 @@ export default function InventoryReportsPage() {
   )
 }
 
-function InventoryRow({ category, count, avgCost, totalValue, percentage }) {
+function InventoryRow({ 
+  category, 
+  count, 
+  avgCost, 
+  totalValue, 
+  percentage 
+}: { 
+  category: string; 
+  count: number; 
+  avgCost: string; 
+  totalValue: string; 
+  percentage: string; 
+}) {
   return (
     <tr>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{category}</td>

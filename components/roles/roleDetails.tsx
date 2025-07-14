@@ -22,6 +22,7 @@ type RoleFormValues = {
   createdAt: string;
   updatedAt: string;
   colourName: string;
+  priority: number;
 };
 
 type UpdateRolePayload = {
@@ -31,6 +32,7 @@ type UpdateRolePayload = {
   metadata: string | null;
   isClinicRequired: boolean;
   colourName: string;
+  priority: number;
 };
 
 interface RoleDetailsProps {
@@ -83,6 +85,7 @@ export default function RoleDetails({ roleId, onSuccess }: RoleDetailsProps) {
       metadata: null,
       isClinicRequired: values.isClinicRequired,
       colourName: values.colourName,
+      priority: values.priority,
     };
 
     await updateRole.mutateAsync({ id: roleId, ...updatePayload });

@@ -6,8 +6,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { imageId: string } }
+    ctx: { params: Promise<{ imageId: string }> }
 ) {
+    const { imageId } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -15,7 +16,7 @@ export async function DELETE(
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/IntakeDetail/images/${params.imageId}`, {
+        const response = await fetch(`${apiUrl}/api/IntakeDetail/images/${imageId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

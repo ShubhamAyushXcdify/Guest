@@ -1,4 +1,5 @@
 import Clinic from "@/components/clinic";
+import { promises } from "dns";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 async function Page({
   searchParams,
 }  : {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
     const { cookies } = await import("next/headers")
     return <Clinic />;

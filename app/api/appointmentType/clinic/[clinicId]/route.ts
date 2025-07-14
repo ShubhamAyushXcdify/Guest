@@ -5,8 +5,9 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { clinicId: string } }
+  ctx: { params: Promise<{ clinicId: string }> }
 ) {
+    const { clinicId } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -17,7 +18,7 @@ export async function GET(
             );
         }
 
-        const response = await fetch(`${apiUrl}/api/AppointmentType/clinic/${params.clinicId}`, {
+        const response = await fetch(`${apiUrl}/api/AppointmentType/clinic/${clinicId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,

@@ -6,8 +6,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -15,7 +16,7 @@ export async function GET(
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/Client/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/Client/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -42,7 +43,7 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
     try {
         let token = getJwtToken(request);
@@ -86,8 +87,9 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -95,7 +97,7 @@ export async function DELETE(
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/Client/${params.id}`,
+        const response = await fetch(`${apiUrl}/api/Client/${id}`,
             {
                 method: 'DELETE',
                 headers: {

@@ -6,8 +6,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { appointmentId: string } }
+    ctx: { params: Promise<{ appointmentId: string }> }
 ) {
+    const { appointmentId } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -15,7 +16,7 @@ export async function GET(
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/Visit/appointment/${params.appointmentId}`, {
+        const response = await fetch(`${apiUrl}/api/Visit/appointment/${appointmentId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,

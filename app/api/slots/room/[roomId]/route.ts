@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import { getJwtToken, getWorkspaceId } from "@/utils/serverCookie";
 import { NextRequest } from "next/server";
 interface SlotParams {
-  params: {
+  params: Promise<{
     roomId: string;
-  };
+  }>;
 }
 
-export async function GET(request: NextRequest, { params }: SlotParams) {
-  const { roomId } = params;
+export async function GET(request: NextRequest, context: SlotParams) {
+  const { roomId } = await context.params;
   const token = getJwtToken(request);
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Slot/room/${roomId}`, {
