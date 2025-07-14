@@ -24,8 +24,30 @@ const formSchema = z.object({
       purchaseOrderItemId: z.string(),
       quantityReceived: z.number().min(0),
       batchNumber: z.string(),
-      expiryDate: z.string().optional(), // ISO string or empty
-      dateOfManufacture: z.string().optional(), // ISO string or empty
+      expiryDate: z
+        .string()
+        .optional()
+        .refine(
+          (val) => {
+            if (!val) return true;
+            const today = new Date().setHours(0, 0, 0, 0);
+            const selected = new Date(val).setHours(0, 0, 0, 0);
+            return selected >= today;
+          },
+          { message: "Expiry date cannot be in the past" }
+        ),
+      dateOfManufacture: z
+        .string()
+        .optional()
+        .refine(
+          (val) => {
+            if (!val) return true;
+            const today = new Date().setHours(0, 0, 0, 0);
+            const selected = new Date(val).setHours(0, 0, 0, 0);
+            return selected <= today;
+          },
+          { message: "Manufacturing date cannot be in the future" }
+        ),
       notes: z.string().optional(),
     })
   ),
@@ -65,7 +87,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
   const onSubmit = (data: FormValues) => {
     // Filter out items with zero quantity received
     const filteredItems = data.receivedItems.filter(item => item.quantityReceived > 0);
-    
+
     if (filteredItems.length === 0) {
       toast({
         title: "Validation Error",
@@ -74,10 +96,10 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
       });
       return;
     }
-    
+
     // Get user ID from client cookie
     const currentUserId = getUserId() || "system";
-    
+
     receiveOrder(
       {
         purchaseOrderId: data.purchaseOrderId,
@@ -190,6 +212,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                 value={field.value ? new Date(field.value) : null}
                                 onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
                                 placeholder="Select expiry date"
+                                minDate={new Date()} // Disables past dates
                               />
                             </FormControl>
                             <FormMessage />
@@ -208,6 +231,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                 value={field.value ? new Date(field.value) : null}
                                 onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
                                 placeholder="Select mfg date"
+                                maxDate={new Date()} // Disables future dates
                               />
                             </FormControl>
                             <FormMessage />
