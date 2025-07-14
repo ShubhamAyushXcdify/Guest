@@ -20,7 +20,7 @@ export function ExpirationReport() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-2">Value of Expiring Items</h3>
-            <p className="text-4xl font-bold text-purple-600">$270.00</p>
+            <p className="text-4xl font-bold text-purple-600">₹270.00</p>
             <p className="text-sm text-red-600 mt-2">Potential loss</p>
           </CardContent>
         </Card>
@@ -66,21 +66,21 @@ export function ExpirationReport() {
                   category="Vaccines"
                   expiration="May 22, 2025"
                   quantity={5}
-                  value="$56.25"
+                  value="₹56.25"
                 />
                 <ExpirationItem
                   product="DHPPC Vaccine"
                   category="Vaccines"
                   expiration="June 15, 2025"
                   quantity={3}
-                  value="$33.75"
+                  value="₹33.75"
                 />
                 <ExpirationItem
                   product="Feline Leukemia Vaccine"
                   category="Vaccines"
                   expiration="June 28, 2025"
                   quantity={4}
-                  value="$45.00"
+                  value="₹45.00"
                 />
               </tbody>
             </table>

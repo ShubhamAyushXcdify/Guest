@@ -67,7 +67,7 @@ export function OrderSpendingReport() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-2">Total Order Spending</h3>
-            <p className="text-4xl font-bold text-purple-600">$12,486.75</p>
+            <p className="text-4xl font-bold text-purple-600">₹12,486.75</p>
             <p className="text-sm text-red-600 mt-2">-3.5% from previous period</p>
           </CardContent>
         </Card>
@@ -86,7 +86,7 @@ export function OrderSpendingReport() {
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-2">Top Supplier</h3>
             <p className="text-4xl font-bold text-purple-600">Covetrus</p>
-            <p className="text-sm text-gray-600 mt-2">$5,245.50 (42.0%)</p>
+            <p className="text-sm text-gray-600 mt-2">₹5,245.50 (42.0%)</p>
           </CardContent>
         </Card>
       </div>
@@ -156,10 +156,10 @@ export function OrderSpendingReport() {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
-                  <SupplierRow supplier="Covetrus" spend="$5,245.50" percentage="42.0%" />
-                  <SupplierRow supplier="IDEXX" spend="$2,865.25" percentage="22.9%" />
-                  <SupplierRow supplier="Zoetis" spend="$1,985.75" percentage="15.9%" />
-                  <SupplierRow supplier="Others (4)" spend="$2,390.25" percentage="19.2%" />
+                  <SupplierRow supplier="Covetrus" spend="₹5,245.50" percentage="42.0%" />
+                  <SupplierRow supplier="IDEXX" spend="₹2,865.25" percentage="22.9%" />
+                  <SupplierRow supplier="Zoetis" spend="₹1,985.75" percentage="15.9%" />
+                  <SupplierRow supplier="Others (4)" spend="₹2,390.25" percentage="19.2%" />
                 </tbody>
               </table>
             </div>
@@ -271,13 +271,13 @@ function MonthlySpendingTrendChart() {
 
       {/* Y-axis labels */}
       <text x="10" y="15" fontSize="14" fontWeight="bold" fill="#4b5563">
-        $6K
+        ₹6K
       </text>
       <text x="10" y={chartHeight / 2} fontSize="14" fontWeight="bold" fill="#4b5563">
-        $3K
+        ₹3K
       </text>
       <text x="10" y={chartHeight - 5} fontSize="14" fontWeight="bold" fill="#4b5563">
-        $0
+        ₹0
       </text>
 
       {/* Horizontal grid lines */}
@@ -327,7 +327,7 @@ function MonthlySpendingTrendChart() {
               textAnchor="middle"
               fill="#4b5563"
             >
-              ${item.value.toLocaleString()}
+              ₹{item.value.toLocaleString()}
             </text>
 
             {/* Month label */}
