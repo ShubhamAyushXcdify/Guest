@@ -137,26 +137,26 @@ export default function StockTab({ clinicId }: StockTabProps) {
         )
       }
     },
-    {
-      id: "actions",
-      header: () => <div className="text-center">Actions</div>,
-      cell: ({ row }) => {
-        const reorderThreshold = row.original.product?.reorderThreshold || 0
-        const isLowStock = reorderThreshold > 0 && row.original.quantityOnHand <= reorderThreshold
-        return (
-          <div className="flex gap-2 justify-center">
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="theme-button-secondary"
-            >
-              {isLowStock ? 'Order' : 'Adjust'}
-            </Button>
-          </div>
-        )
-      },
-      meta: { className: "text-center" },
-    },
+    // {
+    //   id: "actions",
+    //   header: () => <div className="text-center">Actions</div>,
+    //   cell: ({ row }) => {
+    //     const reorderThreshold = row.original.product?.reorderThreshold || 0
+    //     const isLowStock = reorderThreshold > 0 && row.original.quantityOnHand <= reorderThreshold
+    //     return (
+    //       <div className="flex gap-2 justify-center">
+    //         <Button 
+    //           variant="secondary" 
+    //           size="sm" 
+    //           className="theme-button-secondary"
+    //         >
+    //           {isLowStock ? 'Order' : 'Adjust'}
+    //         </Button>
+    //       </div>
+    //     )
+    //   },
+    //   meta: { className: "text-center" },
+    // },
   ]
   const allItems = data?.pages.flatMap(page => page.items) || []
   const totalPages = data?.pages[0]?.totalPages || 1
