@@ -18,7 +18,7 @@ export function UsageReport() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-lg font-semibold mb-2">Usage Value</h3>
-            <p className="text-4xl font-bold text-purple-600">$4,286.50</p>
+            <p className="text-4xl font-bold text-purple-600">₹4,286.50</p>
             <p className="text-sm text-green-600 mt-2">+5.8% from previous period</p>
           </CardContent>
         </Card>
@@ -107,28 +107,28 @@ export function UsageReport() {
                     product="Cephalexin 500mg"
                     category="Medications"
                     quantity={36}
-                    value="$567.00"
+                    value="₹567.00"
                     percentage="13.2%"
                   />
                   <TopUsedItem
                     product="Syringes 3ml"
                     category="Supplies"
                     quantity={125}
-                    value="$93.75"
+                    value="₹93.75"
                     percentage="2.2%"
                   />
                   <TopUsedItem
                     product="Rabies Vaccine"
                     category="Vaccines"
                     quantity={24}
-                    value="$270.00"
+                    value="₹270.00"
                     percentage="6.3%"
                   />
                   <TopUsedItem
                     product="Rimadyl 75mg"
                     category="Medications"
                     quantity={22}
-                    value="$346.50"
+                    value="₹346.50"
                     percentage="8.1%"
                   />
                 </tbody>

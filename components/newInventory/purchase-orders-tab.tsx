@@ -50,9 +50,9 @@ const getStatusBadge = (status: string) => {
 // Format currency
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "-"
-  return new Intl.NumberFormat('en-US', { 
+  return new Intl.NumberFormat('en-IN', { 
     style: 'currency', 
-    currency: 'USD',
+    currency: 'INR', 
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value)
@@ -157,7 +157,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
       header: "Total",
       cell: ({ getValue }) => {
         const amount = getValue() as number
-        return amount ? `$${amount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"
+        return amount ? `₹${amount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"
       }
     },
     {
