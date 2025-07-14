@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJwtToken } from '@/utils/serverCookie';
 
 interface SlotAvailabilityParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export async function PUT(req: NextRequest, { params }: SlotAvailabilityParams) {
-  const { id } = params;
+export async function PUT(req: NextRequest, context: SlotAvailabilityParams) {
+  const { id } = await context.params;
   const { isAvailable } = await req.json();
   const token = getJwtToken(req);
 
   try {
-    // Call the backend API to update slot availability
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Slot/${id}/available`, {
       method: 'PUT',
       headers: {

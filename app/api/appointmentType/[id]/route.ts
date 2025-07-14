@@ -4,48 +4,41 @@ import { getJwtToken } from '@/utils/serverCookie';
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const token = getJwtToken(request);
+  const { id } = await ctx.params;
 
-        if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const response = await fetch(`${apiUrl}/api/AppointmentType/${params.id}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            return NextResponse.json(
-                { message: 'Failed to fetch appointment type' },
-                { status: response.status }
-            );
-        }
-
-        const data = await response.json();
-        return NextResponse.json(data, { status: 200 });
-    } catch (error) {
-        console.error('Error fetching appointment type:', error);
-        return NextResponse.json(
-            { message: 'Error fetching appointment type data' },
-            { status: 500 }
-        );
+  try {
+    const token = getJwtToken(request);
+    if (!token) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
+
+    const response = await fetch(`${apiUrl}/api/AppointmentType/${id}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      return NextResponse.json({ message: 'Failed to fetch appointment type' }, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching appointment type:', error);
+    return NextResponse.json({ message: 'Error fetching appointment type' }, { status: 500 });
+  }
 }
 
 export async function PUT(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -57,7 +50,7 @@ export async function PUT(
         }
 
         const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/AppointmentType/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/AppointmentType/${id}`, {
             method: 'PUT',
             body: JSON.stringify(body),
             headers: {
@@ -92,9 +85,10 @@ export async function PUT(
 }
 
 export async function DELETE(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -105,7 +99,7 @@ export async function DELETE(
             );
         }
 
-        const response = await fetch(`${apiUrl}/api/AppointmentType/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/AppointmentType/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

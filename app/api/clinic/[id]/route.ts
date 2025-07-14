@@ -5,8 +5,9 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -17,7 +18,7 @@ export async function GET(
             );
         }
 
-        const response = await fetch(`${apiUrl}/api/Clinic/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/Clinic/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -45,8 +46,9 @@ export async function GET(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
 
@@ -58,7 +60,7 @@ export async function DELETE(
         }
 
         const response = await fetch(
-            `${apiUrl}/api/Clinic/${params.id}`,
+            `${apiUrl}/api/Clinic/${id}`,
             {
                 method: 'DELETE',
                 headers: {

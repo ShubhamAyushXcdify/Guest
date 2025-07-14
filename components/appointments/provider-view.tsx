@@ -55,20 +55,20 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
   const selectedProviderObj = veterinarianProviders.find((p: ProviderStats) => p.id === selectedProvider);
 
   // Build search params for appointments
-  const searchParams: AppointmentSearchParamsType = {
-    search: null,
-    status: null,
-    provider: selectedProviderObj ? selectedProviderObj.name : null,
-    dateFrom: fromDate,
-    dateTo: toDate,
-    clinicId: clinic?.id || null,
-    patientId: null,
-    clientId: null,
-    veterinarianId: selectedProviderObj ? selectedProviderObj.id : null,
-    roomId: null,
-    pageNumber: 1,
-    pageSize: 10,
-  };
+  // const searchParams: AppointmentSearchParamsType = {
+  //   search: null,
+  //   status: null,
+  //   provider: selectedProviderObj ? selectedProviderObj.name : null,
+  //   dateFrom: fromDate,
+  //   dateTo: toDate,
+  //   clinicId: clinic?.id || null,
+  //   patientId: null,
+  //   clientId: null,
+  //   veterinarianId: selectedProviderObj ? selectedProviderObj.id : null,
+  //   roomId: null,
+  //   pageNumber: 1,
+  //   pageSize: 10,
+  // };
 
   // Use appointments from the selected provider object, ensure it's always an array
   const appointments = Array.isArray(selectedProviderObj?.appointments) ? selectedProviderObj.appointments : [];

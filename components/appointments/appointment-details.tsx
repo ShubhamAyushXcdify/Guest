@@ -23,7 +23,7 @@ import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-a
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
@@ -80,7 +80,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [patientSearchQuery, setPatientSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null)
-  const debouncedPatientQuery = useDebounce(patientSearchQuery, 300)
+const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   const searchDropdownRef = useRef<HTMLDivElement>(null)
   
   // Initialize form

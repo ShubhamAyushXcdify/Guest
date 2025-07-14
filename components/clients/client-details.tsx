@@ -46,7 +46,7 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
     pageSize, 
     '', // search term
     clientId, // clientId for filtering
-    clinic?.id || undefined 
+    // clinic?.id || undefined 
   );
 
   useEffect(() => {
@@ -109,14 +109,14 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
               <p><strong>Primary Phone:</strong> {client.phonePrimary}</p>
               <p><strong>Secondary Phone:</strong> {client.phoneSecondary || 'N/A'}</p>
               <p><strong>Address:</strong> {client.addressLine1}, {client.city}, {client.state}, {client.postalCode}</p>
-              <p><strong>Clinic:</strong> {client.clinicName}</p>
+              {/* <p><strong>Clinic:</strong> {client.clinicName}</p> */}
               <p><strong>Active:</strong> {client.isActive ? 'Yes' : 'No'}</p>
             </div>
           ) : (
             <ClientForm
               defaultValues={{
                 id: client.id,
-                clinicId: client.clinicId || clinic?.id || "",
+                // clinicId: client.clinicId || clinic?.id || "",
                 firstName: client.firstName || "",
                 lastName: client.lastName || "",
                 email: client.email || "",
@@ -137,7 +137,7 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
                 refetch(); // Refresh client data
               }}
               isUpdate={true} // Force update mode
-              clinicId={client.clinicId || clinic?.id || ""}
+              // clinicId={client.clinicId || clinic?.id || ""}
             />
           )}
         </CardContent>

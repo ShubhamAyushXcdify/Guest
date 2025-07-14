@@ -5,19 +5,17 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await context.params;
+
     try {
         const token = getJwtToken(request);
-
         if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
+            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
         }
 
-        const response = await fetch(`${apiUrl}/api/Appointment/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/Appointment/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -25,114 +23,105 @@ export async function GET(
         });
 
         if (!response.ok) {
-            return NextResponse.json(
-                { message: 'Failed to fetch Appointment' },
-                { status: response.status }
-            );
+            return NextResponse.json({ message: 'Failed to fetch Appointment' }, { status: response.status });
         }
 
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
         console.error('Error fetching Appointment:', error);
-        return NextResponse.json(
-            { message: 'Error fetching Appointment data' },
-            { status: 500 }
-        );
+        return NextResponse.json({ message: 'Error fetching Appointment data' }, { status: 500 });
     }
 }
 
 export async function PUT(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-    
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const token = getJwtToken(request);
+  try {
+    const { id } = await context.params;
+    const token = getJwtToken(request);
 
-        if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/Appointment/${params.id}`, {
-            method: 'PUT',
-            body: JSON.stringify(body),
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to update Appointment: ${response.status}`);
-        }
-
-        // Check if there's content before trying to parse JSON
-        const contentType = response.headers.get("content-type");
-        let data = null;
-
-        if (contentType && contentType.includes("application/json")) {
-            data = await response.json().catch(() => null);
-        }
-
-        return NextResponse.json({
-            message: 'Appointment updated successfully',
-            data: data || body
-        }, { status: 200 });
-    } catch (error) {
-        console.error('Error updating Appointment:', error);
-        return NextResponse.json(
-            { message: 'Error updating Appointment', error: error instanceof Error ? error.message : 'Unknown error' },
-            { status: 500 }
-        );
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+    const body = await request.json();
+    const response = await fetch(`${apiUrl}/api/Appointment/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update Appointment: ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    let data = null;
+
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json().catch(() => null);
+    }
+
+    return NextResponse.json(
+      {
+        message: "Appointment updated successfully",
+        data: data || body,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error updating Appointment:", error);
+    return NextResponse.json(
+      {
+        message: "Error updating Appointment",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(
-    request: NextRequest,
-    { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-    try {
-        const token = getJwtToken(request);
+  try {
+    const { id } = await context.params;
+    const token = getJwtToken(request);
 
-        if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const response = await fetch(
-            `${apiUrl}/api/Appointment/${params.id}`,
-            {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-            }
-        );
-
-        if (!response.ok) {
-            return NextResponse.json(
-                { message: 'Failed to delete Appointment' },
-                { status: response.status }
-            );
-        }
-
-        return NextResponse.json(
-            { message: 'Appointment deleted successfully' },
-            { status: 200 }
-        );
-    } catch (error) {
-        console.error('Error deleting Appointment:', error);
-        return NextResponse.json(
-            { message: 'Error deleting Appointment' },
-            { status: 500 }
-        );
+    if (!token) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+    const response = await fetch(`${apiUrl}/api/Appointment/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { message: "Failed to delete Appointment" },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Appointment deleted successfully" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error deleting Appointment:", error);
+    return NextResponse.json(
+      { message: "Error deleting Appointment" },
+      { status: 500 }
+    );
+  }
 }

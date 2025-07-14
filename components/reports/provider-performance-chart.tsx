@@ -33,7 +33,7 @@ export function ProviderPerformanceChart({ data }: ProviderPerformanceChartProps
         labels: data.providers,
         datasets: [
           {
-            axis: "y",
+            indexAxis: "y",
             data: data.appointments,
             backgroundColor: "#4A89DC",
             borderColor: "#4A89DC",

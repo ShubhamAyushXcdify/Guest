@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJwtToken } from "@/utils/serverCookie";
 
 interface SlotParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export async function GET(request: NextRequest, { params }: SlotParams) {
-  const { id } = params;
+export async function GET(request: NextRequest, context: SlotParams) {
+  const { id } = await context.params;
   const token = getJwtToken(request);
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Slot/${id}`, {
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest, { params }: SlotParams) {
   }
 }
 
-export async function PUT(request: NextRequest, { params }: SlotParams) {
-  const { id } = params;
+export async function PUT(request: NextRequest, context: SlotParams) {
+  const { id } = await context.params;
   const token = getJwtToken(request);
   try {
     const body = await request.json();
@@ -70,8 +70,8 @@ export async function PUT(request: NextRequest, { params }: SlotParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: SlotParams) {
-  const { id } = params;
+export async function DELETE(request: NextRequest, context: SlotParams) {
+  const { id } = await context.params;
   const token = getJwtToken(request);
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/Slot/${id}`, {

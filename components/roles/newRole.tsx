@@ -18,6 +18,7 @@ type RoleFormValues = {
     metadata: string; // flexible JSON-like structure
     isClinicRequired: boolean;
     colourName: string;
+    priority: number;
   };
   
 

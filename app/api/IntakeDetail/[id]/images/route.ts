@@ -6,8 +6,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { intakeDetailId: string } }
+    ctx: { params: Promise<{ intakeDetailId: string }> }
 ) {
+    const { intakeDetailId } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -17,7 +18,7 @@ export async function POST(
 
         const body = await request.json();
         
-        const response = await fetch(`${apiUrl}/api/IntakeDetail/${params.intakeDetailId}/images`, {
+        const response = await fetch(`${apiUrl}/api/IntakeDetail/${intakeDetailId}/images`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -6,8 +6,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -15,7 +16,7 @@ export async function GET(
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/VitalDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/VitalDetail/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -43,8 +44,9 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
@@ -59,10 +61,10 @@ export async function PUT(
         // Make sure the payload includes the ID
         const fullPayload = {
             ...body,
-            id: params.id 
+            id: id
         };
-        
-        const response = await fetch(`${apiUrl}/api/VitalDetail/${params.id}`, {
+
+        const response = await fetch(`${apiUrl}/api/VitalDetail/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -92,8 +94,9 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
@@ -103,7 +106,7 @@ export async function DELETE(
             );
         }
 
-        const response = await fetch(`${apiUrl}/api/VitalDetail/${params.id}`, {
+        const response = await fetch(`${apiUrl}/api/VitalDetail/${id}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',

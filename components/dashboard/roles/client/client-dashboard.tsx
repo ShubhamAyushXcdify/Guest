@@ -160,7 +160,7 @@ export const ClientDashboard = ({
                               : "theme-badge-neutral"
                           }
                         >
-                          {appointment.status ? appointment.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
+                          {appointment.status ? appointment.status.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : ''}
                         </Badge>
                       </td>
                     </tr>
@@ -235,7 +235,7 @@ export const ClientDashboard = ({
                               : "theme-badge-neutral"
                           }
                         >
-                          {appointment.status ? appointment.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}
+                          {appointment.status ? appointment.status.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : ''}
                         </Badge>
                       </td>
                     </tr>
