@@ -21,7 +21,10 @@ export default function Inventory() {
   const [selectedClinicId, setSelectedClinicId] = useState<string>("")
 
   const { data: clinicsData } = useGetClinics()
-  const { user, userType, clinic } = useRootContext()
+  const { userType, clinic } = useRootContext();
+  
+  // If user is clinicAdmin, filter suppliers by clinic ID
+  const clinicId = userType.isClinicAdmin ? clinic.id || '' : '';
 
   // Ensure we only access localStorage on the client side
   useEffect(() => {
@@ -30,25 +33,23 @@ export default function Inventory() {
 
   // Set clinic ID from user context if available, otherwise from clinics data
   useEffect(() => {
-    if (user?.clinic?.id) {
+    if (clinicId) {
       // Use clinic ID from user context
-      setSelectedClinicId(user.clinic.id)
+      setSelectedClinicId(clinicId)
     } else if (clinicsData?.items && clinicsData.items.length > 0 && !selectedClinicId) {
       // Fallback to first clinic from API if no user clinic
       setSelectedClinicId(clinicsData.items[0].id)
     }
-  }, [user, clinicsData, selectedClinicId])
+  }, [clinicsData, selectedClinicId])
 
   // If not mounted yet, don't render to avoid hydration mismatch
   if (!mounted) return null
 
-  // Check if we should show the clinic selector (only when user doesn't have a clinic)
-  const shouldShowClinicSelector = !user?.clinic?.id
 
   return (
     <>
       <div className="p-6">
-        {!clinic.id && (
+        {!clinicId && (
           <div className="flex flex-col md:flex-row justify-between items-center md:items-center mb-6">
             <div className="flex items-center gap-2">
               <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
