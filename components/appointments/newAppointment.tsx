@@ -30,6 +30,7 @@ import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-a
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { useGetUserById } from "@/queries/users/get-user-by-id"
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -139,16 +140,59 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   // Get selected room ID for slots
   const selectedRoomId = form.watch("roomId");
+  const selectedVeterinarianId = form.watch("veterinarianId");
   const selectedDate = form.watch("appointmentDate");
 
   // Format selected date to YYYY-MM-DD for API filtering (if needed later)
   const formattedDate = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
 
   // Fetch slots for the selected room
-  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
+  const { data: roomSlotsData, isLoading: isLoadingRoomSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
   
-  // Initialize slots with proper default value
-  const slots: SlotResponse = slotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
+  // Fetch the veterinarian data which includes their slots
+  const { data: veterinarianData, isLoading: isLoadingVeterinarian } = useGetUserById(selectedVeterinarianId || '', !!selectedVeterinarianId);
+  
+  // Log the veterinarian data for debugging
+  useEffect(() => {
+    if (selectedVeterinarianId && veterinarianData) {
+      console.log("Veterinarian data:", veterinarianData);
+      console.log("Veterinarian slots:", veterinarianData.doctorSlots);
+    }
+  }, [selectedVeterinarianId, veterinarianData]);
+  
+  // Normalized slot type to use for both room slots and doctor slots
+  interface NormalizedSlot {
+    id: string;
+    startTime: string;
+    endTime: string;
+    isAvailable: boolean;
+  }
+  
+  // Transform veterinarian slots to the normalized format
+  const normalizedVeterinarianSlots = selectedVeterinarianId && veterinarianData && veterinarianData.doctorSlots ? 
+    veterinarianData.doctorSlots.map((slot: any) => ({
+      id: slot.id,
+      startTime: slot.startTime || slot.start || '',
+      endTime: slot.endTime || slot.end || '',
+      isAvailable: true  // Assuming all veterinarian slots are available
+    } as NormalizedSlot)) : [];
+  
+  // Transform room slots to the normalized format
+  const normalizedRoomSlots = selectedRoomId && roomSlotsData && roomSlotsData.items ? 
+    roomSlotsData.items
+      .filter(slot => slot.isAvailable)
+      .map(slot => ({
+        id: slot.id,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        isAvailable: slot.isAvailable
+      } as NormalizedSlot)) : [];
+  
+  // Use veterinarian slots if available, otherwise use room slots
+  const slots: NormalizedSlot[] = selectedVeterinarianId && normalizedVeterinarianSlots.length > 0 ? 
+    normalizedVeterinarianSlots : normalizedRoomSlots;
+  
+  const isLoadingSlots = selectedVeterinarianId ? isLoadingVeterinarian : isLoadingRoomSlots;
 
   // Format time for display (assuming HH:mm:ss format from API)
   const formatTime = (timeString: string) => {
@@ -370,8 +414,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         return; // Prevent form submission
       }
 
-      // Find selected slot details
-      const selectedSlotDetails = slots.items.find(slot => slot.id === data.slotId);
+      // Find selected slot details from the normalized slots array
+      const selectedSlotDetails = slots.find(slot => slot.id === data.slotId);
       
       if (!selectedSlotDetails) {
         toast({
@@ -386,7 +430,9 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         ...data,
         clientId,
         appointmentDate: formattedAppointmentDate,
-        roomSlotId: data.slotId, // Use slotId as roomSlotId
+        appointmentTimeFrom: selectedSlotDetails.startTime,
+        appointmentTimeTo: selectedSlotDetails.endTime,
+        roomSlotId: data.slotId, // Keep for backward compatibility
         createdBy: user?.id,
       } as any; // Use type assertion to allow adding id property
       
@@ -569,7 +615,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       // Set other fields
       form.setValue("slotId", appointmentData.roomSlotId || appointmentData.slotId);
       form.setValue("appointmentTypeId", appointmentData.appointmentTypeId);
-      form.setValue("reason", appointmentData.reason);
+      form.setValue("reason", appointmentData.reason || "");
       form.setValue("notes", appointmentData.notes || "");
       form.setValue("status", appointmentData.status || "scheduled");
       
@@ -624,6 +670,15 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     }
     // eslint-disable-next-line
   }, [notesTranscriber.output?.isBusy]);
+
+  // Update the form whenever the veterinarian changes to reset the slot
+  useEffect(() => {
+    if (selectedVeterinarianId) {
+      // Clear the selected slot when veterinarian changes
+      setSelectedSlot(null);
+      form.setValue("slotId", "");
+    }
+  }, [selectedVeterinarianId]);
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
@@ -864,14 +919,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                   />
                 </div>
 
-                {/* Slot selection section - only appears when room is selected */}
-                {selectedRoomId && (
+                {/* Slot selection section - show after selecting veterinarian or room */}
+                {(selectedVeterinarianId || selectedRoomId) && (
                   <FormField
                     control={form.control}
                     name="slotId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Available Slots</FormLabel>
+                        <FormLabel>
+                          {selectedVeterinarianId ? "Veterinarian Available Slots" : "Room Available Slots"}
+                        </FormLabel>
                         <FormControl>
                           <div className="mt-2">
                             {isLoadingSlots ? (
@@ -879,15 +936,13 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : slots.items.filter(slot => slot.isAvailable).length === 0 ? (
+                            ) : slots.length === 0 ? (
                               <div className="text-sm text-gray-500">
-                                No available slots for this room
+                                No available slots {selectedVeterinarianId ? "for this veterinarian" : "for this room"}
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
-                                {slots.items
-                                  .filter(slot => slot.isAvailable)
-                                  .map((slot: Slot) => (
+                                {slots.map((slot) => (
                                   <button
                                     key={slot.id}
                                     type="button"
@@ -897,8 +952,9 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                         ? 'bg-green-100 border-green-300 text-green-800'
                                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                                     }`}
+                                    title={`${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`}
                                   >
-                                    {formatTime(slot.startTime)}
+                                    {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                                   </button>
                                 ))}
                               </div>
