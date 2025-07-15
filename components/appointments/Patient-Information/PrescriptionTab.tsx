@@ -1,13 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Combobox } from "@/components/ui/combobox"
-import { PlusCircle, X, Trash2, Pencil, Mic } from "lucide-react"
+import { PlusCircle, X, Trash2, Pencil, Mic, Search } from "lucide-react"
 import { toast } from "sonner"
-import { useGetProducts } from "@/queries/products/get-products"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
 import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id"
 import { useUpdatePrescriptionDetail } from "@/queries/PrescriptionDetail/update-prescription-detail"
@@ -19,6 +17,8 @@ import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useGetInventorySearchByClinicId, InventorySearchItem } from "@/queries/inventory/get-inventory-search-by-clinicId"
+import { ProductMapping as BaseProductMapping } from "@/queries/PrescriptionDetail/get-prescription-detail-by-id"
 
 interface PrescriptionTabProps {
   patientId: string
@@ -26,39 +26,82 @@ interface PrescriptionTabProps {
   onNext?: () => void
 }
 
-interface ProductMapping {
-  id?: string
-  productId: string
-  dosage: string
-  frequency: string
+// Extend the base ProductMapping to include our additional properties
+interface ExtendedProductMapping extends BaseProductMapping {
+  productName?: string
+  product?: {
+    id: string
+    name: string
+    genericName?: string
+    productNumber?: string
+    [key: string]: any
+  }
 }
 
 export default function PrescriptionTab({ patientId, appointmentId, onNext }: PrescriptionTabProps) {
   const [notes, setNotes] = useState("")
-  const [productMappings, setProductMappings] = useState<ProductMapping[]>([])
+  const [productMappings, setProductMappings] = useState<ExtendedProductMapping[]>([])
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [currentMapping, setCurrentMapping] = useState<ProductMapping>({ productId: "", dosage: "", frequency: "" })
+  const [currentMapping, setCurrentMapping] = useState<ExtendedProductMapping>({ 
+    id: "",
+    productId: "", 
+    dosage: "", 
+    frequency: "",
+    productName: undefined,
+    product: undefined
+  })
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const { markTabAsCompleted } = useTabCompletion()
+  
+  // Medicine search state
+  const [medicineSearchQuery, setMedicineSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const [selectedMedicine, setSelectedMedicine] = useState<{ id: string, name: string } | null>(null)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(medicineSearchQuery)
+    }, 300)
+    
+    return () => clearTimeout(timer)
+  }, [medicineSearchQuery])
   
   const transcriber = useTranscriber()
   
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
   
-  // Get all products
-  const { data: productsData, isLoading: productsLoading } = useGetProducts(1, 100, {
-  searchByname: '',
-  category: '',
-  productType: ''
-}, true);
-  
+  // Get appointment data to get clinic ID
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
+  const clinicId = appointmentData?.clinicId || ""
+
+  // Search for medicines by clinic ID
+  const { data: searchResults, isLoading: isSearching } = useGetInventorySearchByClinicId(
+    clinicId,
+    debouncedSearchQuery,
+    10,
+    Boolean(clinicId) && Boolean(debouncedSearchQuery) && debouncedSearchQuery.length >= 2
+  )
+
   // Get existing prescription detail
   const { data: existingPrescriptionDetail, refetch: refetchPrescriptionDetail } = 
     useGetPrescriptionDetailByVisitId(visitData?.id || "")
+  
+  // Click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setIsSearchDropdownOpen(false)
+      }
+    }
 
-  const { data: appointmentData } = useGetAppointmentById(appointmentId)
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
   
   // Initialize from existing data
   useEffect(() => {
@@ -71,9 +114,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         setProductMappings(existingPrescriptionDetail.productMappings.map(pm => ({
           id: pm.id,
           productId: pm.productId,
+          productName: (pm as any).productName,
           dosage: pm.dosage,
-          frequency: pm.frequency
-        })))
+          frequency: pm.frequency,
+          product: (pm as any).product
+        } as ExtendedProductMapping)))
       }
       
       // Mark tab as completed if it was already completed or if it has products
@@ -118,14 +163,45 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   })
 
   const openAddSheet = () => {
-    setCurrentMapping({ productId: "", dosage: "", frequency: "" })
+    setCurrentMapping({ 
+      id: "",
+      productId: "", 
+      dosage: "", 
+      frequency: "",
+      productName: undefined,
+      product: undefined
+    } as ExtendedProductMapping)
     setEditingIndex(null)
+    setSelectedMedicine(null)
+    setMedicineSearchQuery("")
     setIsAddSheetOpen(true)
   }
 
   const openEditSheet = (index: number) => {
-    setCurrentMapping({ ...productMappings[index] })
+    const mapping = productMappings[index]
+    setCurrentMapping({ ...mapping })
     setEditingIndex(index)
+    
+    const extendedMapping = mapping as ExtendedProductMapping;
+    
+    // Find the product name for the selected medicine
+    const product = searchResults?.items?.find(item => 
+      item.productId === mapping.productId || item.id === mapping.productId
+    )
+    
+    if (product) {
+      setSelectedMedicine({
+        id: mapping.productId,
+        name: product.product?.name || extendedMapping.productName || "Unknown Medicine"
+      })
+    } else {
+      // If product not in current search results, use the stored name if available
+      setSelectedMedicine({
+        id: mapping.productId,
+        name: extendedMapping.productName || extendedMapping.product?.name || "Medicine"
+      })
+    }
+    
     setIsAddSheetOpen(true)
   }
 
@@ -152,6 +228,39 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     }
 
     setIsAddSheetOpen(false)
+    setSelectedMedicine(null)
+    setMedicineSearchQuery("")
+  }
+
+  const handleMedicineSelect = (medicine: InventorySearchItem) => {
+    setSelectedMedicine({
+      id: medicine.productId || medicine.id,
+      name: medicine.product?.name || "Unknown Medicine"
+    })
+    
+    const mappingWithProduct: ExtendedProductMapping = {
+      id: "",
+      productId: medicine.productId || medicine.id,
+      dosage: currentMapping.dosage,
+      frequency: currentMapping.frequency,
+      productName: medicine.product?.name || "Unknown Medicine",
+      product: medicine.product
+    };
+    
+    setCurrentMapping(mappingWithProduct);
+    setMedicineSearchQuery("")
+    setIsSearchDropdownOpen(false)
+  }
+
+  const clearSelectedMedicine = () => {
+    setSelectedMedicine(null)
+    const clearedMapping: ExtendedProductMapping = {
+      ...currentMapping,
+      productId: "",
+      productName: undefined,
+      product: undefined
+    };
+    setCurrentMapping(clearedMapping);
   }
 
   const handleSave = async () => {
@@ -170,10 +279,33 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       return
     }
     
+    // Ensure each mapping has a productName before sending to backend
+    const mappingsWithNames = validMappings.map(mapping => {
+      const updatedMapping = { ...mapping } as ExtendedProductMapping;
+      
+      if (!updatedMapping.productName) {
+        // Try to find the medicine name from search results
+        const product = searchResults?.items?.find(item => 
+          item.productId === mapping.productId || item.id === mapping.productId
+        )
+        
+        if (product && product.product?.name) {
+          updatedMapping.productName = product.product.name;
+          updatedMapping.product = product.product;
+        }
+      }
+      return updatedMapping;
+    })
+    
+    // Create a backend-compatible version of the data by removing our extended properties
+    const backendMappings = mappingsWithNames.map(({ id, productId, dosage, frequency }) => ({
+      id, productId, dosage, frequency
+    }));
+    
     const prescriptionData = {
       notes,
       isCompleted: true,
-      productMappings: validMappings.map(({ id, ...rest }) => rest)
+      productMappings: backendMappings
     }
     
     if (existingPrescriptionDetail) {
@@ -194,7 +326,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   const isReadOnly = appointmentData?.status === "completed"
 
-  if (visitLoading || productsLoading) {
+  if (visitLoading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -213,13 +345,32 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       </Card>
     )
   }
-
-  const products = productsData?.items || []
   
   // Function to get product name by ID
   const getProductName = (productId: string) => {
-    const product = products.find(p => p.id === productId)
-    return product ? product.name : "Unknown Product"
+    // First check the existing mappings
+    const mapping = productMappings.find(m => m.productId === productId)
+    if (!mapping) return "Unknown Product"
+    
+    // First option: Check if mapping has a product object with name
+    const extendedMapping = mapping as ExtendedProductMapping;
+    if (extendedMapping.product?.name) return extendedMapping.product.name
+    
+    // Second option: Use the stored product name if available
+    if (extendedMapping.productName) return extendedMapping.productName
+    
+    // Third option: Try to find name from search results
+    if (searchResults?.items) {
+      const foundProduct = searchResults.items.find(item => 
+        item.productId === productId || item.id === productId
+      )
+      if (foundProduct?.product?.name) {
+        return foundProduct.product.name
+      }
+    }
+    
+    // If no name is found, return a simple "Medicine" label
+    return "Medicine"
   }
 
   return (
@@ -340,15 +491,80 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           <div className="space-y-6 py-6">
             <div className="space-y-3">
               <Label htmlFor="product">Medicine</Label>
-              <Combobox
-                options={products.map(product => ({
-                  value: product.id,
-                  label: product.name
-                }))}
-                value={currentMapping.productId}
-                onValueChange={(value) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, productId: value})}
-                placeholder="Select a medicine"
-              />
+              <div className="relative flex-grow" ref={searchDropdownRef}>
+                {selectedMedicine ? (
+                  <div className="flex items-center justify-between p-2 border rounded-md">
+                    <span>{selectedMedicine.name}</span>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="p-1 h-auto"
+                      onClick={clearSelectedMedicine}
+                      disabled={isReadOnly}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Search medicines by name or code..."
+                        value={medicineSearchQuery}
+                        onChange={(e) => {
+                          setMedicineSearchQuery(e.target.value)
+                          if (e.target.value.length >= 2) {
+                            setIsSearchDropdownOpen(true)
+                          } else {
+                            setIsSearchDropdownOpen(false)
+                          }
+                        }}
+                        className="pl-9"
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    
+                    {isSearchDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                        {isSearching && (
+                          <div className="px-4 py-2 text-sm text-gray-500">Searching...</div>
+                        )}
+                        
+                        {!isSearching && (!searchResults || !searchResults.items || searchResults.items.length === 0) && (
+                          <div className="px-4 py-2 text-sm text-gray-500">No medicines found</div>
+                        )}
+                        
+                        {!isSearching && searchResults && searchResults.items && searchResults.items.length > 0 && (
+                          <ul className="py-1">
+                            {searchResults.items.map((item) => (
+                              <li
+                                key={item.id}
+                                className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                onClick={() => handleMedicineSelect(item)}
+                              >
+                                <div className="font-medium">{item.product?.name || "Unknown Product"}</div>
+                                {item.product?.productNumber && (
+                                  <div className="text-sm text-gray-500">
+                                    Code: {item.product.productNumber}
+                                  </div>
+                                )}
+                                {item.product?.genericName && (
+                                  <div className="text-sm text-gray-500">
+                                    Generic: {item.product.genericName}
+                                  </div>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
             
             <div className="space-y-3">
