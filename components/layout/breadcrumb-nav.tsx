@@ -47,11 +47,6 @@ const formatSegmentName = (segment: string, index: number, segments: string[]): 
       return "";
     }
     
-    // Special case: If this appears to be a doctorId after slots, don't display it
-    if (index > 0 && segments[index-1].toLowerCase() === "slots") {
-      return ""; // Skip doctor IDs in breadcrumb for the slots page
-    }
-    
     // Special case: If this appears to be a roomId (after "rooms"), don't label it as "Clinic"
     if (index > 0 && segments[index-1].toLowerCase() === "rooms") {
       return ""; // Skip room IDs in breadcrumb

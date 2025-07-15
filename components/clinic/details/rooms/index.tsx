@@ -102,9 +102,13 @@ function Room({ clinicId }: RoomProps) {
       accessorKey: "name",
       header: "Name",
       cell: ({ row }) => (
-        <div className="font-normal text-left">
+        <Button 
+          variant="link" 
+          className="px-0 font-normal text-left text-blue-600 hover:text-blue-800 hover:underline"
+          onClick={() => handleSlotsClick(row.original.id)}
+        >
           {row.original.name}
-        </div>
+        </Button>
       )
     },
     { accessorKey: "roomType", header: "Room Type" },
