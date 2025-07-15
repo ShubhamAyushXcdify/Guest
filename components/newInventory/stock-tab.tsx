@@ -7,8 +7,10 @@ import { ColumnDef } from "@tanstack/react-table"
 import Link from "next/link"
 import { useGetInventoryInfinite } from "@/queries/inventory/get-inventory"
 import { useEffect, useState } from "react"
-import { Loader2 } from "lucide-react"
+import { Filter, Loader2 } from "lucide-react"
 import { InventoryData } from "@/queries/inventory/get-inventory"
+import { StockFilters, StockFilterDialog } from "./stockFilterDialog"
+import { Badge } from "../ui/badge"
 
 interface StockTabProps {
   clinicId: string
@@ -18,6 +20,8 @@ export default function StockTab({ clinicId }: StockTabProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState<StockFilters>({})
+  const [openFilter, setOpenFilter] = useState(false)
 
   const {
     data,
@@ -31,10 +35,12 @@ export default function StockTab({ clinicId }: StockTabProps) {
     { 
       clinicId,
       pageSize,
-      search: searchQuery
+      search: searchQuery,
+      ...filters,
     },
     true
   )
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
 
   const getStockStatus = (quantityOnHand: number, reorderThreshold: number) => {
     if (quantityOnHand <= 0) {
@@ -165,7 +171,43 @@ export default function StockTab({ clinicId }: StockTabProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Stock Management</h3>
+        <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-2 px-3 py-2 border rounded text-sm"
+            onClick={() => setOpenFilter(true)}
+          >
+            <Filter className="h-4 w-4" />
+            Filter
+            {activeFilterCount > 0 && (
+              <span className="ml-1 h-5 w-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
+      {/* Active filter badges */}
+      {activeFilterCount > 0 && (
+         <div className="flex flex-wrap gap-2 mb-2 items-center">
+           {filters.search && (
+             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+               Search: {filters.search}
+             </span>
+           )}
+           {filters.batchNumber && (
+             <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+               Batch: {filters.batchNumber}
+             </span>
+           )}
+           <button 
+             className="text-xs text-gray-500 underline"
+             onClick={() => setFilters({})}
+           >
+             Clear all
+           </button>
+         </div>
+      )}
+
       
       <DataTable
         columns={columns}
@@ -177,6 +219,13 @@ export default function StockTab({ clinicId }: StockTabProps) {
         totalPages={totalPages}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+      />
+       {/* Filter Dialog */}
+      <StockFilterDialog
+        isOpen={openFilter}
+        onOpenChange={setOpenFilter}
+        filters={filters}
+        setFilters={setFilters}
       />
     </div>
   )
