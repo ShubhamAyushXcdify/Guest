@@ -369,7 +369,21 @@ export default function AppointmentList({
       cell: ({ row }) => {
         const appointment = row.original;
         
-        // Check if roomSlot and startTime exist
+        // First try to use appointmentTimeFrom and appointmentTimeTo (new API format)
+        if (appointment.appointmentTimeFrom && appointment.appointmentTimeTo) {
+          const formatTime = (timeString: string) => {
+            // Format time to HH:MM
+            if (timeString.includes(':')) {
+              const timeParts = timeString.split(':');
+              return `${timeParts[0]}:${timeParts[1]}`;
+            }
+            return timeString;
+          };
+          
+          return `${formatTime(appointment.appointmentTimeFrom)} - ${formatTime(appointment.appointmentTimeTo)}`;
+        }
+        
+        // Check if roomSlot and startTime exist (legacy format)
         if (appointment.roomSlot && appointment.roomSlot.startTime) {
           // Format time to HH:MM
           const timeValue = appointment.roomSlot.startTime;
