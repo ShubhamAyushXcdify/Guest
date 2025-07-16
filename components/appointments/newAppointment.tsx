@@ -18,7 +18,7 @@ import { useGetRoom, Room } from "@/queries/rooms/get-room"
 import { useGetUsers } from "@/queries/users/get-users"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Search, X, Loader2, Mic } from "lucide-react"
+import { Plus, Search, X, Loader2, Mic, Sparkles } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
@@ -31,6 +31,7 @@ import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useGetUserById } from "@/queries/users/get-user-by-id"
+import { reasonFormatting, notesFormatting } from "@/app/actions/reasonformatting";
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -608,6 +609,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
   const reasonTranscriber = useTranscriber();
   const notesTranscriber = useTranscriber();
+  const [isReasonFormatting, setIsReasonFormatting] = useState(false);
+  const [isNotesFormatting, setIsNotesFormatting] = useState(false);
 
   // Audio transcription effect for reason
   useEffect(() => {
@@ -643,6 +646,37 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       form.setValue("slotId", "");
     }
   }, [selectedVeterinarianId]);
+
+  // Handler for AI formatting of reason
+  const handleAIFormatReason = async () => {
+    const currentReason = form.getValues("reason");
+    if (!currentReason) return;
+    setIsReasonFormatting(true);
+    try {
+      const formatted = await reasonFormatting(currentReason);
+      form.setValue("reason", formatted);
+    } catch (e) {
+      // Optionally show error toast
+      toast({ title: "AI Formatting Error", description: "Failed to format reason.", variant: "destructive" });
+    } finally {
+      setIsReasonFormatting(false);
+    }
+  };
+
+  // Handler for AI formatting of notes
+  const handleAIFormatNotes = async () => {
+    const currentNotes = form.getValues("notes");
+    if (!currentNotes) return;
+    setIsNotesFormatting(true);
+    try {
+      const formatted = await notesFormatting(currentNotes);
+      form.setValue("notes", formatted);
+    } catch (e) {
+      toast({ title: "AI Formatting Error", description: "Failed to format notes.", variant: "destructive" });
+    } finally {
+      setIsNotesFormatting(false);
+    }
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
@@ -949,6 +983,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                               <Mic className="w-4 h-4" />
                             )}
                           </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAIFormatReason}
+                            disabled={isReasonFormatting}
+                            className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            {isReasonFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
+                          </Button>
                         </div>
                         <FormControl>
                           <textarea
@@ -989,6 +1033,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                             ) : (
                               <Mic className="w-4 h-4" />
                             )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAIFormatNotes}
+                            disabled={isNotesFormatting}
+                            className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            {isNotesFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
                           </Button>
                         </div>
                         <FormControl>
