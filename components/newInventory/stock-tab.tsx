@@ -42,17 +42,6 @@ export default function StockTab({ clinicId }: StockTabProps) {
   )
   const activeFilterCount = Object.values(filters).filter(Boolean).length
 
-  const getStockStatus = (quantityOnHand: number, reorderThreshold: number) => {
-    if (quantityOnHand <= 0) {
-      return { text: "Out of Stock", color: "bg-red-100 text-red-800" }
-    } else if (reorderThreshold > 0 && quantityOnHand <= reorderThreshold) {
-      return { text: "Low Stock", color: "bg-red-100 text-red-800" }
-    } else if (reorderThreshold > 0 && quantityOnHand <= reorderThreshold * 1.5) {
-      return { text: "Warning", color: "bg-amber-100 text-amber-800" }
-    } else {
-      return { text: "In Stock", color: "bg-green-100 text-green-800" }
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
@@ -135,13 +124,38 @@ export default function StockTab({ clinicId }: StockTabProps) {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = getStockStatus(row.original.quantityOnHand, row.original.product?.reorderThreshold || 0)
-        return (
-          <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color}`}>
-            {status.text}
-          </span>
-        )
+      const status = row.original.status;
+      let color = '';
+      let text = '';
+      
+      switch (status) {
+        case 'In Stock':
+          color = 'bg-green-100 text-green-800';
+          text = 'In Stock';
+          break;
+        case 'Out of Stock':
+          color = 'bg-red-100 text-red-800';
+          text = 'Out of Stock';
+          break;
+        case 'Warning':
+          color = 'bg-amber-100 text-amber-800';
+          text = 'Warning';
+          break;
+        case 'Low Stock':
+          color = 'bg-orange-100 text-orange-800';
+          text = 'Low Stock';
+          break;
+        default:
+          color = 'bg-gray-100 text-gray-800';
+          text = 'Unknown';
       }
+    
+      return (
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${color}`}>
+          {text}
+        </span>
+      );
+    }
     },
     // {
     //   id: "actions",
