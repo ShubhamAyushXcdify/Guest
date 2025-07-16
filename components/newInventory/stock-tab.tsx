@@ -69,6 +69,13 @@ export default function StockTab({ clinicId }: StockTabProps) {
         <div className="font-medium">{row.original.product?.name || 'N/A'}</div>
       )
     },
+    { 
+      accessorKey: "product.brandName", 
+      header: "Brand Name",
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.product?.name || 'N/A'}</div>
+      )
+    },
     // { 
     //   accessorKey: "lotNumber", 
     //   header: "Lot Number",
