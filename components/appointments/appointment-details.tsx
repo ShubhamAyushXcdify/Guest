@@ -22,6 +22,7 @@ import { useGetRoom } from "@/queries/rooms/get-room"
 import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
+import VaccinationComponent from "@/components/appointments/vaccination/index"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
@@ -73,6 +74,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
+  const [isVaccinationOpen, setIsVaccinationOpen] = useState(false)
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
@@ -383,7 +385,14 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }
 
   const handlePatientInfoClick = () => {
-    setIsPatientInfoOpen(true);
+    // Check if this is a vaccination appointment
+    const isVaccination = appointment?.appointmentType?.name?.toLowerCase()?.includes('vaccination');
+    
+    if (isVaccination) {
+      setIsVaccinationOpen(true);
+    } else {
+      setIsPatientInfoOpen(true);
+    }
   }
 
 //   if (isLoading) {
@@ -892,11 +901,19 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         </SheetContent>
       </Sheet>
 
-      {isPatientInfoOpen && (
+      {isPatientInfoOpen && !isVaccinationOpen && (
         <PatientInformation 
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
           onClose={() => setIsPatientInfoOpen(false)}
+        />
+      )}
+
+      {isVaccinationOpen && (
+        <VaccinationComponent
+          patientId={appointment?.patientId || ''}
+          appointmentId={appointmentId}
+          onClose={() => setIsVaccinationOpen(false)}
         />
       )}
     </>

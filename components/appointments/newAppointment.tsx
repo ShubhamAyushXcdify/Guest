@@ -23,7 +23,7 @@ import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
-import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
+import { useGetAvailableSlotsByUserId, AvailableSlot } from "@/queries/users/get-availabelSlots-by-userId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId"
@@ -91,7 +91,7 @@ interface SlotResponse {
   pageSize: number;
   totalPages: number;
   totalCount: number;
-  items: Slot[];
+  items: AvailableSlot[];
 }
 
 function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSelectedRoom, appointmentId, sendEmail = false }: NewAppointmentProps) {
@@ -138,61 +138,25 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         },
   })
 
-  // Get selected room ID for slots
-  const selectedRoomId = form.watch("roomId");
+  // Get selected veterinarian ID and date for slots
   const selectedVeterinarianId = form.watch("veterinarianId");
   const selectedDate = form.watch("appointmentDate");
 
-  // Format selected date to YYYY-MM-DD for API filtering (if needed later)
-  const formattedDate = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
-
-  // Fetch slots for the selected room
-  const { data: roomSlotsData, isLoading: isLoadingRoomSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
-  
-  // Fetch the veterinarian data which includes their slots
-  const { data: veterinarianData, isLoading: isLoadingVeterinarian } = useGetUserById(selectedVeterinarianId || '', !!selectedVeterinarianId);
-  
-  // Log the veterinarian data for debugging
-  useEffect(() => {
-    if (selectedVeterinarianId && veterinarianData) {
-      console.log("Veterinarian data:", veterinarianData);
-      console.log("Veterinarian slots:", veterinarianData.doctorSlots);
-    }
-  }, [selectedVeterinarianId, veterinarianData]);
-  
-  // Normalized slot type to use for both room slots and doctor slots
-  interface NormalizedSlot {
-    id: string;
-    startTime: string;
-    endTime: string;
-    isAvailable: boolean;
-  }
-  
-  // Transform veterinarian slots to the normalized format
-  const normalizedVeterinarianSlots = selectedVeterinarianId && veterinarianData && veterinarianData.doctorSlots ? 
-    veterinarianData.doctorSlots.map((slot: any) => ({
-      id: slot.id,
-      startTime: slot.startTime || slot.start || '',
-      endTime: slot.endTime || slot.end || '',
-      isAvailable: true  // Assuming all veterinarian slots are available
-    } as NormalizedSlot)) : [];
-  
-  // Transform room slots to the normalized format
-  const normalizedRoomSlots = selectedRoomId && roomSlotsData && roomSlotsData.items ? 
-    roomSlotsData.items
-      .filter(slot => slot.isAvailable)
-      .map(slot => ({
-        id: slot.id,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-        isAvailable: slot.isAvailable
-      } as NormalizedSlot)) : [];
-  
-  // Use veterinarian slots if available, otherwise use room slots
-  const slots: NormalizedSlot[] = selectedVeterinarianId && normalizedVeterinarianSlots.length > 0 ? 
-    normalizedVeterinarianSlots : normalizedRoomSlots;
-  
-  const isLoadingSlots = selectedVeterinarianId ? isLoadingVeterinarian : isLoadingRoomSlots;
+  // Format selected date to YYYY-MM-DD for API filtering
+  // Use local date methods to ensure the date stays in the user's timezone
+  const formattedDate = selectedDate ? 
+    `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+    '';
+    
+  // Fetch available slots for the selected veterinarian using the new hook
+  const { 
+    data: availableSlots = [], 
+    isLoading: isLoadingSlots 
+  } = useGetAvailableSlotsByUserId(
+    selectedVeterinarianId, 
+    formattedDate, 
+    !!selectedVeterinarianId && !!formattedDate
+  );
 
   // Format time for display (assuming HH:mm:ss format from API)
   const formatTime = (timeString: string) => {
@@ -221,10 +185,10 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   };
 
   // Fetch real data from APIs
-  const { data: clinics } = useGetClinic(1, 100)
+  const { data: clinics } = useGetClinic(1, 100, '', null, null, true)
   const selectedClinicId = form.watch("clinicId") || clinic?.id || "";
 
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100);
+  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId, true);
   const veterinarianOptions = (usersResponse.items || [])
   .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
   .map(vet => ({
@@ -372,8 +336,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       if (!data.appointmentDate) {
         throw new Error("Appointment date is required");
       }
-      // Format date in local timezone to prevent day shifting
-      const formattedAppointmentDate = `${data.appointmentDate.getFullYear()}-${String(data.appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(data.appointmentDate.getDate()).padStart(2, '0')}`; // YYYY-MM-DD
+      // Format date using local date methods to maintain consistency
+      const formattedAppointmentDate = `${data.appointmentDate.getFullYear()}-${String(data.appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(data.appointmentDate.getDate()).padStart(2, '0')}`;
 
       // Check for the selected patient
       if (!selectedPatient) {
@@ -414,8 +378,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         return; // Prevent form submission
       }
 
-      // Find selected slot details from the normalized slots array
-      const selectedSlotDetails = slots.find(slot => slot.id === data.slotId);
+      // Find selected slot details from the availableSlots array
+      const selectedSlotDetails = availableSlots.find(slot => slot.id === data.slotId);
       
       if (!selectedSlotDetails) {
         toast({
@@ -671,7 +635,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     // eslint-disable-next-line
   }, [notesTranscriber.output?.isBusy]);
 
-  // Update the form whenever the veterinarian changes to reset the slot
+  // Remove the room slot dependency - we'll only use veterinarian slots now
   useEffect(() => {
     if (selectedVeterinarianId) {
       // Clear the selected slot when veterinarian changes
@@ -861,12 +825,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                           <Combobox
                             options={roomOptions}
                             value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // Reset selected slot when room changes
-                              setSelectedSlot(null);
-                              form.setValue("slotId", "");
-                            }}
+                            onValueChange={field.onChange}
                             placeholder={isLoadingRooms ? "Loading rooms..." : "Select room"}
                           />
                         </FormControl>
@@ -919,15 +878,15 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                   />
                 </div>
 
-                {/* Slot selection section - show after selecting veterinarian or room */}
-                {(selectedVeterinarianId || selectedRoomId) && (
+                {/* Available Slots section - only show when veterinarian and date are selected */}
+                {selectedVeterinarianId && selectedDate && (
                   <FormField
                     control={form.control}
                     name="slotId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {selectedVeterinarianId ? "Veterinarian Available Slots" : "Room Available Slots"}
+                          Available Slots
                         </FormLabel>
                         <FormControl>
                           <div className="mt-2">
@@ -936,13 +895,13 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : slots.length === 0 ? (
+                            ) : availableSlots.length === 0 ? (
                               <div className="text-sm text-gray-500">
-                                No available slots {selectedVeterinarianId ? "for this veterinarian" : "for this room"}
+                                No available slots for this veterinarian on the selected date
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
-                                {slots.map((slot) => (
+                                {availableSlots.map((slot) => (
                                   <button
                                     key={slot.id}
                                     type="button"

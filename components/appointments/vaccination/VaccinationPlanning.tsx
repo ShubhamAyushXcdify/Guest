@@ -210,20 +210,20 @@ export default function VaccinationPlanning({
                 )}
                 
                 <div className="flex justify-between">
-                  <Button 
-                    onClick={onClose}
-                    variant="outline"
-                    className="px-5"
-                  >
-                    Back
-                  </Button>
-                  <Button 
-                    onClick={handleNext}
+                <Button 
+                  onClick={onClose}
+                  variant="outline"
+                  className="px-5"
+                >
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleNext}
                     className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
-                    disabled={isLoading || selectedVaccines.length === 0}
-                  >
-                    Next: Record Keeping
-                  </Button>
+                  disabled={isLoading || selectedVaccines.length === 0}
+                >
+                  Next: Record Keeping
+                </Button>
                 </div>
               </div>
             </div>
@@ -251,14 +251,14 @@ export default function VaccinationPlanning({
                 </div>
               </div>
             ) : (
-              <VaccinationRecord
-                patientId={patientId}
-                appointmentId={appointmentId}
-                species={species}
-                selectedVaccines={selectedVaccines}
-                onBack={() => setActiveTab("vaccination-planning")}
-                onSubmit={handleRecordSubmit}
-              />
+            <VaccinationRecord
+              patientId={patientId}
+              appointmentId={appointmentId}
+              species={species}
+              selectedVaccines={selectedVaccines}
+              onBack={() => setActiveTab("vaccination-planning")}
+              onSubmit={handleRecordSubmit}
+            />
             )}
           </TabsContent>
         </Tabs>
