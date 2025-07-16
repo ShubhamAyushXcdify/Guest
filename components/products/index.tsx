@@ -21,6 +21,7 @@ export type Product = {
   clinicId: string;
   productNumber: string;
   name: string;
+  brandName: string; // <-- Added brandName
   genericName: string;
   category: string;
   productType: string;
@@ -124,6 +125,7 @@ export default function Products() {
  
   const columns: ColumnDef<Product>[] = [
     { accessorKey: "name", header: "Name" },
+    { accessorKey: "brandName", header: "Brand Name" }, // <-- Added Brand Name column
     { accessorKey: "genericName", header: "Generic Name" },
     { accessorKey: "category", header: "Category" },
     { accessorKey: "productType", header: "Product Type" },
