@@ -41,7 +41,7 @@ type AppointmentFormValues = z.infer<typeof appointmentSchema>
 
 interface PatientAppointmentFormProps {
   isOpen: boolean
-  onClose: () => void
+  onClose: (wasSuccess?: boolean) => void
   clientId: string
   patients: any[]
 }
@@ -121,7 +121,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
       })
       form.reset()
       setSelectedSlot(null)
-      onClose()
+      onClose(true)
     },
     onError: (error) => {
       toast({
@@ -129,6 +129,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
         description: error.message || "Failed to submit appointment request",
         variant: "destructive",
       })
+      onClose(false)
     }
   })
 
@@ -237,7 +238,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
   }, [selectedVeterinarianId, selectedDate, form]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
+    <Sheet open={isOpen} onOpenChange={() => onClose(false)}>
       <SheetContent className="w-full sm:max-w-3xl md:max-w-4xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Request New Appointment</SheetTitle>
@@ -420,7 +421,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
                 />
 
                 <SheetFooter>
-                  <Button type="button" variant="outline" onClick={onClose}>
+                  <Button type="button" variant="outline" onClick={() => onClose(false)}>
                     Cancel
                   </Button>
                   <Button

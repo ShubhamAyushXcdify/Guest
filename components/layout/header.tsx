@@ -1,16 +1,7 @@
 "use client"
-
-import { BellRing } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { SidebarTrigger } from "../ui/sidebar"
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav"
 import { useRootContext } from "@/context/RootContext"
+import { SidebarTrigger } from "../ui/sidebar";
 
 export function Header() {
   const { user } = useRootContext();
