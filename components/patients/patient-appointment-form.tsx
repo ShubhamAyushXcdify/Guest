@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -16,11 +16,15 @@ import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetLocation } from '@/hooks/useGetLocation'
 import { NearestClinicMap } from './index';
 import type { Clinic } from '../clinic';
+import { useGetUsers } from "@/queries/users/get-users"
+import { useGetAvailableSlotsByUserId, AvailableSlot } from "@/queries/users/get-availabelSlots-by-userId"
+import { Loader2 } from "lucide-react"
 
 // Define the form schema
 const appointmentSchema = z.object({
   clinicId: z.string().uuid("Please select a clinic"),
   patientId: z.string().uuid("Please select a patient"),
+  veterinarianId: z.string().uuid("Please select a veterinarian"),
   appointmentDate: z.date()
     .refine(date => !!date, "Please select an appointment date")
     .refine(date => {
@@ -28,6 +32,7 @@ const appointmentSchema = z.object({
       today.setHours(0, 0, 0, 0);
       return date >= today;
     }, "Appointment date cannot be in the past"),
+  slotId: z.string().min(1, "Please select a time slot"),
   reason: z.string().min(1, "Please provide a reason for the appointment"),
   notes: z.string().optional(),
 })
@@ -44,16 +49,19 @@ interface PatientAppointmentFormProps {
 export default function PatientAppointmentForm({ isOpen, onClose, clientId, patients }: PatientAppointmentFormProps) {
   const { toast } = useToast()
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation()
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       clinicId: "",
       patientId: "",
+      veterinarianId: "",
       appointmentDate: undefined,
+      slotId: "",
       reason: "",
       notes: "",
     },
-    
   })
 
   useEffect(() => {
@@ -62,12 +70,42 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     }
   }, [latitude, longitude]) 
 
+  // Get selected veterinarian ID and date for slots
+  const selectedClinicId = form.watch("clinicId");
+  const selectedVeterinarianId = form.watch("veterinarianId");
+  const selectedDate = form.watch("appointmentDate");
+
+  // Format selected date to YYYY-MM-DD for API filtering
+  // Use local date methods to ensure the date stays in the user's timezone
+  const formattedDate = selectedDate ? 
+    `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+    '';
+
+  // Fetch available slots for the selected veterinarian
+  const { 
+    data: availableSlots = [], 
+    isLoading: isLoadingSlots 
+  } = useGetAvailableSlotsByUserId(
+    selectedVeterinarianId, 
+    formattedDate, 
+    !!selectedVeterinarianId && !!formattedDate
+  );
+
   // Fetch clinics
   const { data: clinicsData } = useGetClinic(1, 100, "", latitude, longitude , (latitude && longitude) ? true : false)
   const clinicOptions = (clinicsData?.items || []).map(clinic => ({
     value: clinic.id,
     label: clinic.name
   }))
+
+  // Fetch veterinarians for the selected clinic
+  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId, !!selectedClinicId);
+  const veterinarianOptions = (usersResponse.items || [])
+    .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
+    .map(vet => ({
+      value: vet.id,
+      label: `Dr. ${vet.firstName} ${vet.lastName}`
+    }));
 
   // Create patient options from provided patients
   const patientOptions = patients.map(patient => ({
@@ -82,6 +120,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
         description: "Appointment request submitted successfully",
       })
       form.reset()
+      setSelectedSlot(null)
       onClose()
     },
     onError: (error) => {
@@ -93,18 +132,65 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     }
   })
 
+  // Format time for display (assuming HH:mm:ss format from API)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
+    // If time is already in HH:MM format, return as is
+    if (timeString.length <= 5) return timeString;
+    
+    // Try to parse and format to HH:MM
+    try {
+      // Handle ISO format (2023-06-01T11:00:00)
+      if (timeString.includes('T')) {
+        return timeString.split('T')[1].substring(0, 5);
+      }
+      
+      // Handle HH:MM:SS format
+      if (timeString.includes(':')) {
+        const timeParts = timeString.split(':');
+        return `${timeParts[0]}:${timeParts[1]}`;
+      }
+      
+      return timeString;
+    } catch (e) {
+      return timeString;
+    }
+  };
+
+  const handleSlotClick = (slotId: string) => {
+    setSelectedSlot(slotId);
+    form.setValue("slotId", slotId);
+  };
+
   const onSubmit = (data: AppointmentFormValues) => {
     try {
       if (!data.appointmentDate) {
         throw new Error("Appointment date is required")
       }
 
-      const formattedAppointmentDate = data.appointmentDate.toISOString().split('T')[0] // YYYY-MM-DD
+      // Format date using local date methods to maintain consistency
+      const formattedAppointmentDate = `${data.appointmentDate.getFullYear()}-${String(data.appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(data.appointmentDate.getDate()).padStart(2, '0')}`;
+
+      // Find selected slot details
+      const selectedSlotDetails = availableSlots.find(slot => slot.id === data.slotId);
+      
+      if (!selectedSlotDetails) {
+        toast({
+          title: "Error",
+          description: "Selected slot information not found",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const formattedData = {
         ...data,
         clientId,
         appointmentDate: formattedAppointmentDate,
+        appointmentTimeFrom: selectedSlotDetails.startTime,
+        appointmentTimeTo: selectedSlotDetails.endTime,
+        roomSlotId: data.slotId, // For backward compatibility
         status: "requested", // Set status to requested for client-submitted appointments
         isRegistered: true, // Set isRegistered to true as requested
         isActive: true
@@ -132,6 +218,23 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
   const handleClinicSelect = (clinic: Clinic) => {
     form.setValue('clinicId', clinic.id);
   };
+
+  // Reset veterinarian and slot when clinic changes
+  useEffect(() => {
+    if (selectedClinicId) {
+      form.setValue('veterinarianId', '');
+      form.setValue('slotId', '');
+      setSelectedSlot(null);
+    }
+  }, [selectedClinicId, form]);
+
+  // Reset slot when veterinarian or date changes
+  useEffect(() => {
+    if (selectedVeterinarianId || selectedDate) {
+      form.setValue('slotId', '');
+      setSelectedSlot(null);
+    }
+  }, [selectedVeterinarianId, selectedDate, form]);
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -186,6 +289,31 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
 
                 <FormField
                   control={form.control}
+                  name="veterinarianId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Veterinarian</FormLabel>
+                      <FormControl>
+                        <Combobox
+                          options={veterinarianOptions}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={selectedClinicId ? "Select veterinarian" : "Select a clinic first"}
+                        />
+                      </FormControl>
+                      {selectedClinicId && veterinarianOptions.length === 0 && (
+                        <p className="text-sm text-muted-foreground">No veterinarians available at this clinic</p>
+                      )}
+                      {!selectedClinicId && (
+                        <p className="text-sm text-muted-foreground">Please select a clinic first</p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="appointmentDate"
                   render={({ field }) => {
                     // Set minDate to start of today (midnight)
@@ -207,6 +335,53 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
                     )
                   }}
                 />
+
+                {/* Available Slots section */}
+                {selectedVeterinarianId && selectedDate && (
+                  <FormField
+                    control={form.control}
+                    name="slotId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Available Time Slots</FormLabel>
+                        <FormControl>
+                          <div className="mt-2">
+                            {isLoadingSlots ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Loading available slots...
+                              </div>
+                            ) : availableSlots.length === 0 ? (
+                              <div className="text-sm text-gray-500">
+                                No available slots for this veterinarian on the selected date
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-2">
+                                {availableSlots.map((slot) => (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    onClick={() => handleSlotClick(slot.id)}
+                                    className={`rounded-full px-3 py-1 text-sm border transition-colors ${
+                                      selectedSlot === slot.id
+                                        ? 'bg-green-100 border-green-300 text-green-800'
+                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                    title={`${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`}
+                                  >
+                                    {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <input type="hidden" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}
@@ -251,7 +426,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
                   <Button
                     type="submit"
                     className="theme-button text-white"
-                    disabled={isPending}
+                    disabled={isPending || !selectedSlot}
                   >
                     {isPending ? "Submitting..." : "Request Appointment"}
                   </Button>
