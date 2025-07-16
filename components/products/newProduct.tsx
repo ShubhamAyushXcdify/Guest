@@ -75,6 +75,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
     defaultValues: {
       productNumber: "",
       name: "",
+      brandName: "", // <-- Added brandName default
       genericName: "",
       category: "",
       productType: "",
@@ -117,6 +118,14 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             <FormField name="name" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Name</FormLabel>
+                <FormControl><Input {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+           
+            <FormField name="brandName" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Brand Name</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
                 <FormMessage />
               </FormItem>

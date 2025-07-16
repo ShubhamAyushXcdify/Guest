@@ -23,6 +23,7 @@ export interface Product {
 
 // Define the inventory data type based on the API response
 export interface InventoryData {
+  status: string;
   id: string;
   clinicId: string;
   productId: string;
@@ -80,6 +81,7 @@ export const getInventory = async (filters: {
   batchNumber?: string;
   receivedFromPo?: boolean;
   poItemId?: string;
+  status?: string;
 } = {}) => {
   const params = new URLSearchParams();
   Object.entries(filters).forEach(([key, value]) => {

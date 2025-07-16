@@ -149,6 +149,16 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
               </FormItem>
             )} />
 
+            <FormField name="brandName" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Brand Name</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
             <FormField name="genericName" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Generic Name</FormLabel>
