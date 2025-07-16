@@ -23,6 +23,7 @@ export type Clinic = {
         lng: number;
         address: string;
     };
+    distance: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -39,8 +40,8 @@ export interface ApiResponse<T> {
     data: T;
 }
 
-const getClinic = async (pageNumber = 1, pageSize = 10, search = '') => {
-    const response = await fetch(`/api/clinic?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`);
+const getClinic = async (pageNumber = 1, pageSize = 10, search = '', latitude: number | null, longitude: number | null) => {
+    const response = await fetch(`/api/clinic?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}?lat=${latitude}&lng=${longitude}`);
     if (!response.ok) {
         throw new Error('Failed to fetch clinic data');
     }
@@ -48,11 +49,11 @@ const getClinic = async (pageNumber = 1, pageSize = 10, search = '') => {
     return result.data;
 };
 
-export const useGetClinic = (pageNumber = 1, pageSize = 10, search = '', enabled = true) => {
+export const useGetClinic = (pageNumber = 1, pageSize = 10, search = '', latitude: number | null, longitude: number | null, enabled = true) => {
     return useQuery({
         queryKey: ["clinic", pageNumber, pageSize, search],
         queryFn: async () => {
-            return getClinic(pageNumber, pageSize, search);
+            return getClinic(pageNumber, pageSize, search, latitude, longitude);
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

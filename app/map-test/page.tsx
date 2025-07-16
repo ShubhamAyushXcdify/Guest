@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LocationData } from '@/components/map/hooks/useMap';
+import { LocationData } from '@/components/map/hooks/useMapAdvanced';
 import Map from '@/components/map';
 import AdvancedMap from '@/components/map/advanced-map';
 

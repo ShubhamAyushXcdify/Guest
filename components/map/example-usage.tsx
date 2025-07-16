@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LocationData } from './hooks/useMap';
+import { LocationData } from './hooks/useMapAdvanced';
 import Map from './index';
 
 const MapExample: React.FC = () => {

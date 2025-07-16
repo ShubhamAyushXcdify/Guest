@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getJwtToken, getWorkspaceId } from "@/utils/serverCookie";
 import { NextRequest } from "next/server";
+import { getNearestClinic } from "@/services/locationService";
 
 
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
         const search = searchParams.get('search') || '';
+        const latitude = searchParams.get('latitude') || null;
+        const longitude = searchParams.get('longitude') || null;
 
         const response = await fetch(
             `${apiUrl}/api/Clinic?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}`,
@@ -32,7 +35,20 @@ export async function GET(request: NextRequest) {
         }
 
         const data = await response.json();
-        return NextResponse.json({ data: data }, { status: 200 });
+
+        const nearestClinic = await getNearestClinic(Number(latitude), Number(longitude), data.items);
+
+        let responseData = {
+            items: nearestClinic,
+            totalCount: data.totalCount,
+            pageNumber: data.pageNumber,
+            pageSize: data.pageSize,
+            totalPages: data.totalPages,
+            hasPreviousPage: data.hasPreviousPage,
+            hasNextPage: data.hasNextPage
+        }
+
+        return NextResponse.json({ data: responseData }, { status: 200 });
     } catch (error: any) {
         return NextResponse.json({ message: `Error fetching features: ${error.message}` }, { status: 500 });
     }
