@@ -17,7 +17,7 @@ import { useRootContext } from "@/context/RootContext"
 export default function AppointmentsPage() {
     const router = useRouter()
     const { user, userType } = useRootContext()
-    const [appointmentId, setappointmentId] = useState<string | null>(null);
+    const [appointmentId, setAppointmentId] = useState<string | null>(null);
     const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
     const searchParams = useSearchParams()
@@ -40,7 +40,7 @@ export default function AppointmentsPage() {
     }
 
     const handleAppointmentClick = useCallback((id: string | number) => {
-        setappointmentId(id.toString())
+        setAppointmentId(id.toString());
     }, [])
 
     const handlePatientSelect = (patient: Patient) => {
@@ -49,6 +49,11 @@ export default function AppointmentsPage() {
 
     const clearPatientFilter = () => {
         setSelectedPatient(null)
+    }
+
+    // Close appointment details
+    const handleCloseAppointmentView = () => {
+        setAppointmentId(null);
     }
 
     // If not mounted yet, don't render to avoid hydration mismatch
@@ -163,7 +168,14 @@ export default function AppointmentsPage() {
                 isOpen={isNewAppointmentOpen}
                 onClose={() => setIsNewAppointmentOpen(false)}
             />
-            {appointmentId && <AppointmentDetails appointmentId={appointmentId} onClose={() => setappointmentId(null)} />}
+
+            {/* Appointment Details */}
+            {appointmentId && (
+                <AppointmentDetails 
+                    appointmentId={appointmentId} 
+                    onClose={handleCloseAppointmentView} 
+                />
+            )}
         </>
     )
 }

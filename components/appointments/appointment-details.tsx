@@ -383,7 +383,7 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }
 
   const handlePatientInfoClick = () => {
-    setIsPatientInfoOpen(true)
+    setIsPatientInfoOpen(true);
   }
 
 //   if (isLoading) {
