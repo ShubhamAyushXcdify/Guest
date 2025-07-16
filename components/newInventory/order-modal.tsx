@@ -37,7 +37,15 @@ const purchaseOrderItemSchema = z.object({
 // Main purchase order schema
 const purchaseOrderSchema = z.object({
   supplierId: z.string().uuid("Please select a supplier"),
-  expectedDeliveryDate: z.string().min(1, "Expected delivery date is required"),
+  expectedDeliveryDate: z.string()
+    .min(1, "Expected delivery date is required")
+    .refine((date) => {
+      // Check if date is valid and in the future
+      const parsedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      return !isNaN(parsedDate.getTime()) && parsedDate >= today;
+    }, "Expected delivery date must be today or in the future"),
   status: z.string().default("ordered"),
   discountPercentage: z.number().min(0).max(100).default(0),
   discountedAmount: z.number().min(0).default(0),
@@ -53,15 +61,16 @@ interface OrderModalProps {
   isOpen: boolean
   onClose: () => void
   clinicId: string
+  initialProductId?: string
 }
 
-function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
+function OrderModal({ isOpen, onClose, clinicId, initialProductId }: OrderModalProps) {
   const { toast } = useToast()
   const { user } = useRootContext()
   
   // States
   const [items, setItems] = useState<PurchaseOrderItemValues[]>([{
-    productId: "",
+    productId: initialProductId || "",
     quantityOrdered: 1,
     unitCost: 0,
     discountPercentage: 0,
@@ -71,6 +80,34 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
     totalAmount: 0
   }])
   
+  React.useEffect(() => {
+    if (isOpen) {
+      setItems([{
+        productId: initialProductId || "",
+        quantityOrdered: 1,
+        unitCost: 0,
+        discountPercentage: 0,
+        discountedAmount: 0,
+        extendedAmount: 0,
+        taxAmount: 0,
+        totalAmount: 0
+      }]);
+      form.reset({
+        supplierId: "",
+        expectedDeliveryDate: "",
+        status: "ordered",
+        discountPercentage: 0,
+        discountedAmount: 0,
+        extendedAmount: 0,
+        totalAmount: 0,
+        notes: ""
+      });
+  
+      setFormSubmitted(false);
+      setSearchQuery("");
+    }
+  }, [isOpen, initialProductId]);
+
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
@@ -466,6 +503,11 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                         <DatePicker 
                           value={field.value ? new Date(field.value) : null}
                           onChange={handleDateChange}
+                          minDate={(() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0); // Reset time to start of day
+                            return today;
+                          })()} // Set minimum date to today at 00:00:00
                         />
                           </FormControl>
                       {formSubmitted && <FormMessage />}
@@ -582,7 +624,17 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                                 if (!item.productId) {
                                   setActiveItemIndex(index)
                                   handleProductSearch(e.target.value)
-                                      }
+                                } else {
+                                  // Clear the product selection when user starts typing
+                                  const updatedItems = [...items];
+                                  updatedItems[index] = {
+                                    ...updatedItems[index],
+                                    productId: ""
+                                  };
+                                  setItems(updatedItems);
+                                  setActiveItemIndex(index);
+                                  handleProductSearch(e.target.value);
+                                }
                                     }}
                                     onFocus={() => {
                                 if (!item.productId) {

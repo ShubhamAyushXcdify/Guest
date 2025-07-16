@@ -4,6 +4,8 @@ import { Package, AlertTriangle, Clock, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetInventoryDashboard } from "@/queries/inventory/get-dashboard";
+import React, { useState } from "react"
+import { OrderModal } from "./order-modal"
 
 interface DashboardTabProps {
   clinicId: string
@@ -11,6 +13,8 @@ interface DashboardTabProps {
 
 export default function DashboardTab({ clinicId }: DashboardTabProps) {
   const { data, isLoading, isError } = useGetInventoryDashboard(clinicId);
+  const [isOrderModalOpen, setOrderModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
 
   if (isLoading) {
     return <div>Loading dashboard...</div>;
@@ -73,9 +77,9 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Threshold
                     </th>
-                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Action
-                    </th> */}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
@@ -86,6 +90,10 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
                         name={item.productName}
                         current={item.currentItemUnits}
                         threshold={item.threshold}
+                        onOrderClick={() => {
+                          setSelectedProductId(item.productId);
+                          setOrderModalOpen(true);
+                        }}
                       />
                     ))
                   ) : (
@@ -132,6 +140,15 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
           />
         </div>
       </div>
+      <OrderModal
+        isOpen={isOrderModalOpen}
+        onClose={() => {
+          setOrderModalOpen(false);
+          setSelectedProductId(undefined);
+        }}
+        clinicId={clinicId}
+        initialProductId={selectedProductId}
+      />
     </>
   )
 }
@@ -154,7 +171,7 @@ function StatsCard({ title, value, trend, trendColor, icon } : any) {
   )
 }
 
-function LowStockItem({ name, current, threshold } : any) {
+function LowStockItem({ name, current, threshold, onOrderClick } : any) {
   const severity =
     current <= threshold * 0.25 ? "text-red-600" : current <= threshold * 0.5 ? "text-amber-600" : "text-blue-600"
 
@@ -163,11 +180,11 @@ function LowStockItem({ name, current, threshold } : any) {
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{name}</td>
       <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${severity}`}>{current}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{threshold}</td>
-      {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        <Button variant="secondary" size="sm" className="theme-button-secondary">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        <Button variant="secondary" size="sm" className="theme-button-secondary" onClick={onOrderClick}>
           Order
         </Button>
-      </td> */}
+      </td>
     </tr>
   )
 }
