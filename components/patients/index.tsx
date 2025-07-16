@@ -206,3 +206,5 @@
 //     </>
 //   )
 // } 
+
+export { default as NearestClinicMap } from './nearest-clinic-map'; 

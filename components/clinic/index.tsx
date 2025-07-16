@@ -45,6 +45,7 @@ export type Clinic = {
     lng: number;
     address: string;
   };
+  distance: number;
 };
 
 type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
@@ -59,7 +60,7 @@ function Clinic() {
   // Use the useDebouncedValue hook to debounce the search string
   const debouncedSearch = useDebouncedValue(search, 300);
   
-  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, debouncedSearch);
+  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, debouncedSearch, null, null, true);
   
   // Extract the clinics from the paginated response
   const clinics = clinicData?.items || [];

@@ -13,6 +13,9 @@ import { DatePicker } from "@/components/ui/datePicker"
 import { useCreateAppointment } from "@/queries/appointment"
 import { useToast } from "@/components/ui/use-toast"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
+import { useGetLocation } from '@/hooks/useGetLocation'
+import { NearestClinicMap } from './index';
+import type { Clinic } from '../clinic';
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -22,7 +25,7 @@ const appointmentSchema = z.object({
     .refine(date => !!date, "Please select an appointment date")
     .refine(date => {
       const today = new Date();
-      today.setHours(0,0,0,0);
+      today.setHours(0, 0, 0, 0);
       return date >= today;
     }, "Appointment date cannot be in the past"),
   reason: z.string().min(1, "Please provide a reason for the appointment"),
@@ -40,7 +43,7 @@ interface PatientAppointmentFormProps {
 
 export default function PatientAppointmentForm({ isOpen, onClose, clientId, patients }: PatientAppointmentFormProps) {
   const { toast } = useToast()
-  
+  const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation()
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
@@ -50,10 +53,17 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
       reason: "",
       notes: "",
     },
+    
   })
 
+  useEffect(() => {
+    if(!latitude && !longitude){
+      refetch()
+    }
+  }, [latitude, longitude]) 
+
   // Fetch clinics
-  const { data: clinicsData } = useGetClinic(1, 100)
+  const { data: clinicsData } = useGetClinic(1, 100, "", latitude, longitude , (latitude && longitude) ? true : false)
   const clinicOptions = (clinicsData?.items || []).map(clinic => ({
     value: clinic.id,
     label: clinic.name
@@ -88,7 +98,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
       if (!data.appointmentDate) {
         throw new Error("Appointment date is required")
       }
-      
+
       const formattedAppointmentDate = data.appointmentDate.toISOString().split('T')[0] // YYYY-MM-DD
 
       const formattedData = {
@@ -99,7 +109,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
         isRegistered: true, // Set isRegistered to true as requested
         isActive: true
       }
-      
+
       createAppointment(formattedData)
     } catch (error) {
       console.error("Error submitting form:", error)
@@ -118,127 +128,144 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     form.setValue("appointmentDate", new Date())
   }, [form])
 
+  // Handler to select a clinic from the map
+  const handleClinicSelect = (clinic: Clinic) => {
+    form.setValue('clinicId', clinic.id);
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-3xl md:max-w-4xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Request New Appointment</SheetTitle>
         </SheetHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <FormField
-              control={form.control}
-              name="clinicId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Clinic</FormLabel>
-                  <FormControl>
-                    <Combobox
-                      options={clinicOptions}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select clinic"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {/* Responsive two-column layout: form left, map right */}
+        <div className="flex flex-col md:flex-row gap-8 mt-4">
+          {/* Left: Form */}
+          <div className="flex-1 min-w-0">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+                <FormField
+                  control={form.control}
+                  name="clinicId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Clinic</FormLabel>
+                      <FormControl>
+                        <Combobox
+                          options={clinicOptions}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select clinic"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="patientId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Patient</FormLabel>
-                  <FormControl>
-                    <Combobox
-                      options={patientOptions}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      placeholder="Select patient"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="patientId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Patient</FormLabel>
+                      <FormControl>
+                        <Combobox
+                          options={patientOptions}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder="Select patient"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="appointmentDate"
-              render={({ field }) => {
-                // Set minDate to start of today (midnight)
-                const today = new Date()
-                today.setHours(0, 0, 0, 0)
-                
-                return (
-                  <FormItem>
-                    <FormLabel>Preferred Date</FormLabel>
-                    <FormControl>
-                      <DatePicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        minDate={today}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )
-              }}
-            />
+                <FormField
+                  control={form.control}
+                  name="appointmentDate"
+                  render={({ field }) => {
+                    // Set minDate to start of today (midnight)
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0)
 
-            <FormField
-              control={form.control}
-              name="reason"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reason for Visit</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Please describe the reason for your appointment request"
-                      className="min-h-[100px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    return (
+                      <FormItem>
+                        <FormLabel>Preferred Date</FormLabel>
+                        <FormControl>
+                          <DatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            minDate={today}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )
+                  }}
+                />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Additional Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Any additional information you'd like to provide"
-                      className="min-h-[100px]"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="reason"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reason for Visit</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Please describe the reason for your appointment request"
+                          className="min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <SheetFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="theme-button text-white" 
-                disabled={isPending}
-              >
-                {isPending ? "Submitting..." : "Request Appointment"}
-              </Button>
-            </SheetFooter>
-          </form>
-        </Form>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Notes (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Any additional information you'd like to provide"
+                          className="min-h-[100px]"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <SheetFooter>
+                  <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="theme-button text-white"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Submitting..." : "Request Appointment"}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </Form>
+          </div>
+
+          {/* Right: Map */}
+          <div className="md:w-[420px] w-full max-w-full">
+            <div className="font-semibold text-base mb-2 text-gray-700">Clinics Near You</div>
+            <NearestClinicMap onClinicSelect={handleClinicSelect} />
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   )

@@ -21,22 +21,37 @@ interface UseMapAdvancedProps {
 const useMapAdvanced = (props?: UseMapAdvancedProps) => {
   const { initialLocation } = props || {};
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('prompt');
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([51.505, -0.09]); // Default to London
+  const [mapCenter, setMapCenter] = useState<[number, number]>([18.5246, 73.8786]); // Default to Mumbai
   const [zoom, setZoom] = useState(13);
   
   const mapRef = useRef<any>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Initialize with initial location if provided
+  // Check if geolocation is supported
   useEffect(() => {
-    if (initialLocation) {
-      setSelectedLocation(initialLocation);
-      setMapCenter([initialLocation.lat, initialLocation.lng]);
+    if (!navigator.geolocation) {
+      setLocationPermission('unsupported');
+      return;
     }
-  }, [initialLocation]);
+    
+    // Check current permission status
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((result) => {
+        setLocationPermission(result.state as 'granted' | 'denied' | 'prompt');
+        
+        // Listen for permission changes
+        result.addEventListener('change', () => {
+          setLocationPermission(result.state as 'granted' | 'denied' | 'prompt');
+        });
+      });
+    }
+  }, []);
 
   // Real reverse geocoding using OpenStreetMap Nominatim
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
@@ -62,6 +77,65 @@ const useMapAdvanced = (props?: UseMapAdvancedProps) => {
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
   }, []);
+
+  // Request location permission and get current location
+  const requestLocationPermission = useCallback(async () => {
+    if (!navigator.geolocation) {
+      setLocationPermission('unsupported');
+      return null;
+    }
+
+    setIsGettingLocation(true);
+    
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Reverse geocode to get address
+      const address = await reverseGeocode(latitude, longitude);
+      
+      const locationData: LocationData = {
+        lat: latitude,
+        lng: longitude,
+        address: address
+      };
+      
+      setCurrentLocation(locationData);
+      setLocationPermission('granted');
+      
+      // If no initial location is set, use current location as default
+      if (!initialLocation && !selectedLocation) {
+        setMapCenter([latitude, longitude]);
+        setSelectedLocation(locationData);
+      }
+      
+      return locationData;
+    } catch (error) {
+      console.error('Error getting current location:', error);
+      setLocationPermission('denied');
+      return null;
+    } finally {
+      setIsGettingLocation(false);
+    }
+  }, [reverseGeocode, initialLocation, selectedLocation]);
+
+  // Initialize with initial location if provided, otherwise try to get current location
+  useEffect(() => {
+    if (initialLocation) {
+      setSelectedLocation(initialLocation);
+      setMapCenter([initialLocation.lat, initialLocation.lng]);
+    } else if (locationPermission === 'granted' && !currentLocation) {
+      // If permission is already granted, get current location
+      requestLocationPermission();
+    }
+  }, [initialLocation, locationPermission, currentLocation, requestLocationPermission]);
 
   // Real location search using OpenStreetMap Nominatim
   const searchLocations = useCallback(async (query: string) => {
@@ -180,7 +254,11 @@ const useMapAdvanced = (props?: UseMapAdvancedProps) => {
     setMapRef,
     setZoom,
     setSelectedLocation,
-    setMapCenter
+    setMapCenter,
+    currentLocation,
+    locationPermission,
+    isGettingLocation,
+    requestLocationPermission
   };
 };
 

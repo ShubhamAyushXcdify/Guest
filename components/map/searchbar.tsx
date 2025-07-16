@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, MapPin, Loader2 } from 'lucide-react';
-import { SearchSuggestion } from './hooks/useMap';
+import { SearchSuggestion } from './hooks/useMapAdvanced';
 
 interface SearchBarProps {
   searchQuery: string;

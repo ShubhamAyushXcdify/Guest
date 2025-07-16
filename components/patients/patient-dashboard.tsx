@@ -836,11 +836,11 @@ const futureScheduledAppointments = appointments.filter(apt => {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="h-4 w-4" />
-                                  {isClient && appointment.roomSlot.startTime.slice(0, 5) + " - " + appointment.roomSlot.endTime.slice(0, 5)}
+                                  {isClient && appointment?.roomSlot?.startTime?.slice(0, 5) + " - " + appointment?.roomSlot?.endTime?.slice(0, 5)}
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <User className="h-4 w-4" />
-                                  {appointment.veterinarian ? `${appointment.veterinarian.firstName} ${appointment.veterinarian.lastName}` : ""}
+                                  {appointment?.veterinarian ? `${appointment?.veterinarian?.firstName} ${appointment?.veterinarian?.lastName}` : ""}
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 text-sm text-gray-500">
