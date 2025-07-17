@@ -18,6 +18,7 @@ import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscrib
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import UrinalysisModal from "./modals/UrinalysisModal"
+import EyeSurgeryModal from "./modals/EyeSurgeryModal"
 
 interface ProcedureTabProps {
   patientId: string
@@ -31,6 +32,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [notes, setNotes] = useState("")
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const [urinalysisModalOpen, setUrinalysisModalOpen] = useState(false)
+  const [eyeSurgeryModalOpen, setEyeSurgeryModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [isAdding, setIsAdding] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
@@ -216,6 +218,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     const procedure = procedures.find(p => p.id === id)
     if (procedure?.procCode === "DIAURI002") {
       setUrinalysisModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SUREYE007") {
+      setEyeSurgeryModalOpen(true)
       return
     }
   }
@@ -482,6 +488,13 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         <UrinalysisModal
           open={urinalysisModalOpen}
           onClose={() => setUrinalysisModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        
+        <EyeSurgeryModal
+          open={eyeSurgeryModalOpen}
+          onClose={() => setEyeSurgeryModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
         />
