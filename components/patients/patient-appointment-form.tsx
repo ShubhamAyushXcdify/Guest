@@ -19,12 +19,14 @@ import type { Clinic } from '../clinic';
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetAvailableSlotsByUserId, AvailableSlot } from "@/queries/users/get-availabelSlots-by-userId"
 import { Loader2 } from "lucide-react"
+import { useGetAppointmentType } from '@/queries/appointmentType/get-appointmentType';
 
 // Define the form schema
 const appointmentSchema = z.object({
   clinicId: z.string().uuid("Please select a clinic"),
   patientId: z.string().uuid("Please select a patient"),
   veterinarianId: z.string().uuid("Please select a veterinarian"),
+  appointmentTypeId: z.string().min(1, "Please select an appointment type"),
   appointmentDate: z.date()
     .refine(date => !!date, "Please select an appointment date")
     .refine(date => {
@@ -57,6 +59,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
       clinicId: "",
       patientId: "",
       veterinarianId: "",
+      appointmentTypeId: "",
       appointmentDate: undefined,
       slotId: "",
       reason: "",
@@ -106,6 +109,9 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
       value: vet.id,
       label: `Dr. ${vet.firstName} ${vet.lastName}`
     }));
+
+  // Fetch appointment types
+  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', true);
 
   // Create patient options from provided patients
   const patientOptions = patients.map(patient => ({
@@ -335,6 +341,42 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
                       </FormItem>
                     )
                   }}
+                />
+
+                {/* Appointment Type Selection */}
+                <FormField
+                  control={form.control}
+                  name="appointmentTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Appointment Type</FormLabel>
+                      <FormControl>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {isLoadingAppointmentTypes ? (
+                            <div className="text-sm text-gray-500">Loading appointment types...</div>
+                          ) : appointmentTypes.length === 0 ? (
+                            <div className="text-sm text-gray-500">No appointment types available</div>
+                          ) : (
+                            appointmentTypes.filter((type: any) => type.isActive).map((type: any) => (
+                              <button
+                                key={type.appointmentTypeId}
+                                type="button"
+                                onClick={() => field.onChange(type.appointmentTypeId)}
+                                className={`rounded-full px-4 py-1 text-sm border transition-colors font-medium
+                                  ${field.value === type.appointmentTypeId
+                                    ? 'bg-green-100 border-green-300 text-green-800'
+                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'}
+                                `}
+                              >
+                                {type.name}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
 
                 {/* Available Slots section */}
