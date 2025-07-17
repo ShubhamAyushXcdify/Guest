@@ -19,7 +19,7 @@ import { useGetPatients } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
-import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId";
+import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import VaccinationComponent from "@/components/appointments/vaccination/index"
@@ -232,7 +232,7 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   const { data: clientsResponse } = useGetClients(1, 100)
   const { data: usersResponse } = useGetUsers(1, 100)
   const { data: roomsResponse } = useGetRoom(1, 100)
-  const { data: appointmentTypes = [] } = useGetAppointmentTypeByClinicId(selectedClinicId);
+  const { data: appointmentTypes = [] } = useGetAppointmentType(1, 100, '', true);
 
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
@@ -303,7 +303,7 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
     label: room.name
   }))
 
-  const appointmentTypeOptions = (appointmentTypes || []).filter(type => type.isActive).map((type: { appointmentTypeId: string; name: string }) => ({
+  const appointmentTypeOptions = (appointmentTypes || []).filter((type: { isActive: boolean }) => type.isActive).map((type: { appointmentTypeId: string; name: string }) => ({
     value: type.appointmentTypeId,
     label: type.name
   }));
