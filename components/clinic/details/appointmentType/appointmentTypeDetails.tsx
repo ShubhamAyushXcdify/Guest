@@ -12,11 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 interface AppointmentTypeDetailsProps {
   appointmentTypeId: string;
-  clinicId: string;
   onSuccess?: () => void;
 }
 
-export default function AppointmentTypeDetails({ appointmentTypeId, clinicId, onSuccess }: AppointmentTypeDetailsProps) {
+export default function AppointmentTypeDetails({ appointmentTypeId, onSuccess }: AppointmentTypeDetailsProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const { data: appointmentType, isLoading } = useGetAppointmentTypeById(appointmentTypeId);
@@ -65,9 +64,8 @@ export default function AppointmentTypeDetails({ appointmentTypeId, clinicId, on
       await updateAppointmentType.mutateAsync({
         id: appointmentTypeId,
         data: {
-          appointmentTypeId: appointmentTypeId,
-          ...values,
-          clinicId: clinicId,
+          name: values.name,
+          isActive: values.isActive,
         },
       });
     } catch (error) {
