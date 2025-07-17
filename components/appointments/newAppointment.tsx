@@ -26,7 +26,7 @@ import { useDebounce } from "@/hooks/use-debounce"
 import { useGetAvailableSlotsByUserId, AvailableSlot } from "@/queries/users/get-availabelSlots-by-userId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
-import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId"
+import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
@@ -211,7 +211,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   );
   
   const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByClinicId(selectedClinicId);
-  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentTypeByClinicId(selectedClinicId, !!selectedClinicId);
+  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', true);
   
   const roomOptions = isLoadingRooms 
   ? [] 
