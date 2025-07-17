@@ -1,4 +1,4 @@
-import AppointmentsPage from "@/components/appointments";
+import AppointmentsPage from "@/components/patientDashboard/appointment";
 import { Suspense } from "react";
 
 
