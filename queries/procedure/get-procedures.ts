@@ -4,6 +4,8 @@ export interface Procedure {
   id: string;
   name: string;
   notes?: string;
+  type?: string;
+  procCode?: string;
   createdAt: string;
   updatedAt: string;
 }
