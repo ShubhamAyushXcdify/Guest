@@ -19,6 +19,8 @@ import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import UrinalysisModal from "./modals/UrinalysisModal"
 import EyeSurgeryModal from "./modals/EyeSurgeryModal"
+import MicrochippingModal from "./modals/MicrochippingModal"
+import FleaTickControlModal from "./modals/FleaTickControlModal"
 
 interface ProcedureTabProps {
   patientId: string
@@ -37,6 +39,8 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [isAdding, setIsAdding] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [hasCreatedDetail, setHasCreatedDetail] = useState(false)
+  const [microchippingModalOpen, setMicrochippingModalOpen] = useState(false)
+  const [fleaTickControlModalOpen, setFleaTickControlModalOpen] = useState(false)
   const { markTabAsCompleted } = useTabCompletion()
   
   const transcriber = useTranscriber()
@@ -222,6 +226,14 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
     if (procedure?.procCode === "SUREYE007") {
       setEyeSurgeryModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "PREMIC006") {
+      setMicrochippingModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "PREFLE003") {
+      setFleaTickControlModalOpen(true)
       return
     }
   }
@@ -495,6 +507,20 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         <EyeSurgeryModal
           open={eyeSurgeryModalOpen}
           onClose={() => setEyeSurgeryModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        
+        <MicrochippingModal
+          open={microchippingModalOpen}
+          onClose={() => setMicrochippingModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        
+        <FleaTickControlModal
+          open={fleaTickControlModalOpen}
+          onClose={() => setFleaTickControlModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
         />
