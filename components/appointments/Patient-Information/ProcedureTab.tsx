@@ -32,6 +32,9 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const [urinalysisModalOpen, setUrinalysisModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isAdding, setIsAdding] = useState(false)
+  const [isRemoving, setIsRemoving] = useState(false)
+  const [hasCreatedDetail, setHasCreatedDetail] = useState(false)
   const { markTabAsCompleted } = useTabCompletion()
   
   const transcriber = useTranscriber()
@@ -80,6 +83,9 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
            existingProcedureDetail.procedures.length > 0)) {
         markTabAsCompleted("procedure");
       }
+      
+      // Set hasCreatedDetail to true since we have an existing record
+      setHasCreatedDetail(true);
     }
   }, [existingProcedureDetail, markTabAsCompleted])
   
@@ -107,21 +113,103 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const { mutateAsync: updateProcedureDetail, isPending: isUpdating } = useUpdateProcedureDetail()
   
   // Combined loading state
-  const isPending = isCreating || isUpdating
+  const isPending = isCreating || isUpdating || isAdding || isRemoving
 
   const isReadOnly = appointmentData?.status === "completed"
 
-  const handleProcedureClick = (id: string) => {
-    const procedure = procedures.find(p => p.id === id)
-    setSelectedProcedures(prev => 
-      prev.includes(id) 
-        ? prev.filter(procId => procId !== id)
-        : [...prev, id]
-    )
+  const handleProcedureClick = async (id: string) => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment")
+      return
+    }
+    
+    try {
+      // Add to local state first for immediate UI feedback
+      setSelectedProcedures(prev => [...prev, id])
+      
+      setIsAdding(true)
+      
+      // Make API call
+      if (existingProcedureDetail) {
+        // If we already have a record, update it (PUT)
+        const updatedProcedures = [...selectedProcedures, id]
+        await updateProcedureDetail({
+          id: existingProcedureDetail.id,
+          notes: notes || "",
+          isCompleted: true,
+          procedureIds: updatedProcedures
+        })
+        toast.success("Procedure added successfully")
+      } else {
+        // If this is the first procedure, create a new record (POST)
+        const createdDetail = await createProcedureDetail({
+          visitId: visitData.id,
+          notes: notes || "",
+          isCompleted: true,
+          procedureIds: [id]
+        })
+        toast.success("Procedure added successfully")
+        
+        // Mark that we've created a procedure detail
+        setHasCreatedDetail(true)
+        
+        // After creating, immediately get the procedure detail
+        const updatedProcedureDetail = await refetchProcedureDetail()
+        
+        // If we got valid data back, use it immediately
+        if (updatedProcedureDetail?.data) {
+          // This will update the local state with the fetched data
+          // No need to wait for a component re-render
+        }
+      }
+      
+      // Mark the tab as completed since we have at least one procedure
+      markTabAsCompleted("procedure")
+      
+    } catch (error) {
+      // If API call fails, revert UI change
+      setSelectedProcedures(prev => prev.filter(procId => procId !== id))
+      toast.error(`Failed to add procedure: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsAdding(false)
+    }
   }
 
-  const handleRemoveProcedure = (id: string) => {
-    setSelectedProcedures(prev => prev.filter(procId => procId !== id))
+  const handleRemoveProcedure = async (id: string) => {
+    if (!visitData?.id || !existingProcedureDetail) {
+      toast.error("No saved procedure details found")
+      return
+    }
+    
+    try {
+      // Update UI first for immediate feedback
+      setSelectedProcedures(prev => prev.filter(procId => procId !== id))
+      
+      setIsRemoving(true)
+      
+      // Make API call to update (remove the procedure)
+      const updatedProcedures = selectedProcedures.filter(procId => procId !== id)
+      await updateProcedureDetail({
+        id: existingProcedureDetail.id,
+        notes: notes || "",
+        isCompleted: true,
+        procedureIds: updatedProcedures
+      })
+      
+      toast.success("Procedure removed successfully")
+      
+      // If we removed the last procedure, we might want to un-mark the tab as completed
+      if (updatedProcedures.length === 0) {
+        // This depends on your business logic - you might want to keep it marked as completed
+      }
+      
+    } catch (error) {
+      // If API call fails, revert UI change
+      setSelectedProcedures(prev => [...prev, id])
+      toast.error(`Failed to remove procedure: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsRemoving(false)
+    }
   }
 
   const handleDocumentClick = (id: string) => {
@@ -141,6 +229,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   }
 
   const handleSave = async () => {
+    // This now just saves the notes and marks as complete
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
@@ -148,7 +237,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     
     try {
       if (existingProcedureDetail) {
-        // Update with ID in the payload as required by the API
+        // Update notes and mark as completed
         await updateProcedureDetail({
           id: existingProcedureDetail.id,
           notes: notes || "",
@@ -158,7 +247,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         
         toast.success("Procedure details updated successfully")
       } else {
-        // Create new procedure detail
+        // This case should rarely happen now since procedures are saved immediately
         await createProcedureDetail({
           visitId: visitData.id,
           notes: notes || "",
@@ -265,10 +354,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                             variant="outline"
                             size="sm"
                             onClick={() => handleProcedureClick(procedure.id)}
-                            disabled={isReadOnly}
+                            disabled={isReadOnly || isPending}
                             className="w-full"
                           >
-                            Add
+                            {isAdding ? "Adding..." : "Add"}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -330,10 +419,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                             variant="destructive"
                             size="sm"
                             onClick={() => handleRemoveProcedure(procedure.id)}
-                            disabled={isReadOnly}
+                            disabled={isReadOnly || isPending}
                             title="Remove Procedure"
                           >
-                            <X className="h-4 w-4" />
+                            {isRemoving ? "..." : <X className="h-4 w-4" />}
                           </Button>
                         </div>
                       </TableCell>
@@ -371,12 +460,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={handleSave}
-            disabled={isPending || selectedProcedures.length === 0 || isReadOnly}
+            disabled={isPending || (!hasCreatedDetail && selectedProcedures.length === 0) || isReadOnly}
             className="ml-2"
           >
             {isPending 
               ? "Saving..." 
-              : existingProcedureDetail ? "Update" : "Save and Next"}
+              : "Save & Continue"}
           </Button>
         </div>
         
