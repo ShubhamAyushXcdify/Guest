@@ -32,6 +32,12 @@ export const useGetLocation = () => {
     }
 
     const getCurrentLocation = async () => {
+        // Check if window is available (client-side only)
+        if (typeof window === 'undefined') {
+            setError('Geolocation is not available during server-side rendering')
+            return
+        }
+
         if (!window.navigator.geolocation) {
             setError('Geolocation is not supported by this browser')
             return
@@ -73,7 +79,10 @@ export const useGetLocation = () => {
     }
 
     useEffect(() => {
-        getCurrentLocation()
+        // Only run on client-side
+        if (typeof window !== 'undefined') {
+            getCurrentLocation()
+        }
     }, [])
 
     return {

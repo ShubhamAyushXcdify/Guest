@@ -1,0 +1,123 @@
+"use client"
+import { useContext, useState } from "react";
+import { PatientDashboardContext } from "@/components/patientDashboard/PatientDashboardProvider";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, User, MapPin, Plus } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import PatientAppointmentForm from "@/components/patients/patient-appointment-form";
+
+export default function AppointmentsPage() {
+  const { appointments, isAppointmentsLoading, appointmentsError, pets, isClient, clientId, refetchAppointments } = useContext(PatientDashboardContext);
+  const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false);
+  const [shouldRefetch, setShouldRefetch] = useState(false);
+
+  // Helper functions
+  const formatDate = (dateString: string) => {
+    if (!isClient) return '';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      });
+    } catch {
+      return '';
+    }
+  };
+  const formatTime = (dateString: string) => {
+    if (!isClient) return '';
+    try {
+      return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
+  // Called when the modal closes
+  const handleClose = (wasSuccess?: boolean) => {
+    setIsAppointmentFormOpen(false);
+    if (wasSuccess) {
+      refetchAppointments();
+    }
+  };
+
+  // Patch PatientAppointmentForm's onClose to set shouldRefetch if successful
+  // We'll pass a custom onClose to PatientAppointmentForm that sets shouldRefetch if a new appointment was made
+  // But since PatientAppointmentForm only calls onClose, we need to patch it in the parent
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">My Appointments</h2>
+        <div className="flex flex-col items-center gap-2">
+          <Button className="theme-button text-white" disabled={pets.length === 0} onClick={() => setIsAppointmentFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Appointment
+          </Button>
+          {pets.length === 0 && <span className="text-red-500 text-xs"> (No pets registered)</span>}
+        </div>
+      </div>
+      <Card className="bg-white shadow-lg border-0">
+        <CardHeader>
+          <CardTitle>All Appointments</CardTitle>
+          <CardDescription>View and manage your pet appointments</CardDescription>
+        </CardHeader>
+        <CardContent className="max-h-[500px] overflow-y-auto">
+          <div className="space-y-4">
+            {isAppointmentsLoading ? (
+              <div>Loading appointments...</div>
+            ) : appointmentsError ? (
+              <div>Error loading appointments.</div>
+            ) : appointments.length === 0 ? (
+              <div>No appointments found.</div>
+            ) : (
+              appointments.map((appointment: any) => (
+                <div key={appointment.id} className="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-blue-100 text-blue-600">
+                          {appointment.patient?.name?.[0] || "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-lg">{appointment.patient?.name}</h3>
+                        </div>
+                        <p className="text-gray-600 font-medium">{appointment.appointmentType?.name}</p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            {isClient && appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {isClient && appointment?.roomSlot?.startTime?.slice(0, 5) + " - " + appointment?.roomSlot?.endTime?.slice(0, 5)}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <User className="h-4 w-4" />
+                            {appointment?.veterinarian ? `${appointment?.veterinarian?.firstName} ${appointment?.veterinarian?.lastName}` : ""}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                          <MapPin className="h-4 w-4" />
+                          {appointment.clinic?.name}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      {/* Modal for new appointment */}
+      <PatientAppointmentForm
+        isOpen={isAppointmentFormOpen}
+        onClose={handleClose}
+        clientId={clientId}
+        patients={pets}
+      />
+    </div>
+  );
+}

@@ -17,14 +17,14 @@ export interface AvailableSlot {
  * @returns Array of available slot objects
  */
 const getAvailableSlotsByUserId = async (userId: string, date?: string): Promise<AvailableSlot[]> => {
-  const url = new URL(`/api/user/${userId}/available-slots`, window.location.origin);
+  let url = `/api/user/${userId}/available-slots`;
   
   if (date) {
     // Ensure date is in YYYY-MM-DD format without timezone issues
     try {
       // If it's already a formatted string in YYYY-MM-DD format, use it directly
       if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        url.searchParams.append("date", date);
+        url += `?date=${encodeURIComponent(date)}`;
       } else {
         // If it's not in the correct format, try to parse and format it
         const dateObj = new Date(date);
@@ -34,17 +34,17 @@ const getAvailableSlotsByUserId = async (userId: string, date?: string): Promise
           const month = String(dateObj.getMonth() + 1).padStart(2, '0');
           const day = String(dateObj.getDate()).padStart(2, '0');
           const formattedDate = `${year}-${month}-${day}`;
-          url.searchParams.append("date", formattedDate);
+          url += `?date=${encodeURIComponent(formattedDate)}`;
         }
       }
     } catch (error) {
       console.error("Error formatting date:", error);
       // Still try to use the original date if parsing fails
-      url.searchParams.append("date", date);
+      url += `?date=${encodeURIComponent(date)}`;
     }
   }
 
-  const response = await fetch(url.toString());
+  const response = await fetch(url);
   
   if (!response.ok) {
     throw new Error('Failed to fetch available slots');
