@@ -1,8 +1,9 @@
-import React from 'react';
+"use client"
+
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useGetLocation } from '@/hooks/useGetLocation';
 import { useGetClinic } from '@/queries/clinic/get-clinic';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Clinic } from '../clinic';
 
@@ -12,55 +13,64 @@ const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLaye
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
-// Custom icon for user location
-const createCurrentLocationIcon = () => {
-  return L.divIcon({
-    className: 'current-location-marker',
-    html: `
-      <div style="
-        width: 20px;
-        height: 20px;
-        background: #3b82f6;
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        position: relative;
-      ">
-        <div style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 8px;
-          height: 8px;
-          background: white;
-          border-radius: 50%;
-        "></div>
-      </div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
-};
-
-// Custom icon for clinic marker (place your PNG at public/images/clinic-marker.png)
-const clinicIcon = L.icon({
-  iconUrl: '/images/hospital.png', // <-- Place your PNG here
-  iconSize: [36, 36], // Adjust size as needed
-  iconAnchor: [18, 36],
-  popupAnchor: [0, -36],
-  className: 'clinic-marker-icon',
-});
-
 const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> = ({ onClinicSelect }) => {
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation();
   // Only fetch clinics when location is available
   const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(1, 100, '', latitude, longitude, !!latitude && !!longitude);
-
+  
   // Center map on user location
   const center = latitude && longitude ? [latitude, longitude] as [number, number] : [20, 77] as [number, number]; // fallback to India center
-
   
+  const [mapIcons, setMapIcons] = useState<{
+    currentLocationIcon: any;
+    clinicIcon: any;
+  } | null>(null);
+  
+  // Initialize Leaflet icons on client-side only
+  useEffect(() => {
+    // Import Leaflet dynamically to avoid SSR issues
+    import('leaflet').then((L) => {
+      // Custom icon for user location
+      const currentLocationIcon = L.divIcon({
+        className: 'current-location-marker',
+        html: `
+          <div style="
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+          ">
+            <div style="
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 8px;
+              height: 8px;
+              background: white;
+              border-radius: 50%;
+            "></div>
+          </div>
+        `,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+
+      // Custom icon for clinic marker
+      const clinicIcon = L.icon({
+        iconUrl: '/images/hospital.png',
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36],
+        className: 'clinic-marker-icon',
+      });
+
+      setMapIcons({ currentLocationIcon, clinicIcon });
+    });
+  }, []);
 
   return (
     <div className="w-full h-[500px] rounded-lg border mt-4">
@@ -68,9 +78,9 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> =
         <div className="flex items-center justify-center h-full text-gray-500">Detecting your location...</div>
       )}
       {error && (
-        <div className="flex items-center justify-center h-full text-red-500">{error}</div>
+        <div className="flex items-center justify-center h-full text-gray-500">{error}</div>
       )}
-      {!isLoading && latitude && longitude && (
+      {!isLoading && latitude && longitude && mapIcons && (
         <MapContainer
           center={center}
           zoom={13}
@@ -82,7 +92,7 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> =
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {/* User Location Marker */}
-          <Marker position={center} icon={createCurrentLocationIcon()}>
+          <Marker position={center} icon={mapIcons.currentLocationIcon}>
             <Popup>
               <div className="text-sm">
                 <p className="font-medium text-blue-600">Your Location</p>
@@ -96,7 +106,7 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> =
             <Marker
               key={clinic.id}
               position={[clinic.location.lat, clinic.location.lng]}
-              icon={clinicIcon}
+              icon={mapIcons.clinicIcon}
               eventHandlers={{
                 click: () => onClinicSelect(clinic as any),
               }}

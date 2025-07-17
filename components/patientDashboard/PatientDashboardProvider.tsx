@@ -41,7 +41,8 @@ export function PatientDashboardProvider({ children }: { children: React.ReactNo
     veterinarianId: null,
     roomId: null,
     pageNumber: 1,
-    pageSize: 100
+    pageSize: 100,
+    isRegistered: '' // Set to empty string to fetch both registered and unregistered appointments
   } as any);
   const appointments = appointmentQuery.data?.items || [];
   const isAppointmentsLoading = appointmentQuery.isLoading;

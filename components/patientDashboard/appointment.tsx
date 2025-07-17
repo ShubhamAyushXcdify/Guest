@@ -23,13 +23,11 @@ export default function AppointmentsPage() {
       return '';
     }
   };
-  const formatTime = (dateString: string) => {
-    if (!isClient) return '';
-    try {
-      return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '';
-    }
+  
+  // Helper function to format time from HH:MM:SS to HH:MM format
+  const formatTimeString = (timeString: string) => {
+    if (!timeString) return '';
+    return timeString.substring(0, 5);
   };
 
   // Called when the modal closes
@@ -39,10 +37,6 @@ export default function AppointmentsPage() {
       refetchAppointments();
     }
   };
-
-  // Patch PatientAppointmentForm's onClose to set shouldRefetch if successful
-  // We'll pass a custom onClose to PatientAppointmentForm that sets shouldRefetch if a new appointment was made
-  // But since PatientAppointmentForm only calls onClose, we need to patch it in the parent
 
   return (
     <div className="space-y-6">
@@ -82,6 +76,15 @@ export default function AppointmentsPage() {
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-lg">{appointment.patient?.name}</h3>
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            appointment.status === 'confirmed' || 
+                            appointment.status === 'completed' || 
+                            appointment.status === 'scheduled' ? 
+                            'bg-green-100 text-green-800' : 
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {appointment.status?.charAt(0).toUpperCase() + appointment.status?.slice(1) || "Requested"}
+                          </span>
                         </div>
                         <p className="text-gray-600 font-medium">{appointment.appointmentType?.name}</p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -91,7 +94,12 @@ export default function AppointmentsPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
-                            {isClient && appointment?.roomSlot?.startTime?.slice(0, 5) + " - " + appointment?.roomSlot?.endTime?.slice(0, 5)}
+                            {isClient && appointment.appointmentTimeFrom && appointment.appointmentTimeTo ? 
+                              `${formatTimeString(appointment.appointmentTimeFrom)} - ${formatTimeString(appointment.appointmentTimeTo)}` :
+                              appointment?.roomSlot?.startTime && appointment?.roomSlot?.endTime ?
+                              `${formatTimeString(appointment.roomSlot.startTime)} - ${formatTimeString(appointment.roomSlot.endTime)}` :
+                              "Time not set"
+                            }
                           </div>
                           <div className="flex items-center gap-1">
                             <User className="h-4 w-4" />
