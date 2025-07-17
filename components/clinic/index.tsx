@@ -161,7 +161,7 @@ function Clinic() {
             size="icon" 
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/clinic/${row.original.id}/rooms`);
+              handleEditClinicClick(row.original.id);
             }}
           >
             <Edit className="h-4 w-4" />

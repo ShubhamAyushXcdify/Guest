@@ -3,13 +3,17 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 const updateAppointmentType = async ({ id, data }: { id: string; data: any }) => {
   try {
     const url = `/api/appointmentType/${id}`;
-    
+    // Only send name and isActive
+    const payload = {
+      name: data.name,
+      isActive: data.isActive,
+    };
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();

@@ -222,7 +222,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   
   const appointmentTypeOptions = isLoadingAppointmentTypes
   ? []
-  : (appointmentTypes || []).filter((type) => type.isActive).map((type) => ({
+  : (appointmentTypes || []).filter((type: any) => type.isActive).map((type : any) => ({
     value: type.appointmentTypeId,
     label: type.name
   }));

@@ -3,12 +3,12 @@ import AppointmentTypeComponent from "@/components/clinic/details/appointmentTyp
 import { useParams } from "next/navigation";
  
 export default function AppointmentTypePage() {
-    const params = useParams();
-    const clinicId = params.id as string;
+    // const params = useParams();
+    // const clinicId = params.id as string;
  
     return (
         <div>
-            <AppointmentTypeComponent clinicId={clinicId} />
+            <AppointmentTypeComponent />
         </div>
     )
 }
