@@ -16,6 +16,7 @@ interface BreedModalProps {
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface BreedTestingFormData {

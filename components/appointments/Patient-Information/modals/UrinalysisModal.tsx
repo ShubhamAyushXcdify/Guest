@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,12 +11,16 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { X } from "lucide-react"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
+import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
 
 interface UrinalysisModalProps {
   open: boolean
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface UrinalysisFormData {
@@ -32,7 +36,7 @@ interface UrinalysisFormData {
   ownerConsent: boolean
 }
 
-export default function UrinalysisModal({ open, onClose, patientId, appointmentId }: UrinalysisModalProps) {
+export default function UrinalysisModal({ open, onClose, patientId, appointmentId, procedureId }: UrinalysisModalProps) {
   const [formData, setFormData] = useState<UrinalysisFormData>({
     sampleType: "",
     collectionTime: new Date().toISOString().slice(0, 16),
@@ -46,10 +50,96 @@ export default function UrinalysisModal({ open, onClose, patientId, appointmentI
     ownerConsent: false
   })
 
+  const [formInitialized, setFormInitialized] = useState(false)
+
+  // Get visit data from appointment ID
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+
+  // Get procedure documentation details using visit ID and procedure ID
+  const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
+    visitData?.id,
+    procedureId,
+    !!visitData?.id && !!procedureId && open
+  )
+
+  // Get update mutation
+  const updateDocumentMutation = useUpdateProcedureDocumentDetails()
+
+  // Populate form with existing data when available
+  useEffect(() => {
+    if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
+      try {
+        const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
+        console.log("Loaded procedure documentation details:", parsedDetails)
+        
+        // Create a new form data object with the parsed details
+        const newFormData = {
+          ...formData,
+          ...parsedDetails,
+          // Ensure string values for Select components
+          sampleType: parsedDetails.sampleType || "",
+          sampleColor: parsedDetails.sampleColor || "",
+          testRequested: parsedDetails.testRequested || "",
+          urgencyLevel: parsedDetails.urgencyLevel || "",
+          // Ensure boolean values for checkboxes
+          fastingStatus: !!parsedDetails.fastingStatus,
+          ownerConsent: !!parsedDetails.ownerConsent
+        }
+        
+        setFormData(newFormData)
+        setFormInitialized(true)
+        console.log("Updated form data:", newFormData)
+      } catch (error) {
+        console.error("Failed to parse procedure document details:", error)
+      }
+    } else {
+      // Reset the form when no data is available
+      setFormData({
+        sampleType: "",
+        collectionTime: new Date().toISOString().slice(0, 16),
+        sampleVolume: "",
+        sampleColor: "",
+        testRequested: "",
+        clinicalSigns: "",
+        urgencyLevel: "",
+        specialInstructions: "",
+        fastingStatus: false,
+        ownerConsent: false
+      })
+      setFormInitialized(false)
+    }
+  }, [procedureDocumentDetails])
+
   const urgencyLevels = [
     { value: "routine", label: "Routine", color: "bg-green-100 text-green-800 border-green-200" },
     { value: "urgent", label: "Urgent", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
     { value: "emergency", label: "Emergency", color: "bg-red-100 text-red-800 border-red-200" }
+  ]
+
+  const sampleTypes = [
+    { value: "free-catch", label: "Free Catch" },
+    { value: "catheterization", label: "Catheterization" },
+    { value: "cystocentesis", label: "Cystocentesis" },
+    { value: "manual-expression", label: "Manual Expression" }
+  ]
+
+  const sampleColors = [
+    { value: "clear-yellow", label: "Clear Yellow" },
+    { value: "pale-yellow", label: "Pale Yellow" },
+    { value: "dark-yellow", label: "Dark Yellow" },
+    { value: "cloudy", label: "Cloudy" },
+    { value: "red-blood", label: "Red/Bloody" },
+    { value: "brown", label: "Brown" },
+    { value: "other", label: "Other" }
+  ]
+
+  const testTypes = [
+    { value: "routine", label: "Routine Urinalysis" },
+    { value: "complete", label: "Complete Urinalysis + Microscopy" },
+    { value: "culture", label: "Urinalysis + Culture & Sensitivity" },
+    { value: "protein", label: "Protein/Microalbumin Focus" },
+    { value: "crystals", label: "Crystal Analysis" },
+    { value: "custom", label: "Custom Panel" }
   ]
 
   const handleInputChange = (field: keyof UrinalysisFormData, value: string | boolean) => {
@@ -76,34 +166,33 @@ export default function UrinalysisModal({ open, onClose, patientId, appointmentI
       return
     }
 
+    if (!visitData?.id || !procedureId) {
+      toast.error("Visit data or procedure ID not available")
+      return
+    }
+
     try {
-      // Here you would typically send the data to your API
-      console.log('Urinalysis Registration Data:', {
-        ...formData,
-        patientId,
-        appointmentId,
-        procedureCode: "DIAURI002"
-      })
+      // Convert form data to JSON string
+      const documentDetailsJson = JSON.stringify(formData)
       
-      toast.success("Urinalysis procedure registered successfully!")
-      
-      // Reset form and close modal
-      setFormData({
-        sampleType: "",
-        collectionTime: new Date().toISOString().slice(0, 16),
-        sampleVolume: "",
-        sampleColor: "",
-        testRequested: "",
-        clinicalSigns: "",
-        urgencyLevel: "",
-        specialInstructions: "",
-        fastingStatus: false,
-        ownerConsent: false
-      })
+      if (procedureDocumentDetails?.id) {
+        // Update existing documentation
+        await updateDocumentMutation.mutateAsync({
+          id: procedureDocumentDetails.id,
+          documentDetails: documentDetailsJson
+        })
+        
+        toast.success("Urinalysis documentation updated successfully!")
+      } else {
+        // No existing documentation to update
+        toast.error("No documentation record found to update")
+        return
+      }
       
       onClose()
     } catch (error) {
-      toast.error("Failed to register urinalysis procedure")
+      console.error("Error saving urinalysis documentation:", error)
+      toast.error(`Failed to save documentation: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -130,141 +219,176 @@ export default function UrinalysisModal({ open, onClose, patientId, appointmentI
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p>Loading procedure documentation...</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sampleType">
+                  Sample Collection Method <span className="text-red-500">*</span>
+                </Label>
+                <Select 
+                  value={formData.sampleType || ""} 
+                  onValueChange={(value) => handleInputChange('sampleType', value)}
+                >
+                  <SelectTrigger id="sampleType">
+                    <SelectValue placeholder="Select method..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sampleTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="collectionTime">
+                  Collection Date & Time <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="datetime-local"
+                  id="collectionTime"
+                  value={formData.collectionTime}
+                  onChange={(e) => handleInputChange('collectionTime', e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sampleVolume">Sample Volume (ml)</Label>
+                <Input
+                  type="number"
+                  id="sampleVolume"
+                  value={formData.sampleVolume}
+                  onChange={(e) => handleInputChange('sampleVolume', e.target.value)}
+                  min="0"
+                  step="0.1"
+                  placeholder="e.g., 5.0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sampleColor">Sample Color/Appearance</Label>
+                <Select 
+                  value={formData.sampleColor || ""} 
+                  onValueChange={(value) => handleInputChange('sampleColor', value)}
+                >
+                  <SelectTrigger id="sampleColor">
+                    <SelectValue placeholder="Select appearance..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sampleColors.map(color => (
+                      <SelectItem key={color.value} value={color.value}>{color.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="sampleType">
-                Sample Collection Method <span className="text-red-500">*</span>
+              <Label htmlFor="testRequested">
+                Tests Requested <span className="text-red-500">*</span>
               </Label>
-              <Select value={formData.sampleType} onValueChange={(value) => handleInputChange('sampleType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select method..." />
+              <Select 
+                value={formData.testRequested || ""} 
+                onValueChange={(value) => handleInputChange('testRequested', value)}
+              >
+                <SelectTrigger id="testRequested">
+                  <SelectValue placeholder="Select test type..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="free-catch">Free Catch</SelectItem>
-                  <SelectItem value="catheterization">Catheterization</SelectItem>
-                  <SelectItem value="cystocentesis">Cystocentesis</SelectItem>
-                  <SelectItem value="manual-expression">Manual Expression</SelectItem>
+                  {testTypes.map(type => (
+                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="collectionTime">
-                Collection Date & Time <span className="text-red-500">*</span>
+              <Label htmlFor="urgencyLevel">
+                Urgency Level <span className="text-red-500">*</span>
               </Label>
-              <Input
-                type="datetime-local"
-                value={formData.collectionTime}
-                onChange={(e) => handleInputChange('collectionTime', e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sampleVolume">Sample Volume (ml)</Label>
-              <Input
-                type="number"
-                value={formData.sampleVolume}
-                onChange={(e) => handleInputChange('sampleVolume', e.target.value)}
-                min="0"
-                step="0.1"
-                placeholder="e.g., 5.0"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sampleColor">Sample Color/Appearance</Label>
-              <Select value={formData.sampleColor} onValueChange={(value) => handleInputChange('sampleColor', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select appearance..." />
+              <Select 
+                value={formData.urgencyLevel || ""} 
+                onValueChange={(value) => handleInputChange('urgencyLevel', value)}
+              >
+                <SelectTrigger id="urgencyLevel">
+                  <SelectValue placeholder="Select urgency level..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="clear-yellow">Clear Yellow</SelectItem>
-                  <SelectItem value="pale-yellow">Pale Yellow</SelectItem>
-                  <SelectItem value="dark-yellow">Dark Yellow</SelectItem>
-                  <SelectItem value="cloudy">Cloudy</SelectItem>
-                  <SelectItem value="red-blood">Red/Bloody</SelectItem>
-                  <SelectItem value="brown">Brown</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {urgencyLevels.map(level => (
+                    <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="testRequested">
-              Tests Requested <span className="text-red-500">*</span>
-            </Label>
-            <Select value={formData.testRequested} onValueChange={(value) => handleInputChange('testRequested', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select test type..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="routine">Routine Urinalysis</SelectItem>
-                <SelectItem value="complete">Complete Urinalysis + Microscopy</SelectItem>
-                <SelectItem value="culture">Urinalysis + Culture & Sensitivity</SelectItem>
-                <SelectItem value="protein">Protein/Microalbumin Focus</SelectItem>
-                <SelectItem value="crystals">Crystal Analysis</SelectItem>
-                <SelectItem value="custom">Custom Panel</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="clinicalSigns">Clinical Signs/Symptoms</Label>
-            <Textarea
-              value={formData.clinicalSigns}
-              onChange={(e) => handleInputChange('clinicalSigns', e.target.value)}
-              placeholder="Describe any observed symptoms: frequent urination, blood in urine, difficulty urinating, etc."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="specialInstructions">Special Instructions</Label>
-            <Textarea
-              value={formData.specialInstructions}
-              onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-              placeholder="Any special handling requirements or additional notes for the lab..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="fastingStatus"
-                checked={formData.fastingStatus}
-                onCheckedChange={(checked) => handleInputChange('fastingStatus', checked as boolean)}
+            <div className="space-y-2">
+              <Label htmlFor="clinicalSigns">Clinical Signs/Symptoms</Label>
+              <Textarea
+                id="clinicalSigns"
+                value={formData.clinicalSigns}
+                onChange={(e) => handleInputChange('clinicalSigns', e.target.value)}
+                placeholder="Describe any observed symptoms: frequent urination, blood in urine, difficulty urinating, etc."
+                rows={3}
               />
-              <Label htmlFor="fastingStatus">Pet was fasting at time of collection</Label>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="ownerConsent"
-                checked={formData.ownerConsent}
-                onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
-                required
+            <div className="space-y-2">
+              <Label htmlFor="specialInstructions">Special Instructions</Label>
+              <Textarea
+                id="specialInstructions"
+                value={formData.specialInstructions}
+                onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
+                placeholder="Any special handling requirements or additional notes for the lab..."
+                rows={3}
               />
-              <Label htmlFor="ownerConsent">
-                Owner consent obtained for procedure <span className="text-red-500">*</span>
-              </Label>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save
-            </Button>
-          </div>
-        </form>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="fastingStatus"
+                  checked={formData.fastingStatus}
+                  onCheckedChange={(checked) => handleInputChange('fastingStatus', checked as boolean)}
+                />
+                <Label htmlFor="fastingStatus">Pet was fasting at time of collection</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="ownerConsent"
+                  checked={formData.ownerConsent}
+                  onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
+                  required
+                />
+                <Label htmlFor="ownerConsent">
+                  Owner consent obtained for procedure <span className="text-red-500">*</span>
+                </Label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateDocumentMutation.isPending}
+              >
+                {updateDocumentMutation.isPending 
+                  ? "Saving..." 
+                  : "Save"}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )

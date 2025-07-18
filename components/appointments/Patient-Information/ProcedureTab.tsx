@@ -17,6 +17,7 @@ import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
 import UrinalysisModal from "./modals/UrinalysisModal"
 import EyeSurgeryModal from "./modals/EyeSurgeryModal"
 import MicrochippingModal from "./modals/MicrochippingModal"
@@ -95,6 +96,9 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const { markTabAsCompleted } = useTabCompletion()
   
+  // Add state for selected procedure ID
+  const [selectedProcedureId, setSelectedProcedureId] = useState<string>("")
+  
   const transcriber = useTranscriber()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -107,6 +111,20 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     visitData?.id || ""
   )
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
+
+  // Fetch procedure documentation details when a procedure is selected
+  const { data: procedureDocumentDetails } = useProcedureDocumentDetails(
+    visitData?.id,
+    selectedProcedureId,
+    !!visitData?.id && !!selectedProcedureId
+  )
+
+  // Log when procedure documentation details are fetched
+  useEffect(() => {
+    if (procedureDocumentDetails) {
+      console.log("Fetched procedure documentation details:", procedureDocumentDetails);
+    }
+  }, [procedureDocumentDetails]);
 
   // Filter procedures based on search query (excluding already selected ones)
   const filteredProcedures = procedures.filter(procedure => {
@@ -291,6 +309,21 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   }
 
   const handleDocumentClick = (id: string) => {
+    // Set selected procedure ID
+    setSelectedProcedureId(id);
+    
+    // Refetch procedure details to ensure we have the latest data
+    if (visitData?.id) {
+      refetchProcedureDetail().then((result) => {
+        if (result.data) {
+          console.log("Visit ID:", visitData.id);
+          console.log("Selected procedure ID:", id);
+          console.log("Ready to fetch procedure documentation details");
+        }
+      });
+    }
+    
+    // Continue with original function to open the appropriate modal
     const procedure = procedures.find(p => p.id === id)
     if (procedure?.procCode === "DIAURI002") {
       setUrinalysisModalOpen(true)
@@ -300,6 +333,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       setEyeSurgeryModalOpen(true)
       return
     }
+    // Rest of the existing modal opening logic
     if (procedure?.procCode === "PREMIC006") {
       setMicrochippingModalOpen(true)
       return
@@ -704,6 +738,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setUrinalysisModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         
         <EyeSurgeryModal
@@ -711,6 +746,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setEyeSurgeryModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         
         <MicrochippingModal
@@ -718,6 +754,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setMicrochippingModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         
         <FleaTickControlModal
@@ -725,6 +762,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setFleaTickControlModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         
         <BreedModal
@@ -732,6 +770,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setBreedModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <QuarantineModal
@@ -739,6 +778,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setQuarantineModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <HealthCertificateModal
@@ -746,6 +786,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setHealthCertificateModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <RabiesTiterModal

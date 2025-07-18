@@ -17,6 +17,7 @@ interface EyeSurgeryModalProps {
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface EyeSurgeryFormData {

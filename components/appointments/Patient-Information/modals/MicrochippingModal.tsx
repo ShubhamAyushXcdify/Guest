@@ -16,6 +16,7 @@ interface MicrochippingModalProps {
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface MicrochippingFormData {

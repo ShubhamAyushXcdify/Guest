@@ -16,6 +16,7 @@ interface FleaTickControlModalProps {
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface FleaTickControlFormData {
