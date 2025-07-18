@@ -21,6 +21,12 @@ import UrinalysisModal from "./modals/UrinalysisModal"
 import EyeSurgeryModal from "./modals/EyeSurgeryModal"
 import MicrochippingModal from "./modals/MicrochippingModal"
 import FleaTickControlModal from "./modals/FleaTickControlModal"
+import SpayingNeuteringModal from "./modals/SpayingNeuteringModal"
+import DentalCleaningModal from "./modals/DentalCleaningModal"
+import AnalGlandModal from "./modals/AnalGlandModal"
+import BloodTestModal from "./modals/BloodTestModal"
+import FecalExamModal from "./modals/FecalExamModal"
+import XRayModal from "./modals/XRayModal"
 
 interface ProcedureTabProps {
   patientId: string
@@ -41,6 +47,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [hasCreatedDetail, setHasCreatedDetail] = useState(false)
   const [microchippingModalOpen, setMicrochippingModalOpen] = useState(false)
   const [fleaTickControlModalOpen, setFleaTickControlModalOpen] = useState(false)
+  const [spayingNeuteringModalOpen, setSpayingNeuteringModalOpen] = useState(false)
+  const [dentalCleaningModalOpen, setDentalCleaningModalOpen] = useState(false)
+  const [analGlandModalOpen, setAnalGlandModalOpen] = useState(false)
+  const [bloodTestModalOpen, setBloodTestModalOpen] = useState(false)
+  const [fecalExamModalOpen, setFecalExamModalOpen] = useState(false)
+  const [xrayModalOpen, setXrayModalOpen] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const { markTabAsCompleted } = useTabCompletion()
@@ -256,6 +268,30 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
     if (procedure?.procCode === "PREFLE003") {
       setFleaTickControlModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "PRESPA004") {
+      setSpayingNeuteringModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "PREDEN005") {
+      setDentalCleaningModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "PREANA008") {
+      setAnalGlandModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIABLO001") {
+      setBloodTestModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIAFEC003") {
+      setFecalExamModalOpen(true)
+      return    
+    }
+    if (procedure?.procCode === "DIAXRA004") {
+      setXrayModalOpen(true)
       return
     }
   }
@@ -573,6 +609,42 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         <FleaTickControlModal
           open={fleaTickControlModalOpen}
           onClose={() => setFleaTickControlModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <SpayingNeuteringModal
+          open={spayingNeuteringModalOpen}
+          onClose={() => setSpayingNeuteringModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <DentalCleaningModal
+          open={dentalCleaningModalOpen}
+          onClose={() => setDentalCleaningModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <AnalGlandModal
+          open={analGlandModalOpen}
+          onClose={() => setAnalGlandModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <BloodTestModal
+          open={bloodTestModalOpen}
+          onClose={() => setBloodTestModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <FecalExamModal
+          open={fecalExamModalOpen}
+          onClose={() => setFecalExamModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />  
+        <XRayModal
+          open={xrayModalOpen}
+          onClose={() => setXrayModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
         />
