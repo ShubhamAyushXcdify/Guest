@@ -103,14 +103,6 @@ export default function DentalCleaningModal({ open, onClose, patientId, appointm
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             🦷 Dental Cleaning Documentation
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="ml-auto"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </SheetTitle>
         </SheetHeader>
 
