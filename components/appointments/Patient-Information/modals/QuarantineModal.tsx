@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,82 +10,107 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { X } from "lucide-react"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
+import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
 
 interface QuarantineModalProps {
   open: boolean
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface QuarantineFormData {
-  destinationCountry: string
-  travelDate: string
-  quarantineType: string
-  quarantineDuration: string
-  vaccinations: string[]
-  testingRequired: string[]
-  parasiteTreatment: string
-  treatmentDate: string
-  microchipVerified: boolean
-  passportNumber: string
-  certifyingVet: string
-  certificationDate: string
+  reasonForQuarantine: string
+  startDate: string
+  endDate: string
+  quarantineLocation: string
+  observation: string
   ownerConsent: boolean
   notes: string
 }
 
-export default function QuarantineModal({ open, onClose, patientId, appointmentId }: QuarantineModalProps) {
+export default function QuarantineModal({ open, onClose, patientId, appointmentId, procedureId }: QuarantineModalProps) {
   const [formData, setFormData] = useState<QuarantineFormData>({
-    destinationCountry: "",
-    travelDate: "",
-    quarantineType: "",
-    quarantineDuration: "",
-    vaccinations: [],
-    testingRequired: [],
-    parasiteTreatment: "",
-    treatmentDate: new Date().toISOString().slice(0, 16),
-    microchipVerified: false,
-    passportNumber: "",
-    certifyingVet: "",
-    certificationDate: new Date().toISOString().slice(0, 16),
+    reasonForQuarantine: "",
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: "",
+    quarantineLocation: "",
+    observation: "",
     ownerConsent: false,
     notes: ""
   })
 
-  const quarantineTypes = [
-    { value: "pre-departure", label: "Pre-Departure Isolation" },
-    { value: "post-arrival", label: "Post-Arrival Quarantine" },
+  // Get visit data from appointment ID
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+
+  // Get procedure documentation details using visit ID and procedure ID
+  const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
+    visitData?.id,
+    procedureId,
+    !!visitData?.id && !!procedureId && open
+  )
+
+  // Get update mutation
+  const updateDocumentMutation = useUpdateProcedureDocumentDetails()
+
+  // Populate form with existing data when available
+  useEffect(() => {
+    if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
+      try {
+        const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
+        console.log("Loaded procedure documentation details:", parsedDetails)
+        
+        // Create a new form data object with the parsed details
+        const newFormData = {
+          ...formData,
+          ...parsedDetails,
+          // Ensure string values for Select components
+          reasonForQuarantine: parsedDetails.reasonForQuarantine || "",
+          quarantineLocation: parsedDetails.quarantineLocation || "",
+          // Ensure date values are correctly formatted
+          startDate: parsedDetails.startDate || new Date().toISOString().slice(0, 10),
+          endDate: parsedDetails.endDate || "",
+          // Ensure boolean values for checkboxes
+          ownerConsent: !!parsedDetails.ownerConsent
+        }
+        
+        setFormData(newFormData)
+        console.log("Updated form data:", newFormData)
+      } catch (error) {
+        console.error("Failed to parse procedure document details:", error)
+      }
+    } else {
+      // Reset the form when no data is available
+      setFormData({
+        reasonForQuarantine: "",
+        startDate: new Date().toISOString().slice(0, 10),
+        endDate: "",
+        quarantineLocation: "",
+        observation: "",
+        ownerConsent: false,
+        notes: ""
+      })
+    }
+  }, [procedureDocumentDetails])
+
+  const quarantineReasons = [
+    { value: "infectious-disease", label: "Infectious Disease" },
+    { value: "import-regulations", label: "Import Regulations" },
+    { value: "exposure-rabies", label: "Rabies Exposure" },
+    { value: "other", label: "Other" }
+  ]
+
+  const quarantineLocations = [
     { value: "home", label: "Home Quarantine" },
-    { value: "facility", label: "Facility Quarantine" }
+    { value: "clinic", label: "Clinic/Hospital" },
+    { value: "specialized-facility", label: "Specialized Quarantine Facility" },
+    { value: "other", label: "Other" }
   ]
 
-  const durations = [
-    { value: "7", label: "7 Days" },
-    { value: "10", label: "10 Days" },
-    { value: "14", label: "14 Days" },
-    { value: "21", label: "21 Days" },
-    { value: "30", label: "30 Days" },
-    { value: "custom", label: "Custom Duration" }
-  ]
-
-  const requiredVaccinations = [
-    { value: "rabies", label: "Rabies" },
-    { value: "dhpp", label: "DHPP" },
-    { value: "bordetella", label: "Bordetella" },
-    { value: "influenza", label: "Influenza" },
-    { value: "leptospirosis", label: "Leptospirosis" }
-  ]
-
-  const requiredTests = [
-    { value: "rabies-titer", label: "Rabies Titer Test" },
-    { value: "blood-work", label: "Complete Blood Work" },
-    { value: "parasite", label: "Parasite Screening" },
-    { value: "heartworm", label: "Heartworm Test" },
-    { value: "skin-scrape", label: "Skin Scraping Test" }
-  ]
-
-  const handleInputChange = (field: keyof QuarantineFormData, value: string | string[] | boolean) => {
+  const handleInputChange = (field: keyof QuarantineFormData, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -94,15 +119,9 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
     // Validate required fields
-    const requiredFields = [
-      'destinationCountry', 
-      'travelDate', 
-      'quarantineType', 
-      'quarantineDuration',
-      'certifyingVet',
-      'certificationDate'
-    ]
+    const requiredFields = ['reasonForQuarantine', 'startDate', 'endDate', 'quarantineLocation']
     const missingFields = requiredFields.filter(field => !formData[field as keyof QuarantineFormData])
     
     if (missingFields.length > 0) {
@@ -115,43 +134,33 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
       return
     }
 
-    if (formData.vaccinations.length === 0) {
-      toast.error("At least one vaccination must be selected")
+    if (!visitData?.id || !procedureId) {
+      toast.error("Visit data or procedure ID not available")
       return
     }
 
     try {
-      // Here you would typically send the data to your API
-      console.log('Export Quarantine Registration Data:', {
-        ...formData,
-        patientId,
-        appointmentId,
-        procedureCode: "TRAEXP003"
-      })
+      // Convert form data to JSON string
+      const documentDetailsJson = JSON.stringify(formData)
       
-      toast.success("Export quarantine procedure registered successfully!")
-      
-      // Reset form and close modal
-      setFormData({
-        destinationCountry: "",
-        travelDate: "",
-        quarantineType: "",
-        quarantineDuration: "",
-        vaccinations: [],
-        testingRequired: [],
-        parasiteTreatment: "",
-        treatmentDate: new Date().toISOString().slice(0, 16),
-        microchipVerified: false,
-        passportNumber: "",
-        certifyingVet: "",
-        certificationDate: new Date().toISOString().slice(0, 16),
-        ownerConsent: false,
-        notes: ""
-      })
+      if (procedureDocumentDetails?.id) {
+        // Update existing documentation
+        await updateDocumentMutation.mutateAsync({
+          id: procedureDocumentDetails.id,
+          documentDetails: documentDetailsJson
+        })
+        
+        toast.success("Quarantine documentation updated successfully!")
+      } else {
+        // No existing documentation to update
+        toast.error("No documentation record found to update")
+        return
+      }
       
       onClose()
     } catch (error) {
-      toast.error("Failed to register export quarantine procedure")
+      console.error("Error saving quarantine documentation:", error)
+      toast.error(`Failed to save documentation: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -160,7 +169,16 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
       <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            ✈️ Export Quarantine Documentation
+            🚨 Quarantine Documentation
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="ml-auto"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+
           </SheetTitle>
         </SheetHeader>
 
@@ -170,188 +188,95 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="destinationCountry">
-                Destination Country <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.destinationCountry}
-                onChange={(e) => handleInputChange('destinationCountry', e.target.value)}
-                placeholder="Enter destination country"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="travelDate">
-                Planned Travel Date <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="date"
-                value={formData.travelDate}
-                onChange={(e) => handleInputChange('travelDate', e.target.value)}
-                required
-              />
-            </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p>Loading procedure documentation...</p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="quarantineType">
-                Quarantine Type <span className="text-red-500">*</span>
+              <Label htmlFor="reasonForQuarantine">
+                Reason for Quarantine <span className="text-red-500">*</span>
               </Label>
-              <Select value={formData.quarantineType} onValueChange={(value) => handleInputChange('quarantineType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select quarantine type..." />
+              <Select 
+                value={formData.reasonForQuarantine || ""} 
+                onValueChange={(value) => handleInputChange('reasonForQuarantine', value)}
+              >
+                <SelectTrigger id="reasonForQuarantine">
+                  <SelectValue placeholder="Select reason..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {quarantineTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  {quarantineReasons.map(reason => (
+                    <SelectItem key={reason.value} value={reason.value}>{reason.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">
+                  Start Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleInputChange('startDate', e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">
+                  End Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quarantineLocation">
+                Quarantine Location <span className="text-red-500">*</span>
+              </Label>
+              <Select 
+                value={formData.quarantineLocation || ""} 
+                onValueChange={(value) => handleInputChange('quarantineLocation', value)}
+              >
+                <SelectTrigger id="quarantineLocation">
+                  <SelectValue placeholder="Select location..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {quarantineLocations.map(location => (
+                    <SelectItem key={location.value} value={location.value}>{location.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="quarantineDuration">
-                Quarantine Duration <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.quarantineDuration} onValueChange={(value) => handleInputChange('quarantineDuration', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select duration..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {durations.map(duration => (
-                    <SelectItem key={duration.value} value={duration.value}>{duration.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Required Vaccinations <span className="text-red-500">*</span></Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {requiredVaccinations.map(vax => (
-                <div key={vax.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`vax-${vax.value}`}
-                    checked={formData.vaccinations.includes(vax.value)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        handleInputChange('vaccinations', [...formData.vaccinations, vax.value])
-                      } else {
-                        handleInputChange('vaccinations', formData.vaccinations.filter(v => v !== vax.value))
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`vax-${vax.value}`}>{vax.label}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Required Tests</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {requiredTests.map(test => (
-                <div key={test.value} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`test-${test.value}`}
-                    checked={formData.testingRequired.includes(test.value)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        handleInputChange('testingRequired', [...formData.testingRequired, test.value])
-                      } else {
-                        handleInputChange('testingRequired', formData.testingRequired.filter(t => t !== test.value))
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`test-${test.value}`}>{test.label}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="parasiteTreatment">Parasite Treatment</Label>
-              <Input
-                type="text"
-                value={formData.parasiteTreatment}
-                onChange={(e) => handleInputChange('parasiteTreatment', e.target.value)}
-                placeholder="Enter treatment details"
+              <Label htmlFor="observation">Observation Requirements</Label>
+              <Textarea
+                value={formData.observation}
+                onChange={(e) => handleInputChange('observation', e.target.value)}
+                placeholder="Specific observation instructions..."
+                rows={3}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="treatmentDate">Treatment Date</Label>
-              <Input
-                type="datetime-local"
-                value={formData.treatmentDate}
-                onChange={(e) => handleInputChange('treatmentDate', e.target.value)}
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any other relevant notes..."
+                rows={3}
               />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="passportNumber">Pet Passport Number</Label>
-              <Input
-                type="text"
-                value={formData.passportNumber}
-                onChange={(e) => handleInputChange('passportNumber', e.target.value)}
-                placeholder="Enter passport number"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="certifyingVet">
-                Certifying Veterinarian <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.certifyingVet}
-                onChange={(e) => handleInputChange('certifyingVet', e.target.value)}
-                placeholder="Name of certifying vet"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="certificationDate">
-              Certification Date <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              type="datetime-local"
-              value={formData.certificationDate}
-              onChange={(e) => handleInputChange('certificationDate', e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Any other relevant notes about the quarantine procedure..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="microchipVerified"
-                checked={formData.microchipVerified}
-                onCheckedChange={(checked) => handleInputChange('microchipVerified', checked as boolean)}
-              />
-              <Label htmlFor="microchipVerified">Microchip verified and scanned</Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -362,20 +287,25 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
                 required
               />
               <Label htmlFor="ownerConsent">
-                Owner consent obtained for procedure <span className="text-red-500">*</span>
+                Owner consent obtained for quarantine procedure <span className="text-red-500">*</span>
               </Label>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateDocumentMutation.isPending}
+              >
+                {updateDocumentMutation.isPending 
+                  ? "Saving..." 
+                  : "Save"}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )
