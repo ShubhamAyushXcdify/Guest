@@ -257,14 +257,6 @@ export default function IVFluidTherapyModal({ open, onClose, patientId, appointm
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             💧 IV Fluid Therapy Documentation
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="ml-auto"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </SheetTitle>
         </SheetHeader>
 
