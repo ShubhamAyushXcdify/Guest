@@ -21,6 +21,25 @@ import UrinalysisModal from "./modals/UrinalysisModal"
 import EyeSurgeryModal from "./modals/EyeSurgeryModal"
 import MicrochippingModal from "./modals/MicrochippingModal"
 import FleaTickControlModal from "./modals/FleaTickControlModal"
+import BreedModal from "./modals/BreedModal"
+import QuarantineModal from "./modals/QuarantineModal"
+import HealthCertificateModal from "./modals/HealthCertificateModal"
+import RabiesTiterModal from "./modals/RabiesTiterModal"
+import AllergyModal from "./modals/AllergyModal"
+import ChemotherapyModal from "./modals/ChemotherapyModal"
+import ArthritisModal from "./modals/ArthritisModal"
+import DiabetesMonitoringModal from "./modals/DiabetesMonitoringModal"
+import WeightManagementModal from "./modals/WeightManagementModal"
+import AcupunctureModal from "./modals/AcupunctureModal"
+import LaserTherapyModal from "./modals/LaserTherapyModal"
+import MedicatedBathsModal from "./modals/MedicatedBathsModal"
+import IVFluidTherapyModal from "./modals/IVFluidTherapyModal"
+import EarSurgeryModal from "./modals/EarSurgeryModal"
+import ForeignBodyRemovalModal from "./modals/ForeignBodyRemovalModal"
+import BladderStoneRemovalModal from "./modals/BladderStoneRemovalModal"
+import OrthopedicSurgeryModal from "./modals/OrthopedicSurgeryModal"
+import WoundRepairModal from "./modals/WoundRepairModal"
+import DentalExtractionsModal from "./modals/DentalExtractionsModal"
 
 interface ProcedureTabProps {
   patientId: string
@@ -41,6 +60,25 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [hasCreatedDetail, setHasCreatedDetail] = useState(false)
   const [microchippingModalOpen, setMicrochippingModalOpen] = useState(false)
   const [fleaTickControlModalOpen, setFleaTickControlModalOpen] = useState(false)
+  const [breedModalOpen, setBreedModalOpen] = useState(false)
+  const [quarantineModalOpen, setQuarantineModalOpen] = useState(false)
+  const [healthCertificateModalOpen, setHealthCertificateModalOpen] = useState(false)
+  const [rabiesTiterModalOpen, setRabiesTiterModalOpen] = useState(false)
+  const [allergyModalOpen, setAllergyModalOpen] = useState(false)
+  const [chemotherapyModalOpen, setChemotherapyModalOpen] = useState(false)
+  const [arthritisModalOpen, setArthritisModalOpen] = useState(false)
+  const [diabetesMonitoringModalOpen, setDiabetesMonitoringModalOpen] = useState(false)
+  const [weightManagementModalOpen, setWeightManagementModalOpen] = useState(false)
+  const [acupunctureModalOpen, setAcupunctureModalOpen] = useState(false)
+  const [laserTherapyModalOpen, setLaserTherapyModalOpen] = useState(false)
+  const [medicatedBathsModalOpen, setMedicatedBathsModalOpen] = useState(false)
+  const [ivFluidTherapyModalOpen, setIVFluidTherapyModalOpen] = useState(false)
+  const [earSurgeryModalOpen, setEarSurgeryModalOpen] = useState(false)
+  const [foreignBodyRemovalModalOpen, setForeignBodyRemovalModalOpen] = useState(false)
+  const [bladderStoneRemovalModalOpen, setBladderStoneRemovalModalOpen] = useState(false)
+  const [orthopedicSurgeryModalOpen, setOrthopedicSurgeryModalOpen] = useState(false)
+  const [woundRepairModalOpen, setWoundRepairModalOpen] = useState(false)
+  const [dentalExtractionsModalOpen, setDentalExtractionsModalOpen] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const { markTabAsCompleted } = useTabCompletion()
@@ -256,6 +294,82 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
     if (procedure?.procCode === "PREFLE003") {
       setFleaTickControlModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "TRABRE004") {
+      setBreedModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "TRAEXP003") {
+      setQuarantineModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "TRAHEA002") {
+      setHealthCertificateModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "TRArab001") {
+      setRabiesTiterModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEALL009") {
+      setAllergyModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THECHE008") {
+      setChemotherapyModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEART007") {
+      setArthritisModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEDIA006") {
+      setDiabetesMonitoringModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEWEI005") {
+      setWeightManagementModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEACU004") {
+      setAcupunctureModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THELAS003") {
+      setLaserTherapyModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEMED002") {
+      setMedicatedBathsModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "THEIVF001") {
+      setIVFluidTherapyModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SUREAR010") {
+      setEarSurgeryModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURFOR009") {
+      setForeignBodyRemovalModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURBLA008") {
+      setBladderStoneRemovalModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURORT006") {
+      setOrthopedicSurgeryModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURWOU005") {
+      setWoundRepairModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURDEN004") {
+      setDentalExtractionsModalOpen(true)
       return
     }
   }
@@ -573,6 +687,139 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         <FleaTickControlModal
           open={fleaTickControlModalOpen}
           onClose={() => setFleaTickControlModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        
+        <BreedModal
+          open={breedModalOpen}
+          onClose={() => setBreedModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <QuarantineModal
+          open={quarantineModalOpen}
+          onClose={() => setQuarantineModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <HealthCertificateModal
+          open={healthCertificateModalOpen}
+          onClose={() => setHealthCertificateModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <RabiesTiterModal
+          open={rabiesTiterModalOpen}
+          onClose={() => setRabiesTiterModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <AllergyModal
+          open={allergyModalOpen}
+          onClose={() => setAllergyModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <ChemotherapyModal
+          open={chemotherapyModalOpen}
+          onClose={() => setChemotherapyModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <ArthritisModal
+          open={arthritisModalOpen}
+          onClose={() => setArthritisModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <DiabetesMonitoringModal
+          open={diabetesMonitoringModalOpen}
+          onClose={() => setDiabetesMonitoringModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <WeightManagementModal
+          open={weightManagementModalOpen}
+          onClose={() => setWeightManagementModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <AcupunctureModal
+          open={acupunctureModalOpen}
+          onClose={() => setAcupunctureModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <LaserTherapyModal
+          open={laserTherapyModalOpen}
+          onClose={() => setLaserTherapyModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <MedicatedBathsModal
+          open={medicatedBathsModalOpen}
+          onClose={() => setMedicatedBathsModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <IVFluidTherapyModal
+          open={ivFluidTherapyModalOpen}
+          onClose={() => setIVFluidTherapyModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <EarSurgeryModal
+          open={earSurgeryModalOpen}
+          onClose={() => setEarSurgeryModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <ForeignBodyRemovalModal
+          open={foreignBodyRemovalModalOpen}
+          onClose={() => setForeignBodyRemovalModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <BladderStoneRemovalModal
+          open={bladderStoneRemovalModalOpen}
+          onClose={() => setBladderStoneRemovalModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <OrthopedicSurgeryModal
+          open={orthopedicSurgeryModalOpen}
+          onClose={() => setOrthopedicSurgeryModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <WoundRepairModal
+          open={woundRepairModalOpen}
+          onClose={() => setWoundRepairModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+
+        <DentalExtractionsModal
+          open={dentalExtractionsModalOpen}
+          onClose={() => setDentalExtractionsModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
         />
