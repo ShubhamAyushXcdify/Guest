@@ -105,14 +105,6 @@ export default function MicrochippingModal({ open, onClose, patientId, appointme
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             🏷️ Microchipping Documentation
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="ml-auto"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </SheetTitle>
         </SheetHeader>
         <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">

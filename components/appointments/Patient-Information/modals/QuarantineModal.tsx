@@ -178,6 +178,7 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
             >
               <X className="h-4 w-4" />
             </Button>
+
           </SheetTitle>
         </SheetHeader>
 

@@ -47,7 +47,17 @@ import AnalGlandModal from "./modals/AnalGlandModal"
 import BloodTestModal from "./modals/BloodTestModal"
 import FecalExamModal from "./modals/FecalExamModal"
 import XRayModal from "./modals/XRayModal"
-
+import UltrasoundModal from "./modals/UltrasoundModal"
+import AllergyTestingModal from "./modals/AllergyTestingModal"
+import SkinScrapingModal from "./modals/SkinScrapingModal"
+import ECGModal from "./modals/ECGModal"
+import BloodPressureModal from "./modals/BloodPressureModal"
+import OphthalmicExamModal from "./modals/OphthalmicExamModal"
+import FnaModal from "./modals/FnaModal"
+import SpayModal from "./modals/SpayModa"
+import NeuterModal from "./modals/NeuterModal"
+import MassLumpRemovalModal from "./modals/MassLumpRemovalModal"
+import NailTrimmingModal from "./modals/NailTrimmingModal"
 interface ProcedureTabProps {
   patientId: string
   appointmentId: string
@@ -92,6 +102,17 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [bloodTestModalOpen, setBloodTestModalOpen] = useState(false)
   const [fecalExamModalOpen, setFecalExamModalOpen] = useState(false)
   const [xrayModalOpen, setXrayModalOpen] = useState(false)
+  const [ultrasoundModalOpen, setUltrasoundModalOpen] = useState(false)
+  const [allergyTestingModalOpen, setAllergyTestingModalOpen] = useState(false)
+  const [skinScrapingModalOpen, setSkinScrapingModalOpen] = useState(false)
+  const [ecgModalOpen, setEcgModalOpen] = useState(false)
+  const [bloodPressureModalOpen, setBloodPressureModalOpen] = useState(false)
+  const [ophthalmicExamModalOpen, setOphthalmicExamModalOpen] = useState(false)
+  const [fnaModalOpen, setFnaModalOpen] = useState(false)
+  const [spayModalOpen, setSpayModalOpen] = useState(false)
+  const [neuterModalOpen, setNeuterModalOpen] = useState(false)
+  const [massLumpRemovalModalOpen, setMassLumpRemovalModalOpen] = useState(false)
+  const [nailTrimmingModalOpen, setNailTrimmingModalOpen] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const { markTabAsCompleted } = useTabCompletion()
@@ -440,6 +461,50 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
     if (procedure?.procCode === "DIAXRA004") {
       setXrayModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIAULT005") {
+      setUltrasoundModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIAALL006") {
+      setAllergyTestingModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIASKI007") {
+      setSkinScrapingModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIAELE008") {
+      setEcgModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIABLO009") {
+      setBloodPressureModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIAOPH010") {
+      setOphthalmicExamModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "DIAFIN011") {
+      setFnaModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURSPA001") {
+      setSpayModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURNEU002") {
+      setNeuterModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "SURMAS003") {
+      setMassLumpRemovalModalOpen(true)
+      return
+    }
+    if (procedure?.procCode === "PRENAI007") {
+      setNailTrimmingModalOpen(true)
       return
     }
   }
@@ -933,6 +998,72 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         <XRayModal
           open={xrayModalOpen}
           onClose={() => setXrayModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <UltrasoundModal
+          open={ultrasoundModalOpen}
+          onClose={() => setUltrasoundModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <AllergyTestingModal
+          open={allergyTestingModalOpen}
+          onClose={() => setAllergyTestingModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <SkinScrapingModal
+          open={skinScrapingModalOpen}
+          onClose={() => setSkinScrapingModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <ECGModal
+          open={ecgModalOpen}
+          onClose={() => setEcgModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <BloodPressureModal
+          open={bloodPressureModalOpen}
+          onClose={() => setBloodPressureModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <OphthalmicExamModal
+          open={ophthalmicExamModalOpen}
+          onClose={() => setOphthalmicExamModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <FnaModal
+          open={fnaModalOpen}
+          onClose={() => setFnaModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <SpayModal
+          open={spayModalOpen}
+          onClose={() => setSpayModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <NeuterModal
+          open={neuterModalOpen}
+          onClose={() => setNeuterModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <MassLumpRemovalModal
+          open={massLumpRemovalModalOpen}
+          onClose={() => setMassLumpRemovalModalOpen(false)}
+          patientId={patientId}
+          appointmentId={appointmentId}
+        />
+        <NailTrimmingModal
+          open={nailTrimmingModalOpen}
+          onClose={() => setNailTrimmingModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
         />

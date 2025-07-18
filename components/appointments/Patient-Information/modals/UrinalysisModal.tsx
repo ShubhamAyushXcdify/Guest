@@ -202,14 +202,6 @@ export default function UrinalysisModal({ open, onClose, patientId, appointmentI
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             🧪 Urinalysis Documentation
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="ml-auto"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </SheetTitle>
         </SheetHeader>
 

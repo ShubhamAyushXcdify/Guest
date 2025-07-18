@@ -173,6 +173,7 @@ export default function AnalGlandModal({ open, onClose, patientId, appointmentId
             >
               <X className="h-4 w-4" />
             </Button>
+
           </SheetTitle>
         </SheetHeader>
 
