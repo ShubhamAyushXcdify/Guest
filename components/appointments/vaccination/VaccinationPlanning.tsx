@@ -9,6 +9,13 @@ import { CheckCircle, AlertTriangle } from "lucide-react"
 import { useGetVaccinationMasters } from "@/queries/vaccinationMaster/get-vaccinationMaster"
 import VaccinationRecord from "./VaccinationRecord"
 import FpvDocumentationModal from "./modals/FpvDocumentationModal"
+import CdvDocumentationModal from "./modals/CdvDocumentationModal";
+import CavDocumentationModal from "./modals/CavDocumentationModal";
+import CpvDocumentationModal from "./modals/CpvDocumentationModal";
+import RabiesDocumentationModal from "./modals/RabiesDocumentationModal";
+import DncBordetellaDocumentationModal from "./modals/DncBordetellaDocumentationModal";
+import DncPivDocumentationModal from "./modals/DncPivDocumentationModal";
+import DncLeptoDocumentationModal from "./modals/DncLeptoDocumentationModal";
 import { useRootContext } from "@/context/RootContext";
 
 interface Vaccination {
@@ -232,33 +239,110 @@ export default function VaccinationPlanning({
             </div>
           </div>
         </div>
-        {/* Custom modal for FPV (ccoFpv) */}
-        {documentVaccineId && documentVaccine && documentVaccine.vacCode === "ccoFpv" && (
-          <FpvDocumentationModal
-            open={true}
-            onClose={() => setDocumentVaccineId(null)}
-            vaccine={documentVaccine}
-            patientId={patientId}
-            appointmentId={appointmentId}
-            species={species}
-            clinicId={clinicId}
-          />
-        )}
-        {/* Default modal for all other vaccines */}
-        {/* {documentVaccineId && documentVaccine && documentVaccine.vacCode !== "ccoFpv" && (
-          <Sheet open={true} onOpenChange={() => setDocumentVaccineId(null)}>
-            <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
-              <VaccinationRecord
-                patientId={patientId}
-                appointmentId={appointmentId}
-                species={species}
-                selectedVaccines={[documentVaccineId]}
-                onBack={() => setDocumentVaccineId(null)}
-                onSubmit={() => setDocumentVaccineId(null)}
-              />
-            </SheetContent>
-          </Sheet>
-        )} */}
+        {/* Vaccine-specific documentation modals */}
+        {documentVaccineId && documentVaccine && (() => {
+          switch (documentVaccine.vacCode) {
+            case "ccoFpv":
+              return (
+                <FpvDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dcoCdv":
+              return (
+                <CdvDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dcoCav":
+              return (
+                <CavDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dcoCpv":
+              return (
+                <CpvDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dcoRabies":
+            case "ccoRabies":
+              return (
+                <RabiesDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dncBordetella":
+              return (
+                <DncBordetellaDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dncPiv":
+              return (
+                <DncPivDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "dncLepto":
+              return (
+                <DncLeptoDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            default:
+              return null;
+          }
+        })()}
       </SheetContent>
     </Sheet>
   );
