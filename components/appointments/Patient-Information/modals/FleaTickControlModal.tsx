@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { X } from "lucide-react"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
+import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
 
 interface FleaTickControlModalProps {
   open: boolean
@@ -30,7 +33,7 @@ interface FleaTickControlFormData {
   notes: string
 }
 
-export default function FleaTickControlModal({ open, onClose, patientId, appointmentId }: FleaTickControlModalProps) {
+export default function FleaTickControlModal({ open, onClose, patientId, appointmentId, procedureId }: FleaTickControlModalProps) {
   const [formData, setFormData] = useState<FleaTickControlFormData>({
     productName: "",
     productType: "",
@@ -42,52 +45,53 @@ export default function FleaTickControlModal({ open, onClose, patientId, appoint
     notes: ""
   })
 
-  const productTypes = [
-    { value: "topical", label: "Topical" },
-    { value: "oral", label: "Oral" },
-    { value: "collar", label: "Collar" },
-    { value: "spray", label: "Spray" },
-    { value: "other", label: "Other" }
-  ]
+  const [formInitialized, setFormInitialized] = useState(false)
 
-  const applicationMethods = [
-    { value: "topical-application", label: "Topical Application" },
-    { value: "oral-administration", label: "Oral Administration" },
-    { value: "collar-fitting", label: "Collar Fitting" },
-    { value: "spray-application", label: "Spray Application" },
-    { value: "other", label: "Other" }
-  ]
+  // Get visit data from appointment ID
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
 
-  const handleInputChange = (field: keyof FleaTickControlFormData, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
+  // Get procedure documentation details using visit ID and procedure ID
+  const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
+    visitData?.id,
+    procedureId,
+    !!visitData?.id && !!procedureId && open
+  )
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    // Validate required fields
-    const requiredFields = ['productName', 'productType', 'dosage', 'applicationMethod', 'applicationDateTime']
-    const missingFields = requiredFields.filter(field => !formData[field as keyof FleaTickControlFormData])
-    if (missingFields.length > 0) {
-      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`)
-      return
-    }
-    if (!formData.ownerConsent) {
-      toast.error("Owner consent is required")
-      return
-    }
-    try {
-      // Here you would typically send the data to your API
-      console.log('Flea/Tick Control Registration Data:', {
-        ...formData,
-        patientId,
-        appointmentId,
-        procedureCode: "PREFLE003"
-      })
-      toast.success("Flea/Tick control procedure registered successfully!")
-      // Reset form and close modal
+  // Get update mutation
+  const updateDocumentMutation = useUpdateProcedureDocumentDetails()
+
+  // Populate form with existing data when available
+  useEffect(() => {
+    if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
+      try {
+        const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
+        console.log("Loaded procedure documentation details:", parsedDetails)
+        
+        // Create a new form data object with the parsed details
+        const newFormData = {
+          ...formData,
+          ...parsedDetails,
+          // Ensure string values for fields
+          productName: parsedDetails.productName || "",
+          productType: parsedDetails.productType || "",
+          dosage: parsedDetails.dosage || "",
+          applicationMethod: parsedDetails.applicationMethod || "",
+          applicationDateTime: parsedDetails.applicationDateTime || new Date().toISOString().slice(0, 16),
+          nextDueDate: parsedDetails.nextDueDate || "",
+          notes: parsedDetails.notes || "",
+          
+          // Ensure boolean values for checkboxes
+          ownerConsent: !!parsedDetails.ownerConsent
+        }
+        
+        setFormData(newFormData)
+        setFormInitialized(true)
+        console.log("Updated form data:", newFormData)
+      } catch (error) {
+        console.error("Failed to parse procedure document details:", error)
+      }
+    } else {
+      // Reset the form when no data is available
       setFormData({
         productName: "",
         productType: "",
@@ -98,137 +102,235 @@ export default function FleaTickControlModal({ open, onClose, patientId, appoint
         ownerConsent: false,
         notes: ""
       })
-      onClose()
+      setFormInitialized(false)
+    }
+  }, [procedureDocumentDetails, formData])
+
+  const productTypes = [
+    { value: "spot-on", label: "Spot-On Treatment" },
+    { value: "oral", label: "Oral Medication" },
+    { value: "collar", label: "Flea/Tick Collar" },
+    { value: "spray", label: "Spray Treatment" },
+    { value: "shampoo", label: "Medicated Shampoo" },
+    { value: "injection", label: "Injectable Treatment" }
+  ]
+
+  const applicationMethods = [
+    { value: "topical", label: "Topical Application" },
+    { value: "oral", label: "Oral Administration" },
+    { value: "collar", label: "Collar Placement" },
+    { value: "injection", label: "Injection" },
+    { value: "spray", label: "Spray Application" },
+    { value: "bath", label: "Medicated Bath" }
+  ]
+
+  const handleInputChange = (field: keyof FleaTickControlFormData, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const saveDocumentation = async () => {
+    // Validate required fields
+    const requiredFields = ['productName', 'productType', 'dosage', 'applicationMethod', 'applicationDateTime', 'nextDueDate']
+    const missingFields = requiredFields.filter(field => !formData[field as keyof FleaTickControlFormData])
+    
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      return false
+    }
+    
+    if (!formData.ownerConsent) {
+      toast.error("Owner consent is required")
+      return false
+    }
+
+    if (!visitData?.id || !procedureId) {
+      toast.error("Visit data or procedure ID not available")
+      return false
+    }
+
+    try {
+      // Convert form data to JSON string
+      const documentDetailsJson = JSON.stringify(formData)
+      
+      if (procedureDocumentDetails?.id) {
+        // Update existing documentation
+        await updateDocumentMutation.mutateAsync({
+          id: procedureDocumentDetails.id,
+          documentDetails: documentDetailsJson
+        })
+        
+        toast.success("Flea and tick control documentation updated successfully!")
+        return true
+      } else {
+        // No existing documentation to update
+        toast.error("No documentation record found to update")
+        return false
+      }
     } catch (error) {
-      toast.error("Failed to register flea/tick control procedure")
+      console.error("Error saving flea/tick control documentation:", error)
+      // Check for Zod validation errors
+      if (error instanceof Error && error.message.includes("Zod")) {
+        toast.error(`Validation error: ${error.message}`)
+      } else {
+        toast.error(`Failed to save documentation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+      return false
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
+    }
+  }
+
+  // This is a direct button click handler that doesn't rely on the form submission
+  const handleSaveClick = async () => {
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
     }
   }
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-full md:max-w-[70%] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            🐛 Flea/Tick Control Documentation
+            🐜 Flea & Tick Control Application
           </SheetTitle>
         </SheetHeader>
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-          <p className="text-sm text-blue-800">
-            <strong>Info:</strong> Pet and client information will be automatically linked from the existing appointment record.
-          </p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="productName">
-                Product Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.productName}
-                onChange={(e) => handleInputChange('productName', e.target.value)}
-                placeholder="Enter product name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="productType">
-                Product Type <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.productType} onValueChange={(value) => handleInputChange('productType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {productTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p>Loading procedure documentation...</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="productName">
+                  Product Name <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  value={formData.productName}
+                  onChange={(e) => handleInputChange("productName", e.target.value)}
+                  placeholder="e.g., Frontline Plus, Seresto"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="productType">
+                  Product Type <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.productType} onValueChange={(val) => handleInputChange("productType", val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select product type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="dosage">
                 Dosage <span className="text-red-500">*</span>
               </Label>
-              <Input
-                type="text"
+              <Input 
                 value={formData.dosage}
-                onChange={(e) => handleInputChange('dosage', e.target.value)}
-                placeholder="e.g., 1 tablet, 1ml, etc."
-                required
+                onChange={(e) => handleInputChange("dosage", e.target.value)}
+                placeholder="e.g., 0.67ml for 10-20kg dog"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="applicationMethod">
-                Application Method <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.applicationMethod} onValueChange={(value) => handleInputChange('applicationMethod', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select method..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {applicationMethods.map(method => (
-                    <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="applicationMethod">
+                  Application Method <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.applicationMethod} onValueChange={(val) => handleInputChange("applicationMethod", val)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select method..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {applicationMethods.map(method => (
+                      <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="applicationDateTime">
+                  Application Date & Time <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={formData.applicationDateTime}
+                  onChange={(e) => handleInputChange("applicationDateTime", e.target.value)}
+                />
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
             <div className="space-y-2">
-              <Label htmlFor="applicationDateTime">
-                Application Date & Time <span className="text-red-500">*</span>
+              <Label htmlFor="nextDueDate">
+                Next Due Date <span className="text-red-500">*</span>
               </Label>
-              <Input
-                type="datetime-local"
-                value={formData.applicationDateTime}
-                onChange={(e) => handleInputChange('applicationDateTime', e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nextDueDate">Next Due Date</Label>
               <Input
                 type="date"
                 value={formData.nextDueDate}
-                onChange={(e) => handleInputChange('nextDueDate', e.target.value)}
-                placeholder="Next application date"
+                onChange={(e) => handleInputChange("nextDueDate", e.target.value)}
               />
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Any other relevant notes..."
-              rows={3}
-            />
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="ownerConsent"
-                checked={formData.ownerConsent}
-                onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
-                required
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => handleInputChange("notes", e.target.value)}
+                placeholder="Record any other relevant details about the flea/tick treatment"
+                rows={3}
               />
-              <Label htmlFor="ownerConsent">
-                Owner consent obtained for procedure <span className="text-red-500">*</span>
-              </Label>
             </div>
-          </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save
-            </Button>
-          </div>
-        </form>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="ownerConsent"
+                  checked={formData.ownerConsent}
+                  onCheckedChange={(checked) => handleInputChange("ownerConsent", checked as boolean)}
+                />
+                <Label htmlFor="ownerConsent">
+                  Owner consent obtained for procedure <span className="text-red-500">*</span>
+                </Label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handleSaveClick}
+                disabled={updateDocumentMutation.isPending}
+              >
+                {updateDocumentMutation.isPending 
+                  ? "Saving..." 
+                  : "Save"}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )

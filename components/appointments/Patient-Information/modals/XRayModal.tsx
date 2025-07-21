@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,12 +10,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { X } from "lucide-react"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
+import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
 
 interface XRayModalProps {
   open: boolean
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface XRayFormData {
@@ -28,7 +32,7 @@ interface XRayFormData {
   ownerConsent: boolean
 }
 
-export default function XRayModal({ open, onClose, patientId, appointmentId }: XRayModalProps) {
+export default function XRayModal({ open, onClose, patientId, appointmentId, procedureId }: XRayModalProps) {
   const [formData, setFormData] = useState<XRayFormData>({
     bodyArea: "",
     viewsRequested: "",
@@ -38,6 +42,64 @@ export default function XRayModal({ open, onClose, patientId, appointmentId }: X
     specialInstructions: "",
     ownerConsent: false
   })
+  
+  const [formInitialized, setFormInitialized] = useState(false)
+
+  // Get visit data from appointment ID
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+
+  // Get procedure documentation details using visit ID and procedure ID
+  const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
+    visitData?.id,
+    procedureId,
+    !!visitData?.id && !!procedureId && open
+  )
+
+  // Get update mutation
+  const updateDocumentMutation = useUpdateProcedureDocumentDetails()
+
+  // Populate form with existing data when available
+  useEffect(() => {
+    if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
+      try {
+        const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
+        console.log("Loaded procedure documentation details:", parsedDetails)
+        
+        // Create a new form data object with the parsed details
+        const newFormData = {
+          ...formData,
+          ...parsedDetails,
+          // Ensure string values
+          bodyArea: parsedDetails.bodyArea || "",
+          viewsRequested: parsedDetails.viewsRequested || "",
+          clinicalIndication: parsedDetails.clinicalIndication || "",
+          urgencyLevel: parsedDetails.urgencyLevel || "",
+          specialInstructions: parsedDetails.specialInstructions || "",
+          // Ensure boolean values for checkboxes
+          sedationRequired: !!parsedDetails.sedationRequired,
+          ownerConsent: !!parsedDetails.ownerConsent
+        }
+        
+        setFormData(newFormData)
+        setFormInitialized(true)
+        console.log("Updated form data:", newFormData)
+      } catch (error) {
+        console.error("Failed to parse procedure document details:", error)
+      }
+    } else {
+      // Reset the form when no data is available
+      setFormData({
+        bodyArea: "",
+        viewsRequested: "",
+        sedationRequired: false,
+        clinicalIndication: "",
+        urgencyLevel: "",
+        specialInstructions: "",
+        ownerConsent: false
+      })
+      setFormInitialized(false)
+    }
+  }, [procedureDocumentDetails])
 
   const urgencyLevels = [
     { value: "routine", label: "Routine" },
@@ -52,150 +114,188 @@ export default function XRayModal({ open, onClose, patientId, appointmentId }: X
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const requiredFields = ['bodyArea', 'viewsRequested', 'urgencyLevel']
+  const saveDocumentation = async () => {
+    const requiredFields = ["bodyArea", "viewsRequested", "urgencyLevel"]
     const missingFields = requiredFields.filter(field => !formData[field as keyof XRayFormData])
 
     if (missingFields.length > 0) {
-      toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`)
-      return
+      toast.error(`Please fill in all required fields: ${missingFields.join(", ")}`)
+      return false
     }
 
     if (!formData.ownerConsent) {
       toast.error("Owner consent is required")
-      return
+      return false
+    }
+    
+    if (!visitData?.id || !procedureId) {
+      toast.error("Visit data or procedure ID not available")
+      return false
+    }
+
+    if (!procedureDocumentDetails?.id) {
+      toast.error("No documentation record found to update")
+      return false
     }
 
     try {
-      console.log('X-Ray Registration Data:', {
-        ...formData,
-        patientId,
-        appointmentId,
-        procedureCode: "DIAXRA004"
+      const documentDetailsJson = JSON.stringify(formData)
+      
+      await updateDocumentMutation.mutateAsync({
+        id: procedureDocumentDetails.id,
+        documentDetails: documentDetailsJson
       })
-
-      toast.success("X-ray procedure registered successfully!")
-
-      setFormData({
-        bodyArea: "",
-        viewsRequested: "",
-        sedationRequired: false,
-        clinicalIndication: "",
-        urgencyLevel: "",
-        specialInstructions: "",
-        ownerConsent: false
-      })
-
-      onClose()
+      
+      toast.success("X-Ray documentation updated successfully!")
+      return true
     } catch (error) {
-      toast.error("Failed to register x-ray procedure")
+      console.error("Error saving documentation:", error)
+      // Check for Zod validation errors
+      if (error instanceof Error && error.message.includes("Zod")) {
+        toast.error(`Validation error: ${error.message}`)
+      } else {
+        toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+      return false
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
+    }
+  }
+
+  // This is a direct button click handler that doesn't rely on the form submission
+  const handleSaveClick = async () => {
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
     }
   }
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[60%] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
-            🩻 X-ray Documentation
+            📷 X-Ray Documentation
           </SheetTitle>
         </SheetHeader>
 
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-          <p className="text-sm text-blue-800">
-            <strong>Note:</strong> Imaging of bones, lungs, and abdominal organs.
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <p className="text-sm text-yellow-800">
+            <strong>Note:</strong> Patient will need to remain still for X-rays. Sedation may be necessary in some cases.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label>Body Area for Imaging <span className="text-red-500">*</span></Label>
-            <Input
-              value={formData.bodyArea}
-              onChange={(e) => handleInputChange('bodyArea', e.target.value)}
-              placeholder="e.g., Thorax, Abdomen, Limbs"
-              required
-            />
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p>Loading procedure documentation...</p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="bodyArea">
+                Body Area <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={formData.bodyArea}
+                onChange={(e) => handleInputChange("bodyArea", e.target.value)}
+                placeholder="e.g., Thorax, Abdomen, Cervical spine"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label>Views Requested <span className="text-red-500">*</span></Label>
-            <Input
-              value={formData.viewsRequested}
-              onChange={(e) => handleInputChange('viewsRequested', e.target.value)}
-              placeholder="e.g., Lateral, VD, DV"
-              required
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="viewsRequested">
+                Views Requested <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={formData.viewsRequested}
+                onChange={(e) => handleInputChange("viewsRequested", e.target.value)}
+                placeholder="e.g., Lateral and VD views"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label>Clinical Indication</Label>
-            <Textarea
-              value={formData.clinicalIndication}
-              onChange={(e) => handleInputChange('clinicalIndication', e.target.value)}
-              placeholder="Describe the reason for imaging (e.g., coughing, lameness, trauma, etc.)"
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Special Instructions</Label>
-            <Textarea
-              value={formData.specialInstructions}
-              onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
-              placeholder="Any special positioning, sedation instructions, or precautions"
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Urgency Level <span className="text-red-500">*</span></Label>
-            <Select value={formData.urgencyLevel} onValueChange={(value) => handleInputChange('urgencyLevel', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select urgency..." />
-              </SelectTrigger>
-              <SelectContent>
-                {urgencyLevels.map(level => (
-                  <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mb-4">
               <Checkbox
                 id="sedationRequired"
                 checked={formData.sedationRequired}
-                onCheckedChange={(checked) => handleInputChange('sedationRequired', checked as boolean)}
+                onCheckedChange={(checked) => handleInputChange("sedationRequired", checked as boolean)}
               />
-              <Label htmlFor="sedationRequired">Sedation Required</Label>
+              <Label htmlFor="sedationRequired">Sedation May Be Required</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="clinicalIndication">Clinical Indication</Label>
+              <Textarea
+                value={formData.clinicalIndication}
+                onChange={(e) => handleInputChange("clinicalIndication", e.target.value)}
+                placeholder="Reason for X-ray request"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="urgencyLevel">
+                Urgency Level <span className="text-red-500">*</span>
+              </Label>
+              <Select 
+                value={formData.urgencyLevel} 
+                onValueChange={(value) => handleInputChange("urgencyLevel", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select urgency level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {urgencyLevels.map(level => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="specialInstructions">Special Instructions</Label>
+              <Textarea
+                value={formData.specialInstructions}
+                onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
+                placeholder="Any special positioning needs or concerns"
+                rows={3}
+              />
             </div>
 
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="ownerConsent"
                 checked={formData.ownerConsent}
-                onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
-                required
+                onCheckedChange={(checked) => handleInputChange("ownerConsent", checked as boolean)}
               />
               <Label htmlFor="ownerConsent">
-                Owner consent obtained for procedure <span className="text-red-500">*</span>
+                Owner consent obtained <span className="text-red-500">*</span>
               </Label>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save
-            </Button>
-          </div>
-        </form>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handleSaveClick}
+                disabled={updateDocumentMutation.isPending}
+              >
+                {updateDocumentMutation.isPending 
+                  ? "Saving..." 
+                  : "Save"}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )

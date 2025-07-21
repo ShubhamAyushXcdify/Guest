@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,12 +10,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { X } from "lucide-react"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
+import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
 
 interface RabiesTiterModalProps {
   open: boolean
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface RabiesTiterFormData {
@@ -39,7 +43,7 @@ interface RabiesTiterFormData {
   notes: string
 }
 
-export default function RabiesTiterModal({ open, onClose, patientId, appointmentId }: RabiesTiterModalProps) {
+export default function RabiesTiterModal({ open, onClose, patientId, appointmentId, procedureId }: RabiesTiterModalProps) {
   const [formData, setFormData] = useState<RabiesTiterFormData>({
     destinationCountry: "",
     sampleType: "",
@@ -60,6 +64,87 @@ export default function RabiesTiterModal({ open, onClose, patientId, appointment
     ownerConsent: false,
     notes: ""
   })
+
+  const [formInitialized, setFormInitialized] = useState(false)
+
+  // Get visit data from appointment ID
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+
+  // Get procedure documentation details using visit ID and procedure ID
+  const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
+    visitData?.id,
+    procedureId,
+    !!visitData?.id && !!procedureId && open
+  )
+
+  // Get update mutation
+  const updateDocumentMutation = useUpdateProcedureDocumentDetails()
+
+  // Populate form with existing data when available
+  useEffect(() => {
+    if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
+      try {
+        const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
+        console.log("Loaded procedure documentation details:", parsedDetails)
+        
+        // Create a new form data object with the parsed details
+        const newFormData = {
+          ...formData,
+          ...parsedDetails,
+          // Ensure string values for fields
+          destinationCountry: parsedDetails.destinationCountry || "",
+          sampleType: parsedDetails.sampleType || "",
+          sampleCollectionDate: parsedDetails.sampleCollectionDate || new Date().toISOString().slice(0, 16),
+          lastVaccinationDate: parsedDetails.lastVaccinationDate || "",
+          vaccineBrand: parsedDetails.vaccineBrand || "",
+          vaccineSerialNumber: parsedDetails.vaccineSerialNumber || "",
+          vaccineExpiryDate: parsedDetails.vaccineExpiryDate || "",
+          laboratoryName: parsedDetails.laboratoryName || "",
+          testMethod: parsedDetails.testMethod || "",
+          microchipNumber: parsedDetails.microchipNumber || "",
+          collectorName: parsedDetails.collectorName || "",
+          collectorLicense: parsedDetails.collectorLicense || "",
+          shippingDate: parsedDetails.shippingDate || "",
+          courierService: parsedDetails.courierService || "",
+          trackingNumber: parsedDetails.trackingNumber || "",
+          notes: parsedDetails.notes || "",
+          
+          // Ensure boolean values for checkboxes
+          microchipVerified: !!parsedDetails.microchipVerified,
+          ownerConsent: !!parsedDetails.ownerConsent
+        }
+        
+        setFormData(newFormData)
+        setFormInitialized(true)
+        console.log("Updated form data:", newFormData)
+      } catch (error) {
+        console.error("Failed to parse procedure document details:", error)
+      }
+    } else {
+      // Reset the form when no data is available
+      setFormData({
+        destinationCountry: "",
+        sampleType: "",
+        sampleCollectionDate: new Date().toISOString().slice(0, 16),
+        lastVaccinationDate: "",
+        vaccineBrand: "",
+        vaccineSerialNumber: "",
+        vaccineExpiryDate: "",
+        laboratoryName: "",
+        testMethod: "",
+        microchipVerified: false,
+        microchipNumber: "",
+        collectorName: "",
+        collectorLicense: "",
+        shippingDate: "",
+        courierService: "",
+        trackingNumber: "",
+        ownerConsent: false,
+        notes: ""
+      })
+      setFormInitialized(false)
+    }
+  }, [procedureDocumentDetails])
 
   const sampleTypes = [
     { value: "serum", label: "Serum" },
@@ -93,8 +178,7 @@ export default function RabiesTiterModal({ open, onClose, patientId, appointment
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const saveDocumentation = async () => {
     // Validate required fields
     const requiredFields = [
       'destinationCountry',
@@ -113,55 +197,66 @@ export default function RabiesTiterModal({ open, onClose, patientId, appointment
     
     if (missingFields.length > 0) {
       toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`)
-      return
+      return false
     }
     
     if (!formData.ownerConsent) {
       toast.error("Owner consent is required")
-      return
+      return false
     }
 
     if (!formData.microchipVerified) {
       toast.error("Microchip must be verified before proceeding")
-      return
+      return false
+    }
+
+    if (!visitData?.id || !procedureId) {
+      toast.error("Visit data or procedure ID not available")
+      return false
     }
 
     try {
-      // Here you would typically send the data to your API
-      console.log('Rabies Titer Test Registration Data:', {
-        ...formData,
-        patientId,
-        appointmentId,
-        procedureCode: "TRArab001"
+      if (!procedureDocumentDetails?.id) {
+        toast.error("No documentation record found to update")
+        return false
+      }
+
+      // Convert form data to JSON string
+      const documentDetailsJson = JSON.stringify(formData)
+      
+      // Update existing documentation
+      await updateDocumentMutation.mutateAsync({
+        id: procedureDocumentDetails.id,
+        documentDetails: documentDetailsJson
       })
       
-      toast.success("Rabies titer test registered successfully!")
-      
-      // Reset form and close modal
-      setFormData({
-        destinationCountry: "",
-        sampleType: "",
-        sampleCollectionDate: new Date().toISOString().slice(0, 16),
-        lastVaccinationDate: "",
-        vaccineBrand: "",
-        vaccineSerialNumber: "",
-        vaccineExpiryDate: "",
-        laboratoryName: "",
-        testMethod: "",
-        microchipVerified: false,
-        microchipNumber: "",
-        collectorName: "",
-        collectorLicense: "",
-        shippingDate: "",
-        courierService: "",
-        trackingNumber: "",
-        ownerConsent: false,
-        notes: ""
-      })
-      
-      onClose()
+      toast.success("Rabies titer test documentation updated successfully!")
+      return true
     } catch (error) {
-      toast.error("Failed to register rabies titer test")
+      console.error("Error saving rabies titer documentation:", error)
+      // Check for Zod validation errors
+      if (error instanceof Error && error.message.includes("Zod")) {
+        toast.error(`Validation error: ${error.message}`)
+      } else {
+        toast.error(`Failed to save documentation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+      return false
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
+    }
+  }
+
+  // This is a direct button click handler that doesn't rely on the form submission
+  const handleSaveClick = async () => {
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
     }
   }
 
@@ -180,258 +275,260 @@ export default function RabiesTiterModal({ open, onClose, patientId, appointment
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="destinationCountry">
-                Destination Country <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.destinationCountry}
-                onChange={(e) => handleInputChange('destinationCountry', e.target.value)}
-                placeholder="Enter destination country"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sampleType">
-                Sample Type <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.sampleType} onValueChange={(value) => handleInputChange('sampleType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select sample type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {sampleTypes.map(type => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p>Loading procedure documentation...</p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="destinationCountry">
+                  Destination Country <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.destinationCountry}
+                  onChange={(e) => handleInputChange('destinationCountry', e.target.value)}
+                  placeholder="Enter destination country"
+                />
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sampleType">
+                  Sample Type <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.sampleType} onValueChange={(value) => handleInputChange('sampleType', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sample type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sampleTypes.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sampleCollectionDate">
+                  Sample Collection Date & Time <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="datetime-local"
+                  value={formData.sampleCollectionDate}
+                  onChange={(e) => handleInputChange('sampleCollectionDate', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastVaccinationDate">
+                  Last Rabies Vaccination Date <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="date"
+                  value={formData.lastVaccinationDate}
+                  onChange={(e) => handleInputChange('lastVaccinationDate', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vaccineBrand">
+                  Vaccine Brand <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.vaccineBrand}
+                  onChange={(e) => handleInputChange('vaccineBrand', e.target.value)}
+                  placeholder="Enter vaccine brand"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vaccineSerialNumber">
+                  Vaccine Serial Number <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.vaccineSerialNumber}
+                  onChange={(e) => handleInputChange('vaccineSerialNumber', e.target.value)}
+                  placeholder="Enter serial number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vaccineExpiryDate">Vaccine Expiry Date</Label>
+                <Input
+                  type="date"
+                  value={formData.vaccineExpiryDate}
+                  onChange={(e) => handleInputChange('vaccineExpiryDate', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="laboratoryName">
+                  Testing Laboratory <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.laboratoryName} onValueChange={(value) => handleInputChange('laboratoryName', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select laboratory..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {laboratories.map(lab => (
+                      <SelectItem key={lab.value} value={lab.value}>{lab.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="testMethod">
+                  Test Method <span className="text-red-500">*</span>
+                </Label>
+                <Select value={formData.testMethod} onValueChange={(value) => handleInputChange('testMethod', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select test method..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {testMethods.map(method => (
+                      <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="microchipNumber">
+                  Microchip Number <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.microchipNumber}
+                  onChange={(e) => handleInputChange('microchipNumber', e.target.value)}
+                  placeholder="Enter microchip number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="collectorName">
+                  Sample Collector Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.collectorName}
+                  onChange={(e) => handleInputChange('collectorName', e.target.value)}
+                  placeholder="Enter collector's name"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="collectorLicense">
+                  Collector's License Number <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={formData.collectorLicense}
+                  onChange={(e) => handleInputChange('collectorLicense', e.target.value)}
+                  placeholder="Enter license number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shippingDate">Shipping Date</Label>
+                <Input
+                  type="date"
+                  value={formData.shippingDate}
+                  onChange={(e) => handleInputChange('shippingDate', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="courierService">Courier Service</Label>
+                <Select value={formData.courierService} onValueChange={(value) => handleInputChange('courierService', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select courier..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courierServices.map(service => (
+                      <SelectItem key={service.value} value={service.value}>{service.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="trackingNumber">Tracking Number</Label>
+                <Input
+                  type="text"
+                  value={formData.trackingNumber}
+                  onChange={(e) => handleInputChange('trackingNumber', e.target.value)}
+                  placeholder="Enter tracking number"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="sampleCollectionDate">
-                Sample Collection Date & Time <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="datetime-local"
-                value={formData.sampleCollectionDate}
-                onChange={(e) => handleInputChange('sampleCollectionDate', e.target.value)}
-                required
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any other relevant notes about the rabies titer test..."
+                rows={3}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lastVaccinationDate">
-                Last Rabies Vaccination Date <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="date"
-                value={formData.lastVaccinationDate}
-                onChange={(e) => handleInputChange('lastVaccinationDate', e.target.value)}
-                required
-              />
-            </div>
-          </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="microchipVerified"
+                  checked={formData.microchipVerified}
+                  onCheckedChange={(checked) => handleInputChange('microchipVerified', checked as boolean)}
+                />
+                <Label htmlFor="microchipVerified">
+                  Microchip verified and scanned <span className="text-red-500">*</span>
+                </Label>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="vaccineBrand">
-                Vaccine Brand <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.vaccineBrand}
-                onChange={(e) => handleInputChange('vaccineBrand', e.target.value)}
-                placeholder="Enter vaccine brand"
-                required
-              />
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="ownerConsent"
+                  checked={formData.ownerConsent}
+                  onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
+                />
+                <Label htmlFor="ownerConsent">
+                  Owner consent obtained for procedure <span className="text-red-500">*</span>
+                </Label>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="vaccineSerialNumber">
-                Vaccine Serial Number <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.vaccineSerialNumber}
-                onChange={(e) => handleInputChange('vaccineSerialNumber', e.target.value)}
-                placeholder="Enter serial number"
-                required
-              />
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handleSaveClick} 
+                disabled={updateDocumentMutation.isPending}
+              >
+                {updateDocumentMutation.isPending 
+                  ? "Saving..." 
+                  : "Save"}
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vaccineExpiryDate">Vaccine Expiry Date</Label>
-              <Input
-                type="date"
-                value={formData.vaccineExpiryDate}
-                onChange={(e) => handleInputChange('vaccineExpiryDate', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="laboratoryName">
-                Testing Laboratory <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.laboratoryName} onValueChange={(value) => handleInputChange('laboratoryName', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select laboratory..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {laboratories.map(lab => (
-                    <SelectItem key={lab.value} value={lab.value}>{lab.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="testMethod">
-                Test Method <span className="text-red-500">*</span>
-              </Label>
-              <Select value={formData.testMethod} onValueChange={(value) => handleInputChange('testMethod', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select test method..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {testMethods.map(method => (
-                    <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="microchipNumber">
-                Microchip Number <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.microchipNumber}
-                onChange={(e) => handleInputChange('microchipNumber', e.target.value)}
-                placeholder="Enter microchip number"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="collectorName">
-                Sample Collector Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.collectorName}
-                onChange={(e) => handleInputChange('collectorName', e.target.value)}
-                placeholder="Enter collector's name"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="collectorLicense">
-                Collector's License Number <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                type="text"
-                value={formData.collectorLicense}
-                onChange={(e) => handleInputChange('collectorLicense', e.target.value)}
-                placeholder="Enter license number"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="shippingDate">Shipping Date</Label>
-              <Input
-                type="date"
-                value={formData.shippingDate}
-                onChange={(e) => handleInputChange('shippingDate', e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="courierService">Courier Service</Label>
-              <Select value={formData.courierService} onValueChange={(value) => handleInputChange('courierService', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select courier..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {courierServices.map(service => (
-                    <SelectItem key={service.value} value={service.value}>{service.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="trackingNumber">Tracking Number</Label>
-              <Input
-                type="text"
-                value={formData.trackingNumber}
-                onChange={(e) => handleInputChange('trackingNumber', e.target.value)}
-                placeholder="Enter tracking number"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Textarea
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Any other relevant notes about the rabies titer test..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="microchipVerified"
-                checked={formData.microchipVerified}
-                onCheckedChange={(checked) => handleInputChange('microchipVerified', checked as boolean)}
-                required
-              />
-              <Label htmlFor="microchipVerified">
-                Microchip verified and scanned <span className="text-red-500">*</span>
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="ownerConsent"
-                checked={formData.ownerConsent}
-                onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
-                required
-              />
-              <Label htmlFor="ownerConsent">
-                Owner consent obtained for procedure <span className="text-red-500">*</span>
-              </Label>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save
-            </Button>
-          </div>
-        </form>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )
