@@ -4,6 +4,11 @@ import { getJwtToken } from '@/utils/serverCookie';
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
+interface ErrorResponse {
+    message?: string;
+    [key: string]: any;
+}
+
 export async function GET(
     request: NextRequest,
     ctx: { params: { id: string } }
@@ -33,7 +38,6 @@ export async function GET(
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error fetching procedure document details:', error);
         return NextResponse.json(
             { message: 'Error fetching procedure document details' },
             { status: 500 }
@@ -52,7 +56,7 @@ export async function PUT(
         if (!token) {
             token = testToken;
         }
-
+        
         const response = await fetch(`${apiUrl}/api/ProcedureDocumentDetails/${id}`, {
             method: 'PUT',
             headers: {
@@ -61,11 +65,23 @@ export async function PUT(
             },
             body: JSON.stringify(body),
         });
-
+        
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const errorText = await response.text();
+            
+            let errorData: ErrorResponse = {};
+            try {
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                // Failed to parse error response
+            }
+            
             return NextResponse.json(
-                { message: errorData.message || 'Failed to update procedure document details' },
+                { 
+                    message: errorData.message || 'Failed to update procedure document details',
+                    status: response.status,
+                    details: errorText
+                },
                 { status: response.status }
             );
         }
@@ -73,9 +89,11 @@ export async function PUT(
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error updating procedure document details:', error);
         return NextResponse.json(
-            { message: 'Error updating procedure document details' },
+            { 
+                message: 'Error updating procedure document details',
+                error: error instanceof Error ? error.message : String(error)
+            },
             { status: 500 }
         );
     }
@@ -110,7 +128,6 @@ export async function DELETE(
 
         return NextResponse.json({}, { status: 200 });
     } catch (error) {
-        console.error('Error deleting procedure document details:', error);
         return NextResponse.json(
             { message: 'Error deleting procedure document details' },
             { status: 500 }

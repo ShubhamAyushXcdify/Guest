@@ -380,7 +380,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       return
     }
     if (procedure?.procCode === "THEALL009") {
-      setAllergyModalOpen(true)
+      // Only open the modal if we have a procedure selected
+      if (selectedProcedureId) {
+        setAllergyModalOpen(true)
+      } else {
+        toast.error("Please select a procedure first")
+      }
       return
     }
     if (procedure?.procCode === "THECHE008") {
@@ -400,7 +405,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       return
     }
     if (procedure?.procCode === "THEACU004") {
-      setAcupunctureModalOpen(true)
+      // Only open the modal if we have a procedure selected
+      if (selectedProcedureId) {
+        setAcupunctureModalOpen(true)
+      } else {
+        toast.error("Please select a procedure first")
+      }
       return
     }
     if (procedure?.procCode === "THELAS003") {
@@ -859,6 +869,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setRabiesTiterModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <AllergyModal
@@ -866,6 +877,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setAllergyModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <ChemotherapyModal
@@ -873,6 +885,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setChemotherapyModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <ArthritisModal
@@ -880,6 +893,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setArthritisModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <DiabetesMonitoringModal
@@ -887,6 +901,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setDiabetesMonitoringModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <WeightManagementModal
@@ -894,6 +909,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setWeightManagementModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <AcupunctureModal
@@ -901,6 +917,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setAcupunctureModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <LaserTherapyModal
@@ -908,6 +925,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setLaserTherapyModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <MedicatedBathsModal
@@ -915,13 +933,15 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setMedicatedBathsModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
-        />
+          procedureId={selectedProcedureId}
+          />
 
         <IVFluidTherapyModal
           open={ivFluidTherapyModalOpen}
           onClose={() => setIVFluidTherapyModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <EarSurgeryModal
@@ -929,6 +949,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setEarSurgeryModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <ForeignBodyRemovalModal
@@ -936,6 +957,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setForeignBodyRemovalModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <BladderStoneRemovalModal
@@ -943,6 +965,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setBladderStoneRemovalModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <OrthopedicSurgeryModal
@@ -950,6 +973,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setOrthopedicSurgeryModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <WoundRepairModal
@@ -957,6 +981,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setWoundRepairModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
 
         <DentalExtractionsModal
@@ -964,108 +989,126 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           onClose={() => setDentalExtractionsModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <SpayingNeuteringModal
           open={spayingNeuteringModalOpen}
           onClose={() => setSpayingNeuteringModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <DentalCleaningModal
           open={dentalCleaningModalOpen}
           onClose={() => setDentalCleaningModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <AnalGlandModal
           open={analGlandModalOpen}
           onClose={() => setAnalGlandModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <BloodTestModal
           open={bloodTestModalOpen}
           onClose={() => setBloodTestModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <FecalExamModal
           open={fecalExamModalOpen}
           onClose={() => setFecalExamModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />  
         <XRayModal
           open={xrayModalOpen}
           onClose={() => setXrayModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <UltrasoundModal
           open={ultrasoundModalOpen}
           onClose={() => setUltrasoundModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
-        />
+          procedureId={selectedProcedureId}
+          />
         <AllergyTestingModal
           open={allergyTestingModalOpen}
           onClose={() => setAllergyTestingModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <SkinScrapingModal
           open={skinScrapingModalOpen}
           onClose={() => setSkinScrapingModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <ECGModal
           open={ecgModalOpen}
           onClose={() => setEcgModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <BloodPressureModal
           open={bloodPressureModalOpen}
           onClose={() => setBloodPressureModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <OphthalmicExamModal
           open={ophthalmicExamModalOpen}
           onClose={() => setOphthalmicExamModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <FnaModal
           open={fnaModalOpen}
           onClose={() => setFnaModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <SpayModal
           open={spayModalOpen}
           onClose={() => setSpayModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <NeuterModal
           open={neuterModalOpen}
           onClose={() => setNeuterModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <MassLumpRemovalModal
           open={massLumpRemovalModalOpen}
           onClose={() => setMassLumpRemovalModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
         <NailTrimmingModal
           open={nailTrimmingModalOpen}
           onClose={() => setNailTrimmingModalOpen(false)}
           patientId={patientId}
           appointmentId={appointmentId}
+          procedureId={selectedProcedureId}
         />
       </CardContent>
     </Card>

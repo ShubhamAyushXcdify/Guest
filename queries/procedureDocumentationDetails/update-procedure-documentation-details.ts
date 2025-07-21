@@ -6,6 +6,11 @@ interface UpdateProcedureDocumentDetailsRequest {
   documentDetails: string;
 }
 
+interface ErrorResponse {
+  message?: string;
+  [key: string]: any;
+}
+
 export const useUpdateProcedureDocumentDetails = () => {
   const queryClient = useQueryClient();
 
@@ -21,16 +26,23 @@ export const useUpdateProcedureDocumentDetails = () => {
         body: JSON.stringify(data),
       });
 
+      const responseText = await response.text();
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData: ErrorResponse = {};
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (e) {
+          // Parsing error, continue with default error message
+        }
+        
         throw new Error(
-          errorData.message || "Failed to update procedure documentation details"
+          errorData.message || `Failed to update procedure documentation details: ${response.status}`
         );
       }
 
-      return await response.json();
+      return JSON.parse(responseText);
     } catch (error) {
-      console.error("Error updating procedure documentation details:", error);
       throw error;
     }
   };
@@ -43,5 +55,8 @@ export const useUpdateProcedureDocumentDetails = () => {
         queryKey: ["procedureDocumentationDetails", data.visitId, data.procedureId],
       });
     },
+    onError: (error) => {
+      // Handle error silently
+    }
   });
 }; 
