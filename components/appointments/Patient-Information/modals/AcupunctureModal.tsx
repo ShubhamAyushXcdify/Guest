@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import { X } from "lucide-react"
+import { X, AlertTriangle } from "lucide-react"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
 import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface AcupunctureModalProps {
   open: boolean
@@ -86,7 +87,7 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
   const [formInitialized, setFormInitialized] = useState(false)
 
   // Get visit data from appointment ID
-  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+  const { data: visitData, isLoading: isVisitLoading } = useGetVisitByAppointmentId(appointmentId)
 
   // Get procedure documentation details using visit ID and procedure ID
   const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
@@ -103,7 +104,6 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
     if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
       try {
         const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
-        console.log("Loaded procedure documentation details:", parsedDetails)
         
         // Create a new form data object with the parsed details
         const newFormData = {
@@ -143,7 +143,7 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
           setFormInitialized(true)
         }
       } catch (error) {
-        console.error("Failed to parse procedure document details:", error)
+        // Silent fail - if we can't parse the data, we'll just use the default form
       }
     } else if (formInitialized) {
       // Reset the form when no data is available
@@ -243,6 +243,11 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
   }
 
   const saveDocumentation = async () => {
+    if (!procedureId) {
+      toast.error("No procedure ID available. Please select a procedure first.")
+      return false
+    }
+    
     // Validate required fields
     const requiredFields = [
       'therapyType',
@@ -293,7 +298,6 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
       toast.success("Acupuncture documentation updated successfully!")
       return true
     } catch (error) {
-      console.error("Error saving documentation:", error)
       // Check for Zod validation errors
       if (error instanceof Error && error.message.includes("Zod")) {
         toast.error(`Validation error: ${error.message}`)
@@ -312,8 +316,13 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
     }
   }
 
-  // This is a direct button click handler that doesn't rely on the form submission
+  // Update handleSaveClick to show better error handling
   const handleSaveClick = async () => {
+    if (isVisitLoading || isLoading) {
+      toast.error("Please wait until data is fully loaded before saving")
+      return
+    }
+    
     const success = await saveDocumentation()
     if (success) {
       onClose()
@@ -335,7 +344,16 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
           </p>
         </div>
 
-        {isLoading ? (
+        {!procedureId && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No procedure ID provided. Please go back and select a procedure first.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {(isLoading || isVisitLoading) ? (
           <div className="flex items-center justify-center p-8">
             <p>Loading procedure documentation...</p>
           </div>
