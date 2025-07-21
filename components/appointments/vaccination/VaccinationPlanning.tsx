@@ -5,9 +5,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CheckCircle, AlertTriangle, ChevronLeft } from "lucide-react"
+import { CheckCircle, AlertTriangle } from "lucide-react"
 import { useGetVaccinationMasters } from "@/queries/vaccinationMaster/get-vaccinationMaster"
 import VaccinationRecord from "./VaccinationRecord"
+import FpvDocumentationModal from "./modals/FpvDocumentationModal"
+import { useRootContext } from "@/context/RootContext";
 
 interface Vaccination {
   id: string;
@@ -19,6 +21,7 @@ interface Vaccination {
   booster: string;
   revaccinationInterval: string;
   notes: string;
+  vacCode?: string; // Add vacCode for type safety
 }
 
 interface VaccinationPlanningProps {
@@ -27,6 +30,7 @@ interface VaccinationPlanningProps {
   species: string;
   onNext: (selectedVaccines: string[]) => void;
   onClose: () => void;
+  clinicId?: string; // add this line
 }
 
 export default function VaccinationPlanning({ 
@@ -34,11 +38,11 @@ export default function VaccinationPlanning({
   appointmentId, 
   species, 
   onNext, 
-  onClose 
+  onClose, 
+  clinicId // add this line
 }: VaccinationPlanningProps) {
-  // Update the active tab state
-  const [activeTab, setActiveTab] = useState("vaccination-planning");
   const [selectedVaccines, setSelectedVaccines] = useState<string[]>([]);
+  const [documentVaccineId, setDocumentVaccineId] = useState<string | null>(null);
   
   // Convert species to lowercase for API call
   const speciesLowerCase = species.toLowerCase();
@@ -47,10 +51,11 @@ export default function VaccinationPlanning({
   const { data: vaccinations = [], isLoading, error } = useGetVaccinationMasters({
     species: speciesLowerCase
   });
+  const typedVaccinations: Vaccination[] = vaccinations;
   
   // Separate core and non-core vaccines
-  const coreVaccines = vaccinations.filter((vaccine: Vaccination) => vaccine.isCore);
-  const nonCoreVaccines = vaccinations.filter((vaccine: Vaccination) => !vaccine.isCore);
+  const coreVaccines = typedVaccinations.filter((vaccine) => vaccine.isCore);
+  const nonCoreVaccines = typedVaccinations.filter((vaccine) => !vaccine.isCore);
 
   const handleVaccineSelection = (id: string) => {
     setSelectedVaccines(prev => {
@@ -60,22 +65,6 @@ export default function VaccinationPlanning({
         return [...prev, id];
       }
     });
-  };
-
-  // Handle next button click
-  const handleNext = () => {
-    if (selectedVaccines.length === 0) {
-      // Show message or tooltip indicating vaccines need to be selected
-      return;
-    }
-    setActiveTab("record-keeping");
-  };
-
-  // Handle record submission - this is no longer used directly
-  // Since we're now navigating to the VaccinationRecord component separately
-  const handleRecordSubmit = (data: any) => {
-    console.log("Vaccination record submitted:", data);
-    onNext(selectedVaccines);
   };
 
   // Get frequency from revaccinationInterval field
@@ -89,6 +78,9 @@ export default function VaccinationPlanning({
   // Format species name for display (capitalize first letter)
   const displaySpecies = species.charAt(0).toUpperCase() + species.slice(1).toLowerCase();
 
+  // Find the vaccine object for the currently documented vaccine
+  const documentVaccine = typedVaccinations.find((v) => v.id === documentVaccineId);
+
   return (
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
@@ -96,120 +88,132 @@ export default function VaccinationPlanning({
           <SheetTitle>Vaccination Planning</SheetTitle>
         </SheetHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full">
-            <TabsTrigger value="vaccination-planning">
-              Vaccination Planning
-            </TabsTrigger>
-            <TabsTrigger value="record-keeping">
-              Record Keeping
-            </TabsTrigger>
-          </TabsList>
+        <div className="w-full">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold">Vaccination Schedule Planning</h2>
+            <p className="text-gray-600 mb-4">Select appropriate vaccines based on pet species and risk factors</p>
 
-          <TabsContent value="vaccination-planning">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold">Vaccination Schedule Planning</h2>
-              <p className="text-gray-600 mb-4">Select appropriate vaccines based on pet species and risk factors</p>
-
-              {isLoading ? (
-                <div className="text-center py-10">Loading vaccination data...</div>
-              ) : error ? (
-                <div className="text-center py-10 text-red-500">Error loading vaccination data</div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Core Vaccines Section */}
-                  {coreVaccines.length > 0 && (
-                    <div>
-                      <h3 className="flex items-center text-lg font-medium mb-2">
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                        Core Vaccines (Recommended for all {displaySpecies}s)
-                      </h3>
-                      <div className="space-y-2">
-                        {coreVaccines.map((vaccine: Vaccination) => (
-                          <div 
-                            key={vaccine.id}
-                            className="flex items-center justify-between p-4 bg-green-50 rounded-md"
-                          >
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id={vaccine.id}
-                                checked={selectedVaccines.includes(vaccine.id)}
-                                onCheckedChange={() => handleVaccineSelection(vaccine.id)}
-                                className="mr-3"
-                              />
-                              <div>
-                                <label htmlFor={vaccine.id} className="font-medium cursor-pointer">
-                                  {vaccine.disease}
-                                </label>
-                                <p className="text-sm text-gray-600">
-                                  Frequency: {getFrequency(vaccine)}
-                                </p>
-                              </div>
+            {isLoading ? (
+              <div className="text-center py-10">Loading vaccination data...</div>
+            ) : error ? (
+              <div className="text-center py-10 text-red-500">Error loading vaccination data</div>
+            ) : (
+              <div className="space-y-6">
+                {/* Core Vaccines Section */}
+                {coreVaccines.length > 0 && (
+                  <div>
+                    <h3 className="flex items-center text-lg font-medium mb-2">
+                      <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                      Core Vaccines (Recommended for all {displaySpecies}s)
+                    </h3>
+                    <div className="space-y-2">
+                      {coreVaccines.map((vaccine: Vaccination) => (
+                        <div 
+                          key={vaccine.id}
+                          className="flex items-center justify-between p-4 bg-green-50 rounded-md"
+                        >
+                          <div className="flex items-center">
+                            <Checkbox 
+                              id={vaccine.id}
+                              checked={selectedVaccines.includes(vaccine.id)}
+                              onCheckedChange={() => handleVaccineSelection(vaccine.id)}
+                              className="mr-3"
+                            />
+                            <div>
+                              <label htmlFor={vaccine.id} className="font-medium cursor-pointer">
+                                {vaccine.disease}
+                              </label>
+                              <p className="text-sm text-gray-600">
+                                Frequency: {getFrequency(vaccine)}
+                              </p>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
                               Core
                             </span>
+                            {selectedVaccines.includes(vaccine.id) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDocumentVaccineId(vaccine.id)}
+                              >
+                                Document
+                              </Button>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Non-Core Vaccines Section */}
-                  {nonCoreVaccines.length > 0 && (
-                    <div>
-                      <h3 className="flex items-center text-lg font-medium mb-2">
-                        <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
-                        Non-Core Vaccines (Based on lifestyle and risk factors)
-                      </h3>
-                      <div className="space-y-2">
-                        {nonCoreVaccines.map((vaccine: Vaccination) => (
-                          <div 
-                            key={vaccine.id}
-                            className="flex items-center justify-between p-4 bg-amber-50 rounded-md"
-                          >
-                            <div className="flex items-center">
-                              <Checkbox 
-                                id={vaccine.id}
-                                checked={selectedVaccines.includes(vaccine.id)}
-                                onCheckedChange={() => handleVaccineSelection(vaccine.id)}
-                                className="mr-3"
-                              />
-                              <div>
-                                <label htmlFor={vaccine.id} className="font-medium cursor-pointer">
-                                  {vaccine.disease}
-                                </label>
-                                <p className="text-sm text-gray-600">
-                                  Frequency: {getFrequency(vaccine)}
-                                </p>
-                              </div>
+                {/* Non-Core Vaccines Section */}
+                {nonCoreVaccines.length > 0 && (
+                  <div>
+                    <h3 className="flex items-center text-lg font-medium mb-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-500 mr-2" />
+                      Non-Core Vaccines (Based on lifestyle and risk factors)
+                    </h3>
+                    <div className="space-y-2">
+                      {nonCoreVaccines.map((vaccine: Vaccination) => (
+                        <div 
+                          key={vaccine.id}
+                          className="flex items-center justify-between p-4 bg-amber-50 rounded-md"
+                        >
+                          <div className="flex items-center">
+                            <Checkbox 
+                              id={vaccine.id}
+                              checked={selectedVaccines.includes(vaccine.id)}
+                              onCheckedChange={() => handleVaccineSelection(vaccine.id)}
+                              className="mr-3"
+                            />
+                            <div>
+                              <label htmlFor={vaccine.id} className="font-medium cursor-pointer">
+                                {vaccine.disease}
+                              </label>
+                              <p className="text-sm text-gray-600">
+                                Frequency: {getFrequency(vaccine)}
+                              </p>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
                               Non-Core
                             </span>
+                            {selectedVaccines.includes(vaccine.id) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setDocumentVaccineId(vaccine.id)}
+                              >
+                                Document
+                              </Button>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                  
-                  {coreVaccines.length === 0 && nonCoreVaccines.length === 0 && (
-                    <div className="text-center py-10">
-                      No vaccination data available for {displaySpecies}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              <div className="mt-6">
-                {selectedVaccines.length === 0 && (
-                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm flex items-center">
-                    <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>Please select at least one vaccine to continue to the record keeping step.</span>
                   </div>
                 )}
                 
-                <div className="flex justify-between">
+                {coreVaccines.length === 0 && nonCoreVaccines.length === 0 && (
+                  <div className="text-center py-10">
+                    No vaccination data available for {displaySpecies}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="mt-6">
+              {selectedVaccines.length === 0 && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm flex items-center">
+                  <AlertTriangle className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span>Please select at least one vaccine to continue.</span>
+                </div>
+              )}
+              
+              <div className="flex justify-between">
                 <Button 
                   onClick={onClose}
                   variant="outline"
@@ -218,50 +222,43 @@ export default function VaccinationPlanning({
                   Back
                 </Button>
                 <Button 
-                  onClick={handleNext}
-                    className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
+                  onClick={() => selectedVaccines.length > 0 && onNext(selectedVaccines)}
+                  className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
                   disabled={isLoading || selectedVaccines.length === 0}
                 >
-                  Next: Record Keeping
+                  Next
                 </Button>
-                </div>
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="record-keeping">
-            {selectedVaccines.length === 0 ? (
-              <div className="p-6">
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center">
-                  <div className="flex flex-col items-center space-y-4">
-                    <AlertTriangle className="h-12 w-12 text-amber-500" />
-                    <h3 className="text-lg font-medium">No Vaccinations Selected</h3>
-                    <p className="text-gray-600 max-w-md">
-                      Please go back and select at least one vaccination before proceeding to record keeping.
-                    </p>
-                    <Button 
-                      onClick={() => setActiveTab("vaccination-planning")}
-                      className="mt-4"
-                      variant="outline"
-                    >
-                      <ChevronLeft className="mr-2 h-4 w-4" />
-                      Back to Vaccination Selection
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-            <VaccinationRecord
-              patientId={patientId}
-              appointmentId={appointmentId}
-              species={species}
-              selectedVaccines={selectedVaccines}
-              onBack={() => setActiveTab("vaccination-planning")}
-              onSubmit={handleRecordSubmit}
-            />
-            )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
+        {/* Custom modal for FPV (ccoFpv) */}
+        {documentVaccineId && documentVaccine && documentVaccine.vacCode === "ccoFpv" && (
+          <FpvDocumentationModal
+            open={true}
+            onClose={() => setDocumentVaccineId(null)}
+            vaccine={documentVaccine}
+            patientId={patientId}
+            appointmentId={appointmentId}
+            species={species}
+            clinicId={clinicId}
+          />
+        )}
+        {/* Default modal for all other vaccines */}
+        {/* {documentVaccineId && documentVaccine && documentVaccine.vacCode !== "ccoFpv" && (
+          <Sheet open={true} onOpenChange={() => setDocumentVaccineId(null)}>
+            <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
+              <VaccinationRecord
+                patientId={patientId}
+                appointmentId={appointmentId}
+                species={species}
+                selectedVaccines={[documentVaccineId]}
+                onBack={() => setDocumentVaccineId(null)}
+                onSubmit={() => setDocumentVaccineId(null)}
+              />
+            </SheetContent>
+          </Sheet>
+        )} */}
       </SheetContent>
     </Sheet>
   );
