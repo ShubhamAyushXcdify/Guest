@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,12 +9,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { X } from "lucide-react"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/get-procedure-documentation-details"
+import { useUpdateProcedureDocumentDetails } from "@/queries/procedureDocumentationDetails/update-procedure-documentation-details"
 
 interface SpayingNeuteringModalProps {
   open: boolean
   onClose: () => void
   patientId: string
   appointmentId: string
+  procedureId?: string
 }
 
 interface SpayingNeuteringFormData {
@@ -29,7 +33,7 @@ interface SpayingNeuteringFormData {
   ownerConsent: boolean
 }
 
-export default function SpayingNeuteringModal({ open, onClose, patientId, appointmentId }: SpayingNeuteringModalProps) {
+export default function SpayingNeuteringModal({ open, onClose, patientId, appointmentId, procedureId }: SpayingNeuteringModalProps) {
   const [formData, setFormData] = useState<SpayingNeuteringFormData>({
     animalName: "",
     age: "",
@@ -41,6 +45,69 @@ export default function SpayingNeuteringModal({ open, onClose, patientId, appoin
     fastingStatus: false,
     ownerConsent: false
   })
+
+  const [formInitialized, setFormInitialized] = useState(false)
+
+  // Get visit data from appointment ID
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+
+  // Get procedure documentation details using visit ID and procedure ID
+  const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
+    visitData?.id,
+    procedureId,
+    !!visitData?.id && !!procedureId && open
+  )
+
+  // Get update mutation
+  const updateDocumentMutation = useUpdateProcedureDocumentDetails()
+
+  // Populate form with existing data when available
+  useEffect(() => {
+    if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
+      try {
+        const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
+        console.log("Loaded procedure documentation details:", parsedDetails)
+        
+        // Create a new form data object with the parsed details
+        const newFormData = {
+          ...formData,
+          ...parsedDetails,
+          // Ensure string values for fields
+          animalName: parsedDetails.animalName || "",
+          age: parsedDetails.age || "",
+          sex: parsedDetails.sex || "",
+          breed: parsedDetails.breed || "",
+          weight: parsedDetails.weight || "",
+          procedureType: parsedDetails.procedureType || "",
+          notes: parsedDetails.notes || "",
+          
+          // Ensure boolean values for checkboxes
+          fastingStatus: !!parsedDetails.fastingStatus,
+          ownerConsent: !!parsedDetails.ownerConsent
+        }
+        
+        setFormData(newFormData)
+        setFormInitialized(true)
+        console.log("Updated form data:", newFormData)
+      } catch (error) {
+        console.error("Failed to parse procedure document details:", error)
+      }
+    } else {
+      // Reset the form when no data is available
+      setFormData({
+        animalName: "",
+        age: "",
+        sex: "",
+        breed: "",
+        weight: "",
+        procedureType: "",
+        notes: "",
+        fastingStatus: false,
+        ownerConsent: false
+      })
+      setFormInitialized(false)
+    }
+  }, [procedureDocumentDetails])
 
   const procedureTypes = [
     { value: "spaying", label: "Spaying (Ovariohysterectomy)" },
@@ -54,50 +121,68 @@ export default function SpayingNeuteringModal({ open, onClose, patientId, appoin
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const saveDocumentation = async () => {
     // Validate required fields
     const requiredFields = ['animalName', 'age', 'sex', 'breed', 'weight', 'procedureType']
     const missingFields = requiredFields.filter(field => !formData[field as keyof SpayingNeuteringFormData])
 
     if (missingFields.length > 0) {
       toast.error(`Please fill in all required fields: ${missingFields.join(', ')}`)
-      return
+      return false
     }
 
     if (!formData.ownerConsent) {
       toast.error("Owner consent is required")
-      return
+      return false
+    }
+
+    if (!visitData?.id || !procedureId) {
+      toast.error("Visit data or procedure ID not available")
+      return false
     }
 
     try {
-      // Here you would typically send the data to your API
-      console.log('Spaying/Neutering Registration Data:', {
-        ...formData,
-        patientId,
-        appointmentId,
-        procedureCode: "PRESPA004"
+      if (!procedureDocumentDetails?.id) {
+        toast.error("No documentation record found to update")
+        return false
+      }
+
+      // Convert form data to JSON string
+      const documentDetailsJson = JSON.stringify(formData)
+      
+      // Update existing documentation
+      await updateDocumentMutation.mutateAsync({
+        id: procedureDocumentDetails.id,
+        documentDetails: documentDetailsJson
       })
-
-      toast.success("Spaying/Neutering procedure registered successfully!")
-
-      // Reset form and close modal
-      setFormData({
-        animalName: "",
-        age: "",
-        sex: "",
-        breed: "",
-        weight: "",
-        procedureType: "",
-        notes: "",
-        fastingStatus: false,
-        ownerConsent: false
-      })
-
-      onClose()
+      
+      toast.success("Spaying/Neutering documentation updated successfully!")
+      return true
     } catch (error) {
-      toast.error("Failed to register spaying/neutering procedure")
+      console.error("Error saving spaying/neutering documentation:", error)
+      // Check for Zod validation errors
+      if (error instanceof Error && error.message.includes("Zod")) {
+        toast.error(`Validation error: ${error.message}`)
+      } else {
+        toast.error(`Failed to save documentation: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+      return false
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
+    }
+  }
+
+  // This is a direct button click handler that doesn't rely on the form submission
+  const handleSaveClick = async () => {
+    const success = await saveDocumentation()
+    if (success) {
+      onClose()
     }
   }
 
@@ -117,138 +202,143 @@ export default function SpayingNeuteringModal({ open, onClose, patientId, appoin
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="animalName">
-                Animal Name <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="animalName"
-                value={formData.animalName}
-                onChange={(e) => handleInputChange('animalName', e.target.value)}
-                placeholder="Enter animal's name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="age">
-                Age <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="age"
-                value={formData.age}
-                onChange={(e) => handleInputChange('age', e.target.value)}
-                placeholder="e.g., 2 years"
-                required
-              />
-            </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <p>Loading procedure documentation...</p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="animalName">
+                  Animal Name <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="animalName"
+                  value={formData.animalName}
+                  onChange={(e) => handleInputChange('animalName', e.target.value)}
+                  placeholder="Enter animal's name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age">
+                  Age <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="age"
+                  value={formData.age}
+                  onChange={(e) => handleInputChange('age', e.target.value)}
+                  placeholder="e.g., 2 years"
+                />
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sex">
-                Sex <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="sex"
-                value={formData.sex}
-                onChange={(e) => handleInputChange('sex', e.target.value)}
-                placeholder="Male or Female"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sex">
+                  Sex <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="sex"
+                  value={formData.sex}
+                  onChange={(e) => handleInputChange('sex', e.target.value)}
+                  placeholder="Male or Female"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="breed">
+                  Breed <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="breed"
+                  value={formData.breed}
+                  onChange={(e) => handleInputChange('breed', e.target.value)}
+                  placeholder="e.g., Labrador Retriever"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="breed">
-                Breed <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="breed"
-                value={formData.breed}
-                onChange={(e) => handleInputChange('breed', e.target.value)}
-                placeholder="e.g., Labrador Retriever"
-                required
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="weight">
+                  Weight (kg) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  value={formData.weight}
+                  onChange={(e) => handleInputChange('weight', e.target.value)}
+                  min="0"
+                  step="0.1"
+                  placeholder="e.g., 12.5"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="procedureType">
+                  Procedure Type <span className="text-red-500">*</span>
+                </Label>
+                <select
+                  id="procedureType"
+                  className="w-full border rounded px-3 py-2"
+                  value={formData.procedureType}
+                  onChange={(e) => handleInputChange('procedureType', e.target.value)}
+                >
+                  <option value="" disabled>Select procedure...</option>
+                  {procedureTypes.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="weight">
-                Weight (kg) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="weight"
-                type="number"
-                value={formData.weight}
-                onChange={(e) => handleInputChange('weight', e.target.value)}
-                min="0"
-                step="0.1"
-                placeholder="e.g., 12.5"
-                required
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any additional notes or instructions..."
+                rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="procedureType">
-                Procedure Type <span className="text-red-500">*</span>
-              </Label>
-              <select
-                id="procedureType"
-                className="w-full border rounded px-3 py-2"
-                value={formData.procedureType}
-                onChange={(e) => handleInputChange('procedureType', e.target.value)}
-                required
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="fastingStatus"
+                  checked={formData.fastingStatus}
+                  onCheckedChange={(checked) => handleInputChange('fastingStatus', checked as boolean)}
+                />
+                <Label htmlFor="fastingStatus">Pet was fasting prior to procedure</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="ownerConsent"
+                  checked={formData.ownerConsent}
+                  onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
+                />
+                <Label htmlFor="ownerConsent">
+                  Owner consent obtained for procedure <span className="text-red-500">*</span>
+                </Label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handleSaveClick} 
+                disabled={updateDocumentMutation.isPending}
               >
-                <option value="" disabled>Select procedure...</option>
-                {procedureTypes.map((type) => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
+                {updateDocumentMutation.isPending 
+                  ? "Saving..." 
+                  : "Save"}
+              </Button>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
-              placeholder="Any additional notes or instructions..."
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="fastingStatus"
-                checked={formData.fastingStatus}
-                onCheckedChange={(checked) => handleInputChange('fastingStatus', checked as boolean)}
-              />
-              <Label htmlFor="fastingStatus">Pet was fasting prior to procedure</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="ownerConsent"
-                checked={formData.ownerConsent}
-                onCheckedChange={(checked) => handleInputChange('ownerConsent', checked as boolean)}
-                required
-              />
-              <Label htmlFor="ownerConsent">
-                Owner consent obtained for procedure <span className="text-red-500">*</span>
-              </Label>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">
-              Save
-            </Button>
-          </div>
-        </form>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   )
