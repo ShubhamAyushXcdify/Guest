@@ -16,11 +16,23 @@ import RabiesDocumentationModal from "./modals/RabiesDocumentationModal";
 import DncBordetellaDocumentationModal from "./modals/DncBordetellaDocumentationModal";
 import DncPivDocumentationModal from "./modals/DncPivDocumentationModal";
 import DncLeptoDocumentationModal from "./modals/DncLeptoDocumentationModal";
+import FelineLeukemiaDocumentationModal from "./modals/FelineLeukemiaDocumentationModal";
+import FIVDocumentationModal from "./modals/FIVDocumentationModal";
+import FelinePanleukopeniaDocumentationModal from "./modals/FelinePanleukopeniaDocumentationModal";
+import FelineRhinotracheitisDocumentationModal from "./modals/FelineRhinotracheitisDocumentationModal";
+import FelineCalicivirusDocumentationModal from "./modals/FelineCalicivirusDocumentationModal";
+import LymeDocumentationModal from "./modals/LymeDocumentationModal";
+import ParvovirusDocumentationModal from "./modals/ParvovirusDocumentationModal";
+import HepatitisDocumentationModal from "./modals/HepatitisDocumentationModal";
+import CanineInfluenzaDocumentationModal from "./modals/CanineInfluenzaDocumentationModal";
+import KennelCoughDocumentationModal from "./modals/KennelCoughDocumentationModal";
 import { useRootContext } from "@/context/RootContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
 import { toast } from "sonner";
+import ChlamydiaFelisDocumentationModal from "./modals/ChlamydiaFelisDocumentationModal";
+import FelineInfectiousPeritonitisDocumentationModal from "./modals/FelineInfectiousPeritonitisDocumentationModal";
 
 interface Vaccination {
   id: string;
@@ -240,7 +252,11 @@ export default function VaccinationPlanning({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setDocumentVaccineId(vaccine.id)}
+                                onClick={() => {
+                                  // Add debugging to check the vaccine data
+                                  console.log("Selected vaccine:", vaccine);
+                                  setDocumentVaccineId(vaccine.id);
+                                }}
                               >
                                 Document
                               </Button>
@@ -277,11 +293,11 @@ export default function VaccinationPlanning({
                   Back
                 </Button>
                 <div className="flex gap-2">
-                  <Button 
-                    onClick={() => selectedVaccines.length > 0 && onNext(selectedVaccines)}
-                    className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
-                    disabled={isLoading || selectedVaccines.length === 0}
-                  >
+                <Button 
+                  onClick={() => selectedVaccines.length > 0 && onNext(selectedVaccines)}
+                  className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
+                  disabled={isLoading || selectedVaccines.length === 0}
+                >
                     Save
                   </Button>
                   <Button
@@ -290,7 +306,7 @@ export default function VaccinationPlanning({
                     disabled={isLoading || visitLoading || selectedVaccines.length === 0 || isProcessing}
                   >
                     {isProcessing ? "Processing..." : "Checkout"}
-                  </Button>
+                </Button>
                 </div>
               </div>
             </div>
@@ -298,8 +314,13 @@ export default function VaccinationPlanning({
         </div>
         {/* Vaccine-specific documentation modals */}
         {documentVaccineId && documentVaccine && (() => {
-          switch (documentVaccine.vacCode) {
-            case "ccoFpv":
+          // Log the exact vaccine data when opening a modal
+          console.log("Opening modal for vaccine:", documentVaccine);
+          
+          // First check for exact disease name matches from the screenshot
+          switch (documentVaccine.disease) {
+            // Core vaccines
+            case "Feline Panleukopenia Virus (FPV)":
               return (
                 <FpvDocumentationModal
                   open={true}
@@ -311,9 +332,9 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
-            case "dcoCdv":
+            case "Feline Herpesvirus-1 (FHV-1)":
               return (
-                <CdvDocumentationModal
+                <FelineRhinotracheitisDocumentationModal
                   open={true}
                   onClose={() => setDocumentVaccineId(null)}
                   vaccine={documentVaccine}
@@ -323,9 +344,9 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
-            case "dcoCav":
+            case "Feline Calicivirus (FCV)":
               return (
-                <CavDocumentationModal
+                <FelineCalicivirusDocumentationModal
                   open={true}
                   onClose={() => setDocumentVaccineId(null)}
                   vaccine={documentVaccine}
@@ -335,20 +356,7 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
-            case "dcoCpv":
-              return (
-                <CpvDocumentationModal
-                  open={true}
-                  onClose={() => setDocumentVaccineId(null)}
-                  vaccine={documentVaccine}
-                  patientId={patientId}
-                  appointmentId={appointmentId}
-                  species={species}
-                  clinicId={clinicId}
-                />
-              );
-            case "dcoRabies":
-            case "ccoRabies":
+            case "Rabies":
               return (
                 <RabiesDocumentationModal
                   open={true}
@@ -360,7 +368,33 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
-            case "dncBordetella":
+              
+            // Non-core vaccines
+            case "Feline Leukemia Virus (FeLV)":
+              return (
+                <FelineLeukemiaDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "Chlamydia felis":
+              return (
+                <ChlamydiaFelisDocumentationModal
+                  open={true}
+                  onClose={() => setDocumentVaccineId(null)}
+                  vaccine={documentVaccine}
+                  patientId={patientId}
+                  appointmentId={appointmentId}
+                  species={species}
+                  clinicId={clinicId}
+                />
+              );
+            case "Bordetella bronchiseptica":
               return (
                 <DncBordetellaDocumentationModal
                   open={true}
@@ -372,9 +406,9 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
-            case "dncPiv":
+            case "Feline Immunodeficiency Virus (FIV)":
               return (
-                <DncPivDocumentationModal
+                <FIVDocumentationModal
                   open={true}
                   onClose={() => setDocumentVaccineId(null)}
                   vaccine={documentVaccine}
@@ -384,9 +418,9 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
-            case "dncLepto":
+            case "Feline Infectious Peritonitis (FIP)":
               return (
-                <DncLeptoDocumentationModal
+                <FelineInfectiousPeritonitisDocumentationModal
                   open={true}
                   onClose={() => setDocumentVaccineId(null)}
                   vaccine={documentVaccine}
@@ -396,8 +430,234 @@ export default function VaccinationPlanning({
                   clinicId={clinicId}
                 />
               );
+
+            // Then fall back to vacCode if needed
             default:
-              return null;
+              switch (documentVaccine.vacCode) {
+                case "ccoFpv":
+                  return (
+                    <FpvDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                // Preserve other vacCode cases...
+                case "dcoCdv":
+                  return (
+                    <CdvDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "dcoCav":
+                  return (
+                    <CavDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "dcoCpv":
+                  return (
+                    <CpvDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "dcoRabies":
+                case "ccoRabies":
+                  return (
+                    <RabiesDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "dncBordetella":
+                  return (
+                    <DncBordetellaDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "dncPiv":
+                  return (
+                    <DncPivDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "dncLepto":
+                  return (
+                    <DncLeptoDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "felineLeukemia":
+                  return (
+                    <FelineLeukemiaDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "fiv":
+                  return (
+                    <FIVDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "felinePanleukopenia":
+                  return (
+                    <FelinePanleukopeniaDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "felineRhinotracheitis":
+                  return (
+                    <FelineRhinotracheitisDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "felineCalicivirus":
+                  return (
+                    <FelineCalicivirusDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "lyme":
+                  return (
+                    <LymeDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "parvovirus":
+                  return (
+                    <ParvovirusDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "hepatitis":
+                  return (
+                    <HepatitisDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "canineInfluenza":
+                  return (
+                    <CanineInfluenzaDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                case "kennelCough":
+                  return (
+                    <KennelCoughDocumentationModal
+                      open={true}
+                      onClose={() => setDocumentVaccineId(null)}
+                      vaccine={documentVaccine}
+                      patientId={patientId}
+                      appointmentId={appointmentId}
+                      species={species}
+                      clinicId={clinicId}
+                    />
+                  );
+                default:
+                  // Final fallback - show alert and return null
+                  console.error(`No modal found for vaccine: ${JSON.stringify(documentVaccine)}`);
+                  alert(`No documentation modal available for ${documentVaccine.disease || 'this vaccine'}`);
+                  return null;
+              }
           }
         })()}
       </SheetContent>
