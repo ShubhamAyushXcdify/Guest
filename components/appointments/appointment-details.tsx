@@ -23,6 +23,7 @@ import { useGetAppointmentType } from "@/queries/appointmentType/get-appointment
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import VaccinationComponent from "@/components/appointments/vaccination/index"
+import EmergencyComponent from "@/components/appointments/emergency/index"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
 import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
@@ -75,6 +76,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isEditing, setIsEditing] = useState(false)
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
   const [isVaccinationOpen, setIsVaccinationOpen] = useState(false)
+  const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
@@ -387,9 +389,12 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   const handlePatientInfoClick = () => {
     // Check if this is a vaccination appointment
     const isVaccination = appointment?.appointmentType?.name?.toLowerCase()?.includes('vaccination');
-    
+    const isEmergency = appointment?.appointmentType?.name?.toLowerCase()?.includes('emergency');
+
     if (isVaccination) {
       setIsVaccinationOpen(true);
+    } else if (isEmergency) {
+      setIsEmergencyOpen(true);
     } else {
       setIsPatientInfoOpen(true);
     }
@@ -901,7 +906,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         </SheetContent>
       </Sheet>
 
-      {isPatientInfoOpen && !isVaccinationOpen && (
+      {isPatientInfoOpen && !isVaccinationOpen && !isEmergencyOpen && (
         <PatientInformation 
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
@@ -914,6 +919,14 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
           onClose={() => setIsVaccinationOpen(false)}
+        />
+      )}
+
+      {isEmergencyOpen && (
+        <EmergencyComponent
+          patientId={appointment?.patientId || ''}
+          appointmentId={appointmentId}
+          onClose={() => setIsEmergencyOpen(false)}
         />
       )}
     </>
