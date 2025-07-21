@@ -17,6 +17,10 @@ import DncBordetellaDocumentationModal from "./modals/DncBordetellaDocumentation
 import DncPivDocumentationModal from "./modals/DncPivDocumentationModal";
 import DncLeptoDocumentationModal from "./modals/DncLeptoDocumentationModal";
 import { useRootContext } from "@/context/RootContext";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
+import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
+import { toast } from "sonner";
 
 interface Vaccination {
   id: string;
@@ -50,6 +54,7 @@ export default function VaccinationPlanning({
 }: VaccinationPlanningProps) {
   const [selectedVaccines, setSelectedVaccines] = useState<string[]>([]);
   const [documentVaccineId, setDocumentVaccineId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Convert species to lowercase for API call
   const speciesLowerCase = species.toLowerCase();
@@ -88,6 +93,51 @@ export default function VaccinationPlanning({
   // Find the vaccine object for the currently documented vaccine
   const documentVaccine = typedVaccinations.find((v) => v.id === documentVaccineId);
 
+  // Fetch visit data for this appointment
+  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
+
+  // Mutations for checkout
+  const createVaccinationDetail = useCreateVaccinationDetail();
+  const updateAppointment = useUpdateAppointment({
+    onSuccess: () => {
+      setIsProcessing(false);
+      toast.success("Vaccination checkout completed");
+      onClose();
+    },
+    onError: (error) => {
+      setIsProcessing(false);
+      toast.error("Failed to update appointment status");
+    }
+  });
+
+  // Checkout handler
+  const handleCheckout = async () => {
+    if (!visitData || !visitData.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+    if (selectedVaccines.length === 0) {
+      toast.error("Please select at least one vaccine before checkout.");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      // TODO: Collect actual vaccination details from documentation modals or next step
+      const batchSubmission = {
+        details: [], // Should be filled with actual vaccination details
+        isCompleted: true
+      };
+      await createVaccinationDetail.mutateAsync(batchSubmission);
+      await updateAppointment.mutateAsync({
+        id: appointmentId,
+        data: { status: "completed" }
+      });
+    } catch (error) {
+      setIsProcessing(false);
+      toast.error("Checkout failed. Please try again.");
+    }
+  };
+
   return (
     <Sheet open={true} onOpenChange={onClose}>
       <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
@@ -97,8 +147,6 @@ export default function VaccinationPlanning({
 
         <div className="w-full">
           <div className="p-6">
-            <h2 className="text-2xl font-bold">Vaccination Schedule Planning</h2>
-            <p className="text-gray-600 mb-4">Select appropriate vaccines based on pet species and risk factors</p>
 
             {isLoading ? (
               <div className="text-center py-10">Loading vaccination data...</div>
@@ -228,13 +276,22 @@ export default function VaccinationPlanning({
                 >
                   Back
                 </Button>
-                <Button 
-                  onClick={() => selectedVaccines.length > 0 && onNext(selectedVaccines)}
-                  className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
-                  disabled={isLoading || selectedVaccines.length === 0}
-                >
-                  Next
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => selectedVaccines.length > 0 && onNext(selectedVaccines)}
+                    className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
+                    disabled={isLoading || selectedVaccines.length === 0}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    onClick={handleCheckout}
+                    className="text-white px-5 bg-green-600 hover:bg-green-700"
+                    disabled={isLoading || visitLoading || selectedVaccines.length === 0 || isProcessing}
+                  >
+                    {isProcessing ? "Processing..." : "Checkout"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
