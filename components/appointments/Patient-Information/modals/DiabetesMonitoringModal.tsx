@@ -166,13 +166,9 @@ export default function DiabetesMonitoringModal({ open, onClose, patientId, appo
     if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
       try {
         const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
-        console.log("Loaded procedure documentation details:", parsedDetails)
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           diabetesType: parsedDetails.diabetesType || "",
           currentWeight: parsedDetails.currentWeight || "",
           glucoseReading: parsedDetails.glucoseReading || "",
@@ -207,14 +203,14 @@ export default function DiabetesMonitoringModal({ open, onClose, patientId, appo
           homeMonitoring: !!parsedDetails.homeMonitoring,
           ownerConsent: !!parsedDetails.ownerConsent
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         diabetesType: "",
@@ -249,7 +245,8 @@ export default function DiabetesMonitoringModal({ open, onClose, patientId, appo
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const handleInputChange = (field: keyof DiabetesMonitoringFormData, value: string | string[] | boolean) => {
     setFormData(prev => ({

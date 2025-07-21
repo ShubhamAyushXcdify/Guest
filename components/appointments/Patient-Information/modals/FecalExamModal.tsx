@@ -67,9 +67,6 @@ export default function FecalExamModal({ open, onClose, patientId, appointmentId
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           collectionMethod: parsedDetails.collectionMethod || "",
           collectionTime: parsedDetails.collectionTime || new Date().toISOString().slice(0, 16),
           consistency: parsedDetails.consistency || "",
@@ -81,13 +78,14 @@ export default function FecalExamModal({ open, onClose, patientId, appointmentId
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         collectionMethod: "",
@@ -100,7 +98,7 @@ export default function FecalExamModal({ open, onClose, patientId, appointmentId
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+  }, [procedureDocumentDetails])
 
   const urgencyLevels = [
     { value: "routine", label: "Routine" },

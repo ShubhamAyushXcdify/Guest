@@ -150,9 +150,6 @@ export default function ChemotherapyModal({ open, onClose, patientId, appointmen
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           protocolName: parsedDetails.protocolName || "",
           cycleNumber: parsedDetails.cycleNumber || "",
           dosageCalculation: parsedDetails.dosageCalculation || "",
@@ -184,15 +181,15 @@ export default function ChemotherapyModal({ open, onClose, patientId, appointmen
           handlingPrecautions: !!parsedDetails.handlingPrecautions,
           ownerConsent: !!parsedDetails.ownerConsent
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         protocolName: "",
         cycleNumber: "",
@@ -223,7 +220,8 @@ export default function ChemotherapyModal({ open, onClose, patientId, appointmen
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const saveDocumentation = async () => {
     // Validate required fields

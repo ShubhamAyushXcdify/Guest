@@ -88,13 +88,7 @@ export default function EyeSurgeryModal({ open, onClose, patientId, appointmentI
     if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
       try {
         const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
-        console.log("Loaded procedure documentation details:", parsedDetails)
-        
-        // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           surgeryType: parsedDetails.surgeryType || "",
           eyeSide: parsedDetails.eyeSide || "",
           anesthesiaType: parsedDetails.anesthesiaType || "",
@@ -102,20 +96,19 @@ export default function EyeSurgeryModal({ open, onClose, patientId, appointmentI
           surgeon: parsedDetails.surgeon || "",
           complications: parsedDetails.complications || "",
           postOpInstructions: parsedDetails.postOpInstructions || "",
-          notes: parsedDetails.notes || "",
-          
-          // Ensure boolean values for checkboxes
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          notes: parsedDetails.notes || ""
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        // Only update if different
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         surgeryType: "",
         eyeSide: "",
@@ -129,7 +122,8 @@ export default function EyeSurgeryModal({ open, onClose, patientId, appointmentI
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const handleInputChange = (field: keyof EyeSurgeryFormData, value: string | boolean) => {
     setFormData(prev => ({

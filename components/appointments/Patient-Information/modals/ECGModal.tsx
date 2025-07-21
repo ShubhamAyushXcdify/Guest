@@ -63,9 +63,6 @@ export default function ECGModal({ open, onClose, patientId, appointmentId, proc
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values
           collectionTime: parsedDetails.collectionTime || new Date().toISOString().slice(0, 16),
           clinicalNotes: parsedDetails.clinicalNotes || "",
           
@@ -73,13 +70,14 @@ export default function ECGModal({ open, onClose, patientId, appointmentId, proc
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         collectionTime: new Date().toISOString().slice(0, 16),
@@ -88,7 +86,7 @@ export default function ECGModal({ open, onClose, patientId, appointmentId, proc
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+  }, [procedureDocumentDetails])
 
   const handleInputChange = (field: keyof ECGFormData, value: string | boolean) => {
     setFormData(prev => ({

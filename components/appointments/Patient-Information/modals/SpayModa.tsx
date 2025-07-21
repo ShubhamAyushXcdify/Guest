@@ -65,9 +65,6 @@ export default function SpayModal({ open, onClose, patientId, appointmentId, pro
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           anesthesiaType: parsedDetails.anesthesiaType || "",
           incisionDetails: parsedDetails.incisionDetails || "",
           complications: parsedDetails.complications || "",
@@ -78,14 +75,15 @@ export default function SpayModal({ open, onClose, patientId, appointmentId, pro
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         anesthesiaType: "",
         incisionDetails: "",

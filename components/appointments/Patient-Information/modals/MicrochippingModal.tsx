@@ -67,9 +67,6 @@ export default function MicrochippingModal({ open, onClose, patientId, appointme
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           chipNumber: parsedDetails.chipNumber || "",
           manufacturer: parsedDetails.manufacturer || "",
           implantationSite: parsedDetails.implantationSite || "",
@@ -80,14 +77,14 @@ export default function MicrochippingModal({ open, onClose, patientId, appointme
           // Ensure boolean values for checkboxes
           ownerConsent: !!parsedDetails.ownerConsent
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         chipNumber: "",

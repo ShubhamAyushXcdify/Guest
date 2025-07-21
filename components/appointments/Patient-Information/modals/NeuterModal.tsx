@@ -64,9 +64,6 @@ export default function NeuterModal({ open, onClose, patientId, appointmentId, p
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           anesthesiaType: parsedDetails.anesthesiaType || "",
           incisionLocation: parsedDetails.incisionLocation || "",
           complications: parsedDetails.complications || "",
@@ -77,14 +74,15 @@ export default function NeuterModal({ open, onClose, patientId, appointmentId, p
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         anesthesiaType: "",
         incisionLocation: "",
@@ -95,7 +93,8 @@ export default function NeuterModal({ open, onClose, patientId, appointmentId, p
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const handleInputChange = (field: keyof NeuterFormData, value: string | boolean) => {
     setFormData(prev => ({

@@ -45,6 +45,7 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
 
   // Get visit data from appointment ID
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+  const [formInitialized, setFormInitialized] = useState(false)
 
   // Get procedure documentation details using visit ID and procedure ID
   const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
@@ -65,25 +66,26 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           reasonForQuarantine: parsedDetails.reasonForQuarantine || "",
           quarantineLocation: parsedDetails.quarantineLocation || "",
           // Ensure date values are correctly formatted
           startDate: parsedDetails.startDate || new Date().toISOString().slice(0, 10),
           endDate: parsedDetails.endDate || "",
           // Ensure boolean values for checkboxes
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          observation: parsedDetails.observation || "",
+          notes: parsedDetails.notes || ""
         }
         
-        setFormData(newFormData)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         reasonForQuarantine: "",
         startDate: new Date().toISOString().slice(0, 10),
@@ -93,6 +95,7 @@ export default function QuarantineModal({ open, onClose, patientId, appointmentI
         ownerConsent: false,
         notes: ""
       })
+      setFormInitialized(false)
     }
   }, [procedureDocumentDetails])
 

@@ -107,9 +107,6 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           therapyType: parsedDetails.therapyType || "",
           primaryCondition: parsedDetails.primaryCondition || "",
           painLevel: parsedDetails.painLevel || "",
@@ -124,16 +121,31 @@ export default function AcupunctureModal({ open, onClose, patientId, appointment
           heatTherapy: !!parsedDetails.heatTherapy,
           coldTherapy: !!parsedDetails.coldTherapy,
           massageTherapy: !!parsedDetails.massageTherapy,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          needleRetentionTime: parsedDetails.needleRetentionTime || "",
+          stimulationParameters: parsedDetails.stimulationParameters || "",
+          exerciseProgram: parsedDetails.exerciseProgram || "",
+          treatmentDuration: parsedDetails.treatmentDuration || "",
+          treatmentFrequency: parsedDetails.treatmentFrequency || "",
+          previousTreatments: parsedDetails.previousTreatments || "",
+          contraindications: parsedDetails.contraindications || "",
+          currentMedications: parsedDetails.currentMedications || "",
+          treatmentResponse: parsedDetails.treatmentResponse || "",
+          homeExercises: parsedDetails.homeExercises || "",
+          treatmentDate: parsedDetails.treatmentDate || new Date().toISOString().slice(0, 16),
+          nextSessionDate: parsedDetails.nextSessionDate || "",
+          treatingTherapist: parsedDetails.treatingTherapist || "",
+          notes: parsedDetails.notes || ""
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         therapyType: "",

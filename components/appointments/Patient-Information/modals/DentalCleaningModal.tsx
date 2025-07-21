@@ -87,9 +87,6 @@ export default function DentalCleaningModal({ open, onClose, patientId, appointm
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           cleaningType: parsedDetails.cleaningType || "",
           anesthesiaType: parsedDetails.anesthesiaType || "",
           procedureDate: parsedDetails.procedureDate || new Date().toISOString().slice(0, 16),
@@ -101,13 +98,14 @@ export default function DentalCleaningModal({ open, onClose, patientId, appointm
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         cleaningType: "",
@@ -120,7 +118,7 @@ export default function DentalCleaningModal({ open, onClose, patientId, appointm
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+  }, [procedureDocumentDetails])
 
   const saveDocumentation = async () => {
     // Validate required fields

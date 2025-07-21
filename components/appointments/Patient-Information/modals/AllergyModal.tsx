@@ -95,9 +95,6 @@ export default function AllergyModal({ open, onClose, patientId, appointmentId, 
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           therapyType: parsedDetails.therapyType || "",
           administrationRoute: parsedDetails.administrationRoute || "",
           frequency: parsedDetails.frequency || "",
@@ -106,17 +103,32 @@ export default function AllergyModal({ open, onClose, patientId, appointmentId, 
           allergenType: parsedDetails.allergenType || [],
           // Ensure boolean values for checkboxes
           emergencyKitChecked: !!parsedDetails.emergencyKitChecked,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          notes: parsedDetails.notes || "",
+          concentration: parsedDetails.concentration || "",
+          dosage: parsedDetails.dosage || "",
+          startDate: parsedDetails.startDate || new Date().toISOString().slice(0, 16),
+          nextDueDate: parsedDetails.nextDueDate || "",
+          previousReactions: parsedDetails.previousReactions || "",
+          skinTestDate: parsedDetails.skinTestDate || "",
+          bloodTestDate: parsedDetails.bloodTestDate || "",
+          allergenManufacturer: parsedDetails.allergenManufacturer || "",
+          batchNumber: parsedDetails.batchNumber || "",
+          expiryDate: parsedDetails.expiryDate || "",
+          administeredBy: parsedDetails.administeredBy || "",
+          postInjectionReaction: parsedDetails.postInjectionReaction || "",
+          premedication: parsedDetails.premedication || "",
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         therapyType: "",
         allergenType: [],

@@ -65,33 +65,26 @@ export default function FleaTickControlModal({ open, onClose, patientId, appoint
     if (procedureDocumentDetails && procedureDocumentDetails.documentDetails) {
       try {
         const parsedDetails = JSON.parse(procedureDocumentDetails.documentDetails)
-        console.log("Loaded procedure documentation details:", parsedDetails)
-        
-        // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           productName: parsedDetails.productName || "",
           productType: parsedDetails.productType || "",
           dosage: parsedDetails.dosage || "",
           applicationMethod: parsedDetails.applicationMethod || "",
           applicationDateTime: parsedDetails.applicationDateTime || new Date().toISOString().slice(0, 16),
           nextDueDate: parsedDetails.nextDueDate || "",
-          notes: parsedDetails.notes || "",
-          
-          // Ensure boolean values for checkboxes
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          notes: parsedDetails.notes || ""
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        // Only update if different
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         productName: "",
         productType: "",
@@ -104,7 +97,8 @@ export default function FleaTickControlModal({ open, onClose, patientId, appoint
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const productTypes = [
     { value: "spot-on", label: "Spot-On Treatment" },

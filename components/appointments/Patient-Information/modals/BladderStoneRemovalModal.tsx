@@ -109,9 +109,6 @@ export default function BladderStoneRemovalModal({
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           stoneLocation: parsedDetails.stoneLocation || "",
           preOpImaging: parsedDetails.preOpImaging || "",
           surgicalApproach: parsedDetails.surgicalApproach || "",
@@ -119,17 +116,36 @@ export default function BladderStoneRemovalModal({
           // Ensure boolean values for checkboxes
           bladderFlush: !!parsedDetails.bladderFlush,
           labSubmission: !!parsedDetails.labSubmission,
-          consentObtained: !!parsedDetails.consentObtained
+          consentObtained: !!parsedDetails.consentObtained,
+          stoneSize: parsedDetails.stoneSize || "",
+          stoneNumber: parsedDetails.stoneNumber || "",
+          stoneComposition: parsedDetails.stoneComposition || "",
+          imagingFindings: parsedDetails.imagingFindings || "",
+          urinalysisResults: parsedDetails.urinalysisResults || "",
+          bloodworkResults: parsedDetails.bloodworkResults || "",
+          bladderWallCondition: parsedDetails.bladderWallCondition || "",
+          closureTechnique: parsedDetails.closureTechnique || "",
+          flushSolution: parsedDetails.flushSolution || "",
+          complications: parsedDetails.complications || "",
+          postOpCare: parsedDetails.postOpCare || "",
+          medications: parsedDetails.medications || "",
+          dietaryRecommendations: parsedDetails.dietaryRecommendations || "",
+          preventiveMeasures: parsedDetails.preventiveMeasures || "",
+          followUpPlan: parsedDetails.followUpPlan || "",
+          labDetails: parsedDetails.labDetails || "",
+          surgeonName: parsedDetails.surgeonName || "",
+          assistantName: parsedDetails.assistantName || ""
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         stoneLocation: "",
         stoneSize: "",

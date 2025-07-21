@@ -53,6 +53,7 @@ export default function HealthCertificateModal({ open, onClose, patientId, appoi
   
   // Get visit data from appointment ID
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+  const [formInitialized, setFormInitialized] = useState(false)
 
   // Get procedure documentation details using visit ID and procedure ID
   const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
@@ -73,9 +74,6 @@ export default function HealthCertificateModal({ open, onClose, patientId, appoi
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           certificateType: parsedDetails.certificateType || "",
           destinationCountry: parsedDetails.destinationCountry || "",
           // Ensure array values
@@ -86,16 +84,20 @@ export default function HealthCertificateModal({ open, onClose, patientId, appoi
           expirationDate: parsedDetails.expirationDate || "",
           // Ensure boolean values for checkboxes
           microchipVerified: !!parsedDetails.microchipVerified,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          certNumber: parsedDetails.certNumber || "",
+          certifyingVet: parsedDetails.certifyingVet || "",
+          notes: parsedDetails.notes || ""
         }
         
-        setFormData(newFormData)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         certificateType: "",
         destinationCountry: "",
@@ -108,7 +110,8 @@ export default function HealthCertificateModal({ open, onClose, patientId, appoi
         certificationDate: new Date().toISOString().slice(0, 10),
         ownerConsent: false,
         notes: ""
-      })
+      })  
+      setFormInitialized(false)
     }
   }, [procedureDocumentDetails])
 
