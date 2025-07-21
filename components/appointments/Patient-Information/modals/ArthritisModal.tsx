@@ -107,9 +107,6 @@ export default function ArthritisModal({ open, onClose, patientId, appointmentId
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           arthritisType: parsedDetails.arthritisType || "",
           painLevel: parsedDetails.painLevel || "",
           mobilityScore: parsedDetails.mobilityScore || "",
@@ -123,16 +120,32 @@ export default function ArthritisModal({ open, onClose, patientId, appointmentId
           hydrotherapy: !!parsedDetails.hydrotherapy,
           acupuncture: !!parsedDetails.acupuncture,
           massage: !!parsedDetails.massage,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          exerciseRestrictions: parsedDetails.exerciseRestrictions || "",
+          hydrotherapyFrequency: parsedDetails.hydrotherapyFrequency || "",
+          acupunctureFrequency: parsedDetails.acupunctureFrequency || "",
+          massageFrequency: parsedDetails.massageFrequency || "",
+          dietModification: parsedDetails.dietModification || "",
+          weightManagementPlan: parsedDetails.weightManagementPlan || "",
+          environmentalModifications: parsedDetails.environmentalModifications || "",
+          previousTreatments: parsedDetails.previousTreatments || "",
+          treatmentResponse: parsedDetails.treatmentResponse || "",
+          treatmentDate: parsedDetails.treatmentDate || new Date().toISOString().slice(0, 16),
+          nextAssessmentDate: parsedDetails.nextAssessmentDate || "",
+          treatingVet: parsedDetails.treatingVet || "",
+          therapist: parsedDetails.therapist || "",
+          homeExercises: parsedDetails.homeExercises || "",
+          notes: parsedDetails.notes || ""
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         arthritisType: "",

@@ -133,9 +133,6 @@ export default function IVFluidTherapyModal({ open, onClose, patientId, appointm
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           fluidType: parsedDetails.fluidType || "",
           fluidVolume: parsedDetails.fluidVolume || "",
           administrationRate: parsedDetails.administrationRate || "",
@@ -186,14 +183,15 @@ export default function IVFluidTherapyModal({ open, onClose, patientId, appointm
             : []
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         fluidType: "",
         fluidVolume: "",
@@ -238,7 +236,8 @@ export default function IVFluidTherapyModal({ open, onClose, patientId, appointm
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [procedureDocumentDetails])
 
   const fluidTypes = [
     { value: "lactated-ringers", label: "Lactated Ringer's Solution" },

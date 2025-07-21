@@ -65,9 +65,6 @@ export default function SkinScrapingModal({ open, onClose, patientId, appointmen
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           sampleSite: parsedDetails.sampleSite || "",
           collectionTime: parsedDetails.collectionTime || new Date().toISOString().slice(0, 16),
           clinicalNotes: parsedDetails.clinicalNotes || "",
@@ -76,14 +73,15 @@ export default function SkinScrapingModal({ open, onClose, patientId, appointmen
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         sampleSite: "",
         collectionTime: new Date().toISOString().slice(0, 16),

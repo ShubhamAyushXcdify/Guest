@@ -115,9 +115,6 @@ export default function OrthopedicSurgeryModal({
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           surgeryType: parsedDetails.surgeryType || "",
           customSurgeryType: parsedDetails.customSurgeryType || "",
           location: parsedDetails.location || "",
@@ -150,14 +147,15 @@ export default function OrthopedicSurgeryModal({
           consentObtained: !!parsedDetails.consentObtained
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         surgeryType: "",
         customSurgeryType: "",

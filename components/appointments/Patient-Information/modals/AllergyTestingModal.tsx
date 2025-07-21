@@ -67,23 +67,23 @@ export default function AllergyTestingModal({ open, onClose, patientId, appointm
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           allergenType: parsedDetails.allergenType || "",
           testPanel: parsedDetails.testPanel || "",
           urgencyLevel: parsedDetails.urgencyLevel || "",
           // Ensure boolean values for checkboxes
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          suspectedAllergens: parsedDetails.suspectedAllergens || "",
+          reactionHistory: parsedDetails.reactionHistory || "",
+          specialInstructions: parsedDetails.specialInstructions || ""
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         allergenType: "",

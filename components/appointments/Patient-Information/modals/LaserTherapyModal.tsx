@@ -111,9 +111,6 @@ export default function LaserTherapyModal({ open, onClose, patientId, appointmen
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           laserType: parsedDetails.laserType || "",
           wavelength: parsedDetails.wavelength || "",
           power: parsedDetails.power || "",
@@ -154,15 +151,15 @@ export default function LaserTherapyModal({ open, onClose, patientId, appointmen
             ? parsedDetails.safetyChecklist 
             : []
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         laserType: "",
         wavelength: "",
@@ -196,7 +193,7 @@ export default function LaserTherapyModal({ open, onClose, patientId, appointmen
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+  }, [procedureDocumentDetails])
 
   const laserTypes = [
     { value: "class3b", label: "Class 3B Laser" },

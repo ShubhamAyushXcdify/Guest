@@ -74,25 +74,27 @@ export default function UrinalysisModal({ open, onClose, patientId, appointmentI
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           sampleType: parsedDetails.sampleType || "",
           sampleColor: parsedDetails.sampleColor || "",
           testRequested: parsedDetails.testRequested || "",
           urgencyLevel: parsedDetails.urgencyLevel || "",
           // Ensure boolean values for checkboxes
           fastingStatus: !!parsedDetails.fastingStatus,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          collectionTime: parsedDetails.collectionTime || new Date().toISOString().slice(0, 16),
+          sampleVolume: parsedDetails.sampleVolume || "",
+          clinicalSigns: parsedDetails.clinicalSigns || "",
+          specialInstructions: parsedDetails.specialInstructions || ""
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         sampleType: "",

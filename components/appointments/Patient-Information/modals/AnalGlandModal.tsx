@@ -42,6 +42,7 @@ export default function AnalGlandModal({ open, onClose, patientId, appointmentId
   
   // Get visit data from appointment ID
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+  const [formInitialized, setFormInitialized] = useState(false)
 
   // Get procedure documentation details using visit ID and procedure ID
   const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
@@ -62,23 +63,24 @@ export default function AnalGlandModal({ open, onClose, patientId, appointmentId
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           expressionMethod: parsedDetails.expressionMethod || "",
           rightGlandStatus: parsedDetails.rightGlandStatus || "",
           leftGlandStatus: parsedDetails.leftGlandStatus || "",
           // Ensure boolean values for checkboxes
           followUpRecommended: !!parsedDetails.followUpRecommended,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          findings: parsedDetails.findings || "",
+          notes: parsedDetails.notes || ""
         }
         
-        setFormData(newFormData)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         expressionMethod: "",

@@ -70,9 +70,6 @@ export default function SpayingNeuteringModal({ open, onClose, patientId, appoin
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           animalName: parsedDetails.animalName || "",
           age: parsedDetails.age || "",
           sex: parsedDetails.sex || "",
@@ -86,14 +83,15 @@ export default function SpayingNeuteringModal({ open, onClose, patientId, appoin
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         animalName: "",
         age: "",

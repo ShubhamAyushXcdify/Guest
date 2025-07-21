@@ -77,9 +77,6 @@ export default function BreedModal({ open, onClose, patientId, appointmentId, pr
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           testType: parsedDetails.testType || "",
           sampleType: parsedDetails.sampleType || "",
           collectionDateTime: parsedDetails.collectionDateTime || new Date().toISOString().slice(0, 16),
@@ -91,17 +88,19 @@ export default function BreedModal({ open, onClose, patientId, appointmentId, pr
           geneticMarkers: parsedDetails.geneticMarkers || "",
           // Ensure boolean values for checkboxes
           healthScreening: !!parsedDetails.healthScreening,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          notes: parsedDetails.notes || ""
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         testType: "",
         sampleType: "",

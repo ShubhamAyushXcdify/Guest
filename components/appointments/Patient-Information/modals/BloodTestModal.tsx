@@ -44,6 +44,7 @@ export default function BloodTestModal({ open, onClose, patientId, appointmentId
   
   // Get visit data from appointment ID
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+  const [formInitialized, setFormInitialized] = useState(false)
 
   // Get procedure documentation details using visit ID and procedure ID
   const { data: procedureDocumentDetails, isLoading } = useProcedureDocumentDetails(
@@ -64,25 +65,24 @@ export default function BloodTestModal({ open, onClose, patientId, appointmentId
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for Select components
           testType: parsedDetails.testType || "",
           collectionSite: parsedDetails.collectionSite || "",
           collectedBy: parsedDetails.collectedBy || "",
           sampleVolume: parsedDetails.sampleVolume || "",
           // Ensure boolean values for checkboxes
           fastingStatus: !!parsedDetails.fastingStatus,
-          ownerConsent: !!parsedDetails.ownerConsent
+          ownerConsent: !!parsedDetails.ownerConsent,
+          notes: parsedDetails.notes || ""
         }
-        
-        setFormData(newFormData)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         testType: "",
         collectionSite: "",

@@ -68,9 +68,6 @@ export default function NailTrimmingModal({
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           notes: parsedDetails.notes || "Routine grooming for paw health and comfort",
           difficultyLevel: parsedDetails.difficultyLevel || "",
           specialInstructions: parsedDetails.specialInstructions || "",
@@ -80,14 +77,15 @@ export default function NailTrimmingModal({
           ownerConsent: !!parsedDetails.ownerConsent
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         notes: "Routine grooming for paw health and comfort",
         bleedingOccurred: false,
@@ -97,7 +95,8 @@ export default function NailTrimmingModal({
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const handleInputChange = (field: keyof NailTrimmingFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))

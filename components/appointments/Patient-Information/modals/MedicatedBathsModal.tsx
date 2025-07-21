@@ -111,9 +111,6 @@ export default function MedicatedBathsModal({ open, onClose, patientId, appointm
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           primaryCondition: parsedDetails.primaryCondition || "",
           skinAssessment: parsedDetails.skinAssessment || "",
           medicationName: parsedDetails.medicationName || "",
@@ -152,15 +149,15 @@ export default function MedicatedBathsModal({ open, onClose, patientId, appointm
             ? parsedDetails.affectedAreas 
             : []
         }
-        
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
-      // Reset the form when no data is available
+    } else if (formInitialized) {
+      // Only reset if not already reset
       setFormData({
         primaryCondition: "",
         secondaryConditions: [],
@@ -194,7 +191,8 @@ export default function MedicatedBathsModal({ open, onClose, patientId, appointm
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [procedureDocumentDetails])
 
   const skinConditions = [
     { value: "bacterial", label: "Bacterial Infection" },

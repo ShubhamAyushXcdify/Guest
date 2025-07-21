@@ -91,9 +91,6 @@ export default function EarSurgeryModal({
         
         // Create a new form data object with the parsed details
         const newFormData = {
-          ...formData,
-          ...parsedDetails,
-          // Ensure string values for fields
           surgeryType: parsedDetails.surgeryType || "",
           surgeryLocation: parsedDetails.surgeryLocation || "",
           anesthesiaType: parsedDetails.anesthesiaType || "",
@@ -114,13 +111,14 @@ export default function EarSurgeryModal({
           consentObtained: !!parsedDetails.consentObtained
         }
         
-        setFormData(newFormData)
-        setFormInitialized(true)
-        console.log("Updated form data:", newFormData)
+        if (JSON.stringify(formData) !== JSON.stringify(newFormData)) {
+          setFormData(newFormData)
+          setFormInitialized(true)
+        }
       } catch (error) {
         console.error("Failed to parse procedure document details:", error)
       }
-    } else {
+    } else if (formInitialized) {
       // Reset the form when no data is available
       setFormData({
         surgeryType: "",
@@ -142,7 +140,7 @@ export default function EarSurgeryModal({
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails, formData])
+  }, [procedureDocumentDetails])
 
   const handleInputChange = (field: keyof EarSurgeryFormData, value: string | boolean) => {
     setFormData(prev => ({
