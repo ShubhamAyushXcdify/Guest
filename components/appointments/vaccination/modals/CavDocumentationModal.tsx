@@ -5,7 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/datePicker";
 import { Combobox } from "@/components/ui/combobox";
 import { useGetUsers } from "@/queries/users/get-users";
-import { useState } from "react";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetVaccinationJsonByIds } from "@/queries/vaccinationDetail/get-vaccination-json-by-ids";
+import { useUpdateVaccinationJson } from "@/queries/vaccinationDetail/update-vaccination-json";
+import { useState, useEffect } from "react";
 
 interface CavDocumentationModalProps {
   open: boolean;
@@ -17,7 +20,7 @@ interface CavDocumentationModalProps {
   clinicId?: string;
 }
 
-export default function CavDocumentationModal({ open, onClose, vaccine, clinicId }: CavDocumentationModalProps) {
+export default function CavDocumentationModal({ open, onClose, vaccine, appointmentId, clinicId }: CavDocumentationModalProps) {
   const [dateGiven, setDateGiven] = useState<Date | null>(null);
   const [nextDueDate, setNextDueDate] = useState<Date | null>(null);
   const [batchNumber, setBatchNumber] = useState("");
@@ -33,10 +36,42 @@ export default function CavDocumentationModal({ open, onClose, vaccine, clinicId
       label: `Dr. ${vet.firstName} ${vet.lastName}`
     }));
 
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
+  const visitId = visitData?.id;
+  const vaccinationMasterId = vaccine?.id;
+  const { data: vaccinationJsonData } = useGetVaccinationJsonByIds(visitId || '', vaccinationMasterId || '');
+  const updateVaccinationJson = useUpdateVaccinationJson();
+
+  useEffect(() => {
+    if (vaccinationJsonData?.vaccinationJson) {
+      try {
+        const parsed = JSON.parse(vaccinationJsonData.vaccinationJson);
+        setDateGiven(parsed.dateGiven ? new Date(parsed.dateGiven) : null);
+        setNextDueDate(parsed.nextDueDate ? new Date(parsed.nextDueDate) : null);
+        setBatchNumber(parsed.batchNumber || "");
+        setVeterinarianId(parsed.veterinarianId || "");
+        setAdverseReactions(parsed.adverseReactions || "");
+      } catch {}
+    }
+  }, [vaccinationJsonData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement submission logic, use clinicId and veterinarianId as needed
-    onClose();
+    if (!visitId || !vaccinationMasterId) return;
+    const payload = {
+      visitId,
+      vaccinationMasterId,
+      vaccinationJson: JSON.stringify({
+        dateGiven,
+        nextDueDate,
+        batchNumber,
+        veterinarianId,
+        adverseReactions,
+      }),
+    };
+    updateVaccinationJson.mutate(payload, {
+      onSuccess: onClose,
+    });
   };
 
   return (

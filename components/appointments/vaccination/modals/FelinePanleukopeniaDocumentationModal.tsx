@@ -5,7 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/datePicker";
 import { Combobox } from "@/components/ui/combobox";
 import { useGetUsers } from "@/queries/users/get-users";
-import { useState } from "react";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetVaccinationJsonByIds } from "@/queries/vaccinationDetail/get-vaccination-json-by-ids";
+import { useUpdateVaccinationJson } from "@/queries/vaccinationDetail/update-vaccination-json";
+import { useState, useEffect } from "react";
 
 interface FelinePanleukopeniaDocumentationModalProps {
   open: boolean;
@@ -17,12 +20,31 @@ interface FelinePanleukopeniaDocumentationModalProps {
   clinicId?: string;
 }
 
-export default function FelinePanleukopeniaDocumentationModal({ open, onClose, vaccine, clinicId }: FelinePanleukopeniaDocumentationModalProps) {
+export default function FelinePanleukopeniaDocumentationModal({ open, onClose, vaccine, appointmentId, clinicId }: FelinePanleukopeniaDocumentationModalProps) {
   const [dateGiven, setDateGiven] = useState<Date | null>(null);
   const [nextDueDate, setNextDueDate] = useState<Date | null>(null);
   const [batchNumber, setBatchNumber] = useState("");
   const [veterinarianId, setVeterinarianId] = useState("");
   const [adverseReactions, setAdverseReactions] = useState("");
+
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
+  const visitId = visitData?.id;
+  const vaccinationMasterId = vaccine?.id;
+  const { data: vaccinationJsonData } = useGetVaccinationJsonByIds(visitId || '', vaccinationMasterId || '');
+  const updateVaccinationJson = useUpdateVaccinationJson();
+
+  useEffect(() => {
+    if (vaccinationJsonData?.vaccinationJson) {
+      try {
+        const parsed = JSON.parse(vaccinationJsonData.vaccinationJson);
+        setDateGiven(parsed.dateGiven ? new Date(parsed.dateGiven) : null);
+        setNextDueDate(parsed.nextDueDate ? new Date(parsed.nextDueDate) : null);
+        setBatchNumber(parsed.batchNumber || "");
+        setVeterinarianId(parsed.veterinarianId || "");
+        setAdverseReactions(parsed.adverseReactions || "");
+      } catch {}
+    }
+  }, [vaccinationJsonData]);
 
   // Fetch veterinarians for the selected clinic
   const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', clinicId || '');
@@ -35,8 +57,21 @@ export default function FelinePanleukopeniaDocumentationModal({ open, onClose, v
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement submission logic, use clinicId and veterinarianId as needed
-    onClose();
+    if (!visitId || !vaccinationMasterId) return;
+    const payload = {
+      visitId,
+      vaccinationMasterId,
+      vaccinationJson: JSON.stringify({
+        dateGiven,
+        nextDueDate,
+        batchNumber,
+        veterinarianId,
+        adverseReactions,
+      }),
+    };
+    updateVaccinationJson.mutate(payload, {
+      onSuccess: onClose,
+    });
   };
 
   return (
