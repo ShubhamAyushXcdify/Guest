@@ -117,7 +117,7 @@ export default function BreedModal({ open, onClose, patientId, appointmentId, pr
       })
       setFormInitialized(false)
     }
-  }, [procedureDocumentDetails])
+  }, [procedureDocumentDetails, formData, open])
 
   const testTypes = [
     { value: "breed-identification", label: "Breed Identification" },
@@ -234,7 +234,7 @@ export default function BreedModal({ open, onClose, patientId, appointmentId, pr
           </p>
         </div>
 
-        {isLoading ? (
+        {isLoading || !formInitialized ? (
           <div className="flex items-center justify-center p-8">
             <p>Loading procedure documentation...</p>
           </div>
