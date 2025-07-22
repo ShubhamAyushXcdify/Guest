@@ -1,14 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { VaccinationDetail } from "./create-vaccinationDetail";
+import { VaccinationDetailResponse } from "./create-vaccinationDetail";
 
-// Interface for update input
+
+export interface UpdateVaccinationDetailRequest {
+  id: string;
+  notes: string;
+  isCompleted: boolean;
+  vaccinationMasterIds: string[];
+}
+
+// Interface for update input (new payload)
 export interface UpdateVaccinationDetailInput {
   id: string;
-  data: Partial<VaccinationDetail>;
+  data: UpdateVaccinationDetailRequest;
 }
 
 // Function to update a vaccination detail
-const updateVaccinationDetail = async ({ id, data }: UpdateVaccinationDetailInput): Promise<VaccinationDetail> => {
+const updateVaccinationDetail = async ({ id, data }: UpdateVaccinationDetailInput): Promise<VaccinationDetailResponse> => {
   const response = await fetch(`/api/vaccinationDetail/${id}`, {
     method: 'PUT',
     headers: {

@@ -1,38 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Define the VaccinationDetail item interface
-export interface VaccinationDetailItem {
-  visitId: string;
-  vaccinationMasterId: string;
-  dateGiven: string;
-  nextDueDate: string;
-  batchNumber: string;
-  adverseReactions?: string;
-  veterinarianId?: string; // Add the veterinarianId field
-}
-
-// Define the VaccinationDetail request interface
+// Define the VaccinationDetail request interface (new payload)
 export interface VaccinationDetailRequest {
-  details: VaccinationDetailItem[];
+  visitId: string;
+  notes: string;
   isCompleted: boolean;
+  vaccinationMasterIds: string[];
 }
 
-// Define the VaccinationDetail response interface
+// Define the VaccinationDetail response interface (keep as generic for now)
 export interface VaccinationDetailResponse {
   id: string;
   visitId: string;
-  vaccinationMasterId: string;
-  dateGiven: string;
-  nextDueDate: string;
-  batchNumber: string;
-  adverseReactions?: string;
+  notes: string;
   isCompleted: boolean;
-  createdAt: string;
-  updatedAt: string;
+  vaccinationMasterIds: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// Function to create a vaccination detail
-const createVaccinationDetail = async (request: VaccinationDetailRequest): Promise<VaccinationDetailResponse[]> => {
+// Function to create a vaccination detail (new payload)
+const createVaccinationDetail = async (request: VaccinationDetailRequest): Promise<VaccinationDetailResponse> => {
   const response = await fetch('/api/vaccinationDetail', {
     method: 'POST',
     headers: {

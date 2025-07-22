@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { VaccinationDetail } from "./create-vaccinationDetail";
+import { VaccinationDetailResponse } from "./create-vaccinationDetail";
 
 // Function to get vaccination details by visit ID
-export const getVaccinationDetailsByVisitId = async (visitId: string): Promise<VaccinationDetail[]> => {
+export const getVaccinationDetailsByVisitId = async (visitId: string): Promise<VaccinationDetailResponse[]> => {
   if (!visitId) return [];
   
   const response = await fetch(`/api/vaccinationDetail/visit/${visitId}`);

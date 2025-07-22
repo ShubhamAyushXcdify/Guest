@@ -30,9 +30,11 @@ import { useRootContext } from "@/context/RootContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
+import { useUpdateVaccinationDetail } from "@/queries/vaccinationDetail/update-vaccinationDetail";
 import { toast } from "sonner";
 import ChlamydiaFelisDocumentationModal from "./modals/ChlamydiaFelisDocumentationModal";
 import FelineInfectiousPeritonitisDocumentationModal from "./modals/FelineInfectiousPeritonitisDocumentationModal";
+import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/get-vaccinationDetail-by-visitId";
 
 interface Vaccination {
   id: string;
@@ -67,6 +69,7 @@ export default function VaccinationPlanning({
   const [selectedVaccines, setSelectedVaccines] = useState<string[]>([]);
   const [documentVaccineId, setDocumentVaccineId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [vaccinationDetailId, setVaccinationDetailId] = useState<string | null>(null);
   
   // Convert species to lowercase for API call
   const speciesLowerCase = species.toLowerCase();
@@ -81,14 +84,59 @@ export default function VaccinationPlanning({
   const coreVaccines = typedVaccinations.filter((vaccine) => vaccine.isCore);
   const nonCoreVaccines = typedVaccinations.filter((vaccine) => !vaccine.isCore);
 
-  const handleVaccineSelection = (id: string) => {
-    setSelectedVaccines(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(vaccineId => vaccineId !== id);
-      } else {
-        return [...prev, id];
+  const handleVaccineSelection = async (id: string) => {
+    if (!visitData || !visitData.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+    let newSelected: string[];
+    if (selectedVaccines.includes(id)) {
+      newSelected = selectedVaccines.filter(vaccineId => vaccineId !== id);
+    } else {
+      newSelected = [...selectedVaccines, id];
+    }
+
+    setSelectedVaccines(newSelected);
+
+    if (!vaccinationDetails || vaccinationDetails.length === 0) {
+      // First selection: create
+      try {
+        await createVaccinationDetail.mutateAsync({
+          visitId: visitData.id,
+          notes: "",
+          isCompleted: false,
+          vaccinationMasterIds: newSelected,
+        });
+        // Refetch to get the new id
+        const { data: newDetails } = await refetchVaccinationDetails();
+        if (newDetails && newDetails.length > 0) {
+          setVaccinationDetailId(newDetails[0].id);
+        }
+      } catch (error) {
+        toast.error("Failed to create vaccination detail");
       }
-    });
+    } else {
+      // Always use the latest id from backend
+      const latestId = vaccinationDetails[0].id;
+      try {
+        await updateVaccinationDetail.mutateAsync({
+          id: latestId,
+          data: {
+            id: latestId,
+            notes: "",
+            isCompleted: false,
+            vaccinationMasterIds: newSelected,
+          },
+        });
+        // Refetch to ensure state is up to date
+        const { data: newDetails } = await refetchVaccinationDetails();
+        if (newDetails && newDetails.length > 0) {
+          setVaccinationDetailId(newDetails[0].id);
+        }
+      } catch (error) {
+        toast.error("Failed to update vaccination detail");
+      }
+    }
   };
 
   // Get frequency from revaccinationInterval field
@@ -108,6 +156,18 @@ export default function VaccinationPlanning({
   // Fetch visit data for this appointment
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
 
+  // Fetch existing vaccination details for this visit
+  const { data: vaccinationDetails, isLoading: vaccinationDetailsLoading, refetch: refetchVaccinationDetails } = useGetVaccinationDetailsByVisitId(visitData?.id || "");
+
+  // Initialize state from existing data if details exist
+  useEffect(() => {
+    if (vaccinationDetails && vaccinationDetails.length > 0) {
+      // Assuming only one detail per visit, or use the first one
+      setVaccinationDetailId(vaccinationDetails[0].id);
+      setSelectedVaccines(vaccinationDetails[0].vaccinationMasterIds || []);
+    }
+  }, [vaccinationDetails]);
+
   // Mutations for checkout
   const createVaccinationDetail = useCreateVaccinationDetail();
   const updateAppointment = useUpdateAppointment({
@@ -121,6 +181,7 @@ export default function VaccinationPlanning({
       toast.error("Failed to update appointment status");
     }
   });
+  const updateVaccinationDetail = useUpdateVaccinationDetail();
 
   // Checkout handler
   const handleCheckout = async () => {
@@ -136,8 +197,10 @@ export default function VaccinationPlanning({
     try {
       // TODO: Collect actual vaccination details from documentation modals or next step
       const batchSubmission = {
-        details: [], // Should be filled with actual vaccination details
-        isCompleted: true
+        visitId: visitData.id,
+        notes: "", // or collect notes from user input
+        isCompleted: true,
+        vaccinationMasterIds: selectedVaccines,
       };
       await createVaccinationDetail.mutateAsync(batchSubmission);
       await updateAppointment.mutateAsync({
@@ -150,9 +213,13 @@ export default function VaccinationPlanning({
     }
   };
 
+  if (isLoading || visitLoading || vaccinationDetailsLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%] overflow-x-hidden overflow-y-auto">
         <SheetHeader className="mb-6">
           <SheetTitle>Vaccination Planning</SheetTitle>
         </SheetHeader>
@@ -160,9 +227,7 @@ export default function VaccinationPlanning({
         <div className="w-full">
           <div className="p-6">
 
-            {isLoading ? (
-              <div className="text-center py-10">Loading vaccination data...</div>
-            ) : error ? (
+            {error ? (
               <div className="text-center py-10 text-red-500">Error loading vaccination data</div>
             ) : (
               <div className="space-y-6">
@@ -284,22 +349,8 @@ export default function VaccinationPlanning({
                 </div>
               )}
               
-              <div className="flex justify-between">
-                <Button 
-                  onClick={onClose}
-                  variant="outline"
-                  className="px-5"
-                >
-                  Back
-                </Button>
+              <div className="flex justify-end">
                 <div className="flex gap-2">
-                <Button 
-                  onClick={() => selectedVaccines.length > 0 && onNext(selectedVaccines)}
-                  className={`text-white px-5 ${selectedVaccines.length === 0 ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"}`}
-                  disabled={isLoading || selectedVaccines.length === 0}
-                >
-                    Save
-                  </Button>
                   <Button
                     onClick={handleCheckout}
                     className="text-white px-5 bg-green-600 hover:bg-green-700"
