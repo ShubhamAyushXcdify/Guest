@@ -31,6 +31,7 @@ import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useUpdateSlotAvailability } from '@/queries/slots/update-slot-availability';
 import { DatePicker } from "@/components/ui/datePicker"
+import DewormingComponent from "./deworming"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -77,6 +78,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
   const [isVaccinationOpen, setIsVaccinationOpen] = useState(false)
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isDewormingOpen, setIsDewormingOpen] = useState(false);
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
@@ -387,14 +389,13 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }
 
   const handlePatientInfoClick = () => {
-    // Check if this is a vaccination appointment
-    const isVaccination = appointment?.appointmentType?.name?.toLowerCase()?.includes('vaccination');
-    const isEmergency = appointment?.appointmentType?.name?.toLowerCase()?.includes('emergency');
-
-    if (isVaccination) {
+    const typeName = appointment?.appointmentType?.name?.toLowerCase() || "";
+    if (typeName.includes('vaccination')) {
       setIsVaccinationOpen(true);
-    } else if (isEmergency) {
+    } else if (typeName.includes('emergency')) {
       setIsEmergencyOpen(true);
+    } else if (typeName.includes('deworming')) {
+      setIsDewormingOpen(true);
     } else {
       setIsPatientInfoOpen(true);
     }
@@ -906,7 +907,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         </SheetContent>
       </Sheet>
 
-      {isPatientInfoOpen && !isVaccinationOpen && !isEmergencyOpen && (
+      {isPatientInfoOpen && !isVaccinationOpen && !isEmergencyOpen && !isDewormingOpen && (
         <PatientInformation 
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
@@ -927,6 +928,14 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
           onClose={() => setIsEmergencyOpen(false)}
+        />
+      )}
+
+      {isDewormingOpen && (
+        <DewormingComponent
+          patientId={appointment?.patientId || ''}
+          appointmentId={appointmentId}
+          onClose={() => setIsDewormingOpen(false)}
         />
       )}
     </>
