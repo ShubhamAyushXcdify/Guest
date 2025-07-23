@@ -26,9 +26,21 @@ export async function PUT(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    const status = response.status;
+    if (status === 204) {
+      return NextResponse.json({}, { status: 200 });
+    }
 
-    return NextResponse.json(data, { status: response.status });
+    // Safely handle empty or invalid JSON responses
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      data = { message: "Invalid JSON from backend" };
+    }
+
+    return NextResponse.json(data, { status });
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message },
