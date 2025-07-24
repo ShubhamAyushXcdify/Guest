@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -44,6 +44,22 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // const { markTabAsCompleted } = useTabCompletion();
+
+  useEffect(() => {
+    const data = triageData;
+    if (data) {
+      setArrivalTime(data.arrivalTime ? data.arrivalTime.slice(0, 16) : "");
+      setNurse(data.triageNurseDoctor || "");
+      setTriageCategory(data.triageCategory || "");
+      setPainScore(data.painScore !== undefined ? String(data.painScore) : "");
+      setAllergies(data.allergies || "");
+      setImmediateIntervention(!!data.immediateInterventionRequired);
+      setReason(data.reasonForEmergency || "");
+      setTriageLevel(data.triageLevel || "");
+      setPresentingComplaint(data.presentingComplaint || "");
+      setNotes(data.initialNotes || "");
+    }
+  }, [triageData]);
 
   const handleSubmit = async () => {
     if (!visitData?.id) {
@@ -139,10 +155,22 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
             <Input
               id="painScore"
               type="number"
-              min={0}
+              min={1}
               max={10}
               value={painScore}
-              onChange={e => setPainScore(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                // Allow empty string for controlled input
+                if (val === "") {
+                  setPainScore("");
+                  return;
+                }
+                // Only allow numbers between 1 and 10
+                const num = Number(val);
+                if (num >= 1 && num <= 10) {
+                  setPainScore(val);
+                }
+              }}
             />
           </div>
           <div>

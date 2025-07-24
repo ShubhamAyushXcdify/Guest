@@ -28,7 +28,12 @@ const getEmergencyVisitByVisitId = async (visitId: string): Promise<EmergencyVis
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch emergency triage by visitId');
   }
-  return response.json();
+  const data = await response.json();
+  // If the API returns an array, return the first object or null
+  if (Array.isArray(data)) {
+    return data.length > 0 ? data[0] : null;
+  }
+  return data;
 };
 
 export const useGetEmergencyVisitByVisitId = (visitId: string, enabled = true) => {
