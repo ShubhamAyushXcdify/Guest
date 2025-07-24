@@ -100,7 +100,7 @@ export const navGroups = [
                 color: "text-purple-2000",
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
                 activePaths: ["/clinic"],
-                dynamicPaths: ["/clinic/[id]", "/clinic/[id]/rooms", "/clinic/[id]/appointmentType", "/clinic/[id]/users", "/clinic/[id]/doctors"],
+                dynamicPaths: ["/clinic/[id]", "/clinic/[id]/rooms", "/clinic/[id]/appointmentType", "/clinic/[id]/users", "/clinic/[id]/doctors","/clinic/[id]/doctors/slots/[doctorId]"],
             },
             {
                 href: "/users",
@@ -147,6 +147,7 @@ export const isPathActive = (pathname: string, item: any): boolean => {
             // Convert dynamic path pattern to regex
             const regexPattern = dynamicPath
                 .replace(/\[id\]/g, '[a-f0-9-]{36}') // UUID pattern
+                .replace(/\[doctorId\]/g, '[a-f0-9-]{36}') // UUID pattern for doctorId
                 .replace(/\//g, '\\/');
             
             const regex = new RegExp(`^${regexPattern}$`);
