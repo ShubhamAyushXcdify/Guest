@@ -12,9 +12,10 @@ import { toast } from "../ui/use-toast";
 import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Combobox } from "../ui/combobox";
 import { useRootContext } from "@/context/RootContext";
+import { Eye, EyeOff } from "lucide-react";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
   clinicId?: string;
@@ -27,6 +28,7 @@ interface NewUserProps {
 export default function NewUser({ onSuccess }: NewUserProps) {
   const router = useRouter();
   const { user: currentUser, userType, clinic } = useRootContext();
+  const [showPassword, setShowPassword] = useState(false);
   
   const createUser = useCreateUser({
     onSuccess: () => {
@@ -163,7 +165,26 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           <FormField name="passwordHash" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Password</FormLabel>
-              <FormControl><Input {...field} type="password" /></FormControl>
+              <FormControl>
+                <div className="relative">
+                  <Input 
+                    {...field} 
+                    type={showPassword ? "text" : "password"} 
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />

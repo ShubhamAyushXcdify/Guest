@@ -9,6 +9,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
+// Define a map for overriding abstract breadcrumb paths with concrete ones
+const breadcrumbLinkOverrides: { [key: string]: string } = {
+  "/appointments": "/appointments/confirmed",
+  // Add other overrides here, e.g., "/inventory": "/inventory/dashboard",
+};
+
 // Define the type for breadcrumb items
 type BreadcrumbItem = {
   label: string
@@ -79,8 +85,12 @@ export function BreadcrumbNav() {
   // Split the pathname into segments and create the breadcrumb items
   const segments = pathname.split('/').filter(Boolean)
   const visibleSegments = segments.map((segment, index) => {
-    const path = '/' + segments.slice(0, index + 1).join('/')
+    const rawPath = '/' + segments.slice(0, index + 1).join('/')
     const name = formatSegmentName(segment, index, segments)
+
+    // Check for an override, otherwise use the raw path
+    const path = breadcrumbLinkOverrides[rawPath] || rawPath;
+
     return {
       name,
       path
@@ -98,7 +108,7 @@ export function BreadcrumbNav() {
           const isLast = index === visibleSegments.length - 1;
           
           return (
-            <React.Fragment key={segment.path}>
+            <React.Fragment key={segment.path + '-' + index}>
               <BreadcrumbSeparator className='text-primary' />
               <BreadcrumbItem>
                 {isLast ? (

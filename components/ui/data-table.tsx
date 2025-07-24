@@ -253,7 +253,7 @@ export function DataTable<TData, TValue>({
       {/* Scrollable Table Area */}
       <div className="rounded-md border flex-grow overflow-auto">
         <Table className="table-auto w-full">
-          <TableHeader>
+          <TableHeader >
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -318,7 +318,7 @@ export function DataTable<TData, TValue>({
           </Select>
           <p className="text-sm text-muted-foreground">rows per page</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 ">
           <Button
             variant="outline"
             className="hidden h-8 w-8 p-0 lg:flex"

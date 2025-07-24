@@ -6,21 +6,31 @@ export default function AppointmentsLayout({ children }: { children: React.React
     const pathname = usePathname();
     const router = useRouter();
 
+    // Extract current tab from pathname
+    const currentTab = pathname.split("/").pop() || "confirmed";
+
+    // Handle tab change
     const handleTabChange = (value: string) => {
-        router.push(`/appointments/${value}`);
-    }
+        if (value !== currentTab) {
+            router.push(`/appointments/${value}`);
+        }
+    };
 
     return (
         <div className="w-full">
-            <Tabs defaultValue={pathname.split("/").pop() || "confirmed"} className="w-full" onValueChange={handleTabChange}>
+            <Tabs value={currentTab} className="w-full" onValueChange={handleTabChange}>
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
                     <TabsTrigger value="queue">Registered</TabsTrigger>
                 </TabsList>
-                <TabsContent value={pathname.split("/").pop() || "confirmed"} className="mt-2">
-                    {children}
+
+                <TabsContent value="confirmed">
+                    {currentTab === "confirmed" && children}
+                </TabsContent>
+                <TabsContent value="queue">
+                    {currentTab === "queue" && children}
                 </TabsContent>
             </Tabs>
         </div>
-    )
+    );
 }
