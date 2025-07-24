@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,28 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
   const createVitals = useCreateEmergencyVital({});
   const updateVitals = useUpdateEmergencyVital({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (vitalsData) {
+      setWeight(vitalsData.weightKg?.toString() || "");
+      setCapillaryRefill(vitalsData.capillaryRefillTimeSec?.toString() || "");
+      setMucousMembrane(vitalsData.mucousMembraneColor || "");
+      setOxygenSaturation(vitalsData.oxygenSaturationSpo2?.toString() || "");
+      setBloodGlucose(vitalsData.bloodGlucoseMgDl?.toString() || "");
+      setTemperature(
+        vitalsData.temperatureC !== undefined && vitalsData.temperatureC !== null
+          ? vitalsData.temperatureC.toString()
+          : ""
+      );
+      setHeartRhythm(vitalsData.heartRhythm || "");
+      setHeartRate(vitalsData.heartRateBpm?.toString() || "");
+      setRespiratoryRate(vitalsData.respiratoryRateBpm?.toString() || "");
+      setBloodPressure(vitalsData.bloodPressure || "");
+      setSuppOxygen(!!vitalsData.supplementalOxygenGiven);
+      setNotes(vitalsData.notes || "");
+      // If you want to handle tempUnit (C/F), you may need to add logic here
+    }
+  }, [vitalsData]);
 
   const handleSubmit = async () => {
     if (!visitData?.id) {
