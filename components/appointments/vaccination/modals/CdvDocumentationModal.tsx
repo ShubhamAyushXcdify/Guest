@@ -6,6 +6,7 @@ import { DatePicker } from "@/components/ui/datePicker";
 import { Combobox } from "@/components/ui/combobox";
 import { useGetUsers } from "@/queries/users/get-users";
 import { useState } from "react";
+import { useEffect } from "react";
 
 interface CdvDocumentationModalProps {
   open: boolean;
@@ -54,11 +55,11 @@ export default function CdvDocumentationModal({ open, onClose, vaccine, clinicId
             </div>
             <div>
               <label className="block font-medium mb-1">Date Given *</label>
-              <DatePicker value={dateGiven} onChange={setDateGiven} className="w-full" />
+              <DatePicker value={dateGiven} onChange={setDateGiven} className="w-full" maxDate={new Date()} />
             </div>
             <div>
               <label className="block font-medium mb-1">Next Due Date *</label>
-              <DatePicker value={nextDueDate} onChange={setNextDueDate} className="w-full" />
+              <DatePicker value={nextDueDate} onChange={setNextDueDate} className="w-full"  minDate={new Date()} />
             </div>
             <div>
               <label className="block font-medium mb-1">Batch Number *</label>
