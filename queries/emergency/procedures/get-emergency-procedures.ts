@@ -1,5 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 
+export interface Medication {
+  id: string;
+  name: string;
+  dose: string;
+  route: string;
+  time: string;
+}
+
 export interface EmergencyVisitProcedure {
   id: string;
   visitId: string;
@@ -15,13 +23,10 @@ export interface EmergencyVisitProcedure {
   otherProcedure: boolean;
   otherProcedurePerformed: string;
   performedBy: string;
-  medicationName: string;
-  medicationDose: string;
-  medicationRoute: string;
-  medicationTime: string;
+  medications: Medication[];
   fluidsType: string;
-  fluidsVolumeML: number;
-  fluidsRateMLHr: number;
+  fluidsVolumeMl: number;
+  fluidsRateMlHr: number;
   responseToTreatment: string;
   notes: string;
   isCompleted: boolean;

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { EmergencyVisitProcedure } from "./get-emergency-procedures";
+import { EmergencyVisitProcedure, Medication } from "./get-emergency-procedures";
 
 interface UpdateEmergencyProcedureData extends Partial<Omit<EmergencyVisitProcedure, 'createdAt' | 'updatedAt'>> {
   id: string;

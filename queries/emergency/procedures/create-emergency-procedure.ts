@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { EmergencyVisitProcedure } from "./get-emergency-procedures";
+import { EmergencyVisitProcedure, Medication } from "./get-emergency-procedures";
 
 interface CreateEmergencyProcedureData extends Omit<EmergencyVisitProcedure, 'id' | 'createdAt' | 'updatedAt'> {}
 
