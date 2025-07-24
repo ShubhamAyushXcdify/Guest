@@ -24,9 +24,11 @@ import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import PatientInformation from "@/components/appointments/Patient-Information/index"
 import VaccinationComponent from "@/components/appointments/vaccination/index"
 import EmergencyComponent from "@/components/appointments/emergency/index"
+import DewormingComponent from "./deworming"
+import SurgeryComponent from "./surgery"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
-import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
+// import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useUpdateSlotAvailability } from '@/queries/slots/update-slot-availability';
@@ -53,6 +55,18 @@ const appointmentSchema = z.object({
   createdBy: z.string().uuid()
 })
 
+
+export interface Slot {
+  id: string;
+  clinicId: string;
+  roomId: string;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  isActive: boolean;
+  isAvailable: boolean;
+}
+
 type AppointmentFormValues = z.infer<typeof appointmentSchema>
 
 interface AppointmentDetailsProps {
@@ -77,6 +91,8 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isPatientInfoOpen, setIsPatientInfoOpen] = useState(false)
   const [isVaccinationOpen, setIsVaccinationOpen] = useState(false)
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
+  const [isDewormingOpen, setIsDewormingOpen] = useState(false);
+  const [isSurgeryOpen, setIsSurgeryOpen] = useState(false);
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
@@ -118,8 +134,8 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }));
   
   // Fetch slots for the selected room
-  const { data: filteredSlotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
-  const filteredSlots = filteredSlotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
+  // const { data: filteredSlotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
+  // const filteredSlots = filteredSlotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
   
   // Use patient search query for edit mode
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
@@ -387,14 +403,15 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }
 
   const handlePatientInfoClick = () => {
-    // Check if this is a vaccination appointment
-    const isVaccination = appointment?.appointmentType?.name?.toLowerCase()?.includes('vaccination');
-    const isEmergency = appointment?.appointmentType?.name?.toLowerCase()?.includes('emergency');
-
-    if (isVaccination) {
+    const typeName = appointment?.appointmentType?.name?.toLowerCase() || "";
+    if (typeName.includes('vaccination')) {
       setIsVaccinationOpen(true);
-    } else if (isEmergency) {
+    } else if (typeName.includes('emergency')) {
       setIsEmergencyOpen(true);
+    } else if (typeName.includes('deworming')) {
+      setIsDewormingOpen(true);
+    } else if (typeName.includes('surgery')) {
+      setIsSurgeryOpen(true);
     } else {
       setIsPatientInfoOpen(true);
     }
@@ -772,7 +789,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                     }}
                   />
 
-                  <FormField
+                  {/* <FormField
                     control={form.control}
                     name="roomSlotId"
                     render={({ field }) => (
@@ -815,7 +832,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                         <FormMessage />
                       </FormItem>
                     )}
-                  />
+                  /> */}
                 </div>
 
                 <div className="space-y-6">
@@ -906,7 +923,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
         </SheetContent>
       </Sheet>
 
-      {isPatientInfoOpen && !isVaccinationOpen && !isEmergencyOpen && (
+      {isPatientInfoOpen && !isVaccinationOpen && !isEmergencyOpen && !isDewormingOpen && !isSurgeryOpen && (
         <PatientInformation 
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
@@ -927,6 +944,22 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
           onClose={() => setIsEmergencyOpen(false)}
+        />
+      )}
+
+      {isDewormingOpen && (
+        <DewormingComponent
+          patientId={appointment?.patientId || ''}
+          appointmentId={appointmentId}
+          onClose={() => setIsDewormingOpen(false)}
+        />
+      )}
+
+      {isSurgeryOpen && (
+        <SurgeryComponent
+          patientId={appointment?.patientId || ''}
+          appointmentId={appointmentId}
+          onClose={() => setIsSurgeryOpen(false)}
         />
       )}
     </>

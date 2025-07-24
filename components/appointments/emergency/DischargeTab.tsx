@@ -5,6 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useCreateEmergencyDischarge } from "@/queries/emergency/discharge/create-emergency-discharge";
+import { toast } from "sonner";
 
 interface DischargeTabProps {
   patientId: string;
@@ -31,10 +34,56 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
   const [nextAppointment, setNextAppointment] = useState("");
   const [confirmed, setConfirmed] = useState(false);
 
+  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
+  const createDischarge = useCreateEmergencyDischarge({
+    onSuccess: () => {
+      toast.success("Discharge record saved successfully");
+      if (onClose) onClose();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to save discharge record");
+    }
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleAddMedication = () => {
     if (medicationRow.name && medicationRow.dose && medicationRow.frequency && medicationRow.duration) {
       setMedications([...medications, medicationRow]);
       setMedicationRow({ name: "", dose: "", frequency: "", duration: "" });
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await createDischarge.mutateAsync({
+        visitId: visitData.id,
+        dischargeStatus: status,
+        dischargeTime,
+        responsibleClinician: clinician,
+        dischargeSummary: summary,
+        homeCareInstructions: instructions,
+        followupInstructions: followUp,
+        nextAppointmentDate: nextAppointment,
+        reviewedWithClient: confirmed,
+        isCompleted: true,
+        prescriptions: (medications.map(med => ({
+          visitId: visitData.id,
+          medicationName: med.name,
+          dose: med.dose,
+          frequency: med.frequency,
+          duration: med.duration,
+          isCompleted: true,
+        })) as any),
+      });
+    } catch (e) {
+      // error handled in onError
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -146,8 +195,13 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
         />
       </div>
       <div className="flex items-center space-x-2">
-        <Checkbox id="confirmed" checked={confirmed} onCheckedChange={setConfirmed} />
+        <Checkbox id="confirmed" checked={confirmed} onCheckedChange={val => setConfirmed(val === true)} />
         <Label htmlFor="confirmed">Reviewed with client / Signature</Label>
+      </div>
+      <div>
+        <Button onClick={handleSubmit} disabled={isSubmitting || visitLoading} className="theme-button w-full mt-4">
+          {isSubmitting ? "Saving..." : "Submit Discharge"}
+        </Button>
       </div>
     </div>
   );

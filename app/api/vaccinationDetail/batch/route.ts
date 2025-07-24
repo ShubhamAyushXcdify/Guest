@@ -3,7 +3,7 @@ import { getJwtToken } from "@/utils/serverCookie";
 
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
     const token = getJwtToken(request);
 
@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Call the API
+    // Proxy the request to the backend batch endpoint
     const response = await fetch(`${apiUrl}/api/VaccinationDetail/batch`, {
-      method: "POST",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`,
@@ -26,14 +26,21 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.text();
+    const status = response.status;
+    if (status === 204) {
+      return NextResponse.json({}, { status: 200 });
+    }
 
-    return new NextResponse(data, {
-      status: response.status,
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
+    // Safely handle empty or invalid JSON responses
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      data = { message: "Invalid JSON from backend" };
+    }
+
+    return NextResponse.json(data, { status });
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message },
