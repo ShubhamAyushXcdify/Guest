@@ -10,7 +10,7 @@ const updateEmergencyProcedure = async (data: UpdateEmergencyProcedureData): Pro
   if (!id) {
     throw new Error("Procedure ID is required");
   }
-  const response = await fetch(`/api/emergencyvisit/procedures/${id}`, {
+  const response = await fetch(`/api/emergency/procedure/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

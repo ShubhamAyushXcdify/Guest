@@ -10,7 +10,15 @@ const getEmergencyProceduresByVisitId = async (visitId: string): Promise<Emergen
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch emergency procedures by visitId");
   }
-  return await response.json();
+  const data = await response.json();
+  // If the API returns an array, return it. If it returns an object, wrap it in an array. If null/undefined, return empty array.
+  if (Array.isArray(data)) {
+    return data;
+  } else if (data) {
+    return [data];
+  } else {
+    return [];
+  }
 };
 
 export function useGetEmergencyProceduresByVisitId(visitId: string, enabled = true) {

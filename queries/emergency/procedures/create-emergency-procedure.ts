@@ -4,7 +4,7 @@ import { EmergencyVisitProcedure, Medication } from "./get-emergency-procedures"
 interface CreateEmergencyProcedureData extends Omit<EmergencyVisitProcedure, 'id' | 'createdAt' | 'updatedAt'> {}
 
 const createEmergencyProcedure = async (data: CreateEmergencyProcedureData): Promise<EmergencyVisitProcedure> => {
-  const response = await fetch('/api/emergencyvisit/procedures', {
+  const response = await fetch('/api/emergency/procedure', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
