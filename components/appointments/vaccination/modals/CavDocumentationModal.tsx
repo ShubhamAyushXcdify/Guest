@@ -89,11 +89,11 @@ export default function CavDocumentationModal({ open, onClose, vaccine, appointm
             </div>
             <div>
               <label className="block font-medium mb-1">Date Given *</label>
-              <DatePicker value={dateGiven} onChange={setDateGiven} className="w-full" />
+              <DatePicker value={dateGiven} onChange={setDateGiven} className="w-full" maxDate={new Date()} />
             </div>
             <div>
               <label className="block font-medium mb-1">Next Due Date *</label>
-              <DatePicker value={nextDueDate} onChange={setNextDueDate} className="w-full" />
+              <DatePicker value={nextDueDate} onChange={setNextDueDate} className="w-full" minDate={new Date()} />
             </div>
             <div>
               <label className="block font-medium mb-1">Batch Number *</label>

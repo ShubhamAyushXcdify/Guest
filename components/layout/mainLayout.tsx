@@ -14,7 +14,7 @@ function MainLayout({ children }: { children: React.ReactNode }) {
                     <Sidebar />
                     <div className="flex-1">
                         <Header />
-                        <main className="flex-1 overflow-y-auto p-4 overflow-y-auto max-h-[calc(100vh-6rem)]">
+                        <main className="flex-1 overflow-y-auto p-4 max-h-[calc(100vh-6rem)]">
                             {children}
                         </main>
                     </div>

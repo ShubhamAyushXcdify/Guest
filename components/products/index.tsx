@@ -32,7 +32,7 @@ export type Product = {
   unitOfMeasure: string;
   requiresPrescription: boolean;
   controlledSubstanceSchedule: string;
-  brandName: string;
+ 
   storageRequirements: string;
   isActive: boolean;
   reorderThreshold?: number | null; // Added optional reorderThreshold field
@@ -130,7 +130,7 @@ export default function Products() {
     { accessorKey: "genericName", header: "Generic Name" },
     { accessorKey: "category", header: "Category" },
     { accessorKey: "productType", header: "Product Type" },
-    { accessorKey: "brandName", header: "Brand Name" },
+    // { accessorKey: "brandName", header: "Brand Name" },
     // { accessorKey: "manufacturer", header: "Manufacturer" },
     // { accessorKey: "strength", header: "Strength" },
     {
