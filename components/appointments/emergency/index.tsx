@@ -58,15 +58,15 @@ export default function EmergencyComponent({ patientId, appointmentId, onClose }
           </TabsList>
 
           <TabsContent value="triage">
-            <TriageTab patientId={patientId} appointmentId={appointmentId} />
+            <TriageTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           <TabsContent value="emergency-vitals">
-            <EmergencyVitalsTab patientId={patientId} appointmentId={appointmentId} />
+            <EmergencyVitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           <TabsContent value="emergency-procedures">
-            <EmergencyProceduresTab patientId={patientId} appointmentId={appointmentId} />
+            <EmergencyProceduresTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
           </TabsContent>
 
           <TabsContent value="discharge">

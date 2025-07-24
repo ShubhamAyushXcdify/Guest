@@ -178,13 +178,6 @@ export default function EmergencyProceduresTab({ patientId, appointmentId, onNex
           onChange={e => setNotes(e.target.value)}
         />
       </div>
-      <div>
-        <Label>Attachments</Label>
-        <Input type="file" multiple onChange={handleAttachmentChange} />
-        {attachments.length > 0 && (
-          <div className="text-xs text-gray-500 mt-1">{attachments.length} file(s) selected</div>
-        )}
-      </div>
     </div>
   );
 } 
