@@ -36,6 +36,14 @@ export const navGroups = [
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
                 activePaths: [],
             },
+
+             // {
+            //     href: "/prescriptions",
+            //     label: "Prescriptions",
+            //     icon: Pill,
+            //     color: "text-blue-500",
+            // },
+
         ],
     },
     {
@@ -43,6 +51,21 @@ export const navGroups = [
         icon: FlaskConical,
         allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
         items: [
+
+            // {
+            //     href: "/billing",
+            //     label: "Billing",
+            //     icon: FileText,
+            //     color: "text-purple-500",
+            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
+            // },
+            // {
+            //     href: "/reports",
+            //     label: "Reports",
+            //     icon: PieChart,
+            //     color: "text-purple-500",
+            //     allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
+            // },
             {
                 href: "/inventory",
                 label: "Inventory",
@@ -57,6 +80,12 @@ export const navGroups = [
                 color: "text-purple-2000",
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
             },
+            // {
+            //   href: "/dashboard/shipments",
+            //   label: "Shipments",
+            //   icon: Database,
+            //   color: "text-purple-2000",
+            // },
         ],
     },
     {
@@ -89,6 +118,19 @@ export const navGroups = [
             }
         ],
     }
+    // },
+    // {
+    //     title: "Settings",
+    //     icon: Settings2,
+    //     items: [
+    //         {
+    //             href: "/settings",
+    //             label: "Settings",
+    //             icon: Settings,
+    //             color: "text-green-2000",
+    //         },
+    //     ],
+    // },
 ]
 
 // Helper function to check if current path matches dynamic routes
