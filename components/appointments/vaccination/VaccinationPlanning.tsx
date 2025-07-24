@@ -35,6 +35,7 @@ import { toast } from "sonner";
 import ChlamydiaFelisDocumentationModal from "./modals/ChlamydiaFelisDocumentationModal";
 import FelineInfectiousPeritonitisDocumentationModal from "./modals/FelineInfectiousPeritonitisDocumentationModal";
 import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/get-vaccinationDetail-by-visitId";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 
 interface Vaccination {
   id: string;
@@ -159,6 +160,9 @@ export default function VaccinationPlanning({
   // Fetch existing vaccination details for this visit
   const { data: vaccinationDetails, isLoading: vaccinationDetailsLoading, refetch: refetchVaccinationDetails } = useGetVaccinationDetailsByVisitId(visitData?.id || "");
 
+  // Fetch full appointment data for update
+  const { data: appointmentData, isLoading: appointmentLoading } = useGetAppointmentById(appointmentId);
+
   // Initialize state from existing data if details exist
   useEffect(() => {
     if (vaccinationDetails && vaccinationDetails.length > 0) {
@@ -185,33 +189,57 @@ export default function VaccinationPlanning({
 
   // Checkout handler
   const handleCheckout = async () => {
-    if (!visitData || !visitData.id) {
-      toast.error("No visit data found for this appointment");
-      return;
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment")
+      return
     }
     if (selectedVaccines.length === 0) {
-      toast.error("Please select at least one vaccine before checkout.");
-      return;
+      toast.error("Please select at least one vaccine before checking out")
+      return
     }
-    setIsProcessing(true);
+    if (!appointmentData) {
+      toast.error("No appointment data found")
+      return
+    }
+    setIsProcessing(true)
     try {
-      // TODO: Collect actual vaccination details from documentation modals or next step
-      const batchSubmission = {
-        visitId: visitData.id,
-        notes: "", // or collect notes from user input
-        isCompleted: true,
-        vaccinationMasterIds: selectedVaccines,
-      };
-      await createVaccinationDetail.mutateAsync(batchSubmission);
+      // Mark vaccination detail as completed
+      if (vaccinationDetailId) {
+        await updateVaccinationDetail.mutateAsync({
+          id: vaccinationDetailId,
+          data: {
+            id: vaccinationDetailId,
+            notes: "",
+            isCompleted: true,
+            vaccinationMasterIds: selectedVaccines,
+          },
+        })
+      } else {
+        // If for some reason no vaccination detail exists, create it as completed
+        await createVaccinationDetail.mutateAsync({
+          visitId: visitData.id,
+          notes: "",
+          isCompleted: true,
+          vaccinationMasterIds: selectedVaccines,
+        })
+      }
+      // Update appointment status to completed, sending the full object
       await updateAppointment.mutateAsync({
         id: appointmentId,
-        data: { status: "completed" }
-      });
+        data: {
+          ...appointmentData,
+          status: "completed"
+        }
+      })
+      toast.success("Vaccination checkout completed")
+      if (onClose) {
+        onClose()
+      }
     } catch (error) {
-      setIsProcessing(false);
-      toast.error("Checkout failed. Please try again.");
+      toast.error("Error during vaccination checkout")
+      setIsProcessing(false)
     }
-  };
+  }
 
   if (isLoading || visitLoading || vaccinationDetailsLoading) {
     return <div>Loading...</div>;
