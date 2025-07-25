@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCreateDewormingCheckout, useUpdateDewormingCheckout } from "@/queries/deworming/checkout/create-deworming-checkout";
 
 interface CheckoutTabProps {
   patientId: string;
@@ -15,6 +16,21 @@ export default function CheckoutTab({ patientId, appointmentId, onClose }: Check
   const [followUpDate, setFollowUpDate] = useState("");
   const [clientAcknowledged, setClientAcknowledged] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("Paid");
+
+  const createCheckout = useCreateDewormingCheckout();
+  const updateCheckout = useUpdateDewormingCheckout();
+
+  const handleSave = async () => {
+    const payload = {
+      visitId: appointmentId,
+      summary: summary || undefined,
+      nextDewormingDueDate: nextDue || undefined,
+      homeCareInstructions: instructions || undefined,
+      clientAcknowledged,
+      isCompleted: false,
+    };
+    await createCheckout.mutateAsync(payload);
+  };
 
   return (
     <div className="space-y-4">
@@ -51,6 +67,22 @@ export default function CheckoutTab({ patientId, appointmentId, onClose }: Check
         />
         <label htmlFor="client-acknowledgement" className="text-sm">Client has received and understood instructions</label>
       </div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          onClick={handleSave}
+          disabled={createCheckout.isLoading}
+        >
+          Save Checkout
+        </button>
+      </div>
+      {createCheckout.isError && (
+        <div className="text-red-500 text-sm">Error saving checkout.</div>
+      )}
+      {createCheckout.isSuccess && (
+        <div className="text-green-600 text-sm">Checkout saved successfully!</div>
+      )}
       <button onClick={onClose} className="bg-black text-white px-4 py-2 rounded">Finish & Close</button>
     </div>
   );

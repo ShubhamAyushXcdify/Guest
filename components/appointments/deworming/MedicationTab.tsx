@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useCreateDewormingMedication, useUpdateDewormingMedication } from "@/queries/deworming/medication/create-deworming-medication";
 
 interface MedicationTabProps {
   patientId: string;
@@ -23,6 +24,9 @@ export default function MedicationTab({ patientId, appointmentId }: MedicationTa
   });
   const [medications, setMedications] = useState<any[]>([]);
 
+  const createMedication = useCreateDewormingMedication();
+  const updateMedication = useUpdateDewormingMedication();
+
   const handleAddMedication = () => {
     // Require at least product and dose
     if (medicationRow.product && medicationRow.dose) {
@@ -39,6 +43,26 @@ export default function MedicationTab({ patientId, appointmentId }: MedicationTa
         administeredBy: "",
         remarks: "",
       });
+    }
+  };
+
+  const handleSaveMedications = async () => {
+    for (const med of medications) {
+      const payload = {
+        visitId: appointmentId,
+        productName: med.product,
+        batchNumber: med.batch,
+        dose: med.dose,
+        route: med.route,
+        dateTimeGiven: med.dateGiven,
+        veterinarianName: med.vet,
+        manufacturer: med.manufacturer,
+        expiryDate: med.expiry,
+        administeredBy: med.administeredBy,
+        remarks: med.remarks,
+        isCompleted: false,
+      };
+      await createMedication.mutateAsync(payload);
     }
   };
 
@@ -139,6 +163,12 @@ export default function MedicationTab({ patientId, appointmentId }: MedicationTa
           Add Medication
         </button>
       </div>
+      {createMedication.isError && (
+        <div className="text-red-500 text-sm">Error saving medications.</div>
+      )}
+      {createMedication.isSuccess && (
+        <div className="text-green-600 text-sm">Medications saved successfully!</div>
+      )}
       {medications.length > 0 && (
         <div className="border rounded p-2 bg-gray-50 text-sm mt-4">
           <div className="font-medium mb-1">Medications List:</div>

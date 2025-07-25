@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { useGetDewormingNoteById, useCreateDewormingNote, useUpdateDewormingNote } from "@/queries/deworming/note/get-deworming-note-by-id";
 
 interface NotesTabProps {
   patientId: string;
@@ -12,6 +13,41 @@ export default function NotesTab({ patientId, appointmentId }: NotesTabProps) {
   const [ownerQuestions, setOwnerQuestions] = useState("");
   const [followUpRequired, setFollowUpRequired] = useState(false);
   const [resolutionStatus, setResolutionStatus] = useState("Resolved");
+
+  const { data, isLoading, isError, refetch } = useGetDewormingNoteById(appointmentId);
+  const createMutation = useCreateDewormingNote();
+  const updateMutation = useUpdateDewormingNote();
+
+  React.useEffect(() => {
+    if (data) {
+      setReactions(data.adverseReactions || "");
+      setNotes(data.additionalNotes || "");
+      setOwnerQuestions(data.ownerConcerns || "");
+      setFollowUpRequired(!!data.followUpRequired);
+      setResolutionStatus(data.resolutionStatus || "Resolved");
+    }
+  }, [data]);
+
+  const handleSave = async () => {
+    const payload = {
+      visitId: appointmentId,
+      adverseReactions: reactions || undefined,
+      additionalNotes: notes || undefined,
+      ownerConcerns: ownerQuestions || undefined,
+      followUpRequired,
+      resolutionStatus: resolutionStatus || undefined,
+      isCompleted: false,
+    };
+    if (data && data.id) {
+      await updateMutation.mutateAsync({ id: data.id, ...payload });
+    } else {
+      await createMutation.mutateAsync(payload);
+    }
+    refetch();
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error loading notes data.</div>;
 
   return (
     <div className="space-y-4">
@@ -60,6 +96,22 @@ export default function NotesTab({ patientId, appointmentId }: NotesTabProps) {
           <option value="Needs Further Investigation">Needs Further Investigation</option>
         </select>
       </div>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          onClick={handleSave}
+          disabled={createMutation.isLoading || updateMutation.isLoading}
+        >
+          {data && data.id ? "Update" : "Save"}
+        </button>
+      </div>
+      {(createMutation.isError || updateMutation.isError) && (
+        <div className="text-red-500 text-sm">Error saving data.</div>
+      )}
+      {(createMutation.isSuccess || updateMutation.isSuccess) && (
+        <div className="text-green-600 text-sm">Saved successfully!</div>
+      )}
     </div>
   );
 } 
