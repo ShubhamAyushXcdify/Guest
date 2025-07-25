@@ -1,6 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetSurgeryDetailByVisitId } from "@/queries/surgery/detail/get-surgery-detail-by-visit-id";
+import { useCreateSurgeryDetail } from "@/queries/surgery/detail/create-surgery-detail";
+import { useUpdateSurgeryDetail } from "@/queries/surgery/detail/update-surgery-detail";
+import { toast } from "sonner";
 
 interface SurgeryTabProps {
   patientId: string;
@@ -17,6 +22,62 @@ export default function SurgeryTab({ patientId, appointmentId }: SurgeryTabProps
   const [findings, setFindings] = useState("");
   const [complications, setComplications] = useState("");
   const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
+  const { data: detailData, refetch } = useGetSurgeryDetailByVisitId(visitData?.id || "", !!visitData?.id);
+  const createDetail = useCreateSurgeryDetail();
+  const updateDetail = useUpdateSurgeryDetail();
+
+  useEffect(() => {
+    if (detailData && detailData.length > 0) {
+      const data = detailData[0];
+      setSurgeryType(data.surgeryType || "");
+      setSurgeon(data.surgeon || "");
+      setAnesthesiologist(data.anesthesiologist || "");
+      setStartTime(data.surgeryStartTime ? data.surgeryStartTime.slice(0, 16) : "");
+      setEndTime(data.surgeryEndTime ? data.surgeryEndTime.slice(0, 16) : "");
+      setAnesthesiaProtocol(data.anesthesiaProtocol || "");
+      setFindings(data.surgicalFindings || "");
+      setComplications(data.complications || "");
+      setNotes(data.notes || "");
+    }
+  }, [detailData]);
+
+  const handleSubmit = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+    setIsSubmitting(true);
+    const payload = {
+      visitId: visitData.id,
+      surgeryType,
+      surgeon,
+      anesthesiologist,
+      surgeryStartTime: startTime ? new Date(startTime).toISOString() : undefined,
+      surgeryEndTime: endTime ? new Date(endTime).toISOString() : undefined,
+      anesthesiaProtocol,
+      surgicalFindings: findings,
+      complications,
+      notes,
+      isCompleted: true,
+    };
+    try {
+      if (detailData && detailData.length > 0) {
+        await updateDetail.mutateAsync({ id: detailData[0].id, ...payload });
+        toast.success("Surgery detail updated successfully");
+      } else {
+        await createDetail.mutateAsync(payload);
+        toast.success("Surgery detail saved successfully");
+      }
+      await refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save surgery detail");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -95,6 +156,15 @@ export default function SurgeryTab({ patientId, appointmentId }: SurgeryTabProps
           onChange={e => setNotes(e.target.value)}
           placeholder="Additional surgical notes"
         />
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="bg-black text-white px-4 py-2 rounded"
+        >
+          {detailData && detailData.length > 0 ? "Update" : "Save"}
+        </button>
       </div>
     </div>
   );

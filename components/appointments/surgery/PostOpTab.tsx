@@ -1,6 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetSurgeryPostOpByVisitId } from "@/queries/surgery/postop/get-surgery-postop-by-visit-id";
+import { useCreateSurgeryPostOp } from "@/queries/surgery/postop/create-surgery-postop";
+import { useUpdateSurgeryPostOp } from "@/queries/surgery/postop/update-surgery-postop";
+import { toast } from "sonner";
 
 interface PostOpTabProps {
   patientId: string;
@@ -17,6 +22,56 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
   const [medications, setMedications] = useState("");
   const [woundCare, setWoundCare] = useState("");
   const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
+  const { data: postOpData, refetch } = useGetSurgeryPostOpByVisitId(visitData?.id || "", !!visitData?.id);
+  const createPostOp = useCreateSurgeryPostOp();
+  const updatePostOp = useUpdateSurgeryPostOp();
+
+  useEffect(() => {
+    if (postOpData && postOpData.length > 0) {
+      const data = postOpData[0];
+      setRecovery(data.recoveryStatus || recoveryStatus[0]);
+      setPainLevel(data.painAssessment || painLevels[0]);
+      setVitalSigns(data.vitalSigns || "");
+      setMedications(data.postOpMedications || "");
+      setWoundCare(data.woundCare || "");
+      setNotes(data.notes || "");
+    }
+  }, [postOpData]);
+
+  const handleSubmit = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+    setIsSubmitting(true);
+    const payload = {
+      visitId: visitData.id,
+      recoveryStatus: recovery,
+      painAssessment: painLevel,
+      vitalSigns,
+      postOpMedications: medications,
+      woundCare,
+      notes,
+      isCompleted: true,
+    };
+    try {
+      if (postOpData && postOpData.length > 0) {
+        await updatePostOp.mutateAsync({ id: postOpData[0].id, ...payload });
+        toast.success("Post-op record updated successfully");
+      } else {
+        await createPostOp.mutateAsync(payload);
+        toast.success("Post-op record saved successfully");
+      }
+      await refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save post-op record");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -75,6 +130,15 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
           onChange={e => setNotes(e.target.value)}
           placeholder="Additional post-operative notes"
         />
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="bg-black text-white px-4 py-2 rounded"
+        >
+          {postOpData && postOpData.length > 0 ? "Update" : "Save"}
+        </button>
       </div>
     </div>
   );

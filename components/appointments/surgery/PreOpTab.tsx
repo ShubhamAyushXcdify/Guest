@@ -1,6 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetSurgeryPreOpByVisitId } from "@/queries/surgery/preop/get-surgery-preop-by-visit-id";
+import { useCreateSurgeryPreOp } from "@/queries/surgery/preop/create-surgery-preop";
+import { useUpdateSurgeryPreOp } from "@/queries/surgery/preop/update-surgery-preop";
+import { toast } from "sonner";
 
 interface PreOpTabProps {
   patientId: string;
@@ -17,6 +22,56 @@ export default function PreOpTab({ patientId, appointmentId }: PreOpTabProps) {
   const [fasting, setFasting] = useState(fastingStatus[0]);
   const [medications, setMedications] = useState("");
   const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
+  const { data: preOpData, refetch } = useGetSurgeryPreOpByVisitId(visitData?.id || "", !!visitData?.id);
+  const createPreOp = useCreateSurgeryPreOp();
+  const updatePreOp = useUpdateSurgeryPreOp();
+
+  useEffect(() => {
+    if (preOpData && preOpData.length > 0) {
+      const data = preOpData[0];
+      setWeight(data.weightKg !== undefined && data.weightKg !== null ? String(data.weightKg) : "");
+      setBloodwork(data.preOpBloodworkResults || "");
+      setRiskLevel(data.anesthesiaRiskAssessment || riskLevels[0]);
+      setFasting(data.fastingStatus || fastingStatus[0]);
+      setMedications(data.preOpMedications || "");
+      setNotes(data.notes || "");
+    }
+  }, [preOpData]);
+
+  const handleSubmit = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+    setIsSubmitting(true);
+    const payload = {
+      visitId: visitData.id,
+      weightKg: weight ? parseFloat(weight) : undefined,
+      preOpBloodworkResults: bloodwork,
+      anesthesiaRiskAssessment: riskLevel,
+      fastingStatus: fasting,
+      preOpMedications: medications,
+      notes,
+      isCompleted: true,
+    };
+    try {
+      if (preOpData && preOpData.length > 0) {
+        await updatePreOp.mutateAsync({ id: preOpData[0].id, ...payload });
+        toast.success("Pre-op record updated successfully");
+      } else {
+        await createPreOp.mutateAsync(payload);
+        toast.success("Pre-op record saved successfully");
+      }
+      await refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save pre-op record");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -77,6 +132,15 @@ export default function PreOpTab({ patientId, appointmentId }: PreOpTabProps) {
           onChange={e => setNotes(e.target.value)}
           placeholder="Additional pre-operative notes"
         />
+      </div>
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="bg-black text-white px-4 py-2 rounded"
+        >
+          {preOpData && preOpData.length > 0 ? "Update" : "Save"}
+        </button>
       </div>
     </div>
   );
