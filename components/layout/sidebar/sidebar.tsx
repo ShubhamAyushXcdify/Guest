@@ -1,6 +1,6 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
     Menu,
     LogOut,
@@ -17,8 +17,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { SidebarGroup, SidebarGroupLabel, useSidebar } from "@/components/ui/sidebar"
 import { NavItem } from "../nav-item"
 import { useRootContext } from "@/context/RootContext"
-import { navGroups } from "./constant"
+import { navGroups, isPathActive } from "./constant"
 import { useCheckPermission } from "./useCheckPermission"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
@@ -77,18 +78,23 @@ export function Sidebar() {
                                         "mt-2 space-y-1",
                                         state === "collapsed" ? "pl-0" : "pl-3"
                                     )}>
-                                        {group.items.map((item) => (
-                                            checkPermission(item.allowedRoles) && (
-                                                <NavItem
-                                                    key={item.href}
-                                                    href={item.href}
-                                                    label={item.label}
-                                                    icon={item.icon}
-                                                    isActive={pathname === item.href}
-                                                    color={item.color}
-                                                />
-                                            )
-                                        ))}
+                                        {group.items.map((item) => {
+                                            if (!checkPermission(item.allowedRoles)) return null;
+
+                                            // Use activePaths if present, otherwise default to href
+                                            const isActive = isPathActive(pathname, item);
+
+                                            return (
+                                              <NavItem
+                                                key={item.href}
+                                                href={item.href}
+                                                label={item.label}
+                                                icon={item.icon}
+                                                isActive={isActive}
+                                                color={item.color}
+                                              />
+                                            );
+                                        })}
                                     </div>
                                 </CollapsibleContent>
                             </Collapsible>
@@ -117,12 +123,12 @@ export function Sidebar() {
                 </SheetContent>
             </Sheet>
             <aside className={cn(
-                "hidden md:flex flex-col justify-between bg-gradient-to-b from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white min-h-screen shadow-xl transition-all duration-200",
+                "hidden md:flex flex-col bg-gradient-to-b from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white h-screen shadow-xl transition-all duration-200",
                 state === "collapsed" ? "w-16" : "w-64"
             )}>
-                <div>
+                <div className="flex flex-col h-full min-h-0">
                     <div className={cn(
-                        "flex items-center gap-3 px-6 py-4 h-16",
+                        "flex items-center gap-3 px-6 py-4 h-16 flex-shrink-0",
                         state === "collapsed" && "justify-center px-2"
                     )}>
                         <PawPrint className="h-7 w-7 " />
@@ -131,36 +137,40 @@ export function Sidebar() {
                         )}
                     </div>
 
-                    <Separator className="mb-6 bg-white/10" />
+                    <Separator className="mb-6 bg-white/10 flex-shrink-0" />
 
-                    {renderNavItems()}
-                </div>
+                    <div className="flex-grow overflow-hidden" style={{ height: "calc(100vh - 16rem)" }}>
+                        <div className="h-full overflow-y-auto scrollbar-hide">
+                            {renderNavItems()}
+                        </div>
+                    </div>
 
-                <div className="mt-auto mb-6">
-                    <Separator className="my-4 bg-white/10" />
-                    <div className="px-3">
-                        <div className={cn(
-                            "flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors",
-                            state === "collapsed" && "justify-center"
-                        )}>
-                            <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)]/30 rounded-full flex items-center justify-center">
-                                <AvatarImage src="/placeholder-user.jpg" alt="User" className="rounded-full" />
-                                <AvatarFallback className="text-white">{user?.firstName?.charAt(0) || ''}{user?.lastName?.charAt(0) || ''}</AvatarFallback>
-                            </Avatar>
-                            {state !== "collapsed" && (
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
-                                    <p className="text-xs text-white/70 truncate">{user?.email}</p>
-                                </div>
-                            )}
-                            {state !== "collapsed" && (
-                                <div onClick={handleLogout}>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
-                                        <LogOut className="h-4 w-4" />
-                                        <span className="sr-only">Log out</span>
-                                    </Button>
-                                </div>
-                            )}
+                    <div className="flex-shrink-0 mb-6">
+                        <Separator className="my-4 bg-white/10" />
+                        <div className="px-3">
+                            <div className={cn(
+                                "flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors",
+                                state === "collapsed" && "justify-center"
+                            )}>
+                                <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)]/30 rounded-full flex items-center justify-center">
+                                    <AvatarImage src="/placeholder-user.jpg" alt="User" className="rounded-full" />
+                                    <AvatarFallback className="text-white">{user?.firstName?.charAt(0) || ''}{user?.lastName?.charAt(0) || ''}</AvatarFallback>
+                                </Avatar>
+                                {state !== "collapsed" && (
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                                        <p className="text-xs text-white/70 truncate">{user?.email}</p>
+                                    </div>
+                                )}
+                                {state !== "collapsed" && (
+                                    <div onClick={handleLogout}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
+                                            <LogOut className="h-4 w-4" />
+                                            <span className="sr-only">Log out</span>
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -168,3 +178,6 @@ export function Sidebar() {
         </>
     )
 }
+
+
+

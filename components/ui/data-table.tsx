@@ -209,7 +209,7 @@ export function DataTable<TData, TValue>({
   })
 
   return (
-    <div className={cn("space-y-4", className, "relative flex flex-col h-full max-h-[calc(100vh-400px)] overflow-y-auto")}>
+    <div className={cn("space-y-4", className, "relative flex flex-col h-full max-h-[calc(100vh-180px)] overflow-y-auto")}>
       {searchColumn && (
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="relative flex-grow">
