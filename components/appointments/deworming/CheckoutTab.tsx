@@ -12,6 +12,9 @@ export default function CheckoutTab({ patientId, appointmentId, onClose }: Check
   const [summary, setSummary] = useState("");
   const [nextDue, setNextDue] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
+  const [clientAcknowledged, setClientAcknowledged] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState("Paid");
 
   return (
     <div className="space-y-4">
@@ -38,6 +41,15 @@ export default function CheckoutTab({ patientId, appointmentId, onClose }: Check
           onChange={e => setInstructions(e.target.value)}
           placeholder="Instructions for the client to follow at home"
         />
+      </div>
+      <div className="flex items-center space-x-2">
+        <input
+          type="checkbox"
+          id="client-acknowledgement"
+          checked={clientAcknowledged}
+          onChange={e => setClientAcknowledged(e.target.checked)}
+        />
+        <label htmlFor="client-acknowledgement" className="text-sm">Client has received and understood instructions</label>
       </div>
       <button onClick={onClose} className="bg-black text-white px-4 py-2 rounded">Finish & Close</button>
     </div>
