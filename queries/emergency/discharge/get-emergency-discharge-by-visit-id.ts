@@ -13,7 +13,11 @@ const getEmergencyDischargeByVisitId = async (visitId: string): Promise<Emergenc
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch emergency discharge by visit ID");
   }
-  return await response.json();
+  const data = await response.json();
+  if (Array.isArray(data)) {
+    return data[0] ?? null;
+  }
+  return data;
 };
 
 export function useGetEmergencyDischargeByVisitId(visitId: string, enabled = true) {

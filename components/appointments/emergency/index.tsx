@@ -7,6 +7,7 @@ import TriageTab from "./TriageTab";
 import EmergencyVitalsTab from "./EmergencyVitalsTab";
 import EmergencyProceduresTab from "./EmergencyProceduresTab";
 import DischargeTab from "./DischargeTab";
+import NewAppointment from "../newAppointment";
 
 interface EmergencyComponentProps {
   patientId: string;
@@ -23,6 +24,7 @@ const tabOrder = [
 
 export default function EmergencyComponent({ patientId, appointmentId, onClose }: EmergencyComponentProps) {
   const [activeTab, setActiveTab] = useState(tabOrder[0].id);
+  const [showNewAppointment, setShowNewAppointment] = useState(false);
 
   // Placeholder completion logic (replace with real logic later)
   const isTabCompleted = (tabId: string) => false;
@@ -74,18 +76,30 @@ export default function EmergencyComponent({ patientId, appointmentId, onClose }
           </TabsContent>
         </Tabs>
         <div className="mt-6 flex justify-end space-x-4">
+          <div className="mt-6 flex justify-end space-x-4">
           {activeTab !== "discharge" && (
             <Button onClick={navigateToNextTab} className="flex items-center gap-2">
               Next <ArrowRight className="h-4 w-4" />
             </Button>
           )}
-          {activeTab === "discharge" && (
-            <Button onClick={onClose} className="theme-button text-white">
-              Close
-            </Button>
+          {activeTab == "discharge" && (
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={() => setShowNewAppointment(true)}
+                className="theme-button text-white"
+              >
+                Book Another Appointment
+              </Button>
+            </div>
           )}
         </div>
+        </div>
       </SheetContent>
+      <NewAppointment 
+        isOpen={showNewAppointment} 
+        onClose={() => setShowNewAppointment(false)}
+        patientId={patientId}
+      />
     </Sheet>
   );
 } 
