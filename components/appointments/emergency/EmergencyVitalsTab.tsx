@@ -56,6 +56,22 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
   const updateVitals = useUpdateEmergencyVital({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isVitalsComplete = (): boolean => {
+  return (
+    weight.trim() !== "" &&
+    capillaryRefill.trim() !== "" &&
+    mucousMembrane.trim() !== "" &&
+    oxygenSaturation.trim() !== "" &&
+    bloodGlucose.trim() !== "" &&
+    temperature.trim() !== "" &&
+    heartRhythm.trim() !== "" &&
+    heartRate.trim() !== "" &&
+    respiratoryRate.trim() !== "" &&
+    bloodPressure.trim() !== ""
+  );
+};
+
+
   useEffect(() => {
     if (vitalsData) {
       setWeight(vitalsData.weightKg?.toString() || "");
@@ -99,7 +115,7 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
         bloodPressure: bloodPressure || undefined,
         supplementalOxygenGiven: suppOxygen,
         notes: notes || undefined,
-        isCompleted: true,
+        isCompleted: isVitalsComplete(),
       };
       if (vitalsData && vitalsData.id) {
         await updateVitals.mutateAsync({ id: vitalsData.id, ...payload });

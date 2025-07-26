@@ -42,8 +42,25 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
   const createTriage = useCreateEmergencyVisit();
   const updateTriage = useUpdateEmergencyVisit();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
 
   // const { markTabAsCompleted } = useTabCompletion();
+
+  const isTriageComplete = (): boolean => {
+  return (
+    arrivalTime.trim() !== "" &&
+    nurse.trim() !== "" &&
+    triageCategory.trim() !== "" &&
+    painScore.trim() !== "" &&
+    !isNaN(Number(painScore)) &&
+    allergies.trim() !== "" &&
+    reason.trim() !== "" &&
+    triageLevel.trim() !== "" &&
+    presentingComplaint.trim() !== "" &&
+    notes.trim() !== ""
+  );
+};
+
 
   useEffect(() => {
     const data = triageData;
@@ -58,8 +75,12 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
       setTriageLevel(data.triageLevel || "");
       setPresentingComplaint(data.presentingComplaint || "");
       setNotes(data.initialNotes || "");
+     
     }
   }, [triageData]);
+
+  
+
 
   const handleSubmit = async () => {
     if (!visitData?.id) {
@@ -83,6 +104,7 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
           presentingComplaint,
           initialNotes: notes,
           visitId: visitData.id,
+          isComplete: isTriageComplete(),
         });
         toast.success("Triage record updated successfully");
       } else {
@@ -99,6 +121,7 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
           presentingComplaint,
           initialNotes: notes,
           visitId: visitData.id,
+          isComplete: isTriageComplete(),
         });
         toast.success("Triage record saved successfully");
       }

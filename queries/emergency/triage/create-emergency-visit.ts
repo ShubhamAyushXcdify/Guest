@@ -12,6 +12,7 @@ interface CreateEmergencyVisitData {
   presentingComplaint: string;
   initialNotes: string;
   visitId: string;
+  isComplete?: boolean;
 }
 
 export const useCreateEmergencyVisit = () => {

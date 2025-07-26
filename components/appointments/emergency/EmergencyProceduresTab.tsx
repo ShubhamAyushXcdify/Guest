@@ -93,6 +93,23 @@ export default function EmergencyProceduresTab({ patientId, appointmentId, onNex
     }
   };
 
+  const isProcedureComplete = (): boolean => {
+  const areAllCheckboxesUnchecked = procedureChecks.length === 0;
+
+  return (
+    procedureTime.trim() !== "" &&
+    performedBy.trim() !== "" &&
+    medications.length > 0 &&
+    fluids.type.trim() !== "" &&
+    fluids.volume.trim() !== "" &&
+    fluids.rate.trim() !== "" &&
+    response.trim() !== "" &&
+    notes.trim() !== "" &&
+    !areAllCheckboxesUnchecked
+  );
+};
+
+
   const handleSubmit = async () => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment");
@@ -123,7 +140,7 @@ export default function EmergencyProceduresTab({ patientId, appointmentId, onNex
       fluidsRateMlHr: fluids.rate ? Number(fluids.rate) : 0,
       responseToTreatment: response,
       notes,
-      isCompleted: true,
+      isCompleted: isProcedureComplete(),
     };
     try {
       if (proceduresData && proceduresData.length > 0) {

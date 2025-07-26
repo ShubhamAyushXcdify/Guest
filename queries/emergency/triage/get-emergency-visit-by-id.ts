@@ -15,6 +15,8 @@ interface EmergencyVisitDetail {
   createdAt: string;
   updatedAt: string;
   visitId: string;
+  isComplete: boolean;
+  
 }
 
 const getEmergencyVisitById = async (id: string): Promise<EmergencyVisitDetail> => {
