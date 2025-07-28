@@ -239,7 +239,7 @@ export default function DischargeSummarySheet({
               </View>
               <View style={styles.gridItem}>
                 <Text style={styles.label}>Weight:</Text>
-                <Text style={styles.value}>{data.intakeDetail?.weightKg || 'N/A'} kg</Text>
+                <Text style={styles.value}>{data.emergencyVitals?.weightKg || 'N/A'} kg</Text>
               </View>
             </View>
           </View>
@@ -267,145 +267,216 @@ export default function DischargeSummarySheet({
             </View>
           </View>
 
-          {/* Emergency Information */}
-          {data.emergencyDetail && (
+          {/* Emergency Triage Information */}
+          {data.emergencyTriage && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>EMERGENCY INFORMATION</Text>
+              <Text style={styles.sectionTitle}>EMERGENCY TRIAGE</Text>
               <View style={styles.criticalAlert}>
                 <View style={styles.row}>
-                  <Text style={styles.label}>Admission Date:</Text>
-                  <Text style={styles.value}>{data.emergencyDetail.admissionDate ? formatDate(data.emergencyDetail.admissionDate) : 'N/A'}</Text>
+                  <Text style={styles.label}>Arrival Time:</Text>
+                  <Text style={styles.value}>{data.emergencyTriage.arrivalTime ? formatDate(data.emergencyTriage.arrivalTime) : 'N/A'}</Text>
                 </View>
                 <View style={styles.row}>
-                  <Text style={styles.label}>Presenting Issue:</Text>
-                  <Text style={styles.value}>{data.emergencyDetail.presentingIssue || 'N/A'}</Text>
+                  <Text style={styles.label}>Triage Level:</Text>
+                  <Text style={styles.value}>{data.emergencyTriage.triageLevel || 'N/A'}</Text>
                 </View>
                 <View style={styles.row}>
-                  <Text style={styles.label}>Emergency Level:</Text>
-                  <Text style={styles.value}>{data.emergencyDetail.emergencyLevel || 'N/A'}</Text>
+                  <Text style={styles.label}>Presenting Complaint:</Text>
+                  <Text style={styles.value}>{data.emergencyTriage.presentingComplaint || 'N/A'}</Text>
                 </View>
-                {data.emergencyDetail.stabilizationMeasures && (
+                <View style={styles.row}>
+                  <Text style={styles.label}>Pain Score:</Text>
+                  <Text style={styles.value}>{data.emergencyTriage.painScore || 'N/A'}/10</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Reason for Emergency:</Text>
+                  <Text style={styles.value}>{data.emergencyTriage.reasonForEmergency || 'N/A'}</Text>
+                </View>
+                {data.emergencyTriage.immediateInterventionRequired && (
                   <View style={styles.row}>
-                    <Text style={styles.label}>Stabilization:</Text>
-                    <Text style={styles.value}>{data.emergencyDetail.stabilizationMeasures}</Text>
+                    <Text style={styles.label}>Immediate Intervention:</Text>
+                    <Text style={styles.value}>Required</Text>
                   </View>
                 )}
               </View>
-              {data.emergencyDetail.notes && (
+              {data.emergencyTriage.initialNotes && (
                 <View style={styles.emergencyNotes}>
-                  <Text style={styles.label}>Notes:</Text>
-                  <Text>{data.emergencyDetail.notes}</Text>
+                  <Text style={styles.label}>Initial Notes:</Text>
+                  <Text>{data.emergencyTriage.initialNotes}</Text>
                 </View>
               )}
             </View>
           )}
 
           {/* Vital Signs */}
-          {data.vitalDetail && (
+          {data.emergencyVitals && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>VITAL SIGNS</Text>
               <View style={styles.vitalSigns}>
                 <View style={styles.vitalItem}>
                   <Text style={styles.label}>Temperature:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.temperatureC}°C</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.temperatureC}°C</Text>
                 </View>
                 <View style={styles.vitalItem}>
                   <Text style={styles.label}>Heart Rate:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.heartRateBpm} bpm</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.heartRateBpm} bpm</Text>
                 </View>
                 <View style={styles.vitalItem}>
                   <Text style={styles.label}>Respiratory Rate:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.respiratoryRateBpm} bpm</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.respiratoryRateBpm} bpm</Text>
+                </View>
+                <View style={styles.vitalItem}>
+                  <Text style={styles.label}>Blood Pressure:</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.bloodPressure || 'N/A'}</Text>
                 </View>
                 <View style={styles.vitalItem}>
                   <Text style={styles.label}>Mucous Membrane:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.mucousMembraneColor || 'N/A'}</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.mucousMembraneColor || 'N/A'}</Text>
                 </View>
                 <View style={styles.vitalItem}>
                   <Text style={styles.label}>Capillary Refill:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.capillaryRefillTimeSec} sec</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.capillaryRefillTimeSec} sec</Text>
                 </View>
                 <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Hydration:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.hydrationStatus || 'N/A'}</Text>
+                  <Text style={styles.label}>Oxygen Saturation:</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.oxygenSaturationSpo2}%</Text>
+                </View>
+                <View style={styles.vitalItem}>
+                  <Text style={styles.label}>Blood Glucose:</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.bloodGlucoseMgDl} mg/dL</Text>
+                </View>
+                <View style={styles.vitalItem}>
+                  <Text style={styles.label}>Heart Rhythm:</Text>
+                  <Text style={styles.value}>{data.emergencyVitals.heartRhythm || 'N/A'}</Text>
                 </View>
               </View>
-              {data.vitalDetail.notes && (
+              {data.emergencyVitals.notes && (
                 <View style={styles.notes}>
                   <Text style={styles.label}>Notes:</Text>
-                  <Text>{data.vitalDetail.notes}</Text>
+                  <Text>{data.emergencyVitals.notes}</Text>
                 </View>
               )}
             </View>
           )}
 
-          {/* Diagnosis and Treatment */}
-          {data.planDetail && (
+          {/* Emergency Procedures */}
+          {data.emergencyProcedures && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>DIAGNOSIS AND TREATMENT</Text>
-              <View style={styles.notes}>
-                <Text>{data.planDetail.notes || 'No treatment plan recorded'}</Text>
-              </View>
-              {data.planDetail.plans && data.planDetail.plans.length > 0 && (
+              <Text style={styles.sectionTitle}>EMERGENCY PROCEDURES</Text>
+              <View style={styles.criticalAlert}>
                 <View style={styles.row}>
-                  <Text style={styles.label}>Plans:</Text>
-                  <Text style={styles.value}>{data.planDetail.plans.map((p: any) => p.name).join(', ')}</Text>
+                  <Text style={styles.label}>Procedure Time:</Text>
+                  <Text style={styles.value}>{data.emergencyProcedures.procedureTime ? formatDate(data.emergencyProcedures.procedureTime) : 'N/A'}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Performed By:</Text>
+                  <Text style={styles.value}>{data.emergencyProcedures.performedBy || 'N/A'}</Text>
+                </View>
+                {data.emergencyProcedures.ivCatheterPlacement && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>IV Catheter:</Text>
+                    <Text style={styles.value}>Placed</Text>
+                  </View>
+                )}
+                {data.emergencyProcedures.oxygenTherapy && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Oxygen Therapy:</Text>
+                    <Text style={styles.value}>Administered</Text>
+                  </View>
+                )}
+                {data.emergencyProcedures.fluidsType && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Fluids:</Text>
+                    <Text style={styles.value}>{data.emergencyProcedures.fluidsType} - {data.emergencyProcedures.fluidsVolumeMl}ml at {data.emergencyProcedures.fluidsRateMlHr}ml/hr</Text>
+                  </View>
+                )}
+              </View>
+              {data.emergencyProcedures.medications && data.emergencyProcedures.medications.length > 0 && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Medications Given:</Text>
+                  {data.emergencyProcedures.medications.map((med: any, index: number) => (
+                    <Text key={index}>• {med.name} - {med.dose} ({med.route}) at {formatTime(med.time)}</Text>
+                  ))}
                 </View>
               )}
-            </View>
-          )}
-
-          {/* Procedures Performed */}
-          {data.procedureDetail && data.procedureDetail.procedures && data.procedureDetail.procedures.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>PROCEDURES PERFORMED</Text>
-              {data.procedureDetail.procedures.map((procedure: any, index: number) => (
-                <View key={index} style={styles.prescriptionItem}>
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Procedure:</Text>
-                    <Text style={styles.value}>{procedure.name || 'N/A'}</Text>
-                  </View>
+              {data.emergencyProcedures.responseToTreatment && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Response to Treatment:</Text>
+                  <Text>{data.emergencyProcedures.responseToTreatment}</Text>
                 </View>
-              ))}
-              {data.procedureDetail.notes && (
+              )}
+              {data.emergencyProcedures.notes && (
                 <View style={styles.notes}>
                   <Text style={styles.label}>Notes:</Text>
-                  <Text>{data.procedureDetail.notes}</Text>
+                  <Text>{data.emergencyProcedures.notes}</Text>
                 </View>
               )}
             </View>
           )}
 
-          {/* Medications */}
-          {data.prescriptionDetail && data.prescriptionDetail.productMappings && data.prescriptionDetail.productMappings.length > 0 && (
+          {/* Discharge Information */}
+          {data.emergencyDischarges && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>MEDICATIONS</Text>
-              {data.prescriptionDetail.productMappings.map((prescription: any, index: number) => (
+              <Text style={styles.sectionTitle}>DISCHARGE INFORMATION</Text>
+              <View style={styles.criticalAlert}>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Discharge Status:</Text>
+                  <Text style={styles.value}>{data.emergencyDischarges.dischargeStatus || 'N/A'}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Discharge Time:</Text>
+                  <Text style={styles.value}>{data.emergencyDischarges.dischargeTime ? formatDate(data.emergencyDischarges.dischargeTime) : 'N/A'}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Responsible Clinician:</Text>
+                  <Text style={styles.value}>{data.emergencyDischarges.responsibleClinician || 'N/A'}</Text>
+                </View>
+              </View>
+              {data.emergencyDischarges.dischargeSummary && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Discharge Summary:</Text>
+                  <Text>{data.emergencyDischarges.dischargeSummary}</Text>
+                </View>
+              )}
+              {data.emergencyDischarges.homeCareInstructions && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Home Care Instructions:</Text>
+                  <Text>{data.emergencyDischarges.homeCareInstructions}</Text>
+                </View>
+              )}
+              {data.emergencyDischarges.followupInstructions && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Follow-up Instructions:</Text>
+                  <Text>{data.emergencyDischarges.followupInstructions}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Prescriptions */}
+          {data.emergencyDischarges?.prescriptions && data.emergencyDischarges.prescriptions.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>PRESCRIPTIONS</Text>
+              {data.emergencyDischarges.prescriptions.map((prescription: any, index: number) => (
                 <View key={index} style={styles.prescriptionItem}>
                   <View style={styles.row}>
                     <Text style={styles.label}>Medication:</Text>
-                    <Text style={styles.value}>{prescription.product?.name || 'N/A'}</Text>
+                    <Text style={styles.value}>{prescription.medicationName || 'N/A'}</Text>
                   </View>
                   <View style={styles.row}>
                     <Text style={styles.label}>Dosage:</Text>
-                    <Text style={styles.value}>{prescription.dosage || 'N/A'}</Text>
+                    <Text style={styles.value}>{prescription.dose || 'N/A'}</Text>
                   </View>
                   <View style={styles.row}>
                     <Text style={styles.label}>Frequency:</Text>
                     <Text style={styles.value}>{prescription.frequency || 'N/A'}</Text>
                   </View>
                   <View style={styles.row}>
-                    <Text style={styles.label}>Quantity:</Text>
-                    <Text style={styles.value}>{prescription.quantity || 'N/A'}</Text>
+                    <Text style={styles.label}>Duration:</Text>
+                    <Text style={styles.value}>{prescription.duration || 'N/A'}</Text>
                   </View>
                 </View>
               ))}
-              {data.prescriptionDetail.notes && (
-                <View style={styles.notes}>
-                  <Text style={styles.label}>Notes:</Text>
-                  <Text>{data.prescriptionDetail.notes}</Text>
-                </View>
-              )}
             </View>
           )}
 
@@ -546,6 +617,12 @@ export default function DischargeSummarySheet({
                   </div>
                   <div>
                     <span className="font-medium">Clinic:</span> {dischargeData.clinic?.name}
+                  </div>
+                  <div>
+                    <span className="font-medium">Discharge Status:</span> {dischargeData.emergencyDischarges?.dischargeStatus || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Triage Level:</span> {dischargeData.emergencyTriage?.triageLevel || 'N/A'}
                   </div>
                 </div>
               </div>

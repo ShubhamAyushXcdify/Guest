@@ -238,7 +238,7 @@ export default function DischargeSummarySheet({
               </View>
               <View style={styles.gridItem}>
                 <Text style={styles.label}>Weight:</Text>
-                <Text style={styles.value}>{data.intakeDetail?.weightKg || 'N/A'} kg</Text>
+                <Text style={styles.value}>{data.surgeryPreOp?.weightKg || 'N/A'} kg</Text>
               </View>
             </View>
           </View>
@@ -266,27 +266,76 @@ export default function DischargeSummarySheet({
             </View>
           </View>
 
+          {/* Pre-Operative Information */}
+          {data.surgeryPreOp && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>PRE-OPERATIVE ASSESSMENT</Text>
+              <View style={styles.surgeryDetails}>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Weight:</Text>
+                  <Text style={styles.value}>{data.surgeryPreOp.weightKg} kg</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Anesthesia Risk:</Text>
+                  <Text style={styles.value}>{data.surgeryPreOp.anesthesiaRiskAssessment || 'N/A'}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Fasting Status:</Text>
+                  <Text style={styles.value}>{data.surgeryPreOp.fastingStatus || 'N/A'}</Text>
+                </View>
+                {data.surgeryPreOp.preOpBloodworkResults && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Bloodwork Results:</Text>
+                    <Text style={styles.value}>{data.surgeryPreOp.preOpBloodworkResults}</Text>
+                  </View>
+                )}
+                {data.surgeryPreOp.preOpMedications && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Pre-Op Medications:</Text>
+                    <Text style={styles.value}>{data.surgeryPreOp.preOpMedications}</Text>
+                  </View>
+                )}
+              </View>
+              {data.surgeryPreOp.notes && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Notes:</Text>
+                  <Text>{data.surgeryPreOp.notes}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Surgery Information */}
           {data.surgeryDetail && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>SURGERY INFORMATION</Text>
               <View style={styles.surgeryDetails}>
                 <View style={styles.row}>
-                  <Text style={styles.label}>Procedure:</Text>
-                  <Text style={styles.value}>{data.surgeryDetail.procedureName || 'N/A'}</Text>
-                </View>
-                <View style={styles.row}>
-                  <Text style={styles.label}>Date Performed:</Text>
-                  <Text style={styles.value}>{data.surgeryDetail.datePerformed ? formatDate(data.surgeryDetail.datePerformed) : 'N/A'}</Text>
+                  <Text style={styles.label}>Surgery Type:</Text>
+                  <Text style={styles.value}>{data.surgeryDetail.surgeryType || 'N/A'}</Text>
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.label}>Surgeon:</Text>
-                  <Text style={styles.value}>Dr. {data.veterinarian?.firstName || ''} {data.veterinarian?.lastName || ''}</Text>
+                  <Text style={styles.value}>{data.surgeryDetail.surgeon || 'N/A'}</Text>
                 </View>
                 <View style={styles.row}>
-                  <Text style={styles.label}>Anesthesia Used:</Text>
-                  <Text style={styles.value}>{data.surgeryDetail.anesthesiaUsed || 'N/A'}</Text>
+                  <Text style={styles.label}>Anesthesiologist:</Text>
+                  <Text style={styles.value}>{data.surgeryDetail.anesthesiologist || 'N/A'}</Text>
                 </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Surgery Start:</Text>
+                  <Text style={styles.value}>{data.surgeryDetail.surgeryStartTime ? formatDate(data.surgeryDetail.surgeryStartTime) + ' ' + formatTime(data.surgeryDetail.surgeryStartTime) : 'N/A'}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Surgery End:</Text>
+                  <Text style={styles.value}>{data.surgeryDetail.surgeryEndTime ? formatDate(data.surgeryDetail.surgeryEndTime) + ' ' + formatTime(data.surgeryDetail.surgeryEndTime) : 'N/A'}</Text>
+                </View>
+                {data.surgeryDetail.anesthesiaProtocol && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Anesthesia Protocol:</Text>
+                    <Text style={styles.value}>{data.surgeryDetail.anesthesiaProtocol}</Text>
+                  </View>
+                )}
                 {data.surgeryDetail.surgicalFindings && (
                   <View style={styles.row}>
                     <Text style={styles.label}>Surgical Findings:</Text>
@@ -309,71 +358,77 @@ export default function DischargeSummarySheet({
             </View>
           )}
 
-          {/* Vital Signs */}
-          {data.vitalDetail && (
+          {/* Post-Operative Information */}
+          {data.surgeryPostOp && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>VITAL SIGNS AT DISCHARGE</Text>
-              <View style={styles.vitalSigns}>
-                <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Temperature:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.temperatureC}°C</Text>
+              <Text style={styles.sectionTitle}>POST-OPERATIVE ASSESSMENT</Text>
+              <View style={styles.surgeryDetails}>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Recovery Status:</Text>
+                  <Text style={styles.value}>{data.surgeryPostOp.recoveryStatus || 'N/A'}</Text>
                 </View>
-                <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Heart Rate:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.heartRateBpm} bpm</Text>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Pain Assessment:</Text>
+                  <Text style={styles.value}>{data.surgeryPostOp.painAssessment || 'N/A'}</Text>
                 </View>
-                <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Respiratory Rate:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.respiratoryRateBpm} bpm</Text>
-                </View>
-                <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Mucous Membrane:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.mucousMembraneColor || 'N/A'}</Text>
-                </View>
-                <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Capillary Refill:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.capillaryRefillTimeSec} sec</Text>
-                </View>
-                <View style={styles.vitalItem}>
-                  <Text style={styles.label}>Hydration:</Text>
-                  <Text style={styles.value}>{data.vitalDetail.hydrationStatus || 'N/A'}</Text>
-                </View>
+                {data.surgeryPostOp.vitalSigns && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Vital Signs:</Text>
+                    <Text style={styles.value}>{data.surgeryPostOp.vitalSigns}</Text>
+                  </View>
+                )}
+                {data.surgeryPostOp.postOpMedications && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Post-Op Medications:</Text>
+                    <Text style={styles.value}>{data.surgeryPostOp.postOpMedications}</Text>
+                  </View>
+                )}
+                {data.surgeryPostOp.woundCare && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Wound Care:</Text>
+                    <Text style={styles.value}>{data.surgeryPostOp.woundCare}</Text>
+                  </View>
+                )}
               </View>
+              {data.surgeryPostOp.notes && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Notes:</Text>
+                  <Text>{data.surgeryPostOp.notes}</Text>
+                </View>
+              )}
             </View>
           )}
 
-          {/* Medications */}
-          {data.prescriptionDetail && data.prescriptionDetail.productMappings && data.prescriptionDetail.productMappings.length > 0 && (
+          {/* Discharge Information */}
+          {data.surgeryDischarge && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>MEDICATIONS</Text>
-              {data.prescriptionDetail.productMappings.map((prescription: any, index: number) => (
-                <View key={index} style={styles.prescriptionItem}>
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Medication:</Text>
-                    <Text style={styles.value}>{prescription.product?.name || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Dosage:</Text>
-                    <Text style={styles.value}>{prescription.dosage || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Frequency:</Text>
-                    <Text style={styles.value}>{prescription.frequency || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Duration:</Text>
-                    <Text style={styles.value}>{prescription.duration || 'N/A'}</Text>
-                  </View>
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Quantity:</Text>
-                    <Text style={styles.value}>{prescription.quantity || 'N/A'}</Text>
-                  </View>
+              <Text style={styles.sectionTitle}>DISCHARGE INFORMATION</Text>
+              <View style={styles.surgeryDetails}>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Discharge Status:</Text>
+                  <Text style={styles.value}>{data.surgeryDischarge.dischargeStatus || 'N/A'}</Text>
                 </View>
-              ))}
-              {data.prescriptionDetail.notes && (
+                <View style={styles.row}>
+                  <Text style={styles.label}>Discharge Date/Time:</Text>
+                  <Text style={styles.value}>{data.surgeryDischarge.dischargeDatetime ? formatDate(data.surgeryDischarge.dischargeDatetime) + ' ' + formatTime(data.surgeryDischarge.dischargeDatetime) : 'N/A'}</Text>
+                </View>
+              </View>
+              {data.surgeryDischarge.homeCareInstructions && (
                 <View style={styles.notes}>
-                  <Text style={styles.label}>Notes:</Text>
-                  <Text>{data.prescriptionDetail.notes}</Text>
+                  <Text style={styles.label}>Home Care Instructions:</Text>
+                  <Text>{data.surgeryDischarge.homeCareInstructions}</Text>
+                </View>
+              )}
+              {data.surgeryDischarge.medicationsToGoHome && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Medications to Go Home:</Text>
+                  <Text>{data.surgeryDischarge.medicationsToGoHome}</Text>
+                </View>
+              )}
+              {data.surgeryDischarge.followUpInstructions && (
+                <View style={styles.notes}>
+                  <Text style={styles.label}>Follow-up Instructions:</Text>
+                  <Text>{data.surgeryDischarge.followUpInstructions}</Text>
                 </View>
               )}
             </View>
@@ -532,6 +587,12 @@ export default function DischargeSummarySheet({
                   </div>
                   <div>
                     <span className="font-medium">Clinic:</span> {dischargeData.clinic?.name}
+                  </div>
+                  <div>
+                    <span className="font-medium">Surgery Type:</span> {dischargeData.surgeryDetail?.surgeryType || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Discharge Status:</span> {dischargeData.surgeryDischarge?.dischargeStatus || 'N/A'}
                   </div>
                 </div>
               </div>

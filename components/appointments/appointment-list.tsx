@@ -65,6 +65,7 @@ export default function AppointmentList({
   const [searchQuery, setSearchQuery] = useState("")
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
   // Ref to track if dates have been initialized
@@ -590,6 +591,7 @@ export default function AppointmentList({
                   className="theme-button-outline"
                   onClick={() => {
                     setSelectedAppointmentId(row.original.id.toString())
+                    setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
                     setDischargeSummaryOpen(true)
                   }}
                 >
@@ -773,8 +775,10 @@ export default function AppointmentList({
           onClose={() => {
             setDischargeSummaryOpen(false)
             setSelectedAppointmentId(null)
+            setSelectedAppointmentType(null)
           }}
           appointmentId={selectedAppointmentId}
+          appointmentType={selectedAppointmentType || undefined}
         />
       )}
 
