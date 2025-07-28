@@ -763,32 +763,38 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                         ) : (
                                           <ul>
                                             {typedSearchResults.map((patient) => {
-                                              // Determine the display name
-                                              // Different possible structures for patient name in the API response
+                                              // Get the client name first
+                                              let clientName = '';
                                               
-                                              // Direct name property (some API responses)
-                                              let displayName = '';
+                                              if (patient.client) {
+                                                clientName = `${patient.client.firstName || ''} ${patient.client.lastName || ''}`.trim();
+                                              } else if (patient.clientFirstName || patient.clientLastName) {
+                                                clientName = `${patient.clientFirstName || ''} ${patient.clientLastName || ''}`.trim();
+                                              }
+
+                                              // Get the patient name
+                                              let patientName = '';
                                               
                                               if (patient.name) {
-                                                displayName = patient.name;
+                                                patientName = patient.name;
                                               } 
-                                              // Animal patient (may have species)
                                               else if (patient.patientId) {
-                                                displayName = patient.patientId;
+                                                patientName = patient.patientId;
                                                 if (patient.species) {
-                                                  displayName += ` (${patient.species})`;
+                                                  patientName += ` (${patient.species})`;
                                                 }
                                               }
-                                              // Human patient with first/last name
                                               else if (patient.firstName || patient.lastName) {
-                                                displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                                                patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
                                               }
                                               
-                                              // If we still don't have a display name, use the ID as last resort
-                                              if (!displayName) {
-                                                console.warn('No name found for patient:', patient);
-                                                displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+                                              // If we still don't have a patient name, use the ID as last resort
+                                              if (!patientName) {
+                                                patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
                                               }
+                                              
+                                              // Combine client and patient names in the format {clients name}-{patients name}
+                                              const displayName = clientName ? `${clientName}-${patientName}` : patientName;
                                               
                                               return (
                                                 <li
@@ -797,11 +803,6 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                                   onClick={() => handlePatientSelect(patient)}
                                                 >
                                                   <div className="font-medium">{displayName}</div>
-                                                  {patient.client && (
-                                                    <div className="text-sm text-gray-500">
-                                                      Owner: {patient.client.firstName || ''} {patient.client.lastName || ''}
-                                                    </div>
-                                                  )}
                                                 </li>
                                               );
                                             })}
