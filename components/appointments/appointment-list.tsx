@@ -571,9 +571,18 @@ export default function AppointmentList({
           )}
           {row.original.status === "completed" && (
             <>
-              {/* Show discharge summary for consultation appointments or if appointment type is not available */}
+              {/* Show discharge summary for consultation, surgery, emergency, deworming appointments or if appointment type is not available */}
               {(row.original.appointmentType?.name?.toLowerCase().includes('consultation') || 
-                (typeof row.original.appointmentType === 'string' && row.original.appointmentType.toLowerCase().includes('consultation')) ||
+                row.original.appointmentType?.name?.toLowerCase().includes('surgery') ||
+                row.original.appointmentType?.name?.toLowerCase().includes('emergency') ||
+                row.original.appointmentType?.name?.toLowerCase().includes('deworming') ||
+                (typeof row.original.appointmentType === 'string' && 
+                  (row.original.appointmentType.toLowerCase().includes('consultation') ||
+                   row.original.appointmentType.toLowerCase().includes('surgery') ||
+                   row.original.appointmentType.toLowerCase().includes('emergency') ||
+                   row.original.appointmentType.toLowerCase().includes('deworming')
+                  )
+                ) ||
                 !row.original.appointmentType) && (
                 <Button 
                   variant="outline" 
