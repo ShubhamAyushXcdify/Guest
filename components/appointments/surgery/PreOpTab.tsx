@@ -6,6 +6,9 @@ import { useGetSurgeryPreOpByVisitId } from "@/queries/surgery/preop/get-surgery
 import { useCreateSurgeryPreOp } from "@/queries/surgery/preop/create-surgery-preop";
 import { useUpdateSurgeryPreOp } from "@/queries/surgery/preop/update-surgery-preop";
 import { toast } from "sonner";
+import { useSurgeryTabCompletion } from "./index";
+import { Card, CardContent } from "@/components/ui/card";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 
 interface PreOpTabProps {
   patientId: string;
@@ -28,6 +31,9 @@ export default function PreOpTab({ patientId, appointmentId }: PreOpTabProps) {
   const { data: preOpData, refetch } = useGetSurgeryPreOpByVisitId(visitData?.id || "", !!visitData?.id);
   const createPreOp = useCreateSurgeryPreOp();
   const updatePreOp = useUpdateSurgeryPreOp();
+  const { markTabAsCompleted } = useSurgeryTabCompletion();
+  const { data: appointmentData } = useGetAppointmentById(appointmentId);
+  const isReadOnly = appointmentData?.status === "completed";
 
   useEffect(() => {
     if (preOpData && preOpData.length > 0) {
@@ -66,6 +72,7 @@ export default function PreOpTab({ patientId, appointmentId }: PreOpTabProps) {
         toast.success("Pre-op record saved successfully");
       }
       await refetch();
+      markTabAsCompleted("pre-op");
     } catch (e: any) {
       toast.error(e.message || "Failed to save pre-op record");
     } finally {
@@ -74,74 +81,84 @@ export default function PreOpTab({ patientId, appointmentId }: PreOpTabProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block font-medium mb-1">Weight (kg)</label>
-        <Input
-          type="number"
-          step="0.01"
-          value={weight}
-          onChange={e => setWeight(e.target.value)}
-          placeholder="Enter weight in kg"
-        />
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Pre-op Bloodwork Results</label>
-        <Textarea
-          value={bloodwork}
-          onChange={e => setBloodwork(e.target.value)}
-          placeholder="Enter bloodwork results and any abnormalities"
-        />
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Anesthesia Risk Assessment</label>
-        <select
-          className="border rounded px-2 py-1 w-full"
-          value={riskLevel}
-          onChange={e => setRiskLevel(e.target.value)}
-        >
-          {riskLevels.map(level => (
-            <option key={level} value={level}>{level}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Fasting Status</label>
-        <select
-          className="border rounded px-2 py-1 w-full"
-          value={fasting}
-          onChange={e => setFasting(e.target.value)}
-        >
-          {fastingStatus.map(status => (
-            <option key={status} value={status}>{status}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Pre-op Medications</label>
-        <Textarea
-          value={medications}
-          onChange={e => setMedications(e.target.value)}
-          placeholder="List any pre-operative medications given"
-        />
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Notes</label>
-        <Textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Additional pre-operative notes"
-        />
-      </div>
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          {preOpData && preOpData.length > 0 ? "Update" : "Save"}
-        </button>
-      </div>
-    </div>
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          <div>
+            <label className="block font-medium mb-1">Weight (kg)</label>
+            <Input
+              type="number"
+              step="0.01"
+              value={weight}
+              onChange={e => setWeight(e.target.value)}
+              placeholder="Enter weight in kg"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Pre-op Bloodwork Results</label>
+            <Textarea
+              value={bloodwork}
+              onChange={e => setBloodwork(e.target.value)}
+              placeholder="Enter bloodwork results and any abnormalities"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Anesthesia Risk Assessment</label>
+            <select
+              className="border rounded px-2 py-1 w-full"
+              value={riskLevel}
+              onChange={e => setRiskLevel(e.target.value)}
+              disabled={isReadOnly}
+            >
+              {riskLevels.map(level => (
+                <option key={level} value={level}>{level}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Fasting Status</label>
+            <select
+              className="border rounded px-2 py-1 w-full"
+              value={fasting}
+              onChange={e => setFasting(e.target.value)}
+              disabled={isReadOnly}
+            >
+              {fastingStatus.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Pre-op Medications</label>
+            <Textarea
+              value={medications}
+              onChange={e => setMedications(e.target.value)}
+              placeholder="List any pre-operative medications given"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Notes</label>
+            <Textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Additional pre-operative notes"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || isReadOnly}
+              className="bg-black text-white px-4 py-2 rounded"
+            >
+              {preOpData && preOpData.length > 0 ? "Update" : "Save"}
+            </button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 } 

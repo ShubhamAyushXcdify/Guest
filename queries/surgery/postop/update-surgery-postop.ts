@@ -6,7 +6,7 @@ interface UpdateSurgeryPostOpData extends Partial<Omit<SurgeryPostOp, 'createdAt
 }
 
 const updateSurgeryPostOp = async (data: UpdateSurgeryPostOpData): Promise<SurgeryPostOp> => {
-  const { id, ...updateData } = data;
+  const { id,  } = data;
   if (!id) {
     throw new Error("PostOp ID is required");
   }
@@ -15,7 +15,7 @@ const updateSurgeryPostOp = async (data: UpdateSurgeryPostOpData): Promise<Surge
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(updateData),
+    body: JSON.stringify(data),
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

@@ -6,6 +6,9 @@ import { useGetSurgeryPostOpByVisitId } from "@/queries/surgery/postop/get-surge
 import { useCreateSurgeryPostOp } from "@/queries/surgery/postop/create-surgery-postop";
 import { useUpdateSurgeryPostOp } from "@/queries/surgery/postop/update-surgery-postop";
 import { toast } from "sonner";
+import { useSurgeryTabCompletion } from "./index";
+import { Card, CardContent } from "@/components/ui/card";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 
 interface PostOpTabProps {
   patientId: string;
@@ -28,6 +31,9 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
   const { data: postOpData, refetch } = useGetSurgeryPostOpByVisitId(visitData?.id || "", !!visitData?.id);
   const createPostOp = useCreateSurgeryPostOp();
   const updatePostOp = useUpdateSurgeryPostOp();
+  const { markTabAsCompleted } = useSurgeryTabCompletion();
+  const { data: appointmentData } = useGetAppointmentById(appointmentId);
+  const isReadOnly = appointmentData?.status === "completed";
 
   useEffect(() => {
     if (postOpData && postOpData.length > 0) {
@@ -66,6 +72,7 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
         toast.success("Post-op record saved successfully");
       }
       await refetch();
+      markTabAsCompleted("post-op");
     } catch (e: any) {
       toast.error(e.message || "Failed to save post-op record");
     } finally {
@@ -74,72 +81,82 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block font-medium mb-1">Recovery Status</label>
-        <select
-          className="border rounded px-2 py-1 w-full"
-          value={recovery}
-          onChange={e => setRecovery(e.target.value)}
-        >
-          {recoveryStatus.map(status => (
-            <option key={status} value={status}>{status}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Pain Assessment</label>
-        <select
-          className="border rounded px-2 py-1 w-full"
-          value={painLevel}
-          onChange={e => setPainLevel(e.target.value)}
-        >
-          {painLevels.map(level => (
-            <option key={level} value={level}>{level}</option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Vital Signs</label>
-        <Textarea
-          value={vitalSigns}
-          onChange={e => setVitalSigns(e.target.value)}
-          placeholder="Heart rate, respiratory rate, temperature, etc."
-        />
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Post-op Medications</label>
-        <Textarea
-          value={medications}
-          onChange={e => setMedications(e.target.value)}
-          placeholder="List medications given post-operatively"
-        />
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Wound Care</label>
-        <Textarea
-          value={woundCare}
-          onChange={e => setWoundCare(e.target.value)}
-          placeholder="Describe wound care instructions and status"
-        />
-      </div>
-      <div>
-        <label className="block font-medium mb-1">Notes</label>
-        <Textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Additional post-operative notes"
-        />
-      </div>
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          {postOpData && postOpData.length > 0 ? "Update" : "Save"}
-        </button>
-      </div>
-    </div>
+    <Card>
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          <div>
+            <label className="block font-medium mb-1">Recovery Status</label>
+            <select
+              className="border rounded px-2 py-1 w-full"
+              value={recovery}
+              onChange={e => setRecovery(e.target.value)}
+              disabled={isReadOnly}
+            >
+              {recoveryStatus.map(status => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Pain Assessment</label>
+            <select
+              className="border rounded px-2 py-1 w-full"
+              value={painLevel}
+              onChange={e => setPainLevel(e.target.value)}
+              disabled={isReadOnly}
+            >
+              {painLevels.map(level => (
+                <option key={level} value={level}>{level}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Vital Signs</label>
+            <Textarea
+              value={vitalSigns}
+              onChange={e => setVitalSigns(e.target.value)}
+              placeholder="Heart rate, respiratory rate, temperature, etc."
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Post-op Medications</label>
+            <Textarea
+              value={medications}
+              onChange={e => setMedications(e.target.value)}
+              placeholder="List medications given post-operatively"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Wound Care</label>
+            <Textarea
+              value={woundCare}
+              onChange={e => setWoundCare(e.target.value)}
+              placeholder="Describe wound care instructions and status"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Notes</label>
+            <Textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="Additional post-operative notes"
+              disabled={isReadOnly}
+            />
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || isReadOnly}
+              className="bg-black text-white px-4 py-2 rounded"
+            >
+              {postOpData && postOpData.length > 0 ? "Update" : "Save"}
+            </button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 } 
