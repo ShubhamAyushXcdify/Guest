@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil, XIcon } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
@@ -21,6 +21,7 @@ import { User } from "@/hooks/useContentLayout"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 import { useGetUsers, User as ApiUser } from "@/queries/users/get-users"
 import { usePathname, useSearchParams } from "next/navigation"
+import DischargeSummarySheet from "./discharge-summary-sheet"
 
 // Extended API user type with clinicId
 interface ExtendedUser extends ApiUser {
@@ -62,6 +63,8 @@ export default function AppointmentList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
   // Ref to track if dates have been initialized
@@ -204,6 +207,16 @@ export default function AppointmentList({
 
   // Use the enriched appointments directly and filter in the frontend
   const filteredAppointments = useMemo(() => {
+    // Debug: Log appointment types for completed appointments
+    const completedAppointments = enrichedAppointments.filter(a => a.status === "completed");
+    if (completedAppointments.length > 0) {
+      console.log('Completed appointments with types:', completedAppointments.map(a => ({
+        id: a.id,
+        appointmentType: a.appointmentType,
+        appointmentTypeName: a.appointmentType?.name
+      })));
+    }
+
     // First filter out any appointments with status "requested"
     let filtered = enrichedAppointments.filter(a => a.status !== "requested");
 
@@ -556,10 +569,26 @@ export default function AppointmentList({
               SOAP
             </Button>
           )}
-          {row.original.status === "Completed" && (
-            <Button variant="outline" size="sm" className="theme-button-outline">
-              SOAP
-            </Button>
+          {row.original.status === "completed" && (
+            <>
+              {/* Show discharge summary for consultation appointments or if appointment type is not available */}
+              {(row.original.appointmentType?.name?.toLowerCase().includes('consultation') || 
+                (typeof row.original.appointmentType === 'string' && row.original.appointmentType.toLowerCase().includes('consultation')) ||
+                !row.original.appointmentType) && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="theme-button-outline"
+                  onClick={() => {
+                    setSelectedAppointmentId(row.original.id.toString())
+                    setDischargeSummaryOpen(true)
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  Print Discharge Summary
+                </Button>
+              )}
+            </>
           )}
         </div>
       ),
@@ -727,6 +756,18 @@ export default function AppointmentList({
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />
+
+      {/* Discharge Summary Sheet */}
+      {selectedAppointmentId && (
+        <DischargeSummarySheet
+          isOpen={dischargeSummaryOpen}
+          onClose={() => {
+            setDischargeSummaryOpen(false)
+            setSelectedAppointmentId(null)
+          }}
+          appointmentId={selectedAppointmentId}
+        />
+      )}
 
     </div>
   )
