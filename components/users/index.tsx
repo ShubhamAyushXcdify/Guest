@@ -29,10 +29,35 @@ export type User = {
   roleId: string; 
   roleName: string;
   clinicId?: string;
+  clinicName?: string;
+  clinic?: {
+    id: string;
+    name: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    website?: string;
+    taxId: string;
+    licenseNumber: string;
+    subscriptionStatus?: string;
+    subscriptionExpiresAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    location?: {
+      lat: number;
+      lng: number;
+      address: string;
+    };
+  };
   isActive: boolean;
-  lastLogin?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  lastLogin: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
 export default function Users() {
@@ -97,6 +122,28 @@ export default function Users() {
     }
     return colors;
   }, [rolesData]);
+
+  // Generate random colors for clinics
+  const clinicColors = React.useMemo(() => {
+    const colors: { [key: string]: string } = {};
+    const predefinedColors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
+      '#F9E79F', '#ABEBC6', '#FAD7A0', '#AED6F1', '#D5A6BD'
+    ];
+    
+    if (usersData?.items) {
+      usersData.items.forEach((user: User) => {
+        const clinicName = user.clinic?.name || user.clinicName;
+        if (clinicName && !colors[clinicName]) {
+          const randomIndex = Math.floor(Math.random() * predefinedColors.length);
+          colors[clinicName] = predefinedColors[randomIndex];
+        }
+      });
+    }
+    return colors;
+  }, [usersData?.items]);
 
   const [openNew, setOpenNew] = useState(false);
   const [openRole, setOpenRole] = useState(false);
@@ -173,6 +220,25 @@ export default function Users() {
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
+    {
+      accessorKey: "clinic",
+      header: "Clinic",
+      cell: ({ row }) => {
+        const clinicName = row.original.clinic?.name || row.original.clinicName || "No Clinic Assigned";
+        const colorValue = clinicColors[clinicName];
+
+        let badgeProps: BadgeProps = {};
+
+        if (colorValue && clinicName !== "No Clinic Assigned") {
+          badgeProps.style = { backgroundColor: colorValue };
+        } else {
+          // Fallback to default color for "No Clinic Assigned"
+          badgeProps.style = { backgroundColor: "#999999" };
+        }
+
+        return <Badge {...badgeProps}>{clinicName}</Badge>;
+      },
+    },
     {
       accessorKey: "role",
       header: "Role",
