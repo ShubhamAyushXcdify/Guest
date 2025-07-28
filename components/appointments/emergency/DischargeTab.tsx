@@ -106,6 +106,26 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
     );
   };
 
+  // Add this function to check if all emergency tabs are completed
+  const areAllEmergencyTabsCompleted = () => {
+    if (!visitData) return false;
+    
+    // Cast visitData to access emergency completion properties
+    const visit = visitData as unknown as {
+      isEmergencyTriageCompleted?: boolean;
+      isEmergencyVitalCompleted?: boolean;
+      isEmergencyProcedureCompleted?: boolean;
+      isEmergencyDischargeCompleted?: boolean;
+    };
+    
+    return (
+      visit.isEmergencyTriageCompleted &&
+      visit.isEmergencyVitalCompleted &&
+      visit.isEmergencyProcedureCompleted &&
+      isDischargeComplete() // Current discharge tab completion
+    );
+  };
+
   const handleAddMedication = () => {
     if (medicationRow.name && medicationRow.dose && medicationRow.frequency && medicationRow.duration) {
       setMedications([...medications, medicationRow]);
@@ -311,10 +331,10 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isSubmitting || visitLoading}
+                disabled={isSubmitting || visitLoading || !areAllEmergencyTabsCompleted()}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
-                Checkout
+                {isSubmitting ? "Processing..." : "Checkout"}
               </Button>
         </div>
       </CardContent>
