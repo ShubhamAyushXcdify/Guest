@@ -13,6 +13,7 @@ interface UpdateEmergencyVisitData {
   presentingComplaint?: string;
   initialNotes?: string;
   visitId?: string;
+  isComplete?: boolean;
 }
 
 export const useUpdateEmergencyVisit = () => {

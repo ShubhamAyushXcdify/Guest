@@ -8,12 +8,29 @@ import EmergencyVitalsTab from "./EmergencyVitalsTab";
 import EmergencyProceduresTab from "./EmergencyProceduresTab";
 import DischargeTab from "./DischargeTab";
 import NewAppointment from "../newAppointment";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
+
+
+
+
 
 interface EmergencyComponentProps {
   patientId: string;
   appointmentId: string;
   onClose: () => void;
 }
+
+interface EmergencyVisitDetail {
+  isEmergencyTriageCompleted: boolean;
+  isEmergencyVitalCompleted: boolean;
+  isEmergencyProcedureCompleted: boolean;
+  isEmergencyDischargeCompleted: boolean; 
+  isComplete: boolean; 
+  
+}
+
+
 
 const tabOrder = [
   { id: "triage", label: "Triage" },
@@ -22,12 +39,36 @@ const tabOrder = [
   { id: "discharge", label: "Discharge" },
 ];
 
-export default function EmergencyComponent({ patientId, appointmentId, onClose }: EmergencyComponentProps) {
+export default function EmergencyComponent({ patientId, appointmentId, onClose }: EmergencyComponentProps) { 
   const [activeTab, setActiveTab] = useState(tabOrder[0].id);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
 
+const { data: appointment } = useGetAppointmentById(appointmentId)
+const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
+console.log("visitData:", visitData);
+console.log("visitData keys:", visitData ? Object.keys(visitData) : "no data");
+
+
   // Placeholder completion logic (replace with real logic later)
-  const isTabCompleted = (tabId: string) => false;
+const isTabCompleted = (tabId: string) => {
+  if (!visitData) return false;
+
+  const visit = visitData as unknown as EmergencyVisitDetail;
+
+  switch (tabId) {
+    case "triage":
+      return visit.isEmergencyTriageCompleted || false;
+    case "emergency-vitals":
+      return visit.isEmergencyVitalCompleted || false;
+    case "emergency-procedures":
+      return visit.isEmergencyProcedureCompleted || false;
+    case "discharge":
+      return visit.isEmergencyDischargeCompleted || false;
+    default:
+      return false;
+  }
+};
+
 
   const navigateToNextTab = () => {
     const currentIndex = tabOrder.findIndex(tab => tab.id === activeTab);

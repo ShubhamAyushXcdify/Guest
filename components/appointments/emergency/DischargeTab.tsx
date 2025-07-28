@@ -94,6 +94,18 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
     }
   }, [dischargeData]);
 
+  const isDischargeComplete = (): boolean => {
+    return (
+      status.trim() !== "" &&
+      dischargeTime.trim() !== "" &&
+      clinician.trim() !== "" &&
+      summary.trim() !== "" &&
+      instructions.trim() !== "" &&
+      followUp.trim() !== "" &&
+      confirmed
+    );
+  };
+
   const handleAddMedication = () => {
     if (medicationRow.name && medicationRow.dose && medicationRow.frequency && medicationRow.duration) {
       setMedications([...medications, medicationRow]);
@@ -117,7 +129,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
         homeCareInstructions: instructions,
         followupInstructions: followUp,
         reviewedWithClient: confirmed,
-        isCompleted: true,
+        isCompleted: isDischargeComplete(),
         prescriptions: (medications.map(med => ({
           visitId: visitData.id,
           medicationName: med.name,
@@ -155,7 +167,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
         homeCareInstructions: instructions,
         followupInstructions: followUp,
         reviewedWithClient: confirmed,
-        isCompleted: true,
+        isCompleted: isDischargeComplete(),
         prescriptions: (medications.map(med => ({
           visitId: visitData.id,
           medicationName: med.name,

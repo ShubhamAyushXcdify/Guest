@@ -16,6 +16,7 @@ export interface EmergencyVisitDetail {
   createdAt: string;
   updatedAt: string;
   visitId: string;
+  isComplete: boolean;
 }
 
 const getEmergencyVisitByVisitId = async (visitId: string): Promise<EmergencyVisitDetail | null> => {

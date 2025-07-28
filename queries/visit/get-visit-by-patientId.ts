@@ -3,26 +3,26 @@ import { useQuery } from "@tanstack/react-query";
 interface VisitDetail {
   id: string;
   appointmentId: string;
+  patientId: string;
   isIntakeCompleted: boolean;
   isComplaintsCompleted: boolean;
   isMedicalHistoryCompleted: boolean;
+  isVitalsCompleted: boolean;
+  isPlanCompleted: boolean;
+  isProceduresCompleted: boolean;
+  isPrescriptionCompleted: boolean;
+  isVaccinationDetailCompleted: boolean;
+  isEmergencyTriageCompleted: boolean;
+  isEmergencyVitalCompleted: boolean;
+  isEmergencyProcedureCompleted: boolean;
+  isEmergencyDischargeCompleted: boolean;
+  isSurgeryPreOpCompleted: boolean;
+  isSurgeryDetailsCompleted: boolean;
+  isSurgeryPostOpCompleted: boolean;
+  isSurgeryDischargeCompleted: boolean;
   createdAt: string;
   updatedAt: string;
-  intakeDetails?: {
-    id: string;
-    visitId: string;
-    weight?: string;
-    notes?: string;
-    isCompleted: boolean;
-    createdAt: string;
-    updatedAt: string;
-    images?: {
-      id: string;
-      imagePath: string;
-      createdAt: string;
-      updatedAt: string;
-    }[];
-  };
+  
 }
 
 const getVisitBypatientId = async (patientId: string): Promise<VisitDetail> => {
