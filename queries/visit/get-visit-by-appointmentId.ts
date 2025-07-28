@@ -20,6 +20,10 @@ interface VisitDetail {
   isSurgeryDetailsCompleted: boolean;
   isSurgeryPostOpCompleted: boolean;
   isSurgeryDischargeCompleted: boolean;
+  isDewormingIntakeCompleted: boolean;
+  isDewormingMedicationCompleted: boolean;
+  isDewormingNotesCompleted: boolean;
+  isDewormingCheckoutCompleted: boolean;
   createdAt: string;
   updatedAt: string;
  
