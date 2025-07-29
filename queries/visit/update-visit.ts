@@ -4,7 +4,6 @@ interface UpdateVisitData {
   id: string;
   isIntakeCompleted?: boolean;
   isComplaintsCompleted?: boolean;
-  isMedicalHistoryCompleted?: boolean;
 }
 
 export const useUpdateVisit = () => {

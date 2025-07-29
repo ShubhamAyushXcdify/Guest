@@ -5,7 +5,6 @@ interface CreateVisitData {
   patientId: string;
   isIntakeCompleted?: boolean;
   isComplaintsCompleted?: boolean;
-  isMedicalHistoryCompleted?: boolean;
 }
 
 export const useCreateVisit = () => {

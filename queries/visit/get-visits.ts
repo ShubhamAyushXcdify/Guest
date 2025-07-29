@@ -5,7 +5,6 @@ export interface Visit {
   appointmentId: string;
   isIntakeCompleted: boolean;
   isComplaintsCompleted: boolean;
-  isMedicalHistoryCompleted: boolean;
   createdAt: string;
   updatedAt: string;
 }

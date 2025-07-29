@@ -303,7 +303,6 @@ export interface DischargeSummaryConsultation {
   visitUpdatedAt: string;
   isIntakeCompleted: boolean;
   isComplaintsCompleted: boolean;
-  isMedicalHistoryCompleted: boolean;
   isVitalsCompleted: boolean;
   isPlanCompleted: boolean;
   isProceduresCompleted: boolean;
