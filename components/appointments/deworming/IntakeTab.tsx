@@ -6,17 +6,21 @@ import { Button } from "@/components/ui/button";
 import { useCreateDewormingVisit } from "@/queries/deworming/intake/create-deworming-visit";
 import { useUpdateDewormingVisit } from "@/queries/deworming/intake/update-deworming-visit";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
-import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useGetDewormingVisitByVisitId } from "@/queries/deworming/intake/get-deworming-visit-by-visit-id";
+import { DatePicker } from "@/components/ui/datePicker";
 
 interface IntakeTabProps {
   patientId: string;
   appointmentId: string;
+  visitId?: string;
+  onComplete?: (completed: boolean) => void;
+  onNext?: () => void;
+  isCompleted?: boolean;
 }
 
-export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) {
+export default function IntakeTab({ patientId, appointmentId, visitId, onComplete, onNext, isCompleted = false }: IntakeTabProps) {
   const [weight, setWeight] = useState("");
-  const [lastDeworming, setLastDeworming] = useState("");
+  const [lastDeworming, setLastDeworming] = useState<Date | null>(null);
   const [symptoms, setSymptoms] = useState("");
   const [temperature, setTemperature] = useState("");
   const [appetite, setAppetite] = useState("");
@@ -28,16 +32,26 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
 
   const { data: appointmentData } = useGetAppointmentById(appointmentId);
   const isReadOnly = appointmentData?.status === "completed";
-
-  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
-  const { data, isLoading, isError, refetch } = useGetDewormingVisitByVisitId(visitData?.id || '', !!visitData?.id);
+  
+  // Use visitId if available, otherwise fall back to appointmentId
+  const effectiveVisitId = visitId || appointmentId;
+  const { data, isLoading, isError, refetch } = useGetDewormingVisitByVisitId(effectiveVisitId);
   const createMutation = useCreateDewormingVisit();
   const updateMutation = useUpdateDewormingVisit();
+
+  // Notify parent component when data is loaded
+  useEffect(() => {
+    if (data && onComplete) {
+      onComplete(!!data.isCompleted);
+    }
+  }, [data, onComplete]);
 
   useEffect(() => {
     if (data) {
       setWeight(data.weightKg?.toString() || "");
-      setLastDeworming(data.lastDewormingDate || "");
+      if (data.lastDewormingDate) {
+        setLastDeworming(new Date(data.lastDewormingDate));
+      }
       setSymptoms(data.symptomsNotes || "");
       setTemperature(data.temperatureC?.toString() || "");
       setAppetite(data.appetiteFeedingNotes || "");
@@ -50,15 +64,15 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
     setIsSubmitting(true);
     try {
       const payload = {
-        visitId: appointmentId,
+        visitId: effectiveVisitId,
         weightKg: weight ? parseFloat(weight) : undefined,
-        lastDewormingDate: lastDeworming || undefined,
+        lastDewormingDate: lastDeworming ? lastDeworming.toISOString().split('T')[0] : undefined,
         symptomsNotes: symptoms || undefined,
         temperatureC: temperature ? parseFloat(temperature) : undefined,
         appetiteFeedingNotes: appetite || undefined,
         currentMedications: currentMeds || undefined,
         isStoolSampleCollected: sampleCollected,
-        isCompleted: true,
+        isCompleted: true, // Mark as completed
       };
 
       if (data?.id) {
@@ -67,6 +81,14 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
         await createMutation.mutateAsync(payload);
       }
       await refetch();
+      
+      if (onComplete) {
+        onComplete(true);
+      }
+
+      if (onNext) {
+        onNext();
+      }
     } catch (error: any) {
       console.error(error);
     } finally {
@@ -84,13 +106,17 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
     }
   };
 
+  const hasExistingData = !!data?.id;
+
   return (
-    <Card>
+    <Card className="relative">
       <CardContent className="p-6">
         <div className="space-y-4">
-          {/* {isError && (
-            //<div className="text-yellow-600 text-sm">No previous intake found. You can add new intake data below.</div>
-          )} */}
+          {isError && (
+            <div className="p-2 bg-red-50 text-red-600 rounded mb-4">
+              Error loading intake data. You can still create a new record.
+            </div>
+          )}
           
           <div>
             <label className="block font-medium mb-1">Weight (kg)</label>
@@ -105,10 +131,10 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
           </div>
           <div>
             <label className="block font-medium mb-1">Last Deworming Date</label>
-            <Input
-              type="date"
+            <DatePicker
               value={lastDeworming}
-              onChange={e => setLastDeworming(e.target.value)}
+              onChange={setLastDeworming}
+              placeholder="Select last deworming date"
               disabled={isReadOnly}
             />
           </div>
@@ -156,11 +182,30 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
               disabled={isSubmitting || isReadOnly}
               className="bg-black text-white"
             >
-              {data?.id ? "Update" : "Save"}
+              {hasExistingData ? "Update & Next" : "Save & Next"}
             </Button>
           </div>
+
+          {(createMutation.isError || updateMutation.isError) && (
+            <div className="text-red-500 text-sm mt-2">Error saving data.</div>
+          )}
+
+          {(createMutation.isSuccess || updateMutation.isSuccess) && (
+            <div className="text-green-600 text-sm mt-2">Saved successfully!</div>
+          )}
         </div>
       </CardContent>
+
+      {/* Show status indicator if completed */}
+      {isCompleted && (
+        <div className="absolute top-2 right-2">
+          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

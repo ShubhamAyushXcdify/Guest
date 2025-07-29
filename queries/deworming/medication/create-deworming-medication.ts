@@ -2,17 +2,19 @@ import { useMutation } from "@tanstack/react-query";
 
 export interface CreateDewormingMedicationDto {
   visitId: string;
-  productName?: string;
-  batchNumber?: string;
-  dose?: string;
   route?: string;
   dateTimeGiven?: string;
   veterinarianName?: string;
-  manufacturer?: string;
-  expiryDate?: string;
   administeredBy?: string;
   remarks?: string;
   isCompleted?: boolean;
+  prescriptions?: Array<{
+    medicationName: string;
+    dose: string;
+    frequency: string;
+    duration: string;
+    isCompleted: boolean;
+  }>;
 }
 
 const createDewormingMedication = async (data: CreateDewormingMedicationDto) => {

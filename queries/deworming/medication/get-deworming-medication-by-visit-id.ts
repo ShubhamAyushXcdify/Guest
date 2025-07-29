@@ -1,21 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 
+export interface MedicationPrescription {
+  medicationName: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+  isCompleted: boolean;
+}
+
 export interface DewormingMedicationDetail {
   id: string;
   visitId: string;
-  productName?: string;
-  batchNumber?: string;
-  dose?: string;
   route?: string;
   dateTimeGiven?: string;
   veterinarianName?: string;
-  manufacturer?: string;
-  expiryDate?: string;
   administeredBy?: string;
   remarks?: string;
   isCompleted: boolean;
   createdAt: string;
   updatedAt: string;
+  prescriptions: MedicationPrescription[];
 }
 
 const getDewormingMedicationByVisitId = async (visitId: string): Promise<DewormingMedicationDetail[] | null> => {
