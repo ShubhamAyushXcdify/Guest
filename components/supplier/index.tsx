@@ -4,6 +4,7 @@ import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import { Badge } from "../ui/badge";
+import type { BadgeProps } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { useGetSupplier } from "@/queries/suppliers/get-supplier";
@@ -16,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import SupplierDetails from "./supplierDetails";
 import { useRootContext } from "@/context/RootContext";
+
 
 // Supplier type based on provided schema
 export type Supplier = {
@@ -35,6 +37,30 @@ export type Supplier = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  clinicDetail?: {
+    id: string;
+    name: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    website?: string;
+    taxId: string;
+    licenseNumber: string;
+    subscriptionStatus?: string;
+    subscriptionExpiresAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    location?: {
+      lat: number;
+      lng: number;
+      address: string;
+    };
+  };
 };
 
 type SupplierFormValues = Omit<Supplier, "id" | "createdAt" | "updatedAt">;
@@ -64,6 +90,26 @@ function Supplier() {
   const deleteSupplier = useDeleteSupplier();
   const queryClient = useQueryClient();
 
+  const clinicColors = React.useMemo(() => {
+  const colors: { [key: string]: string } = {};
+  const predefinedColors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+    '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
+    '#F9E79F', '#ABEBC6', '#FAD7A0', '#AED6F1', '#D5A6BD'
+  ];
+
+  if (supplierData?.items) {
+    (supplierData.items).forEach((supplier) => {
+      const clinicName = supplier.clinicDetail?.name || "No Clinic Assigned";
+      if (clinicName && !colors[clinicName]) {
+        const randomIndex = Math.floor(Math.random() * predefinedColors.length);
+        colors[clinicName] = predefinedColors[randomIndex];
+      }
+    });
+  }
+  return colors;
+}, [supplierData?.items]);
   const handleEditSupplierClick = (supplierId: string) => {
     setSelectedSupplierId(supplierId);
     setOpenDetails(true);
@@ -120,6 +166,25 @@ function Supplier() {
     { accessorKey: "contactPerson", header: "Contact Person" },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "phone", header: "Phone" },
+     {
+          accessorKey: "clinic",
+          header: "Clinic",
+          cell: ({ row }) => {
+            const clinicName = row.original.clinicDetail?.name || "No Clinic Assigned";
+            const colorValue = clinicColors[clinicName];
+    
+            let badgeProps: BadgeProps = {};
+    
+            if (colorValue && clinicName !== "No Clinic Assigned") {
+              badgeProps.style = { backgroundColor: colorValue };
+            } else {
+              // Fallback to default color for "No Clinic Assigned"
+              badgeProps.style = { backgroundColor: "#999999" };
+            }
+    
+            return <Badge {...badgeProps}>{clinicName}</Badge>;
+          },
+        },
     { accessorKey: "city", header: "City" },
     { accessorKey: "state", header: "State" },
     { 
