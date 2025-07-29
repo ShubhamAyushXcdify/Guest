@@ -86,8 +86,10 @@ import PreOpTab from "./PreOpTab";
 import SurgeryTab from "./SurgeryTab";
 import PostOpTab from "./PostOpTab";
 import DischargeTab from "./DischargeTab";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, History } from "lucide-react";
 import NewAppointment from "../newAppointment";
+import MedicalHistoryTab from "../MedicalHistoryTab";
+import { TabCompletionProvider } from "@/context/TabCompletionContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 
 interface SurgeryComponentProps {
@@ -148,6 +150,7 @@ export { useSurgeryTabCompletion };
 
 export default function SurgeryComponent({ patientId, appointmentId, onClose }: SurgeryComponentProps) {
   const [activeTab, setActiveTab] = useState(tabOrder[0].id);
+  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
 
   const navigateToNextTab = () => {
     const currentIndex = tabOrder.findIndex(tab => tab.id === activeTab);
@@ -157,22 +160,51 @@ export default function SurgeryComponent({ patientId, appointmentId, onClose }: 
   };
 
   return (
-    <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Surgery Visit</SheetTitle>
-        </SheetHeader>
-        <SurgeryTabCompletionProvider patientId={patientId} appointmentId={appointmentId}>
-          <SurgeryTabs
-            patientId={patientId}
-            appointmentId={appointmentId}
-            onClose={onClose}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            navigateToNextTab={navigateToNextTab}
-          />
-        </SurgeryTabCompletionProvider>
-      </SheetContent>
-    </Sheet>
+    <>
+      <Sheet open={true} onOpenChange={onClose}>
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
+          <SheetHeader className="mb-6 mr-10">
+            <div className="flex items-center justify-between">
+              <SheetTitle>Surgery Visit</SheetTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMedicalHistory(true)}
+                className="flex items-center gap-2"
+              >
+                <History className="h-4 w-4" />
+                Medical History
+              </Button>
+            </div>
+          </SheetHeader>
+          <SurgeryTabCompletionProvider patientId={patientId} appointmentId={appointmentId}>
+            <SurgeryTabs
+              patientId={patientId}
+              appointmentId={appointmentId}
+              onClose={onClose}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              navigateToNextTab={navigateToNextTab}
+            />
+          </SurgeryTabCompletionProvider>
+        </SheetContent>
+      </Sheet>
+
+      {/* Medical History Sheet */}
+      <Sheet open={showMedicalHistory} onOpenChange={setShowMedicalHistory}>
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Medical History</SheetTitle>
+          </SheetHeader>
+          <TabCompletionProvider>
+            <MedicalHistoryTab 
+              patientId={patientId} 
+              appointmentId={appointmentId} 
+              onNext={() => setShowMedicalHistory(false)} 
+            />
+          </TabCompletionProvider>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

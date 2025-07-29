@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, ArrowRight, CheckCircle } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle, History } from "lucide-react";
 import TriageTab from "./TriageTab";
 import EmergencyVitalsTab from "./EmergencyVitalsTab";
 import EmergencyProceduresTab from "./EmergencyProceduresTab";
 import DischargeTab from "./DischargeTab";
 import NewAppointment from "../newAppointment";
+import MedicalHistoryTab from "../MedicalHistoryTab";
+import { TabCompletionProvider } from "@/context/TabCompletionContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 
@@ -42,6 +44,7 @@ const tabOrder = [
 export default function EmergencyComponent({ patientId, appointmentId, onClose }: EmergencyComponentProps) { 
   const [activeTab, setActiveTab] = useState(tabOrder[0].id);
   const [showNewAppointment, setShowNewAppointment] = useState(false);
+  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
 
 const { data: appointment } = useGetAppointmentById(appointmentId)
 const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
@@ -78,69 +81,98 @@ const isTabCompleted = (tabId: string) => {
   };
 
   return (
-    <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
-            Emergency Visit
-          </SheetTitle>
-        </SheetHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full">
-            {tabOrder.map(tab => (
-              <TabsTrigger
-                key={tab.id}
-                value={tab.id}
-                className={`flex items-center gap-1 ${isTabCompleted(tab.id) ? "text-green-600" : ""}`}
+    <>
+      <Sheet open={true} onOpenChange={onClose}>
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
+          <SheetHeader className="mb-6 mr-10">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Emergency Visit
+              </SheetTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMedicalHistory(true)}
+                className="flex items-center gap-2"
               >
-                {tab.label}
-                {isTabCompleted(tab.id) && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          <TabsContent value="triage">
-            <TriageTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-          </TabsContent>
-
-          <TabsContent value="emergency-vitals">
-            <EmergencyVitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-          </TabsContent>
-
-          <TabsContent value="emergency-procedures">
-            <EmergencyProceduresTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-          </TabsContent>
-
-          <TabsContent value="discharge">
-            <DischargeTab patientId={patientId} appointmentId={appointmentId} onClose={onClose} />
-          </TabsContent>
-        </Tabs>
-        <div className="mt-6 flex justify-end space-x-4">
-          <div className="mt-6 flex justify-end space-x-4">
-          {activeTab !== "discharge" && (
-            <Button onClick={navigateToNextTab} className="flex items-center gap-2">
-              Next <ArrowRight className="h-4 w-4" />
-            </Button>
-          )}
-          {activeTab == "discharge" && (
-            <div className="flex items-center gap-4">
-              <Button 
-                onClick={() => setShowNewAppointment(true)}
-                className="theme-button text-white"
-              >
-                Book Another Appointment
+                <History className="h-4 w-4" />
+                Medical History
               </Button>
             </div>
-          )}
-        </div>
-        </div>
-      </SheetContent>
-      <NewAppointment 
-        isOpen={showNewAppointment} 
-        onClose={() => setShowNewAppointment(false)}
-        patientId={patientId}
-      />
-    </Sheet>
+          </SheetHeader>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="w-full">
+              {tabOrder.map(tab => (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className={`flex items-center gap-1 ${isTabCompleted(tab.id) ? "text-green-600" : ""}`}
+                >
+                  {tab.label}
+                  {isTabCompleted(tab.id) && <CheckCircle className="h-3 w-3 text-green-600" />}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="triage">
+              <TriageTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            </TabsContent>
+
+            <TabsContent value="emergency-vitals">
+              <EmergencyVitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            </TabsContent>
+
+            <TabsContent value="emergency-procedures">
+              <EmergencyProceduresTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            </TabsContent>
+
+            <TabsContent value="discharge">
+              <DischargeTab patientId={patientId} appointmentId={appointmentId} onClose={onClose} />
+            </TabsContent>
+          </Tabs>
+          <div className="mt-6 flex justify-end space-x-4">
+            <div className="mt-6 flex justify-end space-x-4">
+            {activeTab !== "discharge" && (
+              <Button onClick={navigateToNextTab} className="flex items-center gap-2">
+                Next <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+            {activeTab == "discharge" && (
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={() => setShowNewAppointment(true)}
+                  className="theme-button text-white"
+                >
+                  Book Another Appointment
+                </Button>
+              </div>
+            )}
+          </div>
+          </div>
+        </SheetContent>
+        <NewAppointment 
+          isOpen={showNewAppointment} 
+          onClose={() => setShowNewAppointment(false)}
+          patientId={patientId}
+        />
+      </Sheet>
+
+      {/* Medical History Sheet */}
+      <Sheet open={showMedicalHistory} onOpenChange={setShowMedicalHistory}>
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle>Medical History</SheetTitle>
+          </SheetHeader>
+          <TabCompletionProvider>
+            <MedicalHistoryTab 
+              patientId={patientId} 
+              appointmentId={appointmentId} 
+              onNext={() => setShowMedicalHistory(false)} 
+            />
+          </TabCompletionProvider>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 } 

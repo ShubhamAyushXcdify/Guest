@@ -6,16 +6,16 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    ctx: { params: Promise<{ visitId: string }> }
+    ctx: { params: Promise<{ patientId: string }> }
 ) {
-    const { visitId } = await ctx.params;
+    const { patientId } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {
             token = testToken;
         }
 
-        const response = await fetch(`${apiUrl}/api/MedicalHistoryDetail/visit/${visitId}`, {
+        const response = await fetch(`${apiUrl}/api/MedicalHistoryDetail/patient/${patientId}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -24,11 +24,11 @@ export async function GET(
 
         if (!response.ok) {
             if (response.status === 404) {
-                return NextResponse.json(null, { status: 200 }); // or return empty structure
+                return NextResponse.json(null, { status: 200 }); // Return null if not found
             }
             const errorData = await response.json().catch(() => ({}));
             return NextResponse.json(
-                { message: errorData.message || 'Failed to fetch medical history detail by visit ID' },
+                { message: errorData.message || 'Failed to fetch medical history detail by patient ID' },
                 { status: response.status }
             );
         }
@@ -36,9 +36,9 @@ export async function GET(
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error) {
-        console.error('Error fetching medical history detail by visit ID:', error);
+        console.error('Error fetching medical history detail by patient ID:', error);
         return NextResponse.json(
-            { message: 'Error fetching medical history detail by visit ID' },
+            { message: 'Error fetching medical history detail by patient ID' },
             { status: 500 }
         );
     }

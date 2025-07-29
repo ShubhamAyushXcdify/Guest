@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 export interface MedicalHistoryDetail {
   id: string;
-  visitId: string;
+  patientId: string;
   chronicConditionsNotes: string;
   surgeriesNotes: string;
   currentMedicationsNotes: string;

@@ -3,7 +3,6 @@ import { MedicalHistoryDetail } from "./get-medical-history-detail-by-id";
 
 interface UpdateMedicalHistoryDetailRequest {
   id: string;
-  visitId?: string;
   chronicConditionsNotes?: string;
   surgeriesNotes?: string;
   currentMedicationsNotes?: string;
@@ -45,9 +44,7 @@ export const useUpdateMedicalHistoryDetail = () => {
     mutationFn: updateMedicalHistoryDetail,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", data.id] });
-      if (data.visitId) {
-        queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", "visit", data.visitId] });
-      }
+      queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", "patient", data.patientId] });
     },
   });
 };
