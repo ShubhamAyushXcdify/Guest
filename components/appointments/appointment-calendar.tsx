@@ -110,9 +110,10 @@ export default function AppointmentCalendar({
         // Extract date and time parts
         const appointmentDate = appointment.appointmentDate ? parseISO(appointment.appointmentDate) : null
         // Try to get the time from different possible sources
-        const timeStr = appointment.startTime || 
-                        (appointment.roomSlot && appointment.roomSlot.startTime) || 
-                        '00:00'
+        // const timeStr = appointment.startTime || 
+        //                 (appointment.roomSlot && appointment.roomSlot.startTime) || 
+        //                 '00:00'
+        const timeStr = appointment.appointmentTimeFrom || '00:00'
         
         // Skip invalid appointments
         if (!appointmentDate) return null

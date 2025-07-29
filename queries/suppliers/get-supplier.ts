@@ -15,6 +15,30 @@ export type Supplier = {
     taxId: string;
     createdAt: string;
     updatedAt: string;
+   clinicDetail?: {
+    id: string;
+    name: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    website?: string;
+    taxId: string;
+    licenseNumber: string;
+    subscriptionStatus?: string;
+    subscriptionExpiresAt?: string;
+    createdAt: string;
+    updatedAt: string;
+    location?: {
+      lat: number;
+      lng: number;
+      address: string;
+    };
+  };
 }
 
 export interface PaginatedResponse<T> {
