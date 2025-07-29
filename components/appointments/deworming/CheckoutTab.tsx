@@ -6,6 +6,10 @@ import { useUpdateDewormingCheckout } from "@/queries/deworming/checkout/update-
 import { useGetDewormingCheckoutByVisitId } from "@/queries/deworming/checkout/get-deworming-checkout-by-visit-id";
 import { Card, CardContent } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/datePicker";
+import { Button } from "@/components/ui/button";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
+import { toast } from "sonner";
 
 interface CheckoutTabProps {
   patientId: string;
@@ -33,6 +37,7 @@ export default function CheckoutTab({
   const [clientAcknowledged, setClientAcknowledged] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("Paid");
   const [isSaving, setIsSaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Use visitId if available, otherwise fall back to appointmentId
   const effectiveVisitId = visitId || appointmentId;
@@ -40,6 +45,20 @@ export default function CheckoutTab({
   const { data: checkoutData, isLoading, isError, refetch } = useGetDewormingCheckoutByVisitId(effectiveVisitId);
   const createCheckout = useCreateDewormingCheckout();
   const updateCheckout = useUpdateDewormingCheckout();
+  
+  // Get appointment data for status checking
+  const { data: appointmentData } = useGetAppointmentById(appointmentId);
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      toast.success("Appointment status updated successfully");
+    },
+    onError: (error) => {
+      toast.error(`Failed to update appointment status: ${error.message}`);
+    }
+  });
+  
+  // Check if appointment is already completed
+  const isAppointmentCompleted = appointmentData?.status === "completed";
   
   // Extract the first checkout if data is an array
   const data = Array.isArray(checkoutData) ? checkoutData[0] : checkoutData;
@@ -86,14 +105,79 @@ export default function CheckoutTab({
       if (onComplete) {
         onComplete(true);
       }
+      
+      toast.success("Checkout details saved successfully");
     } catch (error) {
       console.error("Error saving checkout:", error);
+      toast.error("Failed to save checkout details");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleCheckout = async () => {
+    if (!appointmentData) {
+      toast.error("No appointment data found");
+      return;
+    }
+    
+    // Check if all required tabs have been completed
+    if (!isAppointmentCompleted && !allTabsCompleted) {
+      toast.error("Please complete all tabs before checking out");
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      // First save the checkout details as completed
+      const payload = {
+        visitId: effectiveVisitId,
+        summary: summary || undefined,
+        nextDewormingDueDate: nextDue ? nextDue.toISOString().split('T')[0] : undefined,
+        homeCareInstructions: instructions || undefined,
+        clientAcknowledged,
+        isCompleted: true, // Mark as completed
+      };
+
+      if (data && data.id) {
+        await updateCheckout.mutateAsync({ id: data.id, ...payload });
+      } else {
+        await createCheckout.mutateAsync(payload);
+      }
+      
+      // Only update appointment status if not already completed
+      if (!isAppointmentCompleted) {
+        await updateAppointmentMutation.mutateAsync({
+          id: appointmentId,
+          data: {
+            ...appointmentData,
+            status: "completed"
+          }
+        });
+      }
+      
+      await refetch();
+      
+      if (onComplete) {
+        onComplete(true);
+      }
+      
+      toast.success("Visit completed successfully");
+      
+      // Close the form after successful completion
+      if (onClose) {
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error during checkout process:", error);
+      toast.error("Failed to complete checkout");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const hasExistingData = !!data?.id;
+  const isReadOnly = appointmentData?.status === "completed";
 
   // Show loading indicator while data is being fetched
   if (isLoading) return <div>Loading...</div>;
@@ -114,6 +198,7 @@ export default function CheckoutTab({
               value={summary}
               onChange={e => setSummary(e.target.value)}
               placeholder="Summary of visit and treatment"
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -122,6 +207,7 @@ export default function CheckoutTab({
               value={nextDue}
               onChange={setNextDue}
               placeholder="Select next due date"
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -130,6 +216,7 @@ export default function CheckoutTab({
               value={instructions}
               onChange={e => setInstructions(e.target.value)}
               placeholder="Instructions for the client to follow at home"
+              disabled={isReadOnly}
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -138,29 +225,27 @@ export default function CheckoutTab({
               id="client-acknowledgement"
               checked={clientAcknowledged}
               onChange={e => setClientAcknowledged(e.target.checked)}
+              disabled={isReadOnly}
             />
             <label htmlFor="client-acknowledgement" className="text-sm">Client has received and understood instructions</label>
           </div>
-          <div className="flex justify-between mt-6">
-            <button
-              type="button"
-              className="bg-black text-white px-4 py-2 rounded"
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button
               onClick={handleSave}
-              disabled={isSaving || createCheckout.isPending || updateCheckout.isPending}
+              disabled={isSaving || createCheckout.isPending || updateCheckout.isPending || isReadOnly}
+              variant="outline"
             >
-              {hasExistingData ? "Update" : "Save"}
-            </button>
+              {isSaving ? "Saving..." : (hasExistingData ? "Update" : "Save")}
+            </Button>
             
-            <button 
-              onClick={onClose} 
-              className={`px-4 py-2 rounded ${allTabsCompleted 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
-                : "bg-gray-300 text-gray-600 cursor-not-allowed"}`}
-              disabled={!allTabsCompleted}
-              title={!allTabsCompleted ? "Complete all previous tabs first" : ""}
+            <Button
+              onClick={handleCheckout}
+              disabled={isProcessing || !allTabsCompleted || isReadOnly}
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
-              Finish & Close
-            </button>
+              {isProcessing ? "Completing..." : "Checkout"}
+            </Button>
           </div>
           
           {(createCheckout.isError || updateCheckout.isError) && (
