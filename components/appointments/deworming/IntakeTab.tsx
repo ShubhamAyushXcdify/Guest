@@ -3,10 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useGetDewormingVisitById } from "@/queries/deworming/intake/get-deworming-visit-by-id";
 import { useCreateDewormingVisit } from "@/queries/deworming/intake/create-deworming-visit";
 import { useUpdateDewormingVisit } from "@/queries/deworming/intake/update-deworming-visit";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetDewormingVisitByVisitId } from "@/queries/deworming/intake/get-deworming-visit-by-visit-id";
 
 interface IntakeTabProps {
   patientId: string;
@@ -28,7 +29,8 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
   const { data: appointmentData } = useGetAppointmentById(appointmentId);
   const isReadOnly = appointmentData?.status === "completed";
 
-  const { data, isLoading, isError, refetch } = useGetDewormingVisitById(appointmentId);
+  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
+  const { data, isLoading, isError, refetch } = useGetDewormingVisitByVisitId(visitData?.id || '', !!visitData?.id);
   const createMutation = useCreateDewormingVisit();
   const updateMutation = useUpdateDewormingVisit();
 
@@ -147,18 +149,6 @@ export default function IntakeTab({ patientId, appointmentId }: IntakeTabProps) 
               placeholder="List any current medications"
               disabled={isReadOnly}
             />
-          </div>
-          <div className="flex flex-col space-y-2">
-            <label className="block font-medium mb-1">Stool Sample Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              disabled={isReadOnly}
-            />
-            {sampleImageUrl && (
-              <img src={sampleImageUrl} alt="Stool sample preview" className="mt-2 max-h-40 rounded border" />
-            )}
           </div>
           <div className="mt-6 flex justify-end">
             <Button
