@@ -40,7 +40,7 @@ function DetailsLayout({
           <TabsTrigger value="rooms" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Rooms</TabsTrigger>
           <TabsTrigger value="doctors" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Doctors</TabsTrigger>
           <TabsTrigger value="users" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Users</TabsTrigger>
-          <TabsTrigger value="appointmentType" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Appointment Type</TabsTrigger>
+          {/* <TabsTrigger value="appointmentType" className="px-4 py-1 text-sm font-medium text-gray-700 hover:text-black focus:outline-none !focus:bg-black !focus:text-white">Appointment Type</TabsTrigger> */}
         </TabsList>
         <TabsContent value={currentTab}>{children}</TabsContent>
       </Tabs>

@@ -197,7 +197,7 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
             </div>
           )}
         </div>
-      </SheetContent>
+      </SheetContent> 
       <NewAppointment 
         isOpen={showNewAppointment} 
         onClose={() => setShowNewAppointment(false)}

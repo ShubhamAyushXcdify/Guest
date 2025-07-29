@@ -11,19 +11,15 @@ import { toast } from "@/components/ui/use-toast";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import NewAppointmentType from "./newAppointmentType";
 import AppointmentTypeDetails from "./appointmentTypeDetails";
-import { useGetAppointmentTypeByClinicId, AppointmentType } from "@/queries/appointmentType/get-appointmentType-by-clinicId";
+import { useGetAppointmentType, AppointmentType } from "@/queries/appointmentType/get-appointmentType";
 
-interface AppointmentTypeProps {
-  clinicId: string;
-}
-
-function AppointmentTypeComponent({ clinicId }: AppointmentTypeProps) {
+function AppointmentTypeComponent() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
 
-  // Use the clinic-specific hook
-  const { data: appointmentTypes = [], isLoading, isError, refetch } = useGetAppointmentTypeByClinicId(clinicId);
+  // Use the global hook
+  const { data: appointmentTypes = [], isLoading, isError, refetch } = useGetAppointmentType(1, 100, '', true);
 
   // For debugging
   useEffect(() => {
@@ -130,7 +126,6 @@ function AppointmentTypeComponent({ clinicId }: AppointmentTypeProps) {
               <SheetTitle>New Appointment Type</SheetTitle>
             </SheetHeader>
             <NewAppointmentType 
-              clinicId={clinicId} 
               onSuccess={() => {
                 setOpenNew(false);
                 refetch();
@@ -160,7 +155,6 @@ function AppointmentTypeComponent({ clinicId }: AppointmentTypeProps) {
           {selectedAppointmentTypeId && (
             <AppointmentTypeDetails 
               appointmentTypeId={selectedAppointmentTypeId} 
-              clinicId={clinicId}
               onSuccess={() => {
                 setOpenDetails(false);
                 refetch();

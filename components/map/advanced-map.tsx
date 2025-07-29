@@ -2,7 +2,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Save, X, Globe } from 'lucide-react';
+import { MapPin, Save, X, Globe, Navigation } from 'lucide-react';
 import useMapAdvanced, { LocationData } from './hooks/useMapAdvanced';
 import SearchBar from './searchbar';
 
@@ -29,6 +29,9 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
 }) => {
   const {
     selectedLocation,
+    currentLocation,
+    locationPermission,
+    isGettingLocation,
     searchQuery,
     searchSuggestions,
     isSearching,
@@ -42,7 +45,8 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
     setMapRef,
     setZoom,
     setSelectedLocation,
-    setMapCenter
+    setMapCenter,
+    requestLocationPermission
   } = useMapAdvanced({ initialLocation });
 
   const handleSave = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -53,10 +57,14 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
     }
   };
 
+  const handleRequestLocation = async () => {
+    await requestLocationPermission();
+  };
+
   return (
     <Card className={`w-full ${className}`}>
       <CardContent className="space-y-4 p-2">
-        {/* Search Bar */}
+        {/* Search Bar and Location Button */}
         <div className="flex gap-2">
           <SearchBar
             searchQuery={searchQuery}
@@ -65,6 +73,45 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
             onSearchChange={handleSearchChange}
             onSuggestionSelect={handleSuggestionSelect}
           />
+          
+          {/* Location Permission Button */}
+          {locationPermission === 'prompt' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRequestLocation}
+              disabled={isGettingLocation}
+              className="flex-shrink-0"
+            >
+              <Navigation className="h-4 w-4 mr-1" />
+              {isGettingLocation ? 'Getting Location...' : 'Use My Location'}
+            </Button>
+          )}
+          
+          {locationPermission === 'denied' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRequestLocation}
+              className="flex-shrink-0 text-red-600"
+            >
+              <Navigation className="h-4 w-4 mr-1" />
+              Location Denied
+            </Button>
+          )}
+          
+          {locationPermission === 'granted' && currentLocation && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0 text-green-600"
+              disabled
+            >
+              <Navigation className="h-4 w-4 mr-1" />
+              Location Active
+            </Button>
+          )}
+          
           {selectedLocation && (
             <Button
               variant="outline"
@@ -83,10 +130,26 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
             center={mapCenter}
             zoom={zoom}
             selectedLocation={selectedLocation}
+            currentLocation={currentLocation}
             onMapClick={handleMapClick}
             onMapRef={setMapRef}
           />
         </div>
+
+        {/* Current Location Info */}
+        {currentLocation && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900">Current Location</p>
+                <p className="text-sm text-blue-700 mt-1">{currentLocation.address}</p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Selected Location Info */}
         {selectedLocation && (

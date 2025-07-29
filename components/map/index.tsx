@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Save, X } from 'lucide-react';
-import useMap, { LocationData } from './hooks/useMap';
+import useMapAdvanced, { LocationData } from './hooks/useMapAdvanced';
 import SearchBar from './searchbar';
 
 // Dynamically import Leaflet map to avoid SSR issues
@@ -29,6 +29,7 @@ const Map: React.FC<MapProps> = ({
 }) => {
   const {
     selectedLocation,
+    currentLocation,
     searchQuery,
     searchSuggestions,
     isSearching,
@@ -41,7 +42,7 @@ const Map: React.FC<MapProps> = ({
     clearLocation,
     setMapRef,
     setZoom
-  } = useMap();
+  } = useMapAdvanced();
 
   const handleSave = () => {
     const location = handleSaveLocation();
@@ -86,6 +87,7 @@ const Map: React.FC<MapProps> = ({
             center={mapCenter}
             zoom={zoom}
             selectedLocation={selectedLocation}
+            currentLocation={currentLocation}
             onMapClick={handleMapClick}
             onMapRef={setMapRef}
           />

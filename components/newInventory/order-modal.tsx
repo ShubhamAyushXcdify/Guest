@@ -10,7 +10,7 @@ import { Combobox } from "@/components/ui/combobox"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Search } from "lucide-react"
+import { Plus, Trash2, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRootContext } from "@/context/RootContext"
 import { getUserId } from "@/utils/clientCookie"
@@ -37,7 +37,15 @@ const purchaseOrderItemSchema = z.object({
 // Main purchase order schema
 const purchaseOrderSchema = z.object({
   supplierId: z.string().uuid("Please select a supplier"),
-  expectedDeliveryDate: z.string().min(1, "Expected delivery date is required"),
+  expectedDeliveryDate: z.string()
+    .min(1, "Expected delivery date is required")
+    .refine((date) => {
+      // Check if date is valid and in the future
+      const parsedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      return !isNaN(parsedDate.getTime()) && parsedDate >= today;
+    }, "Expected delivery date must be today or in the future"),
   status: z.string().default("ordered"),
   discountPercentage: z.number().min(0).max(100).default(0),
   discountedAmount: z.number().min(0).default(0),
@@ -53,15 +61,16 @@ interface OrderModalProps {
   isOpen: boolean
   onClose: () => void
   clinicId: string
+  initialProductId?: string
 }
 
-function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
+function OrderModal({ isOpen, onClose, clinicId, initialProductId }: OrderModalProps) {
   const { toast } = useToast()
   const { user } = useRootContext()
   
   // States
   const [items, setItems] = useState<PurchaseOrderItemValues[]>([{
-    productId: "",
+    productId: initialProductId || "",
     quantityOrdered: 1,
     unitCost: 0,
     discountPercentage: 0,
@@ -70,7 +79,7 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
     taxAmount: 0,
     totalAmount: 0
   }])
-  
+
   const [searchQuery, setSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
@@ -80,12 +89,67 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
 
   // Get data for dropdowns
   const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier(1, 100, '', clinicId, true)
-  const { data: productsData, isLoading: isLoadingProducts } = useGetProducts(1, 100, {
+  const { data: productsData, isLoading: isLoadingProducts, refetch: refetchProducts } = useGetProducts(1, 100, {
     searchByname: null,
     category: null, 
     productType: null
-  }, true)
+  }, isOpen) // Enable the query when modal is open
 
+  // Create dropdown options
+  const supplierOptions = suppliersData?.items?.map(supplier => ({
+    value: supplier.id,
+    label: supplier.name
+  })) || []
+
+  // Form setup
+  const form = useForm<PurchaseOrderFormValues>({
+    resolver: zodResolver(purchaseOrderSchema),
+    defaultValues: {
+      supplierId: "",
+      expectedDeliveryDate: "",
+      status: "ordered",
+      discountPercentage: 0,
+      discountedAmount: 0,
+      extendedAmount: 0,
+      totalAmount: 0,
+      notes: ""
+    },
+    mode: "onChange"
+  })
+
+  // Effect to handle modal opening/closing
+  React.useEffect(() => {
+    if (isOpen) {
+      // Reset form state
+      setItems([{
+        productId: initialProductId || "",
+        quantityOrdered: 1,
+        unitCost: 0,
+        discountPercentage: 0,
+        discountedAmount: 0,
+        extendedAmount: 0,
+        taxAmount: 0,
+        totalAmount: 0
+      }]);
+      form.reset({
+        supplierId: "",
+        expectedDeliveryDate: "",
+        status: "ordered",
+        discountPercentage: 0,
+        discountedAmount: 0,
+        extendedAmount: 0,
+        totalAmount: 0,
+        notes: ""
+      });
+  
+      setFormSubmitted(false);
+      setSearchQuery("");
+      
+      // Explicitly fetch products when the modal opens
+      refetchProducts();
+    }
+  }, [isOpen, initialProductId, refetchProducts, form]);
+  
   // Effect to debug products data
   useEffect(() => {
     if (productsData) {
@@ -117,28 +181,6 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
       }
     }
   };
-
-  // Create dropdown options
-  const supplierOptions = suppliersData?.items?.map(supplier => ({
-    value: supplier.id,
-    label: supplier.name
-  })) || []
-
-  // Form setup
-  const form = useForm<PurchaseOrderFormValues>({
-    resolver: zodResolver(purchaseOrderSchema),
-    defaultValues: {
-      supplierId: "",
-      expectedDeliveryDate: "",
-      status: "ordered",
-      discountPercentage: 0,
-      discountedAmount: 0,
-          extendedAmount: 0,
-      totalAmount: 0,
-      notes: ""
-    },
-    mode: "onChange"
-  })
 
   // Create purchase order mutation
   const { mutate: createPurchaseOrder, isPending } = useCreatePurchaseOrder()
@@ -424,6 +466,28 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
     return formSubmitted && !items[index].productId
   }
 
+  // Clear selected product
+  const clearSelectedProduct = (index: number) => {
+    const updatedItems = [...items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      productId: "",
+      unitCost: 0
+    };
+    setItems(updatedItems);
+    calculateItemValues(updatedItems, index);
+    
+    // Set focus to the input field after clearing
+    setTimeout(() => {
+      if (dropdownRef.current) {
+        const input = dropdownRef.current.querySelector('input');
+        if (input) {
+          input.focus();
+        }
+      }
+    }, 0);
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="w-[90%] sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-y-auto">
@@ -466,6 +530,11 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                         <DatePicker 
                           value={field.value ? new Date(field.value) : null}
                           onChange={handleDateChange}
+                          minDate={(() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0); // Reset time to start of day
+                            return today;
+                          })()} // Set minimum date to today at 00:00:00
                         />
                           </FormControl>
                       {formSubmitted && <FormMessage />}
@@ -572,55 +641,81 @@ function OrderModal({ isOpen, onClose, clinicId }: OrderModalProps) {
                                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
                                   <Input
                                     type="text"
-                              placeholder="Search by name or code..."
-                              className={cn(
-                                "pl-10",
-                                hasProductErrors(index) && "border-red-500 focus-visible:ring-red-500"
-                              )}
-                              value={item.productId ? (selectedProduct?.name || "") : (activeItemIndex === index ? searchQuery : "")}
+                                    placeholder="Search by name or code..."
+                                    className={cn(
+                                      "pl-10",
+                                      hasProductErrors(index) && "border-red-500 focus-visible:ring-red-500",
+                                      item.productId ? "pr-8" : "" // Add padding for X button
+                                    )}
+                                    value={item.productId ? (selectedProduct?.name || "") : (activeItemIndex === index ? searchQuery : "")}
                                     onChange={(e) => {
-                                if (!item.productId) {
-                                  setActiveItemIndex(index)
-                                  handleProductSearch(e.target.value)
+                                      if (!item.productId) {
+                                        setActiveItemIndex(index)
+                                        handleProductSearch(e.target.value)
+                                      } else {
+                                        // Clear the product selection when user starts typing
+                                        const updatedItems = [...items];
+                                        updatedItems[index] = {
+                                          ...updatedItems[index],
+                                          productId: ""
+                                        };
+                                        setItems(updatedItems);
+                                        setActiveItemIndex(index);
+                                        handleProductSearch(e.target.value);
                                       }
                                     }}
                                     onFocus={() => {
-                                if (!item.productId) {
-                                  setActiveItemIndex(index)
-                                  triggerProductsLoad(); // Try to load products on focus
+                                      if (!item.productId) {
+                                        setActiveItemIndex(index)
+                                        triggerProductsLoad(); // Try to load products on focus
                                         setIsSearchDropdownOpen(true);
                                       }
                                     }}
                                   />
+                                  {item.productId && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full hover:bg-slate-200"
+                                      onClick={() => clearSelectedProduct(index)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                      <span className="sr-only">Clear selection</span>
+                                    </Button>
+                                  )}
                                 </div>
                                 
                                 {/* Search results dropdown */}
-                          {isSearchDropdownOpen && activeItemIndex === index && !item.productId && (
+                                {isSearchDropdownOpen && activeItemIndex === index && !item.productId && (
                                   <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                              {isLoadingProducts ? (
-                                <div className="relative cursor-default select-none py-2 pl-3 pr-9 text-gray-700">
-                                  Loading products...
-                                </div>
-                              ) : filteredProducts.length > 0 ? (
+                                    {isLoadingProducts ? (
+                                      <div className="relative cursor-default select-none py-2 pl-3 pr-9 text-gray-700">
+                                        Loading products...
+                                      </div>
+                                    ) : filteredProducts.length > 0 ? (
                                       filteredProducts.map((product) => (
                                         <div
                                           key={product.id}
-                                    className="relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-slate-100"
+                                          className="relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-slate-100"
                                           onClick={() => handleProductSelect(product, index)}
                                         >
                                           <div className="flex flex-col">
                                             <span className="font-medium">{product.name}</span>
                                             <span className="text-sm text-gray-500">
-                                        {product.productNumber || ''} {product.unitOfMeasure ? `| ${product.unitOfMeasure}` : ''} {product.price ? `| ₹${product.price.toFixed(2)}` : ''}
+                                              {product.productNumber || ''} 
+                                              {product.brandName ? ` | Brand: ${product.brandName}` : ''} 
+                                              {product.unitOfMeasure ? ` | ${product.unitOfMeasure}` : ''} 
+                                              {product.price ? ` | ₹${product.price.toFixed(2)}` : ''}
                                             </span>
                                           </div>
                                         </div>
                                       ))
-                              ) : searchQuery ? (
+                                    ) : searchQuery ? (
                                       <div className="relative cursor-default select-none py-2 pl-3 pr-9 text-gray-700">
-                                  No products found
+                                        No products found
                                       </div>
-                              ) : null}
+                                    ) : null}
                                   </div>
                                 )}
                               </div>

@@ -8,11 +8,10 @@ import { toast } from "@/components/ui/use-toast";
 import { AppointmentType } from "@/queries/appointmentType/get-appointmentType";
 
 type NewAppointmentTypeProps = {
-  clinicId?: string;
   onSuccess?: () => void;
 };
 
-export default function NewAppointmentType({ clinicId, onSuccess }: NewAppointmentTypeProps) {
+export default function NewAppointmentType({ onSuccess }: NewAppointmentTypeProps) {
   const router = useRouter();
   
   const createAppointmentType = useCreateAppointmentType({
@@ -36,17 +35,16 @@ export default function NewAppointmentType({ clinicId, onSuccess }: NewAppointme
     },
   });
   
-  const form = useForm<Omit<AppointmentType, "appointmentTypeId">>({
+  const form = useForm<{ name: string }>({
     defaultValues: {
       name: "",
-      clinicId: clinicId || "",
     },
   });
   
-  const handleSubmit = async (values: Omit<AppointmentType, "appointmentTypeId">) => {
+  const handleSubmit = async (values: { name: string }) => {
     try {
       await createAppointmentType.mutateAsync({
-        ...values,
+        name: values.name,
         isActive: true, 
       });
     } catch (error) {
@@ -65,16 +63,6 @@ export default function NewAppointmentType({ clinicId, onSuccess }: NewAppointme
               <FormMessage />
             </FormItem>
           )} />
-          
-          {!clinicId && (
-            <FormField name="clinicId" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Clinic ID</FormLabel>
-                <FormControl><Input {...field} value={field.value ?? ""} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-          )}
         </div>
         
         <div className="flex justify-end mt-6">

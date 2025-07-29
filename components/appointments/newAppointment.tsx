@@ -18,18 +18,20 @@ import { useGetRoom, Room } from "@/queries/rooms/get-room"
 import { useGetUsers } from "@/queries/users/get-users"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Search, X, Loader2, Mic } from "lucide-react"
+import { Plus, Search, X, Loader2, Mic, Sparkles } from "lucide-react"
 import { useRootContext } from '@/context/RootContext'
 import { useGetRoomsByClinicId } from "@/queries/rooms/get-room-by-clinic-id"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce } from "@/hooks/use-debounce"
-import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
+import { useGetAvailableSlotsByUserId, AvailableSlot } from "@/queries/users/get-availabelSlots-by-userId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
-import { useGetAppointmentTypeByClinicId } from "@/queries/appointmentType/get-appointmentType-by-clinicId"
+import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { useGetUserById } from "@/queries/users/get-user-by-id"
+import { reasonFormatting, notesFormatting } from "@/app/actions/reasonformatting";
 
 // Extended patient interface to handle API response variations
 interface SearchPatientResult {
@@ -90,7 +92,7 @@ interface SlotResponse {
   pageSize: number;
   totalPages: number;
   totalCount: number;
-  items: Slot[];
+  items: AvailableSlot[];
 }
 
 function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSelectedRoom, appointmentId, sendEmail = false }: NewAppointmentProps) {
@@ -105,7 +107,6 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   
   const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
   
-  // Use patient search query
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
     patientSearchQuery,
     "name" // Always search by name as specified
@@ -138,18 +139,25 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         },
   })
 
-  // Get selected room ID for slots
-  const selectedRoomId = form.watch("roomId");
+  // Get selected veterinarian ID and date for slots
+  const selectedVeterinarianId = form.watch("veterinarianId");
   const selectedDate = form.watch("appointmentDate");
 
-  // Format selected date to YYYY-MM-DD for API filtering (if needed later)
-  const formattedDate = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
-
-  // Fetch slots for the selected room
-  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
-  
-  // Initialize slots with proper default value
-  const slots: SlotResponse = slotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
+  // Format selected date to YYYY-MM-DD for API filtering
+  // Use local date methods to ensure the date stays in the user's timezone
+  const formattedDate = selectedDate ? 
+    `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : 
+    '';
+    
+  // Fetch available slots for the selected veterinarian using the new hook
+  const { 
+    data: availableSlots = [], 
+    isLoading: isLoadingSlots 
+  } = useGetAvailableSlotsByUserId(
+    selectedVeterinarianId, 
+    formattedDate, 
+    !!selectedVeterinarianId && !!formattedDate
+  );
 
   // Format time for display (assuming HH:mm:ss format from API)
   const formatTime = (timeString: string) => {
@@ -178,10 +186,10 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   };
 
   // Fetch real data from APIs
-  const { data: clinics } = useGetClinic(1, 100)
+  const { data: clinics } = useGetClinic(1, 100, '', null, null, true)
   const selectedClinicId = form.watch("clinicId") || clinic?.id || "";
 
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100);
+  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId, true);
   const veterinarianOptions = (usersResponse.items || [])
   .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
   .map(vet => ({
@@ -203,7 +211,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   );
   
   const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByClinicId(selectedClinicId);
-  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentTypeByClinicId(selectedClinicId, !!selectedClinicId);
+  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', true);
   
   const roomOptions = isLoadingRooms 
   ? [] 
@@ -214,7 +222,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   
   const appointmentTypeOptions = isLoadingAppointmentTypes
   ? []
-  : (appointmentTypes || []).filter((type) => type.isActive).map((type) => ({
+  : (appointmentTypes || []).filter((type: any) => type.isActive).map((type : any) => ({
     value: type.appointmentTypeId,
     label: type.name
   }));
@@ -329,8 +337,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       if (!data.appointmentDate) {
         throw new Error("Appointment date is required");
       }
-      // Format date in local timezone to prevent day shifting
-      const formattedAppointmentDate = `${data.appointmentDate.getFullYear()}-${String(data.appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(data.appointmentDate.getDate()).padStart(2, '0')}`; // YYYY-MM-DD
+      // Format date using local date methods to maintain consistency
+      const formattedAppointmentDate = `${data.appointmentDate.getFullYear()}-${String(data.appointmentDate.getMonth() + 1).padStart(2, '0')}-${String(data.appointmentDate.getDate()).padStart(2, '0')}`;
 
       // Check for the selected patient
       if (!selectedPatient) {
@@ -371,8 +379,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         return; // Prevent form submission
       }
 
-      // Find selected slot details
-      const selectedSlotDetails = slots.items.find(slot => slot.id === data.slotId);
+      // Find selected slot details from the availableSlots array
+      const selectedSlotDetails = availableSlots.find(slot => slot.id === data.slotId);
       
       if (!selectedSlotDetails) {
         toast({
@@ -387,7 +395,9 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         ...data,
         clientId,
         appointmentDate: formattedAppointmentDate,
-        roomSlotId: data.slotId, // Use slotId as roomSlotId
+        appointmentTimeFrom: selectedSlotDetails.startTime,
+        appointmentTimeTo: selectedSlotDetails.endTime,
+        roomSlotId: data.slotId, // Keep for backward compatibility
         createdBy: user?.id,
       } as any; // Use type assertion to allow adding id property
       
@@ -570,7 +580,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       // Set other fields
       form.setValue("slotId", appointmentData.roomSlotId || appointmentData.slotId);
       form.setValue("appointmentTypeId", appointmentData.appointmentTypeId);
-      form.setValue("reason", appointmentData.reason);
+      form.setValue("reason", appointmentData.reason || "");
       form.setValue("notes", appointmentData.notes || "");
       form.setValue("status", appointmentData.status || "scheduled");
       
@@ -599,6 +609,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
   const reasonTranscriber = useTranscriber();
   const notesTranscriber = useTranscriber();
+  const [isReasonFormatting, setIsReasonFormatting] = useState(false);
+  const [isNotesFormatting, setIsNotesFormatting] = useState(false);
 
   // Audio transcription effect for reason
   useEffect(() => {
@@ -625,6 +637,46 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     }
     // eslint-disable-next-line
   }, [notesTranscriber.output?.isBusy]);
+
+  // Remove the room slot dependency - we'll only use veterinarian slots now
+  useEffect(() => {
+    if (selectedVeterinarianId) {
+      // Clear the selected slot when veterinarian changes
+      setSelectedSlot(null);
+      form.setValue("slotId", "");
+    }
+  }, [selectedVeterinarianId]);
+
+  // Handler for AI formatting of reason
+  const handleAIFormatReason = async () => {
+    const currentReason = form.getValues("reason");
+    if (!currentReason) return;
+    setIsReasonFormatting(true);
+    try {
+      const formatted = await reasonFormatting(currentReason);
+      form.setValue("reason", formatted);
+    } catch (e) {
+      // Optionally show error toast
+      toast({ title: "AI Formatting Error", description: "Failed to format reason.", variant: "destructive" });
+    } finally {
+      setIsReasonFormatting(false);
+    }
+  };
+
+  // Handler for AI formatting of notes
+  const handleAIFormatNotes = async () => {
+    const currentNotes = form.getValues("notes");
+    if (!currentNotes) return;
+    setIsNotesFormatting(true);
+    try {
+      const formatted = await notesFormatting(currentNotes);
+      form.setValue("notes", formatted);
+    } catch (e) {
+      toast({ title: "AI Formatting Error", description: "Failed to format notes.", variant: "destructive" });
+    } finally {
+      setIsNotesFormatting(false);
+    }
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
@@ -711,32 +763,38 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                         ) : (
                                           <ul>
                                             {typedSearchResults.map((patient) => {
-                                              // Determine the display name
-                                              // Different possible structures for patient name in the API response
+                                              // Get the client name first
+                                              let clientName = '';
                                               
-                                              // Direct name property (some API responses)
-                                              let displayName = '';
+                                              if (patient.client) {
+                                                clientName = `${patient.client.firstName || ''} ${patient.client.lastName || ''}`.trim();
+                                              } else if (patient.clientFirstName || patient.clientLastName) {
+                                                clientName = `${patient.clientFirstName || ''} ${patient.clientLastName || ''}`.trim();
+                                              }
+
+                                              // Get the patient name
+                                              let patientName = '';
                                               
                                               if (patient.name) {
-                                                displayName = patient.name;
+                                                patientName = patient.name;
                                               } 
-                                              // Animal patient (may have species)
                                               else if (patient.patientId) {
-                                                displayName = patient.patientId;
+                                                patientName = patient.patientId;
                                                 if (patient.species) {
-                                                  displayName += ` (${patient.species})`;
+                                                  patientName += ` (${patient.species})`;
                                                 }
                                               }
-                                              // Human patient with first/last name
                                               else if (patient.firstName || patient.lastName) {
-                                                displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                                                patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
                                               }
                                               
-                                              // If we still don't have a display name, use the ID as last resort
-                                              if (!displayName) {
-                                                console.warn('No name found for patient:', patient);
-                                                displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+                                              // If we still don't have a patient name, use the ID as last resort
+                                              if (!patientName) {
+                                                patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
                                               }
+                                              
+                                              // Combine client and patient names in the format {clients name}-{patients name}
+                                              const displayName = clientName ? `${clientName}-${patientName}` : patientName;
                                               
                                               return (
                                                 <li
@@ -745,11 +803,6 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                                   onClick={() => handlePatientSelect(patient)}
                                                 >
                                                   <div className="font-medium">{displayName}</div>
-                                                  {patient.client && (
-                                                    <div className="text-sm text-gray-500">
-                                                      Owner: {patient.client.firstName || ''} {patient.client.lastName || ''}
-                                                    </div>
-                                                  )}
                                                 </li>
                                               );
                                             })}
@@ -807,12 +860,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                           <Combobox
                             options={roomOptions}
                             value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              // Reset selected slot when room changes
-                              setSelectedSlot(null);
-                              form.setValue("slotId", "");
-                            }}
+                            onValueChange={field.onChange}
                             placeholder={isLoadingRooms ? "Loading rooms..." : "Select room"}
                           />
                         </FormControl>
@@ -865,14 +913,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                   />
                 </div>
 
-                {/* Slot selection section - only appears when room is selected */}
-                {selectedRoomId && (
+                {/* Available Slots section - only show when veterinarian and date are selected */}
+                {selectedVeterinarianId && selectedDate && (
                   <FormField
                     control={form.control}
                     name="slotId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Available Slots</FormLabel>
+                        <FormLabel>
+                          Available Slots
+                        </FormLabel>
                         <FormControl>
                           <div className="mt-2">
                             {isLoadingSlots ? (
@@ -880,15 +930,13 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : slots.items.filter(slot => slot.isAvailable).length === 0 ? (
+                            ) : availableSlots.length === 0 ? (
                               <div className="text-sm text-gray-500">
-                                No available slots for this room
+                                No available slots for this veterinarian on the selected date
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
-                                {slots.items
-                                  .filter(slot => slot.isAvailable)
-                                  .map((slot: Slot) => (
+                                {availableSlots.map((slot) => (
                                   <button
                                     key={slot.id}
                                     type="button"
@@ -898,8 +946,9 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                         ? 'bg-green-100 border-green-300 text-green-800'
                                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                                     }`}
+                                    title={`${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`}
                                   >
-                                    {formatTime(slot.startTime)}
+                                    {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                                   </button>
                                 ))}
                               </div>
@@ -934,6 +983,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                             ) : (
                               <Mic className="w-4 h-4" />
                             )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAIFormatReason}
+                            disabled={isReasonFormatting}
+                            className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            {isReasonFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
                           </Button>
                         </div>
                         <FormControl>
@@ -975,6 +1034,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                             ) : (
                               <Mic className="w-4 h-4" />
                             )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAIFormatNotes}
+                            disabled={isNotesFormatting}
+                            className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            {isNotesFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
                           </Button>
                         </div>
                         <FormControl>
