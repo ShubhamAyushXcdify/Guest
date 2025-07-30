@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 export interface ProductMapping {
   id: string;
   productId: string;
-  dosage: string;
+  dosage: string | null;
   frequency: string;
+  numberOfDays: number;
 }
 
 export interface PrescriptionDetail {
