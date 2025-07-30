@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -189,19 +189,25 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const { data: clinics } = useGetClinic(1, 100, '', null, null, true)
   const selectedClinicId = form.watch("clinicId") || clinic?.id || "";
 
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId, true);
-  const veterinarianOptions = (usersResponse.items || [])
-  .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
-  .map(vet => ({
-    value: vet.id,
-    label: `Dr. ${vet.firstName} ${vet.lastName}`
-  }));
+  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId || '', true);
+  
+  // Memoize veterinarian options to prevent infinite re-renders
+  const veterinarianOptions = React.useMemo(() => {
+    return (usersResponse.items || [])
+      .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
+      .map(vet => ({
+        value: vet.id,
+        label: `Dr. ${vet.firstName} ${vet.lastName}`
+      }));
+  }, [usersResponse.items, selectedClinicId]);
   
   // Transform API data into Combobox format
-  const clinicOptions = (clinics?.items || []).map(clinic => ({
-    value: clinic.id,
-    label: clinic.name
-  }))
+  const clinicOptions = useMemo(() => {
+    return (clinics?.items || []).map(clinic => ({
+      value: clinic.id,
+      label: clinic.name
+    }));
+  }, [clinics?.items]);
   
   const { data: patientsResponse, refetch: refetchPatients } = useGetPatients(
     1, // page
@@ -213,19 +219,21 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByClinicId(selectedClinicId);
   const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', true);
   
-  const roomOptions = isLoadingRooms 
-  ? [] 
-  : (rooms || []).filter((room: any) => room.isActive).map((room: any) => ({
-    value: room.id,
-    label: `${room.name} (${room.roomType})`
-  }));
+  const roomOptions = useMemo(() => {
+    if (isLoadingRooms) return [];
+    return (rooms || []).filter((room: any) => room.isActive).map((room: any) => ({
+      value: room.id,
+      label: `${room.name} (${room.roomType})`
+    }));
+  }, [rooms, isLoadingRooms]);
   
-  const appointmentTypeOptions = isLoadingAppointmentTypes
-  ? []
-  : (appointmentTypes || []).filter((type: any) => type.isActive).map((type : any) => ({
-    value: type.appointmentTypeId,
-    label: type.name
-  }));
+  const appointmentTypeOptions = useMemo(() => {
+    if (isLoadingAppointmentTypes) return [];
+    return (appointmentTypes || []).filter((type: any) => type.isActive).map((type : any) => ({
+      value: type.appointmentTypeId,
+      label: type.name
+    }));
+  }, [appointmentTypes, isLoadingAppointmentTypes]);
 
   const { mutate: createAppointment, isPending } = useCreateAppointment({
     onSuccess: () => {
@@ -553,14 +561,23 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   // Auto-select the current user as veterinarian if they have the Veterinarian role
   useEffect(() => {
-    if (isOpen && user && veterinarianOptions.length > 0) {
-      // Check if the current user is in the veterinarian options list
-      const currentVetOption = veterinarianOptions.find(vet => vet.value === user.id);
-      if (currentVetOption) {
-        form.setValue("veterinarianId", user.id);
+    if (isOpen && user && usersResponse.items && usersResponse.items.length > 0) {
+      // Only auto-select if no veterinarian is currently selected
+      const currentVetId = form.getValues("veterinarianId");
+      if (!currentVetId) {
+        // Check if the current user is a veterinarian in the current clinic
+        const currentUserIsVet = usersResponse.items.some(
+          userItem => userItem.id === user.id && 
+          userItem.roleName === "Veterinarian" && 
+          (userItem as any).clinicId === selectedClinicId
+        );
+        
+        if (currentUserIsVet) {
+          form.setValue("veterinarianId", user.id);
+        }
       }
     }
-  }, [isOpen, user, veterinarianOptions, form]);
+  }, [isOpen, user, usersResponse.items, selectedClinicId, form]);
 
   // Pre-fill form with appointment data when editing
   useEffect(() => {
