@@ -739,7 +739,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                             variant="outline"
                             size="sm"
                             onClick={() => handleDocumentClick(procedure.id)}
-                            disabled={isReadOnly}
+                            //disabled={isReadOnly}
                             title="View/Edit Documents"
                           >
                             Document
