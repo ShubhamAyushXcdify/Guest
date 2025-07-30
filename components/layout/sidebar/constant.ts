@@ -49,7 +49,7 @@ export const navGroups = [
     {
         title: "Products & Services",
         icon: FlaskConical,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
         items: [
 
             // {
@@ -91,7 +91,7 @@ export const navGroups = [
     {
         title: "Administration",
         icon: Settings2,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
         items: [
             {
                 href: "/clinic",
