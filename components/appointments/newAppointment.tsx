@@ -680,14 +680,14 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   return (
     <Sheet open={isOpen} onOpenChange={handleCancel}>
-      <SheetContent className={`w-[95%] sm:!max-w-full md:!max-w-[${showNewPatientForm ? '95%' : '50%'}] lg:!max-w-[${showNewPatientForm ? '95%' : '50%'}] overflow-x-hidden overflow-y-auto transition-all duration-300`}>
+      <SheetContent className="w-[95%] sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto transition-all duration-300">
         <SheetHeader>
           <SheetTitle>{appointmentId ? 'Update Appointment' : 'New Appointment'}</SheetTitle>
         </SheetHeader>
 
         <div className="flex gap-6 mt-6">
           {/* Appointment Form Section */}
-          <div className={`flex-1 ${showNewPatientForm ? 'w-1/2' : 'w-full'}`}>
+          <div className={showNewPatientForm ? 'flex-1 w-1/2' : 'flex-1 w-full'}>
             <Form {...form}>
               <form onSubmit={(e) => {
                 form.handleSubmit(onSubmit)(e);
