@@ -8,12 +8,11 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Save, Mic } from "lucide-react"
 import { 
-  useGetMedicalHistoryDetailByVisitId, 
+  useGetMedicalHistoryDetailByPatientId, 
   useCreateMedicalHistoryDetail, 
   useUpdateMedicalHistoryDetail,
   MedicalHistoryDetail
 } from "@/queries/MedicalHistoryDetail"
-import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
@@ -41,19 +40,14 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
   
   const transcriber = useTranscriber()
 
-  // Get visit data from appointment ID
-  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
-  
-  // Get medical history data by visitId if we have a visit
-  const { data: medicalHistoryDetail, isLoading: historyLoading } = useGetMedicalHistoryDetailByVisitId(
-    visitData?.id || ""
-  )
+  // Get medical history data by patientId
+  const { data: medicalHistoryDetail, isLoading: historyLoading } = useGetMedicalHistoryDetailByPatientId(patientId)
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
   
   const { mutateAsync: createMedicalHistory, isPending: isCreating } = useCreateMedicalHistoryDetail()
   const { mutateAsync: updateMedicalHistory, isPending: isUpdating } = useUpdateMedicalHistoryDetail()
 
-  const isPending = isCreating || isUpdating || visitLoading
+  const isPending = isCreating || isUpdating || historyLoading
 
   const isReadOnly = appointmentData?.status === "completed"
 
@@ -98,15 +92,6 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
 
   const handleSave = async () => {
     try {
-      if (!visitData?.id) {
-        toast({
-          title: "Error",
-          description: "No visit data found for this appointment",
-          variant: "destructive",
-        })
-        return
-      }
-      
       // Set isCompleted to true when saving
       const updatedFormData = {
         ...formData,
@@ -117,7 +102,6 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         await updateMedicalHistory({
           id: medicalHistoryId,
           ...updatedFormData,
-          visitId: visitData.id,
         })
         toast({
           title: "Medical history updated",
@@ -126,7 +110,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
       } else {
         const result = await createMedicalHistory({
           ...updatedFormData,
-          visitId: visitData.id,
+          patientId: patientId,
         })
         setMedicalHistoryId(result.id)
         toast({
@@ -151,7 +135,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
     }
   }
 
-  if (visitLoading || historyLoading) {
+  if (historyLoading) {
     return (
       <Card>
         <CardContent className="p-6 flex justify-center items-center">
@@ -161,22 +145,10 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
       </Card>
     )
   }
-  
-  if (!visitData) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-red-500">No visit found for this appointment. Please make sure a visit has been created.</p>
-        </CardContent>
-      </Card>
-    )
-  }
 
   return (
     <Card>
       <CardContent className="p-4">
-        <h2 className="text-lg font-semibold mb-4">Medical History</h2>
-        
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -282,7 +254,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isPending && <Save className="mr-2 h-4 w-4" />}
-              {medicalHistoryId ? "Update" : "Save & Next"}
+              {medicalHistoryId ? "Update" : "Save"}
             </Button>
           </div>
         </div>

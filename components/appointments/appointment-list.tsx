@@ -494,7 +494,6 @@ export default function AppointmentList({
                   //   patientId: row.original.patientId,
                   //   isIntakeCompleted: false,
                   //   isComplaintsCompleted: false,
-                  //   isMedicalHistoryCompleted: false
                   // });
                 }}
                 disabled={updateAppointmentMutation.isPending}

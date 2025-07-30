@@ -23,7 +23,6 @@ import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 interface ExtendedVisitData {
   isIntakeCompleted: boolean;
   isComplaintsCompleted: boolean;
-  isMedicalHistoryCompleted: boolean;
   isVitalsCompleted: boolean;
   isProceduresCompleted: boolean;
   isPrescriptionCompleted: boolean;
@@ -78,7 +77,6 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     return (
       visit.isIntakeCompleted &&
       visit.isComplaintsCompleted &&
-      visit.isMedicalHistoryCompleted &&
       visit.isVitalsCompleted &&
       visit.isProceduresCompleted &&
       visit.isPrescriptionCompleted

@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { useGetDewormingNoteById } from "@/queries/deworming/note/get-deworming-note-by-id";
+import { useGetDewormingNoteByVisitId } from "@/queries/deworming/note/get-deworming-note-by-visit-id";
 import { useCreateDewormingNote } from "@/queries/deworming/note/create-deworming-note";
 import { useUpdateDewormingNote } from "@/queries/deworming/note/update-deworming-note";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,20 +8,38 @@ import { Card, CardContent } from "@/components/ui/card";
 interface NotesTabProps {
   patientId: string;
   appointmentId: string;
+  visitId?: string;
+  onComplete?: (completed: boolean) => void;
+  onNext?: () => void;
+  isCompleted?: boolean;
 }
 
-export default function NotesTab({ patientId, appointmentId }: NotesTabProps) {
+export default function NotesTab({ patientId, appointmentId, visitId, onComplete, onNext, isCompleted = false }: NotesTabProps) {
   const [reactions, setReactions] = useState("");
   const [notes, setNotes] = useState("");
   const [ownerQuestions, setOwnerQuestions] = useState("");
   const [followUpRequired, setFollowUpRequired] = useState(false);
   const [resolutionStatus, setResolutionStatus] = useState("Resolved");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { data, isLoading, isError, refetch } = useGetDewormingNoteById(appointmentId);
+  // Use visitId if available, otherwise fall back to appointmentId
+  const effectiveVisitId = visitId || appointmentId;
+  // Use the correct hook for fetching note by visitId (appointmentId)
+  const { data: noteData, isLoading, isError, refetch } = useGetDewormingNoteByVisitId(effectiveVisitId);
   const createMutation = useCreateDewormingNote();
   const updateMutation = useUpdateDewormingNote();
+  
+  // Extract the first note if data is an array
+  const data = Array.isArray(noteData) ? noteData[0] : noteData;
 
-  React.useEffect(() => {
+  // Notify parent component when data is loaded
+  useEffect(() => {
+    if (data && onComplete) {
+      onComplete(!!data.isCompleted);
+    }
+  }, [data, onComplete]);
+
+  useEffect(() => {
     if (data) {
       setReactions(data.adverseReactions || "");
       setNotes(data.additionalNotes || "");
@@ -32,31 +50,55 @@ export default function NotesTab({ patientId, appointmentId }: NotesTabProps) {
   }, [data]);
 
   const handleSave = async () => {
-    const payload = {
-      visitId: appointmentId,
-      adverseReactions: reactions || undefined,
-      additionalNotes: notes || undefined,
-      ownerConcerns: ownerQuestions || undefined,
-      followUpRequired,
-      resolutionStatus: resolutionStatus || undefined,
-      isCompleted: false,
-    };
-    if (data && data.id) {
-      await updateMutation.mutateAsync({ id: data.id, ...payload });
-    } else {
-      await createMutation.mutateAsync(payload);
+    setIsSaving(true);
+    try {
+      const payload = {
+        visitId: effectiveVisitId,
+        adverseReactions: reactions || undefined,
+        additionalNotes: notes || undefined,
+        ownerConcerns: ownerQuestions || undefined,
+        followUpRequired,
+        resolutionStatus: resolutionStatus || undefined,
+        isCompleted: true, // Mark as completed
+      };
+      
+      if (data && data.id) {
+        await updateMutation.mutateAsync({ id: data.id, ...payload });
+      } else {
+        await createMutation.mutateAsync(payload);
+      }
+      
+      await refetch();
+      
+      if (onComplete) {
+        onComplete(true);
+      }
+      
+      if (onNext) {
+        onNext();
+      }
+    } catch (error) {
+      console.error("Error saving notes:", error);
+    } finally {
+      setIsSaving(false);
     }
-    refetch();
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (isError) return <div>Error loading notes data.</div>;
+  const hasExistingData = !!data?.id;
 
+  // Show loading indicator while data is being fetched
+  if (isLoading) return <div>Loading...</div>;
+
+  // Always render the form, even if there's no data yet
   return (
-    <Card>
+    <Card className="relative">
       <CardContent className="p-6">
         <div className="space-y-4">
-          {/* Optionally, show a warning if isError */}
+          {isError && (
+            <div className="p-2 bg-red-50 text-red-600 rounded mb-4">
+              Error loading notes data. You can still create a new note.
+            </div>
+          )}
           
           <div>
             <label className="block font-medium mb-1">Adverse Reactions (if any)</label>
@@ -108,9 +150,9 @@ export default function NotesTab({ patientId, appointmentId }: NotesTabProps) {
               type="button"
               className="bg-black text-white px-4 py-2 rounded"
               onClick={handleSave}
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={isSaving || createMutation.isPending || updateMutation.isPending}
             >
-              {data && data.id ? "Update" : "Save"}
+              {hasExistingData ? "Update & Next" : "Save & Next"}
             </button>
           </div>
           {(createMutation.isError || updateMutation.isError) && (
@@ -121,6 +163,17 @@ export default function NotesTab({ patientId, appointmentId }: NotesTabProps) {
           )}
         </div>
       </CardContent>
+
+      {/* Show status indicator if completed */}
+      {isCompleted && (
+        <div className="absolute top-2 right-2">
+          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          </div>
+        </div>
+      )}
     </Card>
   );
 } 

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { MedicalHistoryDetail } from "./get-medical-history-detail-by-id";
 
 interface CreateMedicalHistoryDetailRequest {
-  visitId: string;
+  patientId: string;
   chronicConditionsNotes?: string;
   surgeriesNotes?: string;
   currentMedicationsNotes?: string;
@@ -40,7 +40,7 @@ export const useCreateMedicalHistoryDetail = () => {
     mutationFn: createMedicalHistoryDetail,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail"] });
-      queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", "visit", data.visitId] });
+      queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", "patient", data.patientId] });
     },
   });
 };

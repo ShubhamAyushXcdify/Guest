@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface DeleteMedicalHistoryDetailRequest {
   id: string;
-  visitId?: string;
+  patientId?: string;
 }
 
 const deleteMedicalHistoryDetail = async (
@@ -33,8 +33,8 @@ export const useDeleteMedicalHistoryDetail = () => {
     mutationFn: deleteMedicalHistoryDetail,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", variables.id] });
-      if (variables.visitId) {
-        queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", "visit", variables.visitId] });
+      if (variables.patientId) {
+        queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail", "patient", variables.patientId] });
       }
       queryClient.invalidateQueries({ queryKey: ["medicalHistoryDetail"] });
     },
