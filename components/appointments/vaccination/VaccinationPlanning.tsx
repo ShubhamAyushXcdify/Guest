@@ -26,6 +26,7 @@ import ParvovirusDocumentationModal from "./modals/ParvovirusDocumentationModal"
 import HepatitisDocumentationModal from "./modals/HepatitisDocumentationModal";
 import CanineInfluenzaDocumentationModal from "./modals/CanineInfluenzaDocumentationModal";
 import KennelCoughDocumentationModal from "./modals/KennelCoughDocumentationModal";
+import CanineCoronavirusDocumentationModal from "./modals/CanineCoronavirusDocumentationModal";
 import { useRootContext } from "@/context/RootContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
@@ -479,6 +480,42 @@ export default function VaccinationPlanning({
               case "Chlamydia felis":
                 return (
                   <ChlamydiaFelisDocumentationModal
+                    open={true}
+                    onClose={() => setDocumentVaccineId(null)}
+                    vaccine={documentVaccine}
+                    patientId={patientId}
+                    appointmentId={appointmentId}
+                    species={species}
+                    clinicId={clinicId}
+                  />
+                );
+              case "Lyme disease (Borrelia burgdorferi)":
+                return (
+                  <LymeDocumentationModal
+                    open={true}
+                    onClose={() => setDocumentVaccineId(null)}
+                    vaccine={documentVaccine}
+                    patientId={patientId}
+                    appointmentId={appointmentId}
+                    species={species}
+                    clinicId={clinicId}
+                  />
+                );
+              case "Canine Influenza (H3N2, H3N8)":
+                return (
+                  <CanineInfluenzaDocumentationModal
+                    open={true}
+                    onClose={() => setDocumentVaccineId(null)}
+                    vaccine={documentVaccine}
+                    patientId={patientId}
+                    appointmentId={appointmentId}
+                    species={species}
+                    clinicId={clinicId}
+                  />
+                );
+              case "Canine Coronavirus (CCoV)":
+                return (
+                  <CanineCoronavirusDocumentationModal
                     open={true}
                     onClose={() => setDocumentVaccineId(null)}
                     vaccine={documentVaccine}
