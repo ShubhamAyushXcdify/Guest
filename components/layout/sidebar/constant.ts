@@ -71,14 +71,14 @@ export const navGroups = [
                 label: "Inventory",
                 icon: Package,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
             },
             {
                 href: "/products",
                 label: "Products",
                 icon: Package,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
             },
             // {
             //   href: "/dashboard/shipments",
@@ -98,7 +98,7 @@ export const navGroups = [
                 label: "Clinics",
                 icon: Building,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
                 activePaths: ["/clinic"],
                 dynamicPaths: ["/clinic/[id]", "/clinic/[id]/rooms", "/clinic/[id]/appointmentType", "/clinic/[id]/users", "/clinic/[id]/doctors","/clinic/[id]/doctors/slots/[doctorId]"],
             },
@@ -114,7 +114,7 @@ export const navGroups = [
                 label: "Suppliers",
                 icon: Users,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
             }
         ],
     }
