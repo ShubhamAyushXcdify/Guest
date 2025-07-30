@@ -1,10 +1,11 @@
 'use client'
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Trash2, Filter } from "lucide-react";
+import { Edit, Plus, Trash2, Filter, Eye } from "lucide-react";
 import { useGetProducts, PaginatedResponse } from "@/queries/products/get-products";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewProduct from "./newProduct";
@@ -42,6 +43,7 @@ export type Product = {
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
  
 export default function Products() {
+  const router = useRouter();
   const { searchParam, setSearchParam, handleSearch } = useFilter();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -71,6 +73,10 @@ export default function Products() {
   const handleProductClick = (productId: string) => {
     setSelectedProductId(productId);
     setOpenDetails(true);
+  };
+
+  const handleViewProduct = (productId: string) => {
+    router.push(`/products/${productId}`);
   };
  
   const openDeleteDialog = (product: Product) => {
@@ -154,8 +160,20 @@ export default function Products() {
             size="icon"
             onClick={(e) => {
               e.stopPropagation();
+              handleViewProduct(row.original.id);
+            }}
+            title="View Product Details"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
               handleProductClick(row.original.id);
             }}
+            title="Edit Product"
           >
             <Edit className="h-4 w-4" />
           </Button>
@@ -167,6 +185,7 @@ export default function Products() {
               e.stopPropagation();
               openDeleteDialog(row.original);
             }}
+            title="Delete Product"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -265,7 +284,7 @@ export default function Products() {
      
       {/* Product Details Sheet */}
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[80%] lg:!max-w-[50%] overflow-hidden">
           <SheetHeader>
             <SheetTitle>Product Details</SheetTitle>
           </SheetHeader>
