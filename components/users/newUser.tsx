@@ -67,14 +67,14 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const { data: clinicData } = useGetClinic();
   
   const selectedRole = rolesData?.data?.find((role: Role) => role.value === form.watch("role"));
-  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin;
+  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin ;
 
   // Set clinic ID for clinicAdmin users
   useEffect(() => {
-    if (userType.isClinicAdmin && clinic.id) {
+     if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
       form.setValue("clinicId", clinic.id);
     }
-  }, [userType.isClinicAdmin, clinic.id, form]);
+  }, [userType.isClinicAdmin, userType.isVeterinarian, clinic.id, form]);
 
   const roleOptions = React.useMemo(() => {
     // Get the current user's role priority
@@ -110,7 +110,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       
       // Determine clinicId value based on user role
       let clinicId = null;
-      if (userType.isClinicAdmin && clinic.id) {
+      if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
         // For clinicAdmin, always use their clinic ID
         clinicId = clinic.id;
       } else if (roleToSend?.isClinicRequired && values.clinicId) {
@@ -133,7 +133,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       // Error is handled in onError callback
     }
   };
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full max-w-md mx-auto">

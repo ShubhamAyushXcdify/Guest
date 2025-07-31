@@ -73,7 +73,7 @@ function Supplier() {
   const [search, setSearch] = useState('');
   
   // If user is clinicAdmin, filter suppliers by clinic ID
-  const clinicId = userType.isClinicAdmin ? clinic.id || '' : '';
+  const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? clinic.id || '' : '';
   
   const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search, clinicId);
   

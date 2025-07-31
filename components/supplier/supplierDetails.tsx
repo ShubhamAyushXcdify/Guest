@@ -39,11 +39,11 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
   
   // Set clinic ID for clinicAdmin users and prevent changes
   useEffect(() => {
-    if (userType.isClinicAdmin && clinic.id) {
+    if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
       form.setValue("clinicId", clinic.id);
     }
-  }, [userType.isClinicAdmin, clinic.id, form]);
-  
+  }, [userType.isClinicAdmin, userType.isVeterinarian, clinic.id, form]);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -55,7 +55,7 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
   const handleSubmit = async (values: Supplier) => {
     try {
       // Ensure clinicId is set correctly for clinicAdmin users
-      if (userType.isClinicAdmin && clinic.id) {
+      if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
         values.clinicId = clinic.id;
       }
       
@@ -80,7 +80,7 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
         <div className="grid grid-cols-2 gap-8">
           {/* Only show clinic selection for admin users */}
-          {!userType.isClinicAdmin && (
+          {!userType.isClinicAdmin && !userType.isVeterinarian && (
             <FormField name="clinicId" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinic</FormLabel>
