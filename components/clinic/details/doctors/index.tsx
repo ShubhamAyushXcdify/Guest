@@ -14,6 +14,7 @@ import NewDoctor from "./newDoctor";
 import DoctorDetails from "./doctorDetails";
 import { useGetUsers } from "@/queries/users/get-users";
 import { useGetRole } from "@/queries/roles/get-role";
+import { useRouter } from "next/navigation";
 
 // Match the User type from the main user component
 export type Doctor = {
@@ -43,6 +44,7 @@ function DoctorComponent({ clinicId }: DoctorProps) {
   
   // Get roles to find veterinarian role ID
   const { data: rolesData } = useGetRole();
+  const router = useRouter();
   
   // Find and set the veterinarian role ID when roles are loaded
   useEffect(() => {
@@ -127,7 +129,23 @@ function DoctorComponent({ clinicId }: DoctorProps) {
   };
 
   const columns: ColumnDef<Doctor>[] = [
-    { accessorKey: "firstName", header: "First Name" },
+    {
+  accessorKey: "firstName",
+  header: "First Name",
+  cell: ({ row }) => (
+        <Button 
+          variant="link" 
+          className="p-0 h-auto font-normal text-blue-600 hover:text-blue-800 hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            const url = `/clinic/${clinicId}/doctors/slots/${row.original.id}`;
+            router.push(url);
+          }}
+        >
+          {row.original.firstName}
+        </Button>
+      )
+},
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
     { 
