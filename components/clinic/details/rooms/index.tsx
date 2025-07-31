@@ -100,16 +100,7 @@ function Room({ clinicId }: RoomProps) {
   const columns: ColumnDef<Room>[] = [
     { 
       accessorKey: "name",
-      header: "Name",
-      cell: ({ row }) => (
-        <Button 
-          variant="link" 
-          className="px-0 font-normal text-left text-blue-600 hover:text-blue-800 hover:underline"
-          onClick={() => handleSlotsClick(row.original.id)}
-        >
-          {row.original.name}
-        </Button>
-      )
+      header: "Name"
     },
     { accessorKey: "roomType", header: "Room Type" },
     { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
