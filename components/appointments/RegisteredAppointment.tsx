@@ -47,7 +47,8 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
     
     // Filter for appointments that don't have a veterinarian assigned or are in a "pending" state
     return items.filter((appointment: any) => 
-      !appointment.veterinarianId || 
+      !appointment.veterinarianId ||
+      appointment.isRegistered === true ||
       appointment.status === "pending" ||
       appointment.status === "registered" ||
       (appointment.status === "scheduled" && !appointment.roomId)

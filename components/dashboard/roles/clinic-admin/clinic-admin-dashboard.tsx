@@ -143,8 +143,6 @@ export const ClinicAdminDashboard = ({
 
   return (
     <div className="p-6 space-y-8">
-      <DashboardWelcomeHeader date={today} />
-
       {/* Page Header & Date Picker */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>

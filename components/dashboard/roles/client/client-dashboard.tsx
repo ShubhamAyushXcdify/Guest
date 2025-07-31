@@ -92,7 +92,6 @@ export const ClientDashboard = ({
 
   return (
     <div className="p-6 space-y-8">
-      <DashboardWelcomeHeader date={today} />
 
       {/* Action Button */}
       <div className="flex justify-end gap-3 mb-6">
