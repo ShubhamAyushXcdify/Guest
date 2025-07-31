@@ -305,7 +305,7 @@ export default function DischargeSummarySheet({
                   <Text style={styles.value}>{data.dewormingDetail.nextDueDate ? formatDate(data.dewormingDetail.nextDueDate) : 'N/A'}</Text>
                 </View>
               </View>
-              {data.dewormingDetail.notes && (
+              {data.dewormingDetail.notes && data.dewormingDetail.notes.trim() !== '' && (
                 <View style={styles.notes}>
                   <Text style={styles.label}>Notes:</Text>
                   <Text>{data.dewormingDetail.notes}</Text>
@@ -322,7 +322,7 @@ export default function DischargeSummarySheet({
                 <Text style={styles.label}>Weight:</Text>
                 <Text style={styles.value}>{data.intakeDetail.weightKg} kg</Text>
               </View>
-              {data.intakeDetail.notes && (
+              {data.intakeDetail.notes && data.intakeDetail.notes.trim() !== '' && (
                 <View style={styles.notes}>
                   <Text style={styles.label}>Notes:</Text>
                   <Text>{data.intakeDetail.notes}</Text>

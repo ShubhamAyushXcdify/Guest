@@ -295,20 +295,37 @@ export default function DischargeSummarySheet({
           )}
 
           {/* Chief Complaint */}
-          {data.complaintDetail && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>CHIEF COMPLAINT</Text>
-              <View style={styles.notes}>
-                <Text>{data.complaintDetail.notes || 'No complaints recorded'}</Text>
-              </View>
-              {data.complaintDetail.symptoms && data.complaintDetail.symptoms.length > 0 && (
-                <View style={styles.row}>
-                  <Text style={styles.label}>Symptoms:</Text>
-                  <Text style={styles.value}>{data.complaintDetail.symptoms.map((s: any) => s.name).join(', ')}</Text>
-                </View>
-              )}
-            </View>
-          )}
+          {data.complaintDetail &&
+  (
+    (data.complaintDetail.notes?.trim() !== '' || 
+     (Array.isArray(data.complaintDetail.symptoms) && data.complaintDetail.symptoms.length > 0))
+  ) && (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>CHIEF COMPLAINT</Text>
+
+      {/* Notes */}
+      {data.complaintDetail.notes?.trim() ? (
+        <View style={styles.notes}>
+          <Text>{data.complaintDetail.notes}</Text>
+        </View>
+      ) : null}
+
+      {/* Symptoms */}
+      {Array.isArray(data.complaintDetail.symptoms) &&
+        data.complaintDetail.symptoms.length > 0 && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Symptoms: </Text>
+            <Text style={styles.value}>
+              {data.complaintDetail.symptoms
+                .map((s: any) => s?.name || "")
+                .filter(Boolean)
+                .join(", ")}
+            </Text>
+          </View>
+      )}
+    </View>
+)}
+
 
           {/* Vital Signs */}
           {data.vitalDetail && (
@@ -340,11 +357,11 @@ export default function DischargeSummarySheet({
                   <Text style={styles.value}>{data.vitalDetail.hydrationStatus || 'N/A'}</Text>
                 </View>
               </View>
-              {data.vitalDetail.notes && (
-                <View style={styles.notes}>
-                  <Text style={styles.label}>Notes:</Text>
-                  <Text>{data.vitalDetail.notes}</Text>
-                </View>
+              {data.vitalDetail.notes?.trim() && (
+                      <View style={styles.notes}>
+                        <Text style={styles.label}>Notes:</Text>
+                        <Text>{data.vitalDetail.notes}</Text>
+                      </View>
               )}
             </View>
           )}
@@ -353,9 +370,11 @@ export default function DischargeSummarySheet({
           {data.planDetail && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>TREATMENT PLAN</Text>
-              <View style={styles.notes}>
-                <Text>{data.planDetail.notes || 'No treatment plan recorded'}</Text>
-              </View>
+               {data.planDetail.notes?.trim() && (
+                  <View style={styles.notes}>
+                    <Text>{data.planDetail.notes}</Text>
+                  </View>
+                )}
               {data.planDetail.plans && data.planDetail.plans.length > 0 && (
                 <View style={styles.row}>
                   <Text style={styles.label}>Plans:</Text>
