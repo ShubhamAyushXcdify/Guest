@@ -36,14 +36,6 @@ export const navGroups = [
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
                 activePaths: [],
             },
-
-             // {
-            //     href: "/prescriptions",
-            //     label: "Prescriptions",
-            //     icon: Pill,
-            //     color: "text-blue-500",
-            // },
-
         ],
     },
     {
@@ -79,13 +71,7 @@ export const navGroups = [
                 icon: Package,
                 color: "text-purple-2000",
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
-            },
-            // {
-            //   href: "/dashboard/shipments",
-            //   label: "Shipments",
-            //   icon: Database,
-            //   color: "text-purple-2000",
-            // },
+            }
         ],
     },
     {

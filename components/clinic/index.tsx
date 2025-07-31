@@ -77,10 +77,10 @@ function Clinic() {
 
   // Redirect clinicAdmin users to the details page with rooms tab
   useEffect(() => {
-    if (userType.isClinicAdmin && userClinic.id) {
+    if ((userType.isClinicAdmin || userType.isVeterinarian) && userClinic.id) {
       router.push(`/clinic/${userClinic.id}/rooms`);
     }
-  }, [userType.isClinicAdmin, userClinic.id, router]);
+  }, [userType.isClinicAdmin, userType.isVeterinarian, userClinic.id, router]);
 
   const handleEditClinicClick = (clinicId: string) => {
     setSelectedClinicId(clinicId);
