@@ -80,7 +80,7 @@ export default function Users() {
   const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useGetRole(1, 1000, '', true); // Fetch all roles for color mapping
 
   // If user is clinicAdmin, filter users by clinic ID
-  const clinicId = userType.isClinicAdmin ? clinic.id || '' : '';
+  const clinicId = (userType?.isClinicAdmin || userType?.isVeterinarian) ? clinic?.id || '' : '';
 
   const { data: usersData, isLoading: isUsersLoading, isError: isUsersError } = useGetUsers(
     pageNumber, 

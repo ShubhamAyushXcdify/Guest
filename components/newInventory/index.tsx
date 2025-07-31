@@ -24,7 +24,7 @@ export default function Inventory() {
   const { userType, clinic } = useRootContext();
   
   // If user is clinicAdmin, filter suppliers by clinic ID
-  const clinicId = userType.isClinicAdmin ? clinic.id || '' : '';
+  const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? clinic.id || '' : '';
 
   // Ensure we only access localStorage on the client side
   useEffect(() => {
