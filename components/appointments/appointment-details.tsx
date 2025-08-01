@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Pencil, ClipboardList, Search, X, Loader2,Mic } from "lucide-react"
+import { Pencil, ClipboardList, Search, X, Loader2, Mic, FileText } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Combobox } from "@/components/ui/combobox"
@@ -26,6 +26,7 @@ import VaccinationComponent from "@/components/appointments/vaccination/index"
 import EmergencyComponent from "@/components/appointments/emergency/index"
 import DewormingComponent from "./deworming"
 import SurgeryComponent from "./surgery"
+import CertificateGeneration from "./certificate-generation"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
 // import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
@@ -93,6 +94,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isDewormingOpen, setIsDewormingOpen] = useState(false);
   const [isSurgeryOpen, setIsSurgeryOpen] = useState(false);
+  const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
@@ -412,6 +414,8 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
       setIsDewormingOpen(true);
     } else if (typeName.includes('surgery')) {
       setIsSurgeryOpen(true);
+    } else if (typeName.includes('certification')) {
+      setIsCertificateOpen(true);
     } else {
       setIsPatientInfoOpen(true);
     }
@@ -566,8 +570,17 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                       className="mt-2 theme-button-outline"
                       onClick={handlePatientInfoClick}
                     >
-                      <ClipboardList className=" h-4 w-4 mr-1" />
-                      Visit Details
+                      {appointment?.appointmentType?.name?.toLowerCase().includes('certification') ? (
+                        <>
+                          <FileText className="h-4 w-4 mr-1" />
+                          Generate Certificates
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardList className="h-4 w-4 mr-1" />
+                          Visit Details
+                        </>
+                      )}
                     </Button>
                   )}
               </div>
@@ -960,6 +973,14 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
           onClose={() => setIsSurgeryOpen(false)}
+        />
+      )}
+
+      {isCertificateOpen && (
+        <CertificateGeneration
+          appointmentId={appointmentId}
+          patientId={appointment?.patientId || ''}
+          onClose={() => setIsCertificateOpen(false)}
         />
       )}
     </>
