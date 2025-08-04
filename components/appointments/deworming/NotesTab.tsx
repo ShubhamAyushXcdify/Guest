@@ -4,6 +4,7 @@ import { useGetDewormingNoteByVisitId } from "@/queries/deworming/note/get-dewor
 import { useCreateDewormingNote } from "@/queries/deworming/note/create-deworming-note";
 import { useUpdateDewormingNote } from "@/queries/deworming/note/update-deworming-note";
 import { Card, CardContent } from "@/components/ui/card";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface NotesTabProps {
   patientId: string;
@@ -28,6 +29,9 @@ export default function NotesTab({ patientId, appointmentId, visitId, onComplete
   const { data: noteData, isLoading, isError, refetch } = useGetDewormingNoteByVisitId(effectiveVisitId);
   const createMutation = useCreateDewormingNote();
   const updateMutation = useUpdateDewormingNote();
+
+  const { data: appointmentData } = useGetAppointmentById(appointmentId) ;
+  const isReadOnly =appointmentData?.status === "completed" ;
   
   // Extract the first note if data is an array
   const data = Array.isArray(noteData) ? noteData[0] : noteData;
@@ -148,9 +152,9 @@ export default function NotesTab({ patientId, appointmentId, visitId, onComplete
           <div className="flex justify-end mt-6">
             <button
               type="button"
-              className="bg-black text-white px-4 py-2 rounded"
+              className="bg-black text-white px-6 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
               onClick={handleSave}
-              disabled={isSaving || createMutation.isPending || updateMutation.isPending}
+              disabled={isSaving || createMutation.isPending || updateMutation.isPending || isReadOnly || !resolutionStatus}
             >
               {hasExistingData ? "Update & Next" : "Save & Next"}
             </button>

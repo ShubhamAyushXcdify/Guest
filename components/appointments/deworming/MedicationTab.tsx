@@ -4,6 +4,7 @@ import { useCreateDewormingMedication } from "@/queries/deworming/medication/cre
 import { useUpdateDewormingMedication } from "@/queries/deworming/medication/update-deworming-medication";
 import { useGetDewormingMedicationByVisitId, MedicationPrescription } from "@/queries/deworming/medication/get-deworming-medication-by-visit-id";
 import { Card, CardContent } from "@/components/ui/card";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 
 interface MedicationTabProps {
   patientId: string;
@@ -51,6 +52,18 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
   const { data: medicationData, isLoading, isError, refetch } = useGetDewormingMedicationByVisitId(effectiveVisitId);
   const createMedication = useCreateDewormingMedication();
   const updateMedication = useUpdateDewormingMedication();
+
+  const isMedicationFormComplete = () => {
+  return (
+    medications.length > 0 &&
+    route.trim() !== "" &&
+    dateTimeGiven.trim() !== "" &&
+    veterinarianName.trim() !== "" &&
+    administeredBy.trim() !== ""
+  );
+};
+  const { data: appointmentData } = useGetAppointmentById(appointmentId) ;
+  const isReadOnly =appointmentData?.status === "completed" ;
 
   // Load medications when component mounts or data changes
   useEffect(() => {
@@ -352,9 +365,9 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
           <div className="flex justify-end">
             <button
               type="button"
-              className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+              className="bg-black text-white px-6 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
               onClick={handleSaveMedications}
-              disabled={isSaving || medications.length === 0}
+              disabled={isSaving || !isMedicationFormComplete() || isReadOnly}
             >
               {isSaving ? "Saving..." : (hasExistingData ? "Update & Next" : "Save & Next")}
             </button>
