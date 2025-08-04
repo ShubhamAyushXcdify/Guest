@@ -26,13 +26,8 @@ const PRODUCT_TYPES = [
 
 const UNIT_OF_MEASURE_OPTIONS = [
   { value: "EA", label: "Each (EA)" },
-  { value: "STRIP", label: "Strip" },
   { value: "BOTTLE", label: "Bottle" },
-  { value: "BOX", label: "Box" },
-  { value: "ML", label: "Milliliter (ML)" },
-  { value: "L", label: "Liter (L)" },
-  { value: "G", label: "Gram (G)" },
-  { value: "KG", label: "Kilogram (KG)" }
+  { value: "BOX", label: "Box" }
 ];
 
 const PRODUCT_CATEGORIES = [

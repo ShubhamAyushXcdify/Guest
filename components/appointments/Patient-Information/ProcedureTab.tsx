@@ -555,49 +555,56 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
   }
 
-  const handleSave = async () => {
-    // This now just saves the notes and marks as complete
-    if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
-      return
-    }
+  // const handleSave = async () => {
+  //   // This now just saves the notes and marks as complete
+  //   if (!visitData?.id) {
+  //     toast.error("No visit data found for this appointment")
+  //     return
+  //   }
     
-    try {
-      if (existingProcedureDetail) {
-        // Update notes and mark as completed
-        await updateProcedureDetail({
-          id: existingProcedureDetail.id,
-          notes: notes || "",
-          isCompleted: true,
-          procedureIds: selectedProcedures
-        })
+  //   try {
+  //     if (existingProcedureDetail) {
+  //       // Update notes and mark as completed
+  //       await updateProcedureDetail({
+  //         id: existingProcedureDetail.id,
+  //         notes: notes || "",
+  //         isCompleted: true,
+  //         procedureIds: selectedProcedures
+  //       })
         
-        toast.success("Procedure details updated successfully")
-      } else {
-        // This case should rarely happen now since procedures are saved immediately
-        await createProcedureDetail({
-          visitId: visitData.id,
-          notes: notes || "",
-          isCompleted: true,
-          procedureIds: selectedProcedures
-        })
+  //       toast.success("Procedure details updated successfully")
+  //     } else {
+  //       // This case should rarely happen now since procedures are saved immediately
+  //       await createProcedureDetail({
+  //         visitId: visitData.id,
+  //         notes: notes || "",
+  //         isCompleted: true,
+  //         procedureIds: selectedProcedures
+  //       })
         
-        toast.success("Procedure details saved successfully")
-      }
+  //       toast.success("Procedure details saved successfully")
+  //     }
       
-      // Mark the tab as completed
-      markTabAsCompleted("procedure")
+  //     // Mark the tab as completed
+  //     markTabAsCompleted("procedure")
       
-      // After successful save, navigate to next tab
-      if (onNext) {
-        onNext()
-      }
+  //     // After successful save, navigate to next tab
+  //     if (onNext) {
+  //       onNext()
+  //     }
       
-    } catch (error) {
-      console.error('Error saving procedure details:', error)
-      toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
+  //   } catch (error) {
+  //     console.error('Error saving procedure details:', error)
+  //     toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  //   }
+  // }
+  const handleSave = async () => {
+  markTabAsCompleted("procedure")
+  // After successful save, navigate to next tab
+  if (onNext) {
+    onNext()
   }
+}
 
   if (visitLoading || isLoading) {
     return (
@@ -739,7 +746,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
                             variant="outline"
                             size="sm"
                             onClick={() => handleDocumentClick(procedure.id)}
-                            disabled={isReadOnly}
+                            //disabled={isReadOnly}
                             title="View/Edit Documents"
                           >
                             Document

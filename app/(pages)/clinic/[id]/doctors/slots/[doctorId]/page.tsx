@@ -1,7 +1,7 @@
 'use client'
 
 import DoctorSlotsManager from "@/components/clinic/details/doctors/doctorSlots";
-import { useGetUserById } from "@/queries/users/get-user";
+import { useGetUserById } from "@/queries/users/get-user-by-id";
 import { useParams, useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";

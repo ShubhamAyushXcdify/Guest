@@ -148,6 +148,7 @@ export const useContentLayout = () => {
                 isReceptionist: userData.roleName === 'Receptionist',
                 isPatient: userData.roleName === 'Patient',
                 isClient: userData.roleName === 'Client',
+                isVeterinarian: userData.roleName === 'Veterinarian',
                 isProvider: (userData.roleName === ' ' || userData?.roleName?.toLocaleLowerCase().includes('veterinarian')),
             }
             setUserType((prev) => ({ ...userRolesObject, ...types }));

@@ -12,6 +12,13 @@ import ClinicAdminDashboardWrapper from "./roles/clinic-admin"
 import ClinicStaffDashboardWrapper from "./roles/clinic-staff"
 import ClientDashboardWrapper from "./roles/client"
 
+// Import new components for veterinarian/provider functionality
+import NewProduct from "@/components/products/newProduct"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import NewSupplier from "@/components/supplier/newSupplier"
+import { ClientDrawerContent } from "@/components/clients/clientDrawer"
+import { OrderModal } from "@/components/newInventory/order-modal"
+
 export const DashboardScreen = () => {
   const [mounted, setMounted] = useState(false)
   const [showNewPatientModal, setShowNewPatientModal] = useState(false)
@@ -19,7 +26,13 @@ export const DashboardScreen = () => {
   const [showNewInvoiceDrawer, setShowNewInvoiceDrawer] = useState(false)
   const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null);
 
-  const { IsAdmin, userType } = useRootContext();
+  // New state for veterinarian/provider functionality
+  const [showAddProductDrawer, setShowAddProductDrawer] = useState(false)
+  const [showAddSupplierDrawer, setShowAddSupplierDrawer] = useState(false)
+  const [showAddClientDrawer, setShowAddClientDrawer] = useState(false)
+  const [showCreatePurchaseOrderModal, setShowCreatePurchaseOrderModal] = useState(false)
+
+  const { IsAdmin, userType, clinic } = useRootContext();
 
   // Listen for appointment approval events
   useEffect(() => {
@@ -64,6 +77,10 @@ export const DashboardScreen = () => {
             onNewPatient={() => setShowNewPatientModal(true)}
             onNewAppointment={() => setShowNewAppointmentDrawer(true)}
             onNewInvoice={() => setShowNewInvoiceDrawer(true)}
+            onAddProduct={() => setShowAddProductDrawer(true)}
+            onAddSupplier={() => setShowAddSupplierDrawer(true)}
+            onAddClient={() => setShowAddClientDrawer(true)}
+            onCreatePurchaseOrder={() => setShowCreatePurchaseOrderModal(true)}
           editAppointmentId={editAppointmentId}
           setEditAppointmentId={setEditAppointmentId}
         />
@@ -101,6 +118,40 @@ export const DashboardScreen = () => {
         sendEmail={!!editAppointmentId} // Send email when editing an appointment from requests
       />
       <NewInvoiceDrawer isOpen={showNewInvoiceDrawer} onClose={() => setShowNewInvoiceDrawer(false)} />
+
+      {/* Veterinarian/Provider specific modals and drawers */}
+      <Sheet open={showAddProductDrawer} onOpenChange={setShowAddProductDrawer}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Add Product</SheetTitle>
+          </SheetHeader>
+          <NewProduct onSuccess={() => setShowAddProductDrawer(false)} />
+        </SheetContent>
+      </Sheet>
+      
+      <Sheet open={showAddSupplierDrawer} onOpenChange={setShowAddSupplierDrawer}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Add Supplier</SheetTitle>
+          </SheetHeader>
+          <NewSupplier onSuccess={() => setShowAddSupplierDrawer(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={showAddClientDrawer} onOpenChange={setShowAddClientDrawer}>
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[40%] overflow-auto">
+          <SheetHeader>
+            <SheetTitle>Add Client</SheetTitle>
+          </SheetHeader>
+          <ClientDrawerContent onClose={() => setShowAddClientDrawer(false)} />
+        </SheetContent>
+      </Sheet>
+
+      <OrderModal 
+        isOpen={showCreatePurchaseOrderModal} 
+        onClose={() => setShowCreatePurchaseOrderModal(false)} 
+        clinicId={clinic?.id || ""}
+      />
     </>
   )
 }

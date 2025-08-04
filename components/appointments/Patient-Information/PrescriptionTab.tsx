@@ -48,6 +48,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     productId: "", 
     dosage: "", 
     frequency: "",
+    numberOfDays: 0,
     productName: undefined,
     product: undefined
   })
@@ -59,6 +60,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const [selectedMedicine, setSelectedMedicine] = useState<{ id: string, name: string } | null>(null)
+  const [selectedMedicineDetails, setSelectedMedicineDetails] = useState<InventorySearchItem | null>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
   
   // Debounce search query
@@ -117,6 +119,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           productName: (pm as any).productName,
           dosage: pm.dosage,
           frequency: pm.frequency,
+          numberOfDays: pm.numberOfDays,
           product: (pm as any).product
         } as ExtendedProductMapping)))
       }
@@ -173,6 +176,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     } as ExtendedProductMapping)
     setEditingIndex(null)
     setSelectedMedicine(null)
+    setSelectedMedicineDetails(null)
     setMedicineSearchQuery("")
     setIsAddSheetOpen(true)
   }
@@ -194,12 +198,14 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         id: mapping.productId,
         name: product.product?.name || extendedMapping.productName || "Unknown Medicine"
       })
+      setSelectedMedicineDetails(product)
     } else {
       // If product not in current search results, use the stored name if available
       setSelectedMedicine({
         id: mapping.productId,
         name: extendedMapping.productName || extendedMapping.product?.name || "Medicine"
       })
+      setSelectedMedicineDetails(null)
     }
     
     setIsAddSheetOpen(true)
@@ -212,7 +218,17 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   }
 
   const handleSaveMapping = () => {
-    if (!currentMapping.productId || !currentMapping.dosage || !currentMapping.frequency) {
+    const unitOfMeasure = currentMapping.product?.unitOfMeasure || "EA"
+    const shouldShowDosage = unitOfMeasure === "BOTTLE"
+    
+    // Validate required fields based on unit of measure
+    if (!currentMapping.productId || !currentMapping.frequency || currentMapping.numberOfDays <= 0) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+    
+    // Only validate dosage if the product is a bottle
+    if (shouldShowDosage && !currentMapping.dosage) {
       toast.error("Please fill in all fields")
       return
     }
@@ -229,6 +245,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
     setIsAddSheetOpen(false)
     setSelectedMedicine(null)
+    setSelectedMedicineDetails(null)
     setMedicineSearchQuery("")
   }
 
@@ -237,12 +254,18 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       id: medicine.productId || medicine.id,
       name: medicine.product?.name || "Unknown Medicine"
     })
+    setSelectedMedicineDetails(medicine)
+    
+    // Check if the product unit of measure is EA or BOX, then set dosage to null
+    const unitOfMeasure = medicine.product?.unitOfMeasure || "EA"
+    const shouldShowDosage = unitOfMeasure === "BOTTLE"
     
     const mappingWithProduct: ExtendedProductMapping = {
       id: "",
       productId: medicine.productId || medicine.id,
-      dosage: currentMapping.dosage,
+      dosage: shouldShowDosage ? currentMapping.dosage : "",
       frequency: currentMapping.frequency,
+      numberOfDays: currentMapping.numberOfDays,
       productName: medicine.product?.name || "Unknown Medicine",
       product: medicine.product
     };
@@ -254,6 +277,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   const clearSelectedMedicine = () => {
     setSelectedMedicine(null)
+    setSelectedMedicineDetails(null)
     const clearedMapping: ExtendedProductMapping = {
       ...currentMapping,
       productId: "",
@@ -270,12 +294,18 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     }
     
     // Filter out incomplete product mappings
-    const validMappings = productMappings.filter(
-      pm => pm.productId && pm.dosage && pm.frequency
-    )
+    const validMappings = productMappings.filter(pm => {
+      const unitOfMeasure = pm.product?.unitOfMeasure || "EA"
+      const shouldShowDosage = unitOfMeasure === "BOTTLE"
+      
+      const hasRequiredFields = pm.productId && pm.frequency && pm.numberOfDays > 0
+      const hasDosageIfRequired = shouldShowDosage ? pm.dosage : true
+      
+      return hasRequiredFields && hasDosageIfRequired
+    })
     
     if (validMappings.length === 0) {
-      toast.error("Please add at least one product with dosage and frequency")
+      toast.error("Please add at least one product with frequency and number of days")
       return
     }
     
@@ -298,9 +328,18 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     })
     
     // Create a backend-compatible version of the data by removing our extended properties
-    const backendMappings = mappingsWithNames.map(({ id, productId, dosage, frequency }) => ({
-      id, productId, dosage, frequency
-    }));
+    const backendMappings = mappingsWithNames.map(({ id, productId, dosage, frequency, numberOfDays, product }) => {
+      const unitOfMeasure = product?.unitOfMeasure || "EA"
+      const shouldShowDosage = unitOfMeasure === "BOTTLE"
+      
+      return {
+        id, 
+        productId, 
+        dosage: shouldShowDosage ? dosage : null, 
+        frequency, 
+        numberOfDays
+      }
+    });
     
     const prescriptionData = {
       notes,
@@ -397,21 +436,23 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         ) : (
           <div className="border rounded-md overflow-hidden">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Medicine</TableHead>
-                  <TableHead>Dosage</TableHead>
-                  <TableHead>Frequency</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+                             <TableHeader>
+                 <TableRow>
+                   <TableHead>Medicine</TableHead>
+                   <TableHead>Dosage</TableHead>
+                   <TableHead>Frequency</TableHead>
+                   <TableHead>Days</TableHead>
+                   <TableHead className="w-[100px]">Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
                 {productMappings.map((mapping, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{getProductName(mapping.productId)}</TableCell>
-                    <TableCell>{mapping.dosage}</TableCell>
-                    <TableCell>{mapping.frequency}</TableCell>
-                    <TableCell>
+                                     <TableRow key={index}>
+                     <TableCell>{getProductName(mapping.productId)}</TableCell>
+                     <TableCell>{mapping.dosage || "-"}</TableCell>
+                     <TableCell>{mapping.frequency}</TableCell>
+                     <TableCell>{mapping.numberOfDays}</TableCell>
+                     <TableCell>
                       <div className="flex space-x-2">
                         <Button
                           variant="ghost"
@@ -483,7 +524,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
       {/* Add/Edit Product Side Sheet */}
       <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
-        <SheetContent>
+      <SheetContent className="w-[100%] sm:max-w-[800px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>{editingIndex !== null ? "Edit Medicine" : "Add Medicine"}</SheetTitle>
           </SheetHeader>
@@ -493,19 +534,32 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               <Label htmlFor="product">Medicine</Label>
               <div className="relative flex-grow" ref={searchDropdownRef}>
                 {selectedMedicine ? (
-                  <div className="flex items-center justify-between p-2 border rounded-md">
-                    <span>{selectedMedicine.name}</span>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm" 
-                      className="p-1 h-auto"
-                      onClick={clearSelectedMedicine}
-                      disabled={isReadOnly}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <>
+                    <div className="flex items-center justify-between p-2 border rounded-md">
+                      <span>{selectedMedicine.name}</span>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="p-1 h-auto"
+                        onClick={clearSelectedMedicine}
+                        disabled={isReadOnly}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                                         {selectedMedicineDetails && (
+                       <div className="mt-2 p-2 border rounded bg-gray-50 text-sm">
+                         <div><b>Generic Name:</b> {selectedMedicineDetails.product?.genericName || "-"}</div>
+                         <div><b>Brand Name:</b> {(selectedMedicineDetails.product as any)?.brandName || "-"}</div>
+                         <div><b>Category:</b> {selectedMedicineDetails.product?.category || "-"}</div>
+                         <div><b>Product Type:</b> {selectedMedicineDetails.product?.productType || "-"}</div>
+                         <div><b>NDC Number:</b> {selectedMedicineDetails.product?.ndcNumber || "-"}</div>
+                         <div><b>Unit of Measure:</b> {selectedMedicineDetails.product?.unitOfMeasure || "-"}</div>
+                         <div><b>Quantity On Hand:</b> {selectedMedicineDetails.quantityOnHand ?? "-"}</div>
+                       </div>
+                     )}
+                  </>
                 ) : (
                   <>
                     <div className="relative">
@@ -545,17 +599,24 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                                 className="px-4 py-2 cursor-pointer hover:bg-gray-100"
                                 onClick={() => handleMedicineSelect(item)}
                               >
-                                <div className="font-medium">{item.product?.name || "Unknown Product"}</div>
-                                {item.product?.productNumber && (
-                                  <div className="text-sm text-gray-500">
-                                    Code: {item.product.productNumber}
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <div className="font-medium">{item.product?.name || "Unknown Product"}</div>
+                                    {item.product?.productNumber && (
+                                      <div className="text-sm text-gray-500">
+                                        Code: {item.product.productNumber}
+                                      </div>
+                                    )}
+                                    {item.product?.genericName && (
+                                      <div className="text-sm text-gray-500">
+                                        Generic: {item.product.genericName}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                {item.product?.genericName && (
-                                  <div className="text-sm text-gray-500">
-                                    Generic: {item.product.genericName}
-                                  </div>
-                                )}
+                                                                     <div className="ml-2 text-sm font-medium text-blue-600">
+                                     | Stock: {item.quantityOnHand || 0} {item.product?.unitOfMeasure || ''}
+                                   </div>
+                                </div>
                               </li>
                             ))}
                           </ul>
@@ -567,49 +628,71 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               </div>
             </div>
             
-            <div className="space-y-3">
-              <Label htmlFor="dosage">Dosage</Label>
-              <Input
-                id="dosage"
-                placeholder="e.g., 10mg"
-                value={currentMapping.dosage}
-                onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, dosage: e.target.value})}
-                disabled={isReadOnly}
-              />
-            </div>
-            
-            <div className="space-y-3">
-              <Label htmlFor="frequency">Frequency</Label>
-              <Input
-                id="frequency"
-                placeholder="e.g., Twice daily"
-                value={currentMapping.frequency}
-                onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, frequency: e.target.value})}
-                disabled={isReadOnly}
-              />
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {[
-                  "1-0-1",
-                  "1-0-0",
-                  "0-0-1",
-                  "1-1-1",
-                  "0.5-0-0.5",
-                  "0.5-0-0",
-                  "0-0-0.5",
-                  "0.5-0.5-0.5"
-                ].map(value => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
-                    onClick={() => !isReadOnly && setCurrentMapping({...currentMapping, frequency: value})}
+            {(() => {
+              const unitOfMeasure = currentMapping.product?.unitOfMeasure || "EA"
+              const shouldShowDosage = unitOfMeasure === "BOTTLE"
+              
+              if (!shouldShowDosage) return null
+              
+              return (
+                <div className="space-y-3">
+                  <Label htmlFor="dosage">Dosage</Label>
+                  <Input
+                    id="dosage"
+                    placeholder="e.g., 10mg"
+                    value={currentMapping.dosage || ""}
+                    onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, dosage: e.target.value})}
                     disabled={isReadOnly}
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  />
+                </div>
+              )
+            })()}
+            
+                         <div className="space-y-3">
+               <Label htmlFor="frequency">Frequency</Label>
+               <Input
+                 id="frequency"
+                 placeholder="e.g., Twice daily"
+                 value={currentMapping.frequency}
+                 onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, frequency: e.target.value})}
+                 disabled={isReadOnly}
+               />
+               <div className="flex gap-2 mt-2 flex-wrap">
+                 {[
+                   "1-0-1",
+                   "1-0-0",
+                   "0-0-1",
+                   "1-1-1",
+                   "0.5-0-0.5",
+                   "0.5-0-0",
+                   "0-0-0.5",
+                   "0.5-0.5-0.5"
+                 ].map(value => (
+                   <button
+                     key={value}
+                     type="button"
+                     className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
+                     onClick={() => !isReadOnly && setCurrentMapping({...currentMapping, frequency: value})}
+                     disabled={isReadOnly}
+                   >
+                     {value}
+                   </button>
+                 ))}
+               </div>
+             </div>
+             
+             <div className="space-y-3">
+               <Label htmlFor="numberOfDays">Number of Days</Label>
+               <Input
+                 id="numberOfDays"
+                 type="number"
+                 min="1"
+                 placeholder="e.g., 7"
+                 value={currentMapping.numberOfDays}
+                 onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, numberOfDays: parseInt(e.target.value) || 0})}
+                 disabled={isReadOnly}
+               />
+             </div>
           </div>
           
           <SheetFooter className="pt-4">

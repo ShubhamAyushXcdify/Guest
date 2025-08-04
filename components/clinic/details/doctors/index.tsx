@@ -14,8 +14,6 @@ import NewDoctor from "./newDoctor";
 import DoctorDetails from "./doctorDetails";
 import { useGetUsers } from "@/queries/users/get-users";
 import { useGetRole } from "@/queries/roles/get-role";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import DoctorSlotsManager from "./doctorSlots";
 import { useRouter } from "next/navigation";
 
 // Match the User type from the main user component
@@ -46,6 +44,7 @@ function DoctorComponent({ clinicId }: DoctorProps) {
   
   // Get roles to find veterinarian role ID
   const { data: rolesData } = useGetRole();
+  const router = useRouter();
   
   // Find and set the veterinarian role ID when roles are loaded
   useEffect(() => {
@@ -79,10 +78,8 @@ function DoctorComponent({ clinicId }: DoctorProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("details");
-
+  
   const deleteUser = useDeleteUser();
-  const router = useRouter();
 
   const handleDoctorClick = (doctorId: string) => {
     setSelectedDoctorId(doctorId);
@@ -132,10 +129,10 @@ function DoctorComponent({ clinicId }: DoctorProps) {
   };
 
   const columns: ColumnDef<Doctor>[] = [
-    { 
-      accessorKey: "firstName", 
-      header: "First Name",
-      cell: ({ row }) => (
+    {
+  accessorKey: "firstName",
+  header: "First Name",
+  cell: ({ row }) => (
         <Button 
           variant="link" 
           className="p-0 h-auto font-normal text-blue-600 hover:text-blue-800 hover:underline"
@@ -148,7 +145,7 @@ function DoctorComponent({ clinicId }: DoctorProps) {
           {row.original.firstName}
         </Button>
       )
-    },
+},
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
     { 
@@ -239,32 +236,16 @@ function DoctorComponent({ clinicId }: DoctorProps) {
       )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[22%] overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[22%] overflow-hidden">
           <SheetHeader>
-            <SheetTitle>Doctor Management</SheetTitle>
+            <SheetTitle>Doctor Details</SheetTitle>
           </SheetHeader>
-          
           {selectedDoctorId && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-              <TabsList className="w-full mb-4 grid grid-cols-2">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="slots">Schedule</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="details">
-                <DoctorDetails 
-                  doctorId={selectedDoctorId}
-                  clinicId={clinicId}
-                  onSuccess={() => setOpenDetails(false)}
-                />
-              </TabsContent>
-              
-              <TabsContent value="slots">
-                <DoctorSlotsManager 
-                  doctorId={selectedDoctorId}
-                />
-              </TabsContent>
-            </Tabs>
+            <DoctorDetails 
+              doctorId={selectedDoctorId}
+              clinicId={clinicId}
+              onSuccess={() => setOpenDetails(false)}
+            />
           )}
         </SheetContent>
       </Sheet>

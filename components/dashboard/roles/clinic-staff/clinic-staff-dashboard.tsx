@@ -12,12 +12,20 @@ export const ClinicStaffDashboard = ({
   onNewPatient,
   onNewAppointment,
   onNewInvoice,
+  onAddProduct,
+  onAddSupplier,
+  onAddClient,
+  onCreatePurchaseOrder,
   editAppointmentId,
   setEditAppointmentId
 }: {
   onNewPatient: () => void
   onNewAppointment: () => void
   onNewInvoice: () => void
+  onAddProduct?: () => void
+  onAddSupplier?: () => void
+  onAddClient?: () => void
+  onCreatePurchaseOrder?: () => void
   editAppointmentId: string | null
   setEditAppointmentId: (id: string | null) => void
 }) => {
@@ -103,11 +111,14 @@ export const ClinicStaffDashboard = ({
 
   return (
     <div className="p-6">
-      <DashboardWelcomeHeader date={today} />
       <DashboardActionButtons 
         onNewPatient={onNewPatient}
         onNewAppointment={onNewAppointment}
         onNewInvoice={onNewInvoice}
+        onAddProduct={onAddProduct}
+        onAddSupplier={onAddSupplier}
+        onAddClient={onAddClient}
+        onCreatePurchaseOrder={onCreatePurchaseOrder}
       />
       <DashboardStatsCards 
         todayAppointmentsCount={todayAppointmentsCount}

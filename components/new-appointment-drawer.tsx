@@ -31,7 +31,7 @@ export function NewAppointmentDrawer({
 }: NewAppointmentDrawerProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent className="w-[90%] sm:max-w-[800px] overflow-y-auto">
+        <SheetContent className="w-[20%] sm:max-w-[800px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-2xl font-bold">{appointmentId ? 'Update Appointment' : 'Schedule New Appointment'}</SheetTitle>
         </SheetHeader>
