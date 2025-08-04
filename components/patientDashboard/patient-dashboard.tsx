@@ -7,12 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Calendar, Clock, MapPin, Phone, Mail, Heart, PawPrint, CalendarDays, User, Building, Plus } from "lucide-react"
+import { Calendar, Clock, MapPin, Phone, Mail, Heart, PawPrint, CalendarDays, User, Building, Plus, FileText, Download, Filter, Search } from "lucide-react"
 import { useContext } from "react";
 import { RootContext } from "@/context/RootContext";
 import { useGetPatients } from "@/queries/patients/get-patients";
 import { useGetClientById } from "@/queries/clients/get-client";
 import { useGetAppointments } from "@/queries/appointment/get-appointment";
+import { useGetDischargeSummaryByClientId } from "@/queries/discharge-summary/get-discharge-summary-by-clientId";
 import { getClientId } from "@/utils/clientCookie"
 import PatientAppointmentForm from "@/components/patients/patient-appointment-form"
 import { NewPatientForm } from "@/components/patients/new-patient-form"
@@ -24,6 +25,8 @@ import {
 } from "@/components/ui/sheet"
 import { useRouter } from "next/navigation";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Input } from "@/components/ui/input"
+import DischargeSummarySheet from "@/components/appointments/discharge-summary-sheet"
 
 
 interface Appointment {
@@ -60,6 +63,11 @@ export default function PatientDashboard() {
   const user = rootContext?.user;
   const [isAppointmentFormOpen, setIsAppointmentFormOpen] = useState(false)
   const [isNewPetFormOpen, setIsNewPetFormOpen] = useState(false)
+  const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
+  const [medicalRecordsSearch, setMedicalRecordsSearch] = useState("")
+  const [selectedPetFilter, setSelectedPetFilter] = useState("all")
   const isMobile = useIsMobile();
 
   // Safely get clientId only on client side
@@ -93,6 +101,11 @@ export default function PatientDashboard() {
   const appointments = appointmentQuery.data?.items || [];
   const isAppointmentsLoading = appointmentQuery.isLoading;
   const appointmentsError = appointmentQuery.error;
+
+  const dischargeSummaryQuery = useGetDischargeSummaryByClientId(clientId);
+  const dischargeSummaries = dischargeSummaryQuery.data?.items || [];
+  const isDischargeSummariesLoading = dischargeSummaryQuery.isLoading;
+  const dischargeSummariesError = dischargeSummaryQuery.error;
 
   // Set isClient to true once component mounts on client
   useEffect(() => {
@@ -233,6 +246,36 @@ const futureScheduledAppointments = appointments.filter(apt => {
     return currentDate < earliestDate ? current : earliest;
   });
   return nextAppointment.appointmentDate!;
+};
+
+// Filter discharge summaries based on search and pet filter
+const filteredDischargeSummaries = dischargeSummaries.filter((summary: any) => {
+  const matchesSearch = medicalRecordsSearch === "" || 
+    summary.patientName?.toLowerCase().includes(medicalRecordsSearch.toLowerCase()) ||
+    summary.appointmentType?.toLowerCase().includes(medicalRecordsSearch.toLowerCase()) ||
+    summary.reason?.toLowerCase().includes(medicalRecordsSearch.toLowerCase());
+  
+  const matchesPet = selectedPetFilter === "all" || summary.patientId === selectedPetFilter;
+  
+  return matchesSearch && matchesPet;
+});
+
+// Get appointment type badge color
+const getAppointmentTypeBadge = (appointmentType: string) => {
+  const type = appointmentType?.toLowerCase() || '';
+  if (type.includes('consultation')) {
+    return <Badge className="bg-blue-100 text-blue-800">Consultation</Badge>;
+  } else if (type.includes('surgery')) {
+    return <Badge className="bg-red-100 text-red-800">Surgery</Badge>;
+  } else if (type.includes('emergency')) {
+    return <Badge className="bg-orange-100 text-orange-800">Emergency</Badge>;
+  } else if (type.includes('deworming')) {
+    return <Badge className="bg-green-100 text-green-800">Deworming</Badge>;
+  } else if (type.includes('vaccination')) {
+    return <Badge className="bg-purple-100 text-purple-800">Vaccination</Badge>;
+  } else {
+    return <Badge className="bg-gray-100 text-gray-800">{appointmentType}</Badge>;
+  }
 };
 
   return (
@@ -620,12 +663,109 @@ const futureScheduledAppointments = appointments.filter(apt => {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">🚧</div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Coming Soon</h3>
-                    <p className="text-gray-600 text-sm">Medical records feature is under development</p>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-bold">Medical Records</h2>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Search records..."
+                          value={medicalRecordsSearch}
+                          onChange={(e) => setMedicalRecordsSearch(e.target.value)}
+                          className="pl-10 w-40 text-sm"
+                        />
+                      </div>
+                      <select
+                        value={selectedPetFilter}
+                        onChange={(e) => setSelectedPetFilter(e.target.value)}
+                        className="text-sm border rounded-md px-2 py-1"
+                      >
+                        <option value="all">All Pets</option>
+                        {pets.map((pet) => (
+                          <option key={pet.id} value={pet.id}>
+                            {pet.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
+
+                  {isDischargeSummariesLoading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading medical records...</p>
+                    </div>
+                  ) : dischargeSummariesError ? (
+                    <div className="text-center py-8">
+                      <div className="text-red-500 mb-2">⚠️</div>
+                      <p className="text-gray-600">Error loading medical records</p>
+                    </div>
+                  ) : filteredDischargeSummaries.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                      <h3 className="text-lg font-medium text-gray-900">No medical records found</h3>
+                      <p className="text-gray-500 mt-1 text-sm">Your pet's medical records will appear here after completed appointments</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {filteredDischargeSummaries.map((summary: any) => (
+                        <Card key={summary.appointmentId} className="bg-white shadow-lg border-0">
+                          <CardContent className="p-4">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarFallback className="bg-purple-100 text-purple-600">
+                                      {summary.patientName?.[0] || "?"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <h3 className="font-semibold text-sm">{summary.patientName}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      {getAppointmentTypeBadge(summary.appointmentType)}
+                                    </div>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="theme-button-outline"
+                                  onClick={() => {
+                                    setSelectedAppointmentId(summary.appointmentId)
+                                    setSelectedAppointmentType(summary.appointmentType)
+                                    setDischargeSummaryOpen(true)
+                                  }}
+                                >
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  View
+                                </Button>
+                              </div>
+                              <div className="space-y-2 text-xs text-gray-500">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-3 w-3" />
+                                  {isClient && summary.appointmentDate ? formatDate(summary.appointmentDate) : ""}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <User className="h-3 w-3" />
+                                  {summary.veterinarianName || "Unknown"}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-3 w-3" />
+                                  {summary.clinicName || "Unknown"}
+                                </div>
+                                {summary.reason && (
+                                  <div className="text-xs text-gray-600 mt-2 p-2 bg-gray-50 rounded">
+                                    <strong>Reason:</strong> {summary.reason}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -953,21 +1093,159 @@ const futureScheduledAppointments = appointments.filter(apt => {
 
           {/* Medical Records Tab */}
           <TabsContent value="records" className="space-y-6">
-            <Card className="bg-white shadow-lg border-0">
-              <CardHeader>
-                <CardTitle>Medical Records</CardTitle>
-                <CardDescription>View your pets' medical history and treatments</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">🚧</div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Coming Soon</h3>
-                    <p className="text-gray-600">Medical records feature is under development</p>
-                  </div>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Medical Records</h2>
+                <p className="text-gray-600 mt-1">View your pets' medical history and discharge summaries</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Input
+                    placeholder="Search medical records..."
+                    value={medicalRecordsSearch}
+                    onChange={(e) => setMedicalRecordsSearch(e.target.value)}
+                    className="pl-10 w-64"
+                  />
                 </div>
-              </CardContent>
-            </Card>
+                <select
+                  value={selectedPetFilter}
+                  onChange={(e) => setSelectedPetFilter(e.target.value)}
+                  className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Pets</option>
+                  {pets.map((pet) => (
+                    <option key={pet.id} value={pet.id}>
+                      {pet.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {isDischargeSummariesLoading ? (
+              <Card className="bg-white shadow-lg border-0">
+                <CardContent className="p-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Medical Records</h3>
+                    <p className="text-gray-600">Please wait while we fetch your pet's medical history...</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : dischargeSummariesError ? (
+              <Card className="bg-white shadow-lg border-0">
+                <CardContent className="p-12">
+                  <div className="text-center">
+                    <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Records</h3>
+                    <p className="text-gray-600">Unable to load medical records. Please try again later.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : filteredDischargeSummaries.length === 0 ? (
+              <Card className="bg-white shadow-lg border-0">
+                <CardContent className="p-12">
+                  <div className="text-center">
+                    <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Medical Records Found</h3>
+                    <p className="text-gray-600 mb-6">Your pet's medical records will appear here after completed appointments</p>
+                    <div className="flex justify-center">
+                      <Button 
+                        onClick={() => setIsAppointmentFormOpen(true)}
+                        className="theme-button text-white"
+                        disabled={pets.length === 0}
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Book an Appointment
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {filteredDischargeSummaries.map((summary: any) => (
+                  <Card key={summary.appointmentId} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white font-bold">
+                              {summary.patientName?.[0] || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-lg">{summary.patientName}</CardTitle>
+                            <div className="flex items-center gap-2 mt-1">
+                              {getAppointmentTypeBadge(summary.appointmentType)}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="theme-button-outline"
+                          onClick={() => {
+                            setSelectedAppointmentId(summary.appointmentId)
+                            setSelectedAppointmentType(summary.appointmentType)
+                            setDischargeSummaryOpen(true)
+                          }}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          View Summary
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium text-gray-600">Date</p>
+                          <p className="text-gray-900">
+                            {isClient && summary.appointmentDate ? formatDate(summary.appointmentDate) : "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-600">Veterinarian</p>
+                          <p className="text-gray-900">{summary.veterinarianName || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-600">Clinic</p>
+                          <p className="text-gray-900">{summary.clinicName || "N/A"}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-600">Room</p>
+                          <p className="text-gray-900">{summary.roomName || "N/A"}</p>
+                        </div>
+                      </div>
+                      
+                      {summary.reason && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="font-medium text-gray-700 mb-1">Visit Reason</p>
+                          <p className="text-gray-600 text-sm">{summary.reason}</p>
+                        </div>
+                      )}
+                      
+                      {summary.notes && (
+                        <div className="bg-blue-50 rounded-lg p-3">
+                          <p className="font-medium text-blue-700 mb-1">Notes</p>
+                          <p className="text-blue-600 text-sm">{summary.notes}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="text-xs text-gray-500">
+                          Visit ID: {summary.visitId?.slice(0, 8)}...
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {isClient && summary.visitCreatedAt ? formatDate(summary.visitCreatedAt) : ""}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
         )}
@@ -997,6 +1275,20 @@ const futureScheduledAppointments = appointments.filter(apt => {
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Discharge Summary Sheet */}
+          {selectedAppointmentId && (
+            <DischargeSummarySheet
+              isOpen={dischargeSummaryOpen}
+              onClose={() => {
+                setDischargeSummaryOpen(false)
+                setSelectedAppointmentId(null)
+                setSelectedAppointmentType(null)
+              }}
+              appointmentId={selectedAppointmentId}
+              appointmentType={selectedAppointmentType || undefined}
+            />
+          )}
         </>
       )}
     </div>
