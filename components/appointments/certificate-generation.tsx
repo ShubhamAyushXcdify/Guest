@@ -194,7 +194,7 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
 
   return (
     <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-6xl overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center">
             <FileText className="h-5 w-5 mr-2" />
