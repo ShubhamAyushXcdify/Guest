@@ -11,6 +11,7 @@ import { useUpdateEmergencyVisit } from "@/queries/emergency/triage/update-emerg
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 // import { useTabCompletion } from "@/context/TabCompletionContext";
 
 interface TriageTabProps {
@@ -56,10 +57,15 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
     allergies.trim() !== "" &&
     reason.trim() !== "" &&
     triageLevel.trim() !== "" &&
-    presentingComplaint.trim() !== "" &&
-    notes.trim() !== ""
+    presentingComplaint.trim() !== "" 
   );
 };
+
+
+    // Get appointment data
+  const { data: appointmentData } = useGetAppointmentById(appointmentId) ;
+
+  const isReadOnly = appointmentData?.status === "completed" ;
 
 
   useEffect(() => {
@@ -253,7 +259,7 @@ export default function TriageTab({ patientId, appointmentId, onNext }: TriageTa
         <div className="mt-6 flex justify-end">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || visitLoading || triageLoading}
+            disabled={isSubmitting || visitLoading || triageLoading || !isTriageComplete() || isReadOnly }
             className="ml-2"
           >
             {triageData && triageData.id ? "Update" : "Save and Next"}

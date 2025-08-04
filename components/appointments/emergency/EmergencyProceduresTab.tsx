@@ -11,6 +11,7 @@ import { useUpdateEmergencyProcedure } from "@/queries/emergency/procedures/upda
 import { EmergencyVisitProcedure } from "@/queries/emergency/procedures/get-emergency-procedures";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 
 interface EmergencyProceduresTabProps {
   patientId: string;
@@ -46,6 +47,9 @@ export default function EmergencyProceduresTab({ patientId, appointmentId, onNex
   const createProcedure = useCreateEmergencyProcedure();
   const updateProcedure = useUpdateEmergencyProcedure();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
+  const isReadOnly =appointmentData?.status === "completed"
 
   // Prefill form if procedure exists
   useEffect(() => {
@@ -104,7 +108,7 @@ export default function EmergencyProceduresTab({ patientId, appointmentId, onNex
     fluids.volume.trim() !== "" &&
     fluids.rate.trim() !== "" &&
     response.trim() !== "" &&
-    notes.trim() !== "" &&
+   
     !areAllCheckboxesUnchecked
   );
 };
@@ -291,10 +295,10 @@ export default function EmergencyProceduresTab({ patientId, appointmentId, onNex
         <div className="mt-6 flex justify-end">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || visitLoading || proceduresLoading}
+            disabled={isSubmitting || visitLoading || proceduresLoading || !isProcedureComplete() || isReadOnly}
             className="ml-2"
           >
-            {proceduresData ? "Update" : "Save and Next"}
+            {proceduresData && proceduresData.length > 0 ? "Update" : "Save and Next"}
           </Button>
         </div>
       </CardContent>

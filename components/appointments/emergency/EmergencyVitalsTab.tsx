@@ -10,6 +10,7 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useGetEmergencyVitalByVisitId } from "@/queries/emergency/vitals/get-emergency-vital-by-visit-id";
 import { useCreateEmergencyVital } from "@/queries/emergency/vitals/create-emergency-vital";
 import { useUpdateEmergencyVital } from "@/queries/emergency/vitals/update-emergency-vital";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import { toast } from "sonner";
 
 interface EmergencyVitalsTabProps {
@@ -55,6 +56,11 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
   const createVitals = useCreateEmergencyVital({});
   const updateVitals = useUpdateEmergencyVital({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+ 
+
+  const { data: appointmentData } = useGetAppointmentById(appointmentId)
+  const isReadOnly =appointmentData?.status === "completed"
+
 
   const isVitalsComplete = (): boolean => {
   return (
@@ -267,7 +273,7 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
         <div className="mt-6 flex justify-end">
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || visitLoading || vitalsLoading}
+            disabled={isSubmitting || visitLoading || vitalsLoading || !isVitalsComplete() || isReadOnly}
             className="ml-2"
           >
             {vitalsData && vitalsData.id ? "Update" : "Save and Next"}
