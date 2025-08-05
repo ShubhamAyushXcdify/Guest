@@ -72,14 +72,19 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
       form.reset({
         purchaseOrderId: order.id,
         notes: "",
-        receivedItems: order.items.map((item: any) => ({
-          purchaseOrderItemId: item.id,
-          quantityReceived: item.quantityOrdered,
-          batchNumber: "",
-          expiryDate: "",
-          dateOfManufacture: "",
-          notes: "",
-        })),
+        receivedItems: order.items.map((item: any) => {
+          const ordered = item.quantityOrdered ?? 0;
+          const alreadyReceived = item.quantityReceived ?? 0;
+          const maxReceivable = Math.max(ordered - alreadyReceived, 0);
+          return {
+            purchaseOrderItemId: item.id,
+            quantityReceived: maxReceivable, // Set default to max receivable
+            batchNumber: "",
+            expiryDate: "",
+            dateOfManufacture: "",
+            notes: "",
+          };
+        }),
       });
     }
   }, [order, form]);
@@ -177,14 +182,30 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                       <FormField
                         control={form.control}
                         name={`receivedItems.${idx}.quantityReceived`}
-                        render={({ field }) => (
-                          <FormItem className="mb-0">
-                            <FormControl>
-                              <Input type="number" min="0" {...field} onChange={e => field.onChange(Number(e.target.value))} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          const ordered = order.items[idx]?.quantityOrdered ?? 0;
+                          const alreadyReceived = order.items[idx]?.quantityReceived ?? 0;
+                          const maxReceivable = Math.max(ordered - alreadyReceived, 0);
+                          return (
+                            <FormItem className="mb-0">
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={maxReceivable}
+                                  {...field}
+                                  onChange={e => {
+                                    let val = Number(e.target.value);
+                                    if (val > maxReceivable) val = maxReceivable;
+                                    field.onChange(val);
+                                  }}
+                                />
+                              </FormControl>
+                             
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }}
                       />
                     </div>
                     <div className="col-span-1">
