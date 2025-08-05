@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { useRef } from "react"
 import { 
   FileText, 
   Download, 
@@ -20,6 +21,10 @@ import { useGetClientById } from "@/queries/clients/get-client"
 import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id"
 import { useGetUserById } from "@/queries/users/get-user-by-id"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useCreateCertificate } from "@/queries/certificate/create-certificate";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetCertificateByVisitId } from "@/queries/certificate/get-certificate-by-visit-id";
+import { useUpdateCertificate } from "@/queries/certificate/update-certificate";
 
 interface ConsentBondCertificateProps {
   appointmentId: string
@@ -41,20 +46,92 @@ export default function ConsentBondCertificate({ appointmentId, patientId, onClo
   const { data: client, isLoading: isLoadingClient } = useGetClientById(appointment?.clientId || '')
   const { data: clinic, isLoading: isLoadingClinic } = useGetClinicById(appointment?.clinicId || '')
   const { data: veterinarian, isLoading: isLoadingVet } = useGetUserById(appointment?.veterinarianId || '')
+  const { mutateAsync: createCertificate } = useCreateCertificate();
+  const { data: visit, isLoading: isLoadingVisit } = useGetVisitByAppointmentId(appointmentId)
+  const { data: certificateData, isLoading: isLoadingCertificate } = useGetCertificateByVisitId(visit?.id);
+  const { mutateAsync: updateCertificate } = useUpdateCertificate();
+  const certificateRef = useRef<HTMLDivElement>(null)
+
+
+useEffect(() => {
+  if (certificateData && certificateData.certificateJson) {
+    const parsed = JSON.parse(certificateData.certificateJson);
+    setPetDescription(parsed.petDescription || "");
+    setPetAge(parsed.petAge || "");
+    setPetWeight(parsed.petWeight || "");
+    setPetPlace(parsed.petPlace || "");
+    setPetMicrochipId(parsed.petMicrochipId || "");
+  }
+}, [certificateData]);
 
   const handleGenerateCertificate = async () => {
-    setIsGenerating(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setIsGenerating(false)
-    
+  if (!visit?.id) {
     toast({
-      title: "Certificate Generated",
-      description: "Consent Bond Certificate has been generated successfully.",
-    })
+      title: "Missing Visit",
+      description: "Visit not found for this appointment.",
+      variant: "destructive",
+    });
+    return;
   }
+
+  try {
+    setIsGenerating(true);
+
+    const certificateContent = {
+      petDescription,
+      petAge,
+      petWeight,
+      petPlace,
+      petMicrochipId,
+      appointmentId,
+      patientId,
+      ownerName: getOwnerDisplayName(),
+      petName: getPatientDisplayName(),
+      vetName: getVetDisplayName(),
+      vetRegistration: veterinarian?.registrationNumber,
+      vetQualification: veterinarian?.qualification,
+      clinicName: clinic?.name,
+      clinicAddress: clinic?.address,
+      date: appointment?.appointmentDate || new Date().toISOString(),
+    };
+
+    const json = JSON.stringify(certificateContent);
+
+    if (certificateData) {
+      // Update existing
+      await updateCertificate({
+        id: certificateData.id,
+        visitId: visit.id,
+        certificateJson: json,
+      });
+
+      toast({
+        title: "Certificate Updated",
+        description: "Consent Bond Certificate updated successfully.",
+      });
+    } else {
+      // Create new
+      await createCertificate({
+        visitId: visit.id,
+        certificateJson: json,
+      });
+
+      toast({
+        title: "Certificate Generated",
+        description: "Consent Bond Certificate saved successfully.",
+      });
+    }
+  } catch (error: any) {
+    toast({
+      title: "Error",
+      description: error?.message || "Failed to save certificate",
+      variant: "destructive",
+    });
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
 
   const handleDownloadCertificate = () => {
     toast({
@@ -97,7 +174,7 @@ export default function ConsentBondCertificate({ appointmentId, patientId, onClo
   const certificationText = "This is to certify that I have personally examined the below mentioned pet and obtained proper consent for veterinary procedures. All treatment options have been discussed with the pet owner and informed consent has been obtained. The procedures will be performed in accordance with veterinary standards."
 
   const renderCertificatePreview = () => {
-    if (!appointment || !patient || !client || !clinic || !veterinarian) {
+    if (!appointment || !patient || !client || !clinic || !veterinarian || !visit?.id) {
       return (
         <div className="bg-white border-2 border-gray-200 rounded-lg p-8 max-w-4xl mx-auto shadow-lg">
           <div className="text-center">
@@ -106,6 +183,8 @@ export default function ConsentBondCertificate({ appointmentId, patientId, onClo
         </div>
       )
     }
+
+
 
     return (
       <div className="bg-white border-2 border-gray-200 rounded-lg p-8 max-w-4xl mx-auto shadow-lg">
@@ -199,7 +278,7 @@ export default function ConsentBondCertificate({ appointmentId, patientId, onClo
             <div className="border-b-2 border-gray-400 w-32 mx-auto mb-2"></div>
             <p className="text-sm font-semibold text-blue-600">{getVetDisplayName()}</p>
             <p className="text-xs text-gray-600">{veterinarian.qualification || 'DVM'}</p>
-            <p className="text-xs text-gray-600">{veterinarian.registrationNumber || 'N/A'}</p>
+            {/* <p className="text-xs text-gray-600">{veterinarian.registrationNumber || 'N/A'}</p> */}
           </div>
         </div>
 
@@ -248,7 +327,7 @@ export default function ConsentBondCertificate({ appointmentId, patientId, onClo
   }
 
   // Show loading state while fetching data
-  if (isLoadingAppointment || isLoadingPatient || isLoadingClient || isLoadingClinic || isLoadingVet) {
+  if (isLoadingAppointment || isLoadingPatient || isLoadingClient || isLoadingClinic || isLoadingVet || isLoadingVisit) {
     return (
       <Sheet open={true} onOpenChange={onClose}>
         <SheetContent className="w-full sm:max-w-6xl overflow-y-auto">
@@ -287,7 +366,7 @@ export default function ConsentBondCertificate({ appointmentId, patientId, onClo
           <div className="flex items-center justify-center space-x-4">
             <Button
               onClick={handleGenerateCertificate}
-              disabled={isGenerating}
+              //disabled={isGenerating}
               className="flex items-center"
             >
               {isGenerating ? (
