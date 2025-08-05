@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Combobox } from "../ui/combobox";
-import ProductCodes from "./ProductCodes";
 
 // const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
 const PRODUCT_TYPES = [
@@ -349,14 +348,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
       </form>
     </Form>
 
-    {/* Product Codes Section */}
-    <div className="mt-8">
-      <ProductCodes 
-        productId={productId}
-        productNumber={product.productNumber}
-        productName={product.name}
-      />
-    </div>
+
   </div>
   );
 }

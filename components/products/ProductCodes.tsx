@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Download, Printer } from 'lucide-react';
 import { toast } from '../ui/use-toast';
+import { Document, Page, Text, View, StyleSheet, pdf, Image } from '@react-pdf/renderer';
 
 interface ProductCodesProps {
   productId: string;
@@ -20,45 +21,235 @@ export default function ProductCodes({ productId, productNumber, productName }: 
   const { data: qrCodeData, isLoading: qrLoading, error: qrError } = useGetProductQrCode(productId);
   const { data: barcodeData, isLoading: barcodeLoading, error: barcodeError } = useGetProductBarcode(productId);
 
-  const handleDownloadQR = () => {
+  // PDF Styles
+  const styles = StyleSheet.create({
+    page: {
+      flexDirection: 'column',
+      backgroundColor: '#ffffff',
+      padding: 30,
+    },
+    header: {
+      fontSize: 24,
+      textAlign: 'center',
+      marginBottom: 30,
+      fontWeight: 'bold',
+    },
+    codesContainer: {
+      flexDirection: 'column',
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    codeSection: {
+      alignItems: 'center',
+      marginBottom: 30,
+    },
+    codeTitle: {
+      fontSize: 18,
+      marginBottom: 15,
+      fontWeight: 'bold',
+    },
+    codeImage: {
+      width: 200,
+      height: 200,
+      marginBottom: 15,
+    },
+    barcodeImage: {
+      width: 300,
+      height: 100,
+      marginBottom: 15,
+    },
+    productInfo: {
+      marginTop: 15,
+      textAlign: 'center',
+    },
+    productText: {
+      fontSize: 12,
+      marginBottom: 5,
+    },
+    label: {
+      fontWeight: 'bold',
+    },
+  });
+
+  const handleDownloadQR = async () => {
     try {
-      const canvas = document.getElementById('qr-code-canvas') as HTMLCanvasElement;
-      if (canvas) {
-        const link = document.createElement('a');
-        link.download = `qr-code-${productNumber}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-        toast({
-          title: "Success",
-          description: "QR code downloaded successfully",
-        });
+      // Convert QR code SVG to image
+      const qrSvg = document.getElementById('qr-code-canvas') as unknown as SVGElement;
+      if (!qrSvg) {
+        throw new Error('QR code SVG not found');
       }
+
+      // Create a canvas to convert SVG to image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      canvas.width = 200;
+      canvas.height = 200;
+
+      // Convert SVG to data URL
+      const svgData = new XMLSerializer().serializeToString(qrSvg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      // Create image from SVG
+      const img = new window.Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        const qrImageData = canvas.toDataURL('image/png');
+        URL.revokeObjectURL(url);
+        
+        // Create PDF with the image
+        createQRPDF(qrImageData);
+      };
+      img.src = url;
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to download QR code",
+        description: "Failed to download QR code PDF",
         variant: "destructive",
       });
     }
   };
 
-  const handleDownloadBarcode = () => {
+    const createQRPDF = async (qrImageData: string) => {
     try {
-      const canvas = document.getElementById('barcode-canvas') as HTMLCanvasElement;
-      if (canvas) {
-        const link = document.createElement('a');
-        link.download = `barcode-${productNumber}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-        toast({
-          title: "Success",
-          description: "Barcode downloaded successfully",
-        });
-      }
+      // Create PDF Document for QR Code
+      const QRCodePDF = () => (
+        <Document>
+          <Page size="A4" style={styles.page}>
+            <Text style={styles.header}>QR Code</Text>
+            <View style={styles.codesContainer}>
+              <View style={styles.codeSection}>
+                <Text style={styles.codeTitle}>Product QR Code</Text>
+                <Image src={qrImageData} style={styles.codeImage} />
+                <View style={styles.productInfo}>
+                  <Text style={styles.productText}>
+                    <Text style={styles.label}>Product:</Text> {productName}
+                  </Text>
+                  <Text style={styles.productText}>
+                    <Text style={styles.label}>SKU:</Text> {productNumber}
+                  </Text>
+                  <Text style={styles.productText}>
+                    <Text style={styles.label}>Generated:</Text> {new Date().toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Page>
+        </Document>
+      );
+
+      const blob = await pdf(<QRCodePDF />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `qr-code-${productNumber}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "QR code PDF downloaded successfully",
+      });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to download barcode",
+        description: "Failed to download QR code PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadBarcode = async () => {
+    try {
+      // Convert barcode SVG to image (similar to QR code approach)
+      const barcodeSvg = document.getElementById('barcode-canvas') as unknown as SVGElement;
+      if (!barcodeSvg) {
+        throw new Error('Barcode SVG not found');
+      }
+
+      // Create a canvas to convert SVG to image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      canvas.width = 300;
+      canvas.height = 100;
+
+      // Convert SVG to data URL
+      const svgData = new XMLSerializer().serializeToString(barcodeSvg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      // Create image from SVG
+      const img = new window.Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        const barcodeImageData = canvas.toDataURL('image/png');
+        URL.revokeObjectURL(url);
+        
+        // Create PDF with the image
+        createBarcodePDF(barcodeImageData);
+      };
+      img.src = url;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download barcode PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
+    const createBarcodePDF = async (barcodeImageData: string) => {
+    try {
+      // Create PDF Document for Barcode
+      const BarcodePDF = () => (
+        <Document>
+          <Page size="A4" style={styles.page}>
+            <Text style={styles.header}>Barcode</Text>
+            <View style={styles.codesContainer}>
+              <View style={styles.codeSection}>
+                <Text style={styles.codeTitle}>Product Barcode</Text>
+                <Image src={barcodeImageData} style={styles.barcodeImage} />
+                <View style={styles.productInfo}>
+                  <Text style={styles.productText}>
+                    <Text style={styles.label}>Product:</Text> {productName}
+                  </Text>
+                  <Text style={styles.productText}>
+                    <Text style={styles.label}>SKU:</Text> {productNumber}
+                  </Text>
+                  <Text style={styles.productText}>
+                    <Text style={styles.label}>Generated:</Text> {new Date().toLocaleDateString()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </Page>
+        </Document>
+      );
+
+      const blob = await pdf(<BarcodePDF />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `barcode-${productNumber}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Barcode PDF downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download barcode PDF",
         variant: "destructive",
       });
     }
@@ -147,7 +338,7 @@ export default function ProductCodes({ productId, productNumber, productName }: 
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Product Codes
-          <div className="flex gap-2">
+          {/* <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -157,7 +348,7 @@ export default function ProductCodes({ productId, productNumber, productName }: 
               <Printer className="h-4 w-4" />
               Print
             </Button>
-          </div>
+          </div> */}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -165,24 +356,24 @@ export default function ProductCodes({ productId, productNumber, productName }: 
           {/* QR Code Section */}
           <div className="flex flex-col items-center space-y-4">
             <h3 className="text-lg font-semibold">QR Code</h3>
-            <div className="bg-white p-4 rounded-lg border">
-              <QRCodeSVG
-                id="qr-code-canvas"
-                value={JSON.stringify(qrCodeData)}
-                size={200}
-                level="M"
-                includeMargin={true}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadQR}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download QR Code
-            </Button>
+                         <div className="bg-white p-4 rounded-lg border">
+               <QRCodeSVG
+                 id="qr-code-canvas"
+                 value={JSON.stringify(qrCodeData)}
+                 size={200}
+                 level="M"
+                 includeMargin={true}
+               />
+             </div>
+                         <Button
+               variant="outline"
+               size="sm"
+               onClick={handleDownloadQR}
+               className="flex items-center gap-2"
+             >
+               <Download className="h-4 w-4" />
+               Download QR Code PDF
+             </Button>
             <div className="text-sm text-gray-600 text-center">
               <p><strong>Product:</strong> {productName}</p>
               <p><strong>SKU:</strong> {productNumber}</p>
@@ -203,15 +394,15 @@ export default function ProductCodes({ productId, productNumber, productName }: 
                 displayValue={true}
               />
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadBarcode}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Barcode
-            </Button>
+                         <Button
+               variant="outline"
+               size="sm"
+               onClick={handleDownloadBarcode}
+               className="flex items-center gap-2"
+             >
+               <Download className="h-4 w-4" />
+               Download Barcode PDF
+             </Button>
             <div className="text-sm text-gray-600 text-center">
               <p><strong>Product:</strong> {productName}</p>
               <p><strong>SKU:</strong> {productNumber}</p>

@@ -18,6 +18,8 @@ import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { useGetClientById } from "@/queries/clients/get-client"
 import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id"
 import { useGetUserById } from "@/queries/users/get-user-by-id"
+import { Document, Page, Text, View } from '@react-pdf/renderer'
+import { certificateStyles, downloadPDF } from './pdf-utils'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 interface EuthanasiaCertificateProps {
@@ -55,11 +57,158 @@ export default function EuthanasiaCertificate({ appointmentId, patientId, onClos
     })
   }
 
-  const handleDownloadCertificate = () => {
-    toast({
-      title: "Download Started",
-      description: "Certificate is being downloaded...",
-    })
+  const handleDownloadCertificate = async () => {
+    try {
+      if (!appointment || !patient || !client || !clinic || !veterinarian) {
+        toast({
+          title: "Error",
+          description: "Certificate data not available",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Create PDF Document
+      const EuthanasiaPDF = () => (
+        <Document>
+          <Page size="A4" style={certificateStyles.page}>
+            {/* Header */}
+            <View style={certificateStyles.header}>
+              <Text style={certificateStyles.clinicName}>{clinic.name}</Text>
+              <Text style={certificateStyles.clinicTagline}>{clinic.tagline || "Professional Veterinary Care"}</Text>
+            </View>
+
+            {/* Title */}
+            <Text style={certificateStyles.title}>EUTHANASIA CERTIFICATE</Text>
+
+            {/* Main Content */}
+            <Text style={certificateStyles.content}>
+              This is to certify that I have personally performed humane euthanasia on the below mentioned pet {getPatientDisplayName()} in accordance with veterinary standards and protocols. The procedure was conducted with the utmost care and compassion, ensuring the pet's comfort and dignity throughout the process.
+            </Text>
+
+            {/* Pet Description */}
+            <Text style={certificateStyles.sectionTitle}>Pet Description:</Text>
+            <Text style={certificateStyles.petDescription}>{petDescription}</Text>
+
+            {/* Details Grid */}
+            <View style={certificateStyles.detailsGrid}>
+              {/* Left Column - Pet Details */}
+              <View style={certificateStyles.detailsColumn}>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Pet Name:</Text>
+                  <Text style={certificateStyles.detailValue}>{getPatientDisplayName()}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Owner Name:</Text>
+                  <Text style={certificateStyles.detailValue}>{getOwnerDisplayName()}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Species:</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.species || 'N/A'}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Gender:</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.gender || 'N/A'}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Breed:</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.breed || 'N/A'}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Age:</Text>
+                  <Text style={certificateStyles.inputValue}>{petAge || patient.age || 'N/A'}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Weight:</Text>
+                  <Text style={certificateStyles.inputValue}>{petWeight || (patient.weight ? `${patient.weight} kg` : 'N/A')}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Color:</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.color || 'N/A'}</Text>
+                </View>
+                <View style={certificateStyles.detailRow}>
+                  <Text style={certificateStyles.detailLabel}>Microchip ID:</Text>
+                  <Text style={certificateStyles.inputValue}>{petMicrochipId || patient.microchipId || 'N/A'}</Text>
+                </View>
+              </View>
+
+              {/* Right Column - Vet Section */}
+              <View style={certificateStyles.vetSection}>
+                <Text style={certificateStyles.sectionTitle}>Vet. Stamp & Sign:</Text>
+                <View style={certificateStyles.vetStamp}>
+                  <Text style={certificateStyles.vetStampText}>Veterinary Stamp</Text>
+                </View>
+                <View style={certificateStyles.signatureLine}></View>
+                <Text style={certificateStyles.vetName}>{getVetDisplayName()}</Text>
+                <Text style={certificateStyles.vetDetails}>{veterinarian.qualification || 'DVM'}</Text>
+                <Text style={certificateStyles.vetDetails}>{veterinarian.registrationNumber || 'N/A'}</Text>
+              </View>
+            </View>
+
+            {/* Date and Place */}
+            <View style={certificateStyles.datePlace}>
+              <View>
+                <View style={certificateStyles.datePlaceItem}>
+                  <Text style={certificateStyles.datePlaceLabel}>Date:</Text>
+                  <Text style={certificateStyles.datePlaceValue}>
+                    {appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : new Date().toLocaleDateString()}
+                  </Text>
+                </View>
+                <View style={certificateStyles.datePlaceItem}>
+                  <Text style={certificateStyles.datePlaceLabel}>Place:</Text>
+                  <Text style={certificateStyles.datePlaceValue}>
+                    {petPlace || (clinic.address ? clinic.address.split(',')[0] : 'N/A')}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Footer */}
+            <View style={certificateStyles.footer}>
+              {clinic.address && (
+                <View style={certificateStyles.footerItem}>
+                  <Text style={certificateStyles.footerText}>{clinic.address}</Text>
+                </View>
+              )}
+              {clinic.email && (
+                <View style={certificateStyles.footerItem}>
+                  <Text style={certificateStyles.footerText}>{clinic.email}</Text>
+                </View>
+              )}
+              {clinic.phone && (
+                <View style={certificateStyles.footerItem}>
+                  <Text style={certificateStyles.footerText}>{clinic.phone}</Text>
+                </View>
+              )}
+            </View>
+          </Page>
+        </Document>
+      );
+
+      await downloadPDF(
+        <EuthanasiaPDF />,
+        `euthanasia-certificate-${getPatientDisplayName()}-${new Date().toISOString().split('T')[0]}.pdf`,
+        () => {
+          toast({
+            title: "Success",
+            description: "Euthanasia Certificate downloaded successfully",
+          });
+        },
+        (error) => {
+          toast({
+            title: "Error",
+            description: "Failed to download certificate",
+            variant: "destructive",
+          });
+        }
+      );
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download certificate",
+        variant: "destructive",
+      });
+    }
   }
 
   const handlePrintCertificate = () => {

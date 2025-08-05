@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ProductCodes from '@/components/products/ProductCodes';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -150,6 +151,13 @@ export default function ProductDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Product Codes Section */}
+      <ProductCodes 
+        productId={productId}
+        productNumber={product.productNumber}
+        productName={product.name}
+      />
     </div>
   );
 } 
