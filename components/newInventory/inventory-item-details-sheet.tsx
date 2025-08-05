@@ -11,6 +11,8 @@ import { useGetPurchaseOrderHistoryByProductIdClinicId } from "@/queries/purchas
 import { formatDate } from "@/lib/utils"
 import { InventoryData } from "@/queries/inventory/get-inventory"
 import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Database } from "lucide-react"
+import Barcode from "react-barcode"
+import { Item } from "@radix-ui/react-select"
 
 // Format currency consistently
 const formatCurrency = (value: number | null | undefined) => {
@@ -73,6 +75,7 @@ export default function InventoryItemDetailsSheet({
     if (reorderThreshold > 0 && quantity <= reorderThreshold * 1.5) return 'Warning'
     return 'In Stock'
   }
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -277,6 +280,7 @@ export default function InventoryItemDetailsSheet({
                           <th className="text-left px-3 py-2 font-medium">Expiry Date</th>
                           <th className="text-left px-3 py-2 font-medium">Received Date</th>
                           <th className="text-left px-3 py-2 font-medium">Received By</th>
+                          <th className="text-left px-3 py-2 font-medium">Barcode</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -313,6 +317,20 @@ export default function InventoryItemDetailsSheet({
                                 {item.receivedDate ? formatDate(item.receivedDate) : "-"}
                               </td>
                               <td className="px-3 py-2">{item.receivedByName || "-"}</td>
+                              <td className="px-3 py-2">
+                                {product && item.barcode && (
+                                  <div className="w-[180px]">
+                                    <Barcode
+                                      value={item.barcode}
+                                      format="CODE128"          
+                                     height={40}           // shorter height (optional)
+                                      width={0.7}                  
+                                      displayValue={false}         
+                                      fontSize={7}
+                                    />
+                                  </div>
+                                )}
+                              </td>
                             </tr>
                           ));
                         })()}
