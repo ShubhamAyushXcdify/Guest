@@ -66,6 +66,16 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
     );
   };
 
+  const isFormComplete = useMemo(() => {
+  return (
+    status.trim() !== "" &&
+    dischargeTime.trim() !== "" &&
+    homeCare.trim() !== "" &&
+    medications.trim() !== ""
+    );
+  }, [status, dischargeTime, homeCare, medications, followUp]);
+
+
   useEffect(() => {
     if (dischargeData && dischargeData.length > 0) {
       const data = dischargeData[0];
@@ -208,8 +218,8 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
           <div className="mt-6 flex justify-end gap-2">
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || isProcessing || isReadOnly}
-              className="bg-black text-white"
+              disabled={isSubmitting || isProcessing || isReadOnly || !isFormComplete}
+              className="bg-black text-white px-4 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
             >
               {dischargeData && dischargeData.length > 0 ? "Update" : "Save"}
             </Button>

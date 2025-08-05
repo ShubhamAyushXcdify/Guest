@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
@@ -34,6 +34,17 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
   const { markTabAsCompleted } = useSurgeryTabCompletion();
   const { data: appointmentData } = useGetAppointmentById(appointmentId);
   const isReadOnly = appointmentData?.status === "completed";
+
+  const isFormComplete = useMemo(() => {
+  return (
+    recovery.trim() !== "" &&
+    painLevel.trim() !== "" &&
+    vitalSigns.trim() !== "" &&
+    medications.trim() !== "" &&
+    woundCare.trim() !== "" 
+    );
+  }, [recovery, painLevel, vitalSigns, medications, woundCare, notes]);
+
 
   useEffect(() => {
     if (postOpData && postOpData.length > 0) {
@@ -149,8 +160,8 @@ export default function PostOpTab({ patientId, appointmentId }: PostOpTabProps) 
           <div className="mt-6 flex justify-end">
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || isReadOnly}
-              className="bg-black text-white px-4 py-2 rounded"
+              disabled={isSubmitting || isReadOnly || !isFormComplete}
+              className="bg-black text-white px-4 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
             >
               {postOpData && postOpData.length > 0 ? "Update" : "Save"}
             </button>
