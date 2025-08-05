@@ -10,9 +10,10 @@ import { useGetProductById } from "@/queries/products/get-product-by-id"
 import { useGetPurchaseOrderHistoryByProductIdClinicId } from "@/queries/purchaseOrderReceiving/get-purchase-order-history-by-productId-clinidId"
 import { formatDate } from "@/lib/utils"
 import { InventoryData } from "@/queries/inventory/get-inventory"
-import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Database } from "lucide-react"
+import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Database, Download } from "lucide-react"
 import Barcode from "react-barcode"
 import { Item } from "@radix-ui/react-select"
+import { Document, Page, View, Image, StyleSheet } from '@react-pdf/renderer'
 
 // Format currency consistently
 const formatCurrency = (value: number | null | undefined) => {
@@ -75,6 +76,135 @@ export default function InventoryItemDetailsSheet({
     if (reorderThreshold > 0 && quantity <= reorderThreshold * 1.5) return 'Warning'
     return 'In Stock'
   }
+
+  const handleDownloadBarcode = async (barcodeValue: string, productName: string) => {
+    try {
+      // Create a temporary barcode element to generate the SVG
+      const tempDiv = document.createElement('div')
+      tempDiv.style.position = 'absolute'
+      tempDiv.style.left = '-9999px'
+      tempDiv.style.top = '-9999px'
+      document.body.appendChild(tempDiv)
+
+      // Create the barcode using react-barcode
+      const React = await import('react')
+      const ReactDOM = await import('react-dom/client')
+      const Barcode = (await import('react-barcode')).default
+      
+      const barcodeElement = React.createElement(Barcode, {
+        value: barcodeValue,
+        format: "CODE128",
+        height: 40,
+        width: 0.7,
+        displayValue: false,
+        fontSize: 7
+      })
+
+      const root = ReactDOM.createRoot(tempDiv)
+      root.render(barcodeElement)
+
+      // Wait a bit for the SVG to render
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Get the SVG element
+      const svgElement = tempDiv.querySelector('svg') as SVGElement
+      if (!svgElement) {
+        console.error('Barcode SVG element not found')
+        document.body.removeChild(tempDiv)
+        return
+      }
+
+      const svgData = new XMLSerializer().serializeToString(svgElement)
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      const img = new window.Image()
+
+      img.onload = async () => {
+        canvas.width = img.width
+        canvas.height = img.height
+        ctx?.drawImage(img, 0, 0)
+        
+        const imageDataUrl = canvas.toDataURL('image/png')
+
+        // Create PDF with barcode
+        const BarcodePDF = () => (
+          <Document>
+            <Page size="A4" style={styles.page}>
+              <View style={styles.container}>
+                <View style={styles.barcodeContainer}>
+                  <Image src={imageDataUrl} style={styles.barcode} />
+                  <View style={styles.barcodeText}>{barcodeValue}</View>
+                </View>
+                <View style={styles.header}>
+                  <View style={styles.title}>Product Barcode</View>
+                  <View style={styles.productName}>{productName}</View>
+                </View>
+              </View>
+            </Page>
+          </Document>
+        )
+
+        // Generate and download PDF
+        const { pdf } = await import('@react-pdf/renderer')
+        const blob = await pdf(<BarcodePDF />).toBlob()
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `Barcode_${productName}_${barcodeValue}.pdf`
+        link.click()
+        URL.revokeObjectURL(url)
+
+        // Clean up
+        document.body.removeChild(tempDiv)
+      }
+
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
+    } catch (error) {
+      console.error('Error generating barcode PDF:', error)
+    }
+  }
+
+  const styles = StyleSheet.create({
+    page: {
+      padding: 30,
+      backgroundColor: '#ffffff'
+    },
+    container: {
+      flex: 1,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      paddingTop: 50
+    },
+    header: {
+      marginTop: 60,
+      textAlign: 'center'
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      color: '#333'
+    },
+    productName: {
+      fontSize: 16,
+      color: '#666',
+      marginBottom: 5
+    },
+    barcodeContainer: {
+      alignItems: 'center',
+      marginTop: 0
+    },
+    barcode: {
+      width: 300,
+      height: 100,
+      marginBottom: 10
+    },
+    barcodeText: {
+      fontSize: 12,
+      color: '#333',
+      marginTop: 5
+    }
+  })
 
 
   return (
@@ -318,18 +448,31 @@ export default function InventoryItemDetailsSheet({
                               </td>
                               <td className="px-3 py-2">{item.receivedByName || "-"}</td>
                               <td className="px-3 py-2">
-                                {product && item.barcode && (
-                                  <div className="w-[180px]">
-                                    <Barcode
-                                      value={item.barcode}
-                                      format="CODE128"          
-                                     height={40}           // shorter height (optional)
-                                      width={0.7}                  
-                                      displayValue={false}         
-                                      fontSize={7}
-                                    />
-                                  </div>
-                                )}
+                                                                 {product && item.barcode && (
+                                   <div className="w-[180px]">
+                                     <div className="flex flex-col items-center gap-2">
+                                       <div className="w-full">
+                                         <Barcode
+                                           value={item.barcode}
+                                           format="CODE128"          
+                                           height={40}           
+                                           width={0.7}                  
+                                           displayValue={false}         
+                                           fontSize={7}
+                                         />
+                                       </div>
+                                       <Button
+                                         variant="outline"
+                                         size="sm"
+                                         onClick={() => handleDownloadBarcode(item.barcode, product.name)}
+                                         className="h-8 w-8 p-0"
+                                         title="Download Barcode PDF"
+                                       >
+                                         <Download className="h-4 w-4" />
+                                       </Button>
+                                     </div>
+                                   </div>
+                                 )}
                               </td>
                             </tr>
                           ));

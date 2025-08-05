@@ -1,15 +1,17 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Plus, PackageCheck, Clock, Check, AlertCircle, Eye } from "lucide-react"
+import { Plus, PackageCheck, Clock, Check, AlertCircle, Eye, Printer, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { useGetPurchaseOrders } from "@/queries/purchaseOrder/get-purchaseOrder"
+import { getPurchaseOrderById } from "@/queries/purchaseOrder/get-purchaseOrder-by-id"
 import PurchaseOrderFilterDialog, { PurchaseOrderFilters } from "./PurchaseOrderFilterDialog"
 import type { PurchaseOrderData } from "@/queries/purchaseOrder/create-purchaseOrder"
 import PurchaseOrderDetailsSheet from "./purhchase-order-details-sheet"
 import { formatDate } from "@/lib/utils"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 interface PurchaseOrdersTabProps {
   clinicId: string
@@ -69,6 +71,10 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [page, setPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(10)
+  
+  // PDF print state
+  const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<PurchaseOrderData | null>(null)
+  const [isPrintSheetOpen, setIsPrintSheetOpen] = useState(false)
 
   // Always include clinicId in filters
   const apiFilters = useMemo(() => ({ 
@@ -88,10 +94,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
     refetch 
   } = useGetPurchaseOrders(apiFilters, !!clinicId)
 
-  // Debug log
-  useEffect(() => {
-    console.log("Purchase Orders Received:", purchaseOrders);
-  }, [purchaseOrders]);
+
 
   // Refetch when clinicId or filters change
   useEffect(() => {
@@ -115,6 +118,53 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
   const handlePageSizeChange = (newSize: number) => {
     setPageSize(newSize)
     setPage(1)
+  }
+
+  const handlePrintOrder = async (order: PurchaseOrderData) => {
+    try {
+      // Fetch the full order data including PDF
+      const fullOrder = await getPurchaseOrderById(order.id!)
+      
+      if (fullOrder.pdfBase64) {
+        try {
+          const blob = await fetch(`data:application/pdf;base64,${fullOrder.pdfBase64}`).then(res => res.blob());
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          // Clean up the URL after a delay
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          // Fallback to sheet display
+          setSelectedOrderForPrint(fullOrder)
+          setIsPrintSheetOpen(true)
+        }
+      } else {
+        // Show sheet with no PDF message
+        setSelectedOrderForPrint(fullOrder)
+        setIsPrintSheetOpen(true)
+      }
+    } catch (error) {
+      // Fallback to original order data
+      setSelectedOrderForPrint(order)
+      setIsPrintSheetOpen(true)
+    }
+  }
+
+  const handleDownloadPDF = () => {
+    if (selectedOrderForPrint?.pdfBase64) {
+      const byteCharacters = atob(selectedOrderForPrint.pdfBase64)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `PurchaseOrder_${selectedOrderForPrint.orderNumber}.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
+    }
   }
 
   const columns: ColumnDef<PurchaseOrderData>[] = [
@@ -175,6 +225,14 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
             }}
           >
             <Eye className="mr-1 h-4 w-4" /> View
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="hover:bg-green-50 border-green-500 text-green-500 hover:text-green-600 hover:border-green-600"
+            onClick={() => handlePrintOrder(row.original)}
+          >
+            <Printer className="mr-1 h-4 w-4" /> Print
           </Button>
         </div>
       ),
@@ -263,6 +321,53 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
           if (!open) setSelectedOrderId(null);
         }}
       />
+
+      {/* Print PDF Sheet */}
+      <Sheet open={isPrintSheetOpen} onOpenChange={setIsPrintSheetOpen}>
+        <SheetContent className="w-[800px] sm:max-w-[800px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center justify-between">
+              <span>Purchase Order PDF</span>
+              {selectedOrderForPrint && (
+                <Button
+                  onClick={handleDownloadPDF}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              )}
+            </SheetTitle>
+          </SheetHeader>
+                     <div className="mt-4 h-full">
+             {selectedOrderForPrint?.pdfBase64 ? (
+               <div className="h-full">
+                 <div className="mb-2 text-sm text-gray-600">
+                   PDF Data Length: {selectedOrderForPrint.pdfBase64.length} characters
+                 </div>
+                                   <object
+                    data={`data:application/pdf;base64,${selectedOrderForPrint.pdfBase64}`}
+                    type="application/pdf"
+                    className="w-full h-[calc(100%-40px)] border border-gray-300 rounded"
+                  >
+                   <p>Your browser does not support PDF display. 
+                     <button 
+                       onClick={handleDownloadPDF}
+                       className="ml-2 text-blue-600 underline"
+                     >
+                       Click here to download the PDF
+                     </button>
+                   </p>
+                 </object>
+               </div>
+             ) : (
+               <div className="flex items-center justify-center h-full text-gray-500">
+                 No PDF available for this order
+               </div>
+             )}
+           </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
