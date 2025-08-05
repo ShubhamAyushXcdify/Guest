@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Combobox } from "../ui/combobox";
+import ProductCodes from "./ProductCodes";
 
 // const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
 const PRODUCT_TYPES = [
@@ -119,9 +120,10 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
   console.log("Product Details Form Values:", form.getValues());
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
-        <div className="flex-1 overflow-y-auto pb-4">
+    <div className="flex flex-col w-full h-full overflow-y-auto pb-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
+          <div className="flex-1 pb-4">
           <div className="grid grid-cols-2 gap-8">
 
             <FormField name="productNumber" control={form.control} render={({ field }) => (
@@ -346,5 +348,15 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
         </div>
       </form>
     </Form>
+
+    {/* Product Codes Section */}
+    <div className="mt-8">
+      <ProductCodes 
+        productId={productId}
+        productNumber={product.productNumber}
+        productName={product.name}
+      />
+    </div>
+  </div>
   );
 }

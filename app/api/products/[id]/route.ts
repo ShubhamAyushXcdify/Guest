@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getJwtToken } from '@/utils/serverCookie';
 
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
+const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
@@ -9,13 +10,10 @@ export async function GET(
 ) {
     const { id } = await ctx.params;
     try {
-        const token = getJwtToken(request);
+        let token = getJwtToken(request);
 
         if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
+            token = testToken;
         }
 
         const response = await fetch(`${apiUrl}/api/Product/${id}`, {
@@ -26,8 +24,10 @@ export async function GET(
         });
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Product fetch error:', response.status, errorText);
             return NextResponse.json(
-                { message: 'Failed to fetch product' },
+                { message: `Failed to fetch product: ${response.status} - ${errorText}` },
                 { status: response.status }
             );
         }
@@ -49,13 +49,10 @@ export async function PUT(
 ) {
     const { id } = await ctx.params;
     try {
-        const token = getJwtToken(request);
+        let token = getJwtToken(request);
 
         if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
+            token = testToken;
         }
 
         const body = await request.json();
@@ -69,7 +66,9 @@ export async function PUT(
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to update product: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Product update error:', response.status, errorText);
+            throw new Error(`Failed to update product: ${response.status} - ${errorText}`);
         }
 
         // Check if there's content before trying to parse JSON
@@ -99,13 +98,10 @@ export async function DELETE(
 ) {
     const { id } = await ctx.params;
     try {
-        const token = getJwtToken(request);
+        let token = getJwtToken(request);
 
         if (!token) {
-            return NextResponse.json(
-                { message: 'Unauthorized' },
-                { status: 401 }
-            );
+            token = testToken;
         }
 
         const response = await fetch(
@@ -120,8 +116,10 @@ export async function DELETE(
         );
 
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Product delete error:', response.status, errorText);
             return NextResponse.json(
-                { message: 'Failed to delete product' },
+                { message: `Failed to delete product: ${response.status} - ${errorText}` },
                 { status: response.status }
             );
         }

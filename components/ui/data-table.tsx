@@ -33,6 +33,7 @@ interface DataTableProps<TData, TValue> {
   onEditButtonClick?: (rowId: string) => void
   onSaveButtonClick?: (rowId: string) => void
   onCancelButtonClick?: (rowId: string) => void
+  onRowClick?: (row: TData) => void
   editingRow?: number[]
   page: number
   pageSize: number
@@ -43,12 +44,13 @@ interface DataTableProps<TData, TValue> {
 
 // Memoize individual table row to prevent all rows re-rendering when one row changes
 const MemoizedTableRow = memo(
-  ({ row, editingRow, onEditButtonClick, onSaveButtonClick, onCancelButtonClick }: {
+  ({ row, editingRow, onEditButtonClick, onSaveButtonClick, onCancelButtonClick, onRowClick }: {
     row: Row<any>;
     editingRow?: number[];
     onEditButtonClick?: (rowId: string) => void;
     onSaveButtonClick?: (rowId: string) => void;
     onCancelButtonClick?: (rowId: string) => void;
+    onRowClick?: (row: any) => void;
   }) => {
     const isEditing = editingRow?.includes(row.index);
     
@@ -68,7 +70,11 @@ const MemoizedTableRow = memo(
         data-state={row.getIsSelected() && "selected"}
         data-editing={isEditing ? "true" : undefined}
         data-row-id={row.id}
-        className="hover:bg-muted/30 h-4"
+        className={cn(
+          "hover:bg-muted/30 h-4",
+          onRowClick && "cursor-pointer"
+        )}
+        onClick={() => onRowClick?.(row.original)}
       >
         {row.getVisibleCells().map((cell: Cell<any, unknown>) => (
           <TableCell key={cell.id} className={cn("text-sm py-0", (cell.column.columnDef.meta as any)?.className)}>
@@ -147,6 +153,7 @@ export function DataTable<TData, TValue>({
   onEditButtonClick,
   onSaveButtonClick,
   onCancelButtonClick,
+  onRowClick,
   editingRow,
   page,
   pageSize,
@@ -280,6 +287,7 @@ export function DataTable<TData, TValue>({
                   onEditButtonClick={onEditButtonClick}
                   onSaveButtonClick={onSaveButtonClick}
                   onCancelButtonClick={onCancelButtonClick}
+                  onRowClick={onRowClick}
                 />
               ))
             ) : (
