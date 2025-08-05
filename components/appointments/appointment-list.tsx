@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText, Printer } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
@@ -584,19 +584,19 @@ export default function AppointmentList({
                   )
                 ) ||
                 !row.original.appointmentType) && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="theme-button-outline"
-                  onClick={() => {
-                    setSelectedAppointmentId(row.original.id.toString())
-                    setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
-                    setDischargeSummaryOpen(true)
-                  }}
-                >
-                  <FileText className="h-4 w-4 mr-1" />
-                  Print Discharge Summary
-                </Button>
+                                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="theme-button-outline"
+                   onClick={() => {
+                     setSelectedAppointmentId(row.original.id.toString())
+                     setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
+                     setDischargeSummaryOpen(true)
+                   }}
+                 >
+                   <Printer className="h-4 w-4 mr-1" />
+                   Print
+                 </Button>
               )}
             </>
           )}

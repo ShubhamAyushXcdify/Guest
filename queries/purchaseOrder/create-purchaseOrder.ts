@@ -83,6 +83,7 @@ export interface PurchaseOrderData {
   extendedAmount: number;
   totalAmount: number;
   notes: string;
+  pdfBase64?: string;
   createdBy: string;
   createdAt?: string;
   updatedAt?: string;
