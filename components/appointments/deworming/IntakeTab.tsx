@@ -39,6 +39,18 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
   const createMutation = useCreateDewormingVisit();
   const updateMutation = useUpdateDewormingVisit();
 
+  const isIntakeCompleted = () => {
+  return (
+    weight.trim() !== "" &&
+    lastDeworming !== null &&
+    symptoms.trim() !== "" &&
+    temperature.trim() !== "" &&
+    appetite.trim() !== "" &&
+    currentMeds.trim() !== ""
+  );
+};
+
+
   // Notify parent component when data is loaded
   useEffect(() => {
     if (data && onComplete) {
@@ -179,7 +191,7 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
           <div className="mt-6 flex justify-end">
             <Button
               onClick={handleSave}
-              disabled={isSubmitting || isReadOnly}
+              disabled={isSubmitting || isReadOnly || !isIntakeCompleted()}
               className="bg-black text-white"
             >
               {hasExistingData ? "Update & Next" : "Save & Next"}
