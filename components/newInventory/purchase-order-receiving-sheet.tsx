@@ -255,6 +255,42 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                     </div>
                   </div>
                 ))}
+                {/* Received Items Table */}
+                {order.receivedItems && order.receivedItems.length > 0 && (
+                  <div className="mt-8">
+                    <h4 className="text-sm font-semibold mb-2 text-slate-700">Received Batches</h4>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full border text-xs bg-white rounded shadow table-fixed" style={{ tableLayout: 'fixed', width: '100%' }}>
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Batch #</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Product</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Qty Received</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Expiry Date</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Mfg Date</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Notes</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Received By</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Received Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {order.receivedItems.map((item) => (
+                            <tr key={item.id}>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.batchNumber}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.productName}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.quantityReceived}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : ""}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.dateOfManufacture ? new Date(item.dateOfManufacture).toLocaleDateString() : ""}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.notes}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.receivedByName}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.receivedDate ? new Date(item.receivedDate).toLocaleDateString() : ""}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
               {/* Notes Section (for the whole receipt) */}
               <FormField

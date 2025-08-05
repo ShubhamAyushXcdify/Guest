@@ -42,6 +42,33 @@ export interface PurchaseOrderItem {
   };
 }
 
+export interface ReceivedItem {
+  id: string;
+  purchaseOrderId: string;
+  purchaseOrderItemId: string;
+  productId: string;
+  clinicId: string;
+  quantityReceived: number;
+  batchNumber: string;
+  expiryDate?: string;
+  dateOfManufacture?: string;
+  receivedDate?: string;
+  receivedBy: string;
+  notes?: string;
+  unitCost?: number;
+  lotNumber?: string | null;
+  supplierId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  productName?: string;
+  clinicName?: string;
+  supplierName?: string;
+  receivedByName?: string;
+  orderNumber?: string;
+  quantityInHand?: number | null;
+  barcode?: string;
+}
+
 export interface PurchaseOrderData {
   id?: string;
   clinicId: string;
@@ -78,6 +105,7 @@ export interface PurchaseOrderData {
     updatedAt?: string;
   };
   items: PurchaseOrderItem[];
+  receivedItems?: ReceivedItem[];
 }
 
 export const createPurchaseOrder = async (data: PurchaseOrderData) => {
