@@ -89,6 +89,9 @@ export default function VaccinationPlanning({
   const coreVaccines = typedVaccinations.filter((vaccine) => vaccine.isCore);
   const nonCoreVaccines = typedVaccinations.filter((vaccine) => !vaccine.isCore);
 
+  // Fetch appintment data for this appointmentid
+  const isReadOnly = useGetAppointmentById(appointmentId)?.data?.status === "completed";
+
   const handleVaccineSelection = async (id: string) => {
     if (!visitData || !visitData.id) {
       toast.error("No visit data found for this appointment");
@@ -398,7 +401,7 @@ export default function VaccinationPlanning({
                     <Button
                       onClick={handleCheckout}
                       className="text-white px-5 bg-green-600 hover:bg-green-700"
-                      disabled={isLoading || visitLoading || selectedVaccines.length === 0 || isProcessing}
+                      disabled={isLoading || visitLoading || selectedVaccines.length === 0 || isProcessing || isReadOnly}
                     >
                       {isProcessing ? "Processing..." : "Checkout"}
                     </Button>
