@@ -148,13 +148,13 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
               {/* Items Table */}
               <div className="bg-slate-50 p-4 rounded-md">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-md font-semibold">Received Items</h3>
+                  <h3 className="text-md font-semibold">Receiving Items</h3>
                 </div>
                 {/* Table header */}
                 <div className="grid grid-cols-8 gap-2 mb-2 px-2">
                   <div className="col-span-2 text-sm font-medium">Product</div>
                   <div className="col-span-1 text-sm font-medium">Ordered</div>
-                  <div className="col-span-1 text-sm font-medium">Qty Received</div>
+                  <div className="col-span-1 text-sm font-medium">Qty Receiving</div>
                   <div className="col-span-1 text-sm font-medium">Batch #</div>
                   <div className="col-span-1 text-sm font-medium">Expiry Date</div>
                   <div className="col-span-1 text-sm font-medium">Mfg Date</div>
