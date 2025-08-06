@@ -28,7 +28,7 @@ interface ComplaintsTabProps {
 export default function ComplaintsTab({ patientId, appointmentId, onNext }: ComplaintsTabProps) {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [rightSideSearchQuery, setRightSideSearchQuery] = useState("")
   const [notes, setNotes] = useState("")
   const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
   
@@ -65,13 +65,17 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     symptom.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Filter symptoms for right side (all symptoms with search)
+  const filteredRightSideSymptoms = symptoms.filter(symptom => 
+    symptom.name.toLowerCase().includes(rightSideSearchQuery.toLowerCase())
+  )
+
   // Get common symptoms
   const commonSymptoms = symptoms.filter(symptom => symptom.isComman)
 
   const createSymptomMutation = useCreateSymptom({
     onSuccess: () => {
       setSearchQuery("")
-      setShowDropdown(false)
       toast.success("Symptom added successfully")
     },
     onError: (error) => {
@@ -118,17 +122,6 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
         breed: patientData?.species?.toLowerCase() || null
       })
     }
-  }
-
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value)
-    setShowDropdown(value.length > 0)
-  }
-
-  const handleSelectSymptom = (symptomId: string) => {
-    handleSymptomClick(symptomId)
-    setSearchQuery("")
-    setShowDropdown(false)
   }
 
   const handleSave = () => {
@@ -200,76 +193,28 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
           <h2 className="text-lg font-semibold">Chief Complaint & History of Present Illness</h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left side - Typeahead search */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left side - Add new symptom and Common Symptoms */}
           <div>
-            <h3 className="text-sm font-medium mb-3">Search Symptoms</h3>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <h3 className="text-sm font-medium mb-3">Add New Symptom</h3>
+            <div className="flex gap-2 mb-4">
               <Input
-                placeholder="Search for symptoms..."
+                placeholder="Enter new symptom name..."
                 value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onFocus={() => setShowDropdown(searchQuery.length > 0)}
-                className="pl-10 pr-10"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1"
                 disabled={isReadOnly}
               />
-              <PlusCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              
-              {/* Dropdown */}
-              {showDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredSymptoms.length === 0 ? (
-                    <div className="p-3 text-sm text-gray-500">
-                      {searchQuery.trim() ? (
-                        <div className="flex flex-col gap-2">
-                          <span>No symptoms found</span>
-                          <Button
-                            size="sm"
-                            onClick={handleAddSymptom}
-                            disabled={createSymptomMutation.isPending || isReadOnly}
-                            className="w-full"
-                          >
-                            Add "{searchQuery}" as new symptom
-                          </Button>
-                        </div>
-                      ) : (
-                        "Start typing to search symptoms"
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-1">
-                      {filteredSymptoms.map((symptom) => (
-                        <button
-                          key={symptom.id}
-                          onClick={() => handleSelectSymptom(symptom.id)}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none text-sm"
-                          disabled={isReadOnly}
-                        >
-                          {symptom.name}
-                        </button>
-                      ))}
-                      {searchQuery.trim() && (
-                        <div className="border-t pt-2 px-3">
-                          <Button
-                            size="sm"
-                            onClick={handleAddSymptom}
-                            disabled={createSymptomMutation.isPending || isReadOnly}
-                            className="w-full"
-                          >
-                            Add "{searchQuery}" as new symptom
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              <Button
+                onClick={handleAddSymptom}
+                disabled={createSymptomMutation.isPending || !searchQuery.trim() || isReadOnly}
+                size="sm"
+              >
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add
+              </Button>
             </div>
-          </div>
 
-          {/* Right side - Common Symptoms */}
-          <div>
             <h3 className="text-sm font-medium mb-3">Common Symptoms</h3>
             <div className="flex flex-wrap gap-2">
               {commonSymptoms.map(symptom => (
@@ -288,8 +233,40 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
               ))}
             </div>
           </div>
+
+          {/* Right side - All Symptoms with Checkboxes */}
+          <div>
+            <h3 className="text-sm font-medium mb-3">All Symptoms</h3>
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search symptoms..."
+                value={rightSideSearchQuery}
+                onChange={(e) => setRightSideSearchQuery(e.target.value)}
+                className="pl-10"
+                disabled={isReadOnly}
+              />
+            </div>
+            <div className="max-h-60 overflow-y-auto border rounded-md p-3">
+              {filteredRightSideSymptoms.map(symptom => (
+                <label key={symptom.id} className="flex items-center space-x-2 py-1 hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedSymptoms.includes(symptom.id)}
+                    onChange={() => handleSymptomClick(symptom.id)}
+                    disabled={isReadOnly}
+                    className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  />
+                  <span className="text-sm">{symptom.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
 
+
+
+        {/* Selected Symptoms */}
         {selectedSymptoms.length > 0 && (
           <div className="mt-6">
             <h3 className="text-sm font-medium mb-2">Selected Symptoms:</h3>
