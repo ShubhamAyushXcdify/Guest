@@ -180,15 +180,15 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   })
 
   const openAddSheet = () => {
-    setCurrentMapping({ 
+    setCurrentMapping({
       id: "",
-      productId: "", 
-      dosage: "", 
+      productId: "",
+      dosage: "",
       frequency: "",
       productName: undefined,
       product: undefined,
       quantity: undefined,
-      quantityAvailable: undefined,
+      quantityAvailable: 0,
       batch: undefined,
       expDate: undefined,
       checked: undefined
@@ -287,7 +287,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       productName: medicine.name || "Unknown Medicine",
       product: medicine,
       quantity: undefined,
-      quantityAvailable: undefined,
+      quantityAvailable: medicineInventory.quantityOnHand ?? 0,
       batch: medicineInventory.batchNumber,
       expDate: medicineInventory.expirationDate,
       checked: undefined
@@ -306,7 +306,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       productName: undefined,
       product: undefined,
       quantity: undefined,
-      quantityAvailable: undefined,
+      quantityAvailable: 0,
       batch: undefined,
       expDate: undefined,
       checked: undefined
@@ -322,70 +322,42 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     
     // Filter out incomplete product mappings
     const validMappings = productMappings.filter(pm => {
-      const unitOfMeasure = pm.product?.unitOfMeasure || "EA"
-      const shouldShowDosage = unitOfMeasure === "BOTTLE"
-      
-      const hasRequiredFields = pm.productId && pm.frequency && pm.numberOfDays > 0
-      const hasDosageIfRequired = shouldShowDosage ? pm.dosage : true
-      
-      return hasRequiredFields && hasDosageIfRequired
+      return pm.productId && pm.frequency && pm.numberOfDays > 0
     })
     
     if (validMappings.length === 0) {
       toast.error("Please add at least one product with frequency and number of days")
       return
     }
-    
-    // Ensure each mapping has a productName before sending to backend
-    const mappingsWithNames = validMappings.map(mapping => {
-      const updatedMapping = { ...mapping } as ExtendedProductMapping;
-      
-      if (!updatedMapping.productName) {
-        // Try to find the medicine name from search results
-        const product = searchResults?.items?.find(item => 
-          item.id === mapping.productId || item.id === mapping.productId
-        )
-        
-        if (product && product.name) {
-          updatedMapping.productName = product.name;
-          updatedMapping.product = product;
-        }
-      }
-      return updatedMapping;
-    })
-    
-    // Create a backend-compatible version of the data by removing our extended properties
-    const backendMappings = mappingsWithNames.map(({ productId, checked, quantity, quantityAvailable, batch, expDate, frequency, numberOfDays }) => ({
-      productId,
-      isChecked: checked ?? false,
-      quantity: quantity ?? 0,
-      quantityAvailable: quantityAvailable ?? 0,
-      batchNo: batch ?? "",
-      expDate: expDate ?? "",
-      frequency,
-      numberOfDays,
-      dosage: null
+
+    // Format product mappings according to API structure
+    const formattedMappings = validMappings.map(mapping => ({
+      productId: mapping.productId,
+      isChecked: mapping.checked ?? false,
+      quantity: mapping.quantity ?? 0,
+      quantityAvailable: mapping.quantityAvailable ?? 0,
+      batchNo: mapping.batch ?? "",
+      expDate: mapping.expDate ?? new Date().toISOString(),
+      frequency: mapping.frequency,
+      numberOfDays: mapping.numberOfDays
     }))
-    
-    const prescriptionData = {
-      notes,
-      isCompleted: true,
-      productMappings: backendMappings
-    }
-    
+
     if (existingPrescriptionDetail) {
       // Update existing prescription detail
-      await updatePrescriptionDetailMutation.mutateAsync({
+      const updatePayload = {
         id: existingPrescriptionDetail.id,
-        ...prescriptionData,
-        visitId: visitData.id
-      })
+        notes: notes,
+        productMappings: formattedMappings
+      }
+      await updatePrescriptionDetailMutation.mutateAsync(updatePayload)
     } else {
       // Create new prescription detail
-      await createPrescriptionDetailMutation.mutateAsync({
+      const createPayload = {
         visitId: visitData.id,
-        ...prescriptionData
-      })
+        notes: notes,
+        productMappings: formattedMappings
+      }
+      await createPrescriptionDetailMutation.mutateAsync(createPayload)
     }
   }
 
@@ -646,30 +618,57 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                         )}
                         
                         {!isSearching && searchResults && searchResults.items && searchResults.items.length > 0 && (
-                          <ul className="py-1">
-                            {searchResults.items.map((item) => (
-                              <li
-                                key={item.id}
-                                className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                                onClick={() => handleMedicineSelect(item)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <div className="font-medium">{item.product?.name || "Unknown Product"}</div>
-                                    {item.product?.productNumber && (
-                                      <div className="text-sm text-gray-500">Code: {item.product.productNumber}</div>
-                                    )}
-                                    {item.product?.genericName && (
-                                      <div className="text-sm text-gray-500">Generic: {item.product.genericName}</div>
-                                    )}
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      Unit: {item.product?.unitOfMeasure || "-"} | Available: {item.quantityOnHand ?? "-"}
-                                    </div>
-                                  </div>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
+                          <div className="py-1">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-2 text-left">Name</th>
+                                  <th className="px-4 py-2 text-left">Generic Name</th>
+                                  <th className="px-4 py-2 text-left">Batch No</th>
+                                  <th className="px-4 py-2 text-left">Expiry Date</th>
+                                  <th className="px-4 py-2 text-right">Available</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {searchResults.items.map((item) => (
+                                  <tr
+                                    key={item.id}
+                                    className="cursor-pointer hover:bg-gray-100 border-t"
+                                    onClick={() => handleMedicineSelect(item)}
+                                  >
+                                    <td className="px-4 py-2">
+                                      <div className="font-medium">{item.product?.name || "Unknown Product"}</div>
+                                      {item.product?.productNumber && (
+                                        <div className="text-xs text-gray-500">Code: {item.product.productNumber}</div>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-2 text-gray-600">
+                                      {item.product?.genericName || "-"}
+                                    </td>
+                                    <td className="px-4 py-2 text-gray-600">
+                                      {item.batchNumber || "-"}
+                                    </td>
+                                    <td className="px-4 py-2 text-gray-600">
+                                      {item.expirationDate 
+                                        ? new Date(item.expirationDate).toLocaleDateString()
+                                        : "-"
+                                      }
+                                    </td>
+                                    <td className="px-4 py-2 text-right">
+                                      <span className={`font-medium ${
+                                        (item.quantityOnHand || 0) > 0 ? 'text-green-600' : 'text-red-600'
+                                      }`}>
+                                        {item.quantityOnHand ?? 0}
+                                      </span>
+                                      <span className="text-xs text-gray-500 ml-1">
+                                        {item.product?.unitOfMeasure || "EA"}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
                       </div>
                     )}
@@ -752,6 +751,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     placeholder="e.g., 1"
     value={currentMapping.quantity ?? ""}
     onChange={e => isReadOnly ? undefined : setCurrentMapping({ ...currentMapping, quantity: parseInt(e.target.value) || 0 })}
+    disabled={isReadOnly}
+  />
+</div>
+
+<div className="space-y-3">
+  <Label htmlFor="quantityAvailable">Quantity Available</Label>
+  <Input
+    id="quantityAvailable"
+    type="number"
+    min="0"
+    placeholder="Available quantity"
+    value={currentMapping.quantityAvailable ?? ""}
+    onChange={e => isReadOnly ? undefined : setCurrentMapping({ ...currentMapping, quantityAvailable: parseInt(e.target.value) || 0 })}
     disabled={isReadOnly}
   />
 </div>
