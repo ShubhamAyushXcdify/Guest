@@ -4,13 +4,25 @@ export interface Symptom {
   id: string;
   name: string;
   notes?: string;
+  isComman: boolean;
+  breed: string;
   createdAt: string;
   updatedAt: string;
 }
 
-const getSymptoms = async (): Promise<Symptom[]> => {
+interface GetSymptomsParams {
+  breed?: string;
+}
+
+const getSymptoms = async (params?: GetSymptomsParams): Promise<Symptom[]> => {
   try {
-    const response = await fetch('/api/Symptom');
+    const url = new URL('/api/Symptom', window.location.origin);
+    
+    if (params?.breed) {
+      url.searchParams.append('breed', params.breed);
+    }
+    
+    const response = await fetch(url.toString());
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -24,10 +36,10 @@ const getSymptoms = async (): Promise<Symptom[]> => {
   }
 };
 
-export function useGetSymptoms(enabled = true) {
+export function useGetSymptoms(params?: GetSymptomsParams, enabled = true) {
   return useQuery({
-    queryKey: ['symptoms'],
-    queryFn: getSymptoms,
+    queryKey: ['symptoms', params],
+    queryFn: () => getSymptoms(params),
     enabled,
   });
 } 
