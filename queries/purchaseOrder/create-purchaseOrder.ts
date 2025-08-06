@@ -68,6 +68,8 @@ export interface ReceivedItem {
   orderNumber?: string;
   quantityInHand?: number | null;
   barcode?: string;
+  shelf?: string;
+  bin?: string;
 }
 
 export interface PurchaseOrderData {

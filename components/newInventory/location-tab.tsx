@@ -23,7 +23,9 @@ import { useUpdateInventoryLocation } from "@/queries/inventory/update-inventory
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { useGetReceivedPurchaseOrders } from "@/queries/purchaseOrderReceiving/get-received-purchase-orders"
 import { useUpdateReceivingHistory } from "@/queries/purchaseOrderReceiving/update-receiving-history"
-import { ReceivedItem, PurchaseOrderData, PurchaseOrderItem } from "@/queries/purchaseOrder/create-purchaseOrder"
+import { useUpdatePurchaseOrderReceivingHistory } from "@/queries/purchaseOrderRecevingHiistory/update-purchase-order-receiving-history"
+import { useGetPurchaseOrderReceivingHistory } from "@/queries/purchaseOrderRecevingHiistory/get-purchase-order-receiving-history"
+import { PurchaseOrderData, PurchaseOrderItem } from "@/queries/purchaseOrder/create-purchaseOrder"
 
 
 interface LocationsTabProps {
@@ -62,6 +64,9 @@ interface BatchData {
   unitCost?: number
   status?: string
   isPurchaseOrderItem?: boolean
+  // Shelf and bin information
+  shelf?: string | null
+  bin?: string | null
 }
 
 export default function LocationsTab({ clinicId }: LocationsTabProps) {
@@ -70,21 +75,13 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<LocationFilters>({})
   const [openFilter, setOpenFilter] = useState(false)
-  const [editingItem, setEditingItem] = useState<InventoryData | null>(null)
+
   const [locationDialogOpen, setLocationDialogOpen] = useState(false)
   const [selectedBatch, setSelectedBatch] = useState<BatchData | null>(null)
   const [activeTab, setActiveTab] = useState<"located" | "unlocated">("unlocated")
 
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError
-  } = useGetInventoryInfinite(
-    { 
+  const { data } = useGetInventoryInfinite(
+    {
       clinicId,
       pageSize,
       search: searchQuery,
@@ -94,12 +91,8 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
   )
 
   // Fetch purchase orders with received and partial status
-  const {
-    data: purchaseOrders = [],
-    isLoading: purchaseOrdersLoading,
-    isError: purchaseOrdersError
-  } = useGetPurchaseOrders(
-    { 
+  const { data: purchaseOrders = [] } = useGetPurchaseOrders(
+    {
       clinicId,
       status: "received,partial",
       pageSize: 100 // Get more purchase orders to process
@@ -111,15 +104,18 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
 
   // Mutation for updating inventory location
   const updateLocationMutation = useUpdateInventoryLocation()
-  
+
   // Query for received purchase orders
-  const {
-    data: receivedItems = [],
-    error: receivedError,
-    isLoading: receivedLoading,
-    isError: receivedIsError
-  } = useGetReceivedPurchaseOrders(
-    { 
+  const { data: receivedItems = [] } = useGetReceivedPurchaseOrders(
+    {
+      clinicId,
+    },
+    !!clinicId
+  )
+
+  // Query for purchase order receiving history (includes shelf and bin data)
+  const { data: receivingHistoryItems = [] } = useGetPurchaseOrderReceivingHistory(
+    {
       clinicId,
     },
     !!clinicId
@@ -128,7 +124,10 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
   
   // Mutation for updating receiving history
   const updateReceivingHistoryMutation = useUpdateReceivingHistory()
-  
+
+  // Mutation for updating purchase order receiving history
+  const updatePurchaseOrderReceivingHistoryMutation = useUpdatePurchaseOrderReceivingHistory()
+
   console.log('Update receiving history mutation:', updateReceivingHistoryMutation)
   
 
@@ -143,7 +142,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     },
   })
 
-  // Group inventory items by batch and include purchase orders
+  // Group inventory items by batch and include purchase orders and receiving history
   const batches = useMemo(() => {
     const allItems = data?.pages.flatMap(page => page.items) || []
     const batchMap = new Map<string, BatchData>()
@@ -228,15 +227,18 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     // Process received purchase order items
     receivedItems.forEach(receivedItem => {
       const batchKey = `${receivedItem.productId}-${receivedItem.batchNumber}`
-      
+
       if (!batchMap.has(batchKey)) {
         // Create new batch for received item
+        const hasShelfBin = receivedItem.shelf && receivedItem.bin;
+        const location = hasShelfBin ? `${receivedItem.shelf}-${receivedItem.bin}` : (receivedItem.location || null);
+
         batchMap.set(batchKey, {
           productId: receivedItem.productId,
           productName: receivedItem.productName || 'N/A',
           batchNumber: receivedItem.batchNumber,
           totalQuantity: receivedItem.quantityReceived,
-          location: receivedItem.location || null,
+          location: location,
           expirationDate: receivedItem.expiryDate || null,
           receivedDate: receivedItem.receivedDate || null,
           reorderThreshold: 0,
@@ -245,7 +247,9 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           supplierName: receivedItem.supplierName,
           quantityReceived: receivedItem.quantityReceived,
           isReceivedItem: true,
-          isPurchaseOrderItem: false
+          isPurchaseOrderItem: false,
+          shelf: receivedItem.shelf || null,
+          bin: receivedItem.bin || null
         })
       } else {
         // Update existing batch with received item info
@@ -255,23 +259,84 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         batch.supplierName = receivedItem.supplierName
         batch.quantityReceived = (batch.quantityReceived || 0) + receivedItem.quantityReceived
         batch.isReceivedItem = true
-        
-        // Use received item location if inventory item doesn't have one
-        if (!batch.location && receivedItem.location) {
+
+        // Update shelf and bin info
+        if (receivedItem.shelf && receivedItem.bin) {
+          batch.shelf = receivedItem.shelf
+          batch.bin = receivedItem.bin
+          batch.location = `${receivedItem.shelf}-${receivedItem.bin}`
+        } else if (!batch.location && receivedItem.location) {
           batch.location = receivedItem.location
         }
       }
     })
 
-    return Array.from(batchMap.values())
-  }, [data, purchaseOrders, receivedItems])
+    // Process purchase order receiving history items (includes shelf and bin data)
+    receivingHistoryItems.forEach(historyItem => {
+      const batchKey = `${historyItem.productId}-${historyItem.batchNumber}`
 
-  // Filter batches based on active tab
+      if (!batchMap.has(batchKey)) {
+        // Create new batch for receiving history item
+        const hasShelfBin = historyItem.shelf && historyItem.bin;
+        const location = hasShelfBin ? `${historyItem.shelf}-${historyItem.bin}` : null;
+
+        batchMap.set(batchKey, {
+          productId: historyItem.productId,
+          productName: historyItem.productName || 'N/A',
+          batchNumber: historyItem.batchNumber,
+          totalQuantity: historyItem.quantityReceived,
+          location: location,
+          expirationDate: historyItem.expiryDate || null,
+          receivedDate: historyItem.receivedDate || null,
+          reorderThreshold: 0,
+          items: [],
+          orderNumber: historyItem.orderNumber,
+          supplierName: historyItem.supplierName,
+          quantityReceived: historyItem.quantityReceived,
+          isReceivedItem: true,
+          isPurchaseOrderItem: false,
+          shelf: historyItem.shelf || null,
+          bin: historyItem.bin || null
+        })
+      } else {
+        // Update existing batch with receiving history info
+        const batch = batchMap.get(batchKey)!
+        batch.totalQuantity += historyItem.quantityReceived
+        batch.orderNumber = historyItem.orderNumber
+        batch.supplierName = historyItem.supplierName
+        batch.quantityReceived = (batch.quantityReceived || 0) + historyItem.quantityReceived
+        batch.isReceivedItem = true
+
+        // Update shelf and bin info from receiving history
+        if (historyItem.shelf && historyItem.bin) {
+          batch.shelf = historyItem.shelf
+          batch.bin = historyItem.bin
+          batch.location = `${historyItem.shelf}-${historyItem.bin}`
+        }
+      }
+    })
+
+    return Array.from(batchMap.values())
+  }, [data, purchaseOrders, receivedItems, receivingHistoryItems])
+
+  // Filter batches based on active tab and shelf/bin data
   const filteredBatches = useMemo(() => {
     if (activeTab === "located") {
-      return batches.filter(batch => batch.location)
+      // Show data where shelf and bin are not null
+      return batches.filter(batch => {
+        // Check if batch has location OR if it has shelf and bin data
+        const hasLocation = batch.location;
+        const hasShelfBin = batch.shelf && batch.bin;
+        return hasLocation || hasShelfBin;
+      })
     } else {
-      return batches.filter(batch => !batch.location)
+      // Show data where shelf and bin are null (unlocated)
+      return batches.filter(batch => {
+        // Check if batch has no location AND no shelf/bin data
+        const hasLocation = batch.location;
+        const hasShelfBin = batch.shelf && batch.bin;
+        return !hasLocation && !hasShelfBin;
+      })
     }
   }, [batches, activeTab])
 
@@ -295,8 +360,14 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
 
   const handleAssignLocation = (batch: BatchData) => {
     setSelectedBatch(batch)
-    // Pre-fill form with existing location if available
-    if (batch.location) {
+    // Pre-fill form with existing shelf/bin data or location
+    if (batch.shelf && batch.bin) {
+      locationForm.reset({
+        shelf: batch.shelf,
+        bin: batch.bin,
+        notes: "",
+      })
+    } else if (batch.location) {
       const locationParts = batch.location.split('-')
       locationForm.reset({
         shelf: locationParts[0] || "",
@@ -317,18 +388,53 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     if (!selectedBatch) return
 
     const newLocation = `${values.shelf}-${values.bin}`
-    
+
     try {
-      if (selectedBatch.isReceivedItem) {
+      // First check if this is a receiving history item that needs to be updated
+      const receivingHistoryItem = receivingHistoryItems.find(item =>
+        item.productId === selectedBatch.productId &&
+        item.batchNumber === selectedBatch.batchNumber
+      )
+
+      if (receivingHistoryItem) {
+        // Handle receiving history items using useUpdatePurchaseOrderReceivingHistory
+        const updateData = {
+          id: receivingHistoryItem.id,
+          purchaseOrderId: receivingHistoryItem.purchaseOrderId,
+          purchaseOrderItemId: receivingHistoryItem.purchaseOrderItemId,
+          productId: receivingHistoryItem.productId,
+          clinicId: clinicId,
+          quantityReceived: receivingHistoryItem.quantityReceived,
+          batchNumber: receivingHistoryItem.batchNumber,
+          expiryDate: receivingHistoryItem.expiryDate,
+          dateOfManufacture: receivingHistoryItem.dateOfManufacture,
+          receivedDate: receivingHistoryItem.receivedDate,
+          receivedBy: receivingHistoryItem.receivedBy,
+          notes: values.notes || receivingHistoryItem.notes,
+          unitCost: receivingHistoryItem.unitCost,
+          lotNumber: receivingHistoryItem.lotNumber,
+          supplierId: receivingHistoryItem.supplierId,
+          quantityOnHand: receivingHistoryItem.quantityOnHand || 0,
+          barcode: receivingHistoryItem.barcode,
+          shelf: values.shelf,
+          bin: values.bin,
+        }
+
+        console.log('Updating receiving history item with data:', updateData)
+
+        // Use the purchase order receiving history mutation (this goes to /api/purchaseOrderRecevingHiistory/[id])
+        const result = await updatePurchaseOrderReceivingHistoryMutation.mutateAsync(updateData)
+        console.log('Update receiving history result:', result)
+      } else if (selectedBatch.isReceivedItem) {
         // Handle received purchase order items using useUpdateReceivingHistory
-        const receivedItem = receivedItems.find(item => 
-          item.productId === selectedBatch.productId && 
+        const receivedItem = receivedItems.find(item =>
+          item.productId === selectedBatch.productId &&
           item.batchNumber === selectedBatch.batchNumber
         )
-        
+
         console.log('Found received item:', receivedItem)
         console.log('Selected batch:', selectedBatch)
-        
+
         if (receivedItem) {
           const updateData = {
             id: receivedItem.id,
@@ -341,7 +447,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
             expiryDate: receivedItem.expiryDate,
             receivedDate: receivedItem.receivedDate,
             receivedBy: receivedItem.receivedBy,
-            notes: values.notes,
+            notes: values.notes || receivedItem.notes,
             unitCost: receivedItem.unitCost,
             lotNumber: receivedItem.lotNumber,
             supplierId: receivedItem.supplierId,
@@ -350,23 +456,24 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
             shelf: values.shelf,
             bin: values.bin,
           }
-          
-          console.log('Updating with data:', updateData)
-          
+
+          console.log('Updating received item with data:', updateData)
+
+          // Use the correct mutation for received items (this goes to /api/purchaseOrderReceiving/[id])
           const result = await updateReceivingHistoryMutation.mutateAsync(updateData)
           console.log('Update result:', result)
         }
       } else if (selectedBatch.isPurchaseOrderItem) {
         // Handle purchase order items - create received item or update existing
-        const receivedItem = receivedItems.find(item => 
-          item.productId === selectedBatch.productId && 
+        const receivedItem = receivedItems.find(item =>
+          item.productId === selectedBatch.productId &&
           item.batchNumber === selectedBatch.batchNumber &&
           item.purchaseOrderItemId === selectedBatch.purchaseOrderItemId
         )
-        
+
         console.log('Found purchase order item:', receivedItem)
         console.log('Selected batch (PO):', selectedBatch)
-        
+
         if (receivedItem) {
           const updateData = {
             id: receivedItem.id,
@@ -379,7 +486,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
             expiryDate: receivedItem.expiryDate,
             receivedDate: receivedItem.receivedDate,
             receivedBy: receivedItem.receivedBy,
-            notes: values.notes,
+            notes: values.notes || receivedItem.notes,
             unitCost: receivedItem.unitCost,
             lotNumber: receivedItem.lotNumber,
             supplierId: receivedItem.supplierId,
@@ -388,9 +495,10 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
             shelf: values.shelf,
             bin: values.bin,
           }
-          
+
           console.log('Updating PO item with data:', updateData)
-          
+
+          // Use the correct mutation for received items
           const result = await updateReceivingHistoryMutation.mutateAsync(updateData)
           console.log('Update PO result:', result)
         } else {
@@ -412,16 +520,17 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         )
         await Promise.all(updatePromises)
       }
-      
+
       toast({
         title: "Location Updated",
         description: `Location ${newLocation} assigned to batch ${selectedBatch.batchNumber}`,
       })
-      
+
       setLocationDialogOpen(false)
       setSelectedBatch(null)
       locationForm.reset()
     } catch (error) {
+      console.error('Error updating location:', error)
       toast({
         title: "Error",
         description: "Failed to update location",
@@ -432,29 +541,39 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
   
 
 
-  const getLocationDisplay = (location: string | null) => {
-    if (!location) return "Not assigned"
-    
-    const parts = location.split('-')
-    if (parts.length >= 2) {
+  const getLocationDisplay = (batch: BatchData) => {
+    // Check if we have shelf and bin data directly
+    if (batch.shelf && batch.bin) {
       return (
         <div className="flex items-center gap-1">
           <MapPin className="w-3 h-3 text-blue-500" />
-          <span className="font-medium">Shelf {parts[0]}</span>
+          <span className="font-medium">Shelf {batch.shelf}</span>
           <span className="text-gray-500">•</span>
-          <span className="font-medium">Bin {parts[1]}</span>
+          <span className="font-medium">Bin {batch.bin}</span>
         </div>
       )
     }
-    return location
+
+    // Fall back to location string
+    if (batch.location) {
+      const parts = batch.location.split('-')
+      if (parts.length >= 2) {
+        return (
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-blue-500" />
+            <span className="font-medium">Shelf {parts[0]}</span>
+            <span className="text-gray-500">•</span>
+            <span className="font-medium">Bin {parts[1]}</span>
+          </div>
+        )
+      }
+      return batch.location
+    }
+
+    return "Not assigned"
   }
 
-  const getStockStatus = (quantity: number, reorderThreshold: number) => {
-    if (quantity === 0) return { status: 'Out of Stock', color: 'bg-red-100 text-red-800' }
-    if (reorderThreshold > 0 && quantity <= reorderThreshold) return { status: 'Low Stock', color: 'bg-orange-100 text-orange-800' }
-    if (reorderThreshold > 0 && quantity <= reorderThreshold * 1.5) return { status: 'Warning', color: 'bg-amber-100 text-amber-800' }
-    return { status: 'In Stock', color: 'bg-green-100 text-green-800' }
-  }
+
 
   const getStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -544,12 +663,12 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         </div>
       )
     },
-    { 
-      accessorKey: "location", 
+    {
+      accessorKey: "location",
       header: "Current Location",
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          {getLocationDisplay(row.original.location)}
+          {getLocationDisplay(row.original)}
         </div>
       )
     },
@@ -560,9 +679,9 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         const batch = row.original
         return (
           <div className="flex gap-2 justify-center">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 handleAssignLocation(batch);
@@ -570,7 +689,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
               className="flex items-center gap-1"
             >
               <MapPin className="w-3 h-3" />
-              {batch.location ? 'Update' : 'Assign'}
+              {(batch.location || (batch.shelf && batch.bin)) ? 'Update' : 'Assign'}
             </Button>
           </div>
         )
@@ -644,14 +763,14 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
             <X className="w-4 h-4" />
             Unlocated Batches
             <Badge variant="secondary" className="ml-1">
-              {batches.filter(batch => !batch.location).length}
+              {batches.filter(batch => !batch.location && !(batch.shelf && batch.bin)).length}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="located" className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             Located Batches
             <Badge variant="secondary" className="ml-1">
-              {batches.filter(batch => batch.location).length}
+              {batches.filter(batch => batch.location || (batch.shelf && batch.bin)).length}
             </Badge>
           </TabsTrigger>
         </TabsList>
