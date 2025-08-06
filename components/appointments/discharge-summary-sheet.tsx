@@ -5,6 +5,7 @@ import DischargeSummaryConsultation from './discharge-summary-consultation'
 import DischargeSummaryDeworming from './discharge-summary-deworming'
 import DischargeSummaryEmergency from './discharge-summary-emergency'
 import DischargeSummarySurgery from './discharge-summary-surgery'
+import DischargeSummaryVaccination from './discharge-summary-vaccination'
 
 interface DischargeSummarySheetProps {
   isOpen: boolean
@@ -34,6 +35,8 @@ export default function DischargeSummarySheet({
       return DischargeSummaryDeworming
     } else if (type.includes('emergency')) {
       return DischargeSummaryEmergency
+    } else if (type.includes('vaccination')) {
+      return DischargeSummaryVaccination
     } else {
       // Default to consultation for all other types
       return DischargeSummaryConsultation
