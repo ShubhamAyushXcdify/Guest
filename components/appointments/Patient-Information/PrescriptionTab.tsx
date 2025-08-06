@@ -21,6 +21,7 @@ import { useGetProducts } from "@/queries/products/get-products"
 import type { Product } from "@/components/products"
 import { ProductMapping as BaseProductMapping } from "@/queries/PrescriptionDetail/get-prescription-detail-by-id"
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
+import { useGetAllInventorySearchByClinicId } from "@/queries/inventory/get-all-inventory-search-by-clinicId";
 
 interface PrescriptionTabProps {
   patientId: string
@@ -90,13 +91,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
   const clinicId = appointmentData?.clinicId || ""
 
-  // Search for medicines by clinic ID
-  const { data: searchResults, isLoading: isSearching } = useGetProducts(
-    1,
-    10,
-    { searchByname: debouncedSearchQuery, category: null, productType: null },
+  // Search for medicines by clinic ID (INVENTORY-BASED)
+  const { data: searchResults, isLoading: isSearching } = useGetAllInventorySearchByClinicId(
+    clinicId,
+    debouncedSearchQuery,
     Boolean(debouncedSearchQuery) && debouncedSearchQuery.length >= 2
-  )
+  );
 
   // Get existing prescription detail
   const { data: existingPrescriptionDetail, refetch: refetchPrescriptionDetail } = 
@@ -268,17 +268,16 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     setMedicineSearchQuery("")
   }
 
-  const handleMedicineSelect = (medicine: Product) => {
+  const handleMedicineSelect = (medicineInventory: any) => {
+    const medicine = medicineInventory.product;
     setSelectedMedicine({
       id: medicine.id,
       name: medicine.name || "Unknown Medicine"
-    })
-    setSelectedMedicineDetails(medicine)
-    
+    });
+    setSelectedMedicineDetails(medicine);
     // Check if the product unit of measure is EA or BOX, then set dosage to null
-    const unitOfMeasure = medicine.unitOfMeasure || "EA"
-    const shouldShowDosage = unitOfMeasure === "BOTTLE"
-    
+    const unitOfMeasure = medicine.unitOfMeasure || "EA";
+    const shouldShowDosage = unitOfMeasure === "BOTTLE";
     const mappingWithProduct: ExtendedProductMapping = {
       id: "",
       productId: medicine.id,
@@ -289,15 +288,14 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       product: medicine,
       quantity: undefined,
       quantityAvailable: undefined,
-      batch: undefined,
-      expDate: undefined,
+      batch: medicineInventory.batchNumber,
+      expDate: medicineInventory.expirationDate,
       checked: undefined
     };
-    
     setCurrentMapping(mappingWithProduct);
-    setMedicineSearchQuery("")
-    setIsSearchDropdownOpen(false)
-  }
+    setMedicineSearchQuery("");
+    setIsSearchDropdownOpen(false);
+  };
 
   const clearSelectedMedicine = () => {
     setSelectedMedicine(null)
@@ -657,15 +655,15 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                               >
                                 <div className="flex justify-between items-start">
                                   <div className="flex-1">
-                                    <div className="font-medium">{item.name || "Unknown Product"}</div>
-                                    {item.productNumber && (
-                                      <div className="text-sm text-gray-500">Code: {item.productNumber}</div>
+                                    <div className="font-medium">{item.product?.name || "Unknown Product"}</div>
+                                    {item.product?.productNumber && (
+                                      <div className="text-sm text-gray-500">Code: {item.product.productNumber}</div>
                                     )}
-                                    {item.genericName && (
-                                      <div className="text-sm text-gray-500">Generic: {item.genericName}</div>
+                                    {item.product?.genericName && (
+                                      <div className="text-sm text-gray-500">Generic: {item.product.genericName}</div>
                                     )}
                                     <div className="text-xs text-gray-500 mt-1">
-                                      Unit: {item.unitOfMeasure || "-"} | Available: {item.reorderThreshold ?? "-"}
+                                      Unit: {item.product?.unitOfMeasure || "-"} | Available: {item.quantityOnHand ?? "-"}
                                     </div>
                                   </div>
                                 </div>
