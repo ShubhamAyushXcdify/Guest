@@ -116,13 +116,17 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   }
 
   const handleAddSymptom = () => {
-    if (searchQuery.trim()) {
-      createSymptomMutation.mutate({
-        name: searchQuery.trim(),
-        breed: patientData?.species?.toLowerCase() || null
-      })
-    }
+  if (searchQuery.trim()) {
+    createSymptomMutation.mutate({
+      name: searchQuery.trim(),
+      breed: patientData?.species?.toLowerCase() || null
+    }, {
+      onSuccess: (newSymptom) => {
+        setSelectedSymptoms((prev) => [...prev, newSymptom.id]);
+      }
+    });
   }
+};
 
   const handleSave = () => {
     if (!visitData?.id) {
