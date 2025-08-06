@@ -58,6 +58,7 @@ export interface ReceivedItem {
   unitCost?: number;
   lotNumber?: string | null;
   supplierId?: string;
+  location?: string;
   createdAt?: string;
   updatedAt?: string;
   productName?: string;

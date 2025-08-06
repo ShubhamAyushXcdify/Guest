@@ -209,7 +209,7 @@ export default function InventoryItemDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[60%] overflow-x-hidden overflow-y-auto">
+      <SheetContent className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
@@ -406,10 +406,11 @@ export default function InventoryItemDetailsSheet({
                           <th className="text-left px-3 py-2 font-medium">Supplier</th>
                           <th className="text-center px-3 py-2 font-medium">Quantity Received</th>
                           <th className="text-right px-3 py-2 font-medium">Unit Cost</th>
-                          <th className="text-left px-3 py-2 font-medium">Batch Number</th>
+                          <th className="text-left px-3 py-2 font-medium">Batch</th>
                           <th className="text-left px-3 py-2 font-medium">Expiry Date</th>
                           <th className="text-left px-3 py-2 font-medium">Received Date</th>
-                          <th className="text-left px-3 py-2 font-medium">Received By</th>
+                          <th className="text-left px-3 py-2 font-medium">Shelf</th>
+                          <th className="text-left px-3 py-2 font-medium">Bin</th>
                           <th className="text-left px-3 py-2 font-medium">Barcode</th>
                         </tr>
                       </thead>
@@ -446,11 +447,12 @@ export default function InventoryItemDetailsSheet({
                               <td className="px-3 py-2">
                                 {item.receivedDate ? formatDate(item.receivedDate) : "-"}
                               </td>
-                              <td className="px-3 py-2">{item.receivedByName || "-"}</td>
+                              <td className="px-3 py-2">{item.shelf || "-"}</td>
+                              <td className="px-3 py-2">{item.bin || "-"}</td>
                               <td className="px-3 py-2">
                                                                  {product && item.barcode && (
                                    <div className="w-[180px]">
-                                     <div className="flex flex-col items-center gap-2">
+                                     <div className="flex flex-row items-center gap-2">
                                        <div className="w-full">
                                          <Barcode
                                            value={item.barcode}

@@ -13,6 +13,7 @@ import ReceivingTab from "./receiving-tab"
 import StockTab from "./stock-tab"
 import { useGetClinics } from "@/queries/clinics/get-clinics"
 import { useRootContext } from "@/context/RootContext"
+import LocationsTab from "./location-tab"
 
 export default function Inventory() {
   const [mounted, setMounted] = useState(false)
@@ -68,7 +69,7 @@ export default function Inventory() {
           </div>)}
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger
               value="dashboard"
               className="data-[state=active]:theme-text-primary data-[state=active]:border-b-2 data-[state=active]:border-[var(--theme-primary)]"
@@ -86,6 +87,12 @@ export default function Inventory() {
               className="data-[state=active]:theme-text-primary data-[state=active]:border-b-2 data-[state=active]:border-[var(--theme-primary)]"
             >
               Purchase Order Receiving
+            </TabsTrigger>
+            <TabsTrigger
+              value="locations"
+              className="data-[state=active]:theme-text-primary data-[state=active]:border-b-2 data-[state=active]:border-[var(--theme-primary)]"
+            >
+              Locations
             </TabsTrigger>
             <TabsTrigger
               value="stock"
@@ -111,6 +118,11 @@ export default function Inventory() {
           {/* Purchase Order Receiving Tab */}
           <TabsContent value="receiving">
             <ReceivingTab clinicId={selectedClinicId} />
+          </TabsContent>
+
+          {/* Locations Tab */}
+          <TabsContent value="locations">
+            <LocationsTab clinicId={selectedClinicId} />
           </TabsContent>
 
           {/* Stock Tab */}
