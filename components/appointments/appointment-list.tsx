@@ -576,11 +576,13 @@ export default function AppointmentList({
                 row.original.appointmentType?.name?.toLowerCase().includes('surgery') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('emergency') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('deworming') ||
+                row.original.appointmentType?.name?.toLowerCase().includes('vaccination') ||
                 (typeof row.original.appointmentType === 'string' && 
                   (row.original.appointmentType.toLowerCase().includes('consultation') ||
                    row.original.appointmentType.toLowerCase().includes('surgery') ||
                    row.original.appointmentType.toLowerCase().includes('emergency') ||
-                   row.original.appointmentType.toLowerCase().includes('deworming')
+                   row.original.appointmentType.toLowerCase().includes('deworming') ||
+                   row.original.appointmentType.toLowerCase().includes('vaccination')
                   )
                 ) ||
                 !row.original.appointmentType) && (
