@@ -24,9 +24,14 @@ const PRODUCT_TYPES = [
 ];
 
 const UNIT_OF_MEASURE_OPTIONS = [
+  { value: "STRIP", label: "Strip" },
   { value: "EA", label: "Each (EA)" },
   { value: "BOTTLE", label: "Bottle" },
-  { value: "BOX", label: "Box" }
+  { value: "BOX", label: "Box" },
+  { value: "PACK", label: "Pack" },
+  { value: "BAG", label: "Bag" },
+  { value: "BOTTLE", label: "Bottle" },
+  { value: "CAN", label: "Can" }
 ];
 
 const PRODUCT_CATEGORIES = [

@@ -574,6 +574,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                    <TableHead>Quantity Available</TableHead>
                    <TableHead>Batch Number</TableHead>
                    <TableHead>Expiration Date</TableHead>
+                   <TableHead>Selling Price</TableHead>
                    <TableHead className="w-[100px]">Actions</TableHead>
                  </TableRow>
                </TableHeader>
@@ -594,6 +595,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                      <TableCell>{mapping.quantityAvailable ?? mapping.purchaseOrderReceivingHistory?.quantityInHand ?? "-"}</TableCell>
                      <TableCell>{mapping.batchNo ?? mapping.purchaseOrderReceivingHistory?.batchNumber ?? "-"}</TableCell>
                      <TableCell>{formatDate(mapping.expDate ?? mapping.purchaseOrderReceivingHistory?.expiryDate)}</TableCell>
+                     <TableCell>{mapping.product?.sellingPrice ?? "-"}</TableCell>
                      <TableCell>
                        <div className="flex space-x-2">
                          <Button

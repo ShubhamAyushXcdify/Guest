@@ -145,7 +145,7 @@ export default function Products() {
       header: "Cost Price",
       cell: ({ getValue }) => {
         const value = getValue() as number;
-        return value ? `$${value.toFixed(2)}` : '-';
+        return value ? `${value.toFixed(2)}` : '-';
       }
     },
     {
