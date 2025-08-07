@@ -586,93 +586,101 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     }
   }
 
-  const columns: ColumnDef<BatchData>[] = [
-    { 
-      accessorKey: "orderNumber", 
-      header: "Order Number",
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {row.original.orderNumber ? (
-            <div className="flex items-center gap-1">
-              <span className="text-blue-600 font-medium">{row.original.orderNumber}</span>
-              {row.original.isReceivedItem && (
-                <Badge variant="outline" className="text-xs">Received</Badge>
-              )}
-            </div>
-          ) : (
-            <span className="text-gray-500">N/A</span>
-          )}
-        </div>
-      )
-    },
-    { 
-      accessorKey: "productName", 
-      header: "Product Name",
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.productName}</div>
-      )
-    },
-    { 
-      accessorKey: "batchNumber", 
-      header: "Batch Number",
-      cell: ({ row }) => (
-        <div className="font-mono text-sm">{row.original.batchNumber}</div>
-      )
-    },
-    { 
-      accessorKey: "supplierName", 
-      header: "Supplier",
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {row.original.supplierName || <span className="text-gray-500">N/A</span>}
-        </div>
-      )
-    },
-    { 
-      accessorKey: "status", 
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.original.status;
-        if (status) {
-          const badge = getStatusBadge(status);
-          return (
-            <span className={`px-2 py-1 text-xs font-medium ${badge.color} rounded-full flex items-center justify-center w-fit`}>
-              {badge.icon}
-              {status}
-            </span>
-          );
+  const getColumns = (activeTab: "located" | "unlocated"): ColumnDef<BatchData>[] => {
+    const baseColumns: ColumnDef<BatchData>[] = [
+      { 
+        accessorKey: "orderNumber", 
+        header: "Order Number",
+        cell: ({ row }) => (
+          <div className="text-sm">
+            {row.original.orderNumber ? (
+              <div className="flex items-center gap-1">
+                <span className="text-blue-600 font-medium">{row.original.orderNumber}</span>
+                {row.original.isReceivedItem && (
+                  <Badge variant="outline" className="text-xs">Received</Badge>
+                )}
+              </div>
+            ) : (
+              <span className="text-gray-500">N/A</span>
+            )}
+          </div>
+        )
+      },
+      { 
+        accessorKey: "productName", 
+        header: "Product Name",
+        cell: ({ row }) => (
+          <div className="font-medium">{row.original.productName}</div>
+        )
+      },
+      { 
+        accessorKey: "batchNumber", 
+        header: "Batch Number",
+        cell: ({ row }) => (
+          <div className="font-mono text-sm">{row.original.batchNumber}</div>
+        )
+      },
+      { 
+        accessorKey: "supplierName", 
+        header: "Supplier",
+        cell: ({ row }) => (
+          <div className="text-sm">
+            {row.original.supplierName || <span className="text-gray-500">N/A</span>}
+          </div>
+        )
+      },
+      { 
+        accessorKey: "status", 
+        header: "Status",
+        cell: ({ row }) => {
+          const status = row.original.status;
+          if (status) {
+            const badge = getStatusBadge(status);
+            return (
+              <span className={`px-2 py-1 text-xs font-medium ${badge.color} rounded-full flex items-center justify-center w-fit`}>
+                {badge.icon}
+                {status}
+              </span>
+            );
+          }
+          return <span className="text-gray-500">N/A</span>
         }
-        return <span className="text-gray-500">N/A</span>
-      }
-    },
-    { 
-      accessorKey: "expirationDate", 
-      header: "Expiry Date",
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {row.original.expirationDate ? formatDate(row.original.expirationDate) : 'N/A'}
-        </div>
-      )
-    },
-    { 
-      accessorKey: "receivedDate", 
-      header: "Received Date",
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {row.original.receivedDate ? formatDate(row.original.receivedDate) : 'N/A'}
-        </div>
-      )
-    },
-    {
-      accessorKey: "location",
-      header: "Current Location",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          {getLocationDisplay(row.original)}
-        </div>
-      )
-    },
-    {
+      },
+      { 
+        accessorKey: "expirationDate", 
+        header: "Expiry Date",
+        cell: ({ row }) => (
+          <div className="text-sm">
+            {row.original.expirationDate ? formatDate(row.original.expirationDate) : 'N/A'}
+          </div>
+        )
+      },
+      { 
+        accessorKey: "receivedDate", 
+        header: "Received Date",
+        cell: ({ row }) => (
+          <div className="text-sm">
+            {row.original.receivedDate ? formatDate(row.original.receivedDate) : 'N/A'}
+          </div>
+        )
+      },
+    ]
+
+    // Add location column only for located batches tab
+    if (activeTab === "located") {
+      baseColumns.push({
+        accessorKey: "location",
+        header: "Current Location",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-2">
+            {getLocationDisplay(row.original)}
+          </div>
+        )
+      })
+    }
+
+    // Add actions column
+    baseColumns.push({
       id: "actions",
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => {
@@ -695,8 +703,10 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         )
       },
       meta: { className: "text-center" },
-    },
-  ]
+    })
+
+    return baseColumns
+  }
 
 
 
@@ -789,7 +799,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           </div>
           
           <DataTable
-            columns={columns}
+            columns={getColumns(activeTab)}
             data={filteredBatches}
             searchPlaceholder="Search by product name or batch number..."
             onSearch={handleSearch}
@@ -815,7 +825,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           </div>
           
           <DataTable
-            columns={columns}
+            columns={getColumns(activeTab)}
             data={filteredBatches}
             searchPlaceholder="Search by product name, batch number, or location..."
             onSearch={handleSearch}
