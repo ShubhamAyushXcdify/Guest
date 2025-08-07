@@ -1,14 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Define types based on API schema
-export interface ReceiveItemData {
-  purchaseOrderItemId: string;
-  productId?: string;
+// Define types based on new API schema
+export interface BatchData {
   quantityReceived: number;
   batchNumber: string;
   expiryDate?: string; // ISO format date string or empty
   dateOfManufacture?: string; // ISO format date string or empty
   notes?: string;
+}
+
+export interface ReceiveItemData {
+  purchaseOrderItemId: string;
+  productId: string;
+  batches: BatchData[];
 }
 
 export interface ReceivePurchaseOrderData {
