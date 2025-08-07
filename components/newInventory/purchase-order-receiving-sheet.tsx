@@ -187,27 +187,26 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                   <h3 className="text-md font-semibold">Receiving Items</h3>
                 </div>
 
+                {/* Single Header Row for All Products */}
+                <div className="grid grid-cols-8 gap-2 mb-2 px-2 text-sm font-medium text-gray-700 bg-gray-100 py-2 rounded">
+                  <div className="col-span-1">Product</div>
+                  <div className="col-span-1">Ordered</div>
+                  <div className="col-span-1">Qty Receiving</div>
+                  <div className="col-span-1">Batch #</div>
+                  <div className="col-span-1">Expiry Date</div>
+                  <div className="col-span-1">Mfg Date</div>
+                  <div className="col-span-1">Notes</div>
+                  <div className="col-span-1">Actions</div>
+                </div>
+
                 {form.watch("receivedItems")?.map((receivedItem, itemIdx) => {
                   const orderItem = order.items[itemIdx];
                   const ordered = orderItem?.quantityOrdered ?? 0;
                   const alreadyReceived = orderItem?.quantityReceived ?? 0;
                   const maxReceivable = Math.max(ordered - alreadyReceived, 0);
 
-
-
                   return (
-                    <div key={itemIdx} className="mb-6 p-4 border border-gray-200 rounded-lg bg-white">
-                      {/* Single Row Header */}
-                      <div className="grid grid-cols-8 gap-2 mb-2 px-2 text-sm font-medium text-gray-700">
-                        <div className="col-span-1">Product</div>
-                        <div className="col-span-1">Ordered</div>
-                        <div className="col-span-1">Qty Receiving</div>
-                        <div className="col-span-1">Batch #</div>
-                        <div className="col-span-1">Expiry Date</div>
-                        <div className="col-span-1">Mfg Date</div>
-                        <div className="col-span-1">Notes</div>
-                        <div className="col-span-1">Actions</div>
-                      </div>
+                    <div key={itemIdx} className="mb-4">
 
                       {/* Batches for this item */}
                       {receivedItem.batches.map((_, batchIdx) => (
@@ -404,12 +403,12 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                           </div>
                         </div>
                       ))}
-
-
                     </div>
                   );
                 })}
-                {/* Received Items Table */}
+              </div>
+
+              {/* Received Items Table */}
                 {order.receivedItems && order.receivedItems.length > 0 && (
                   <div className="mt-8">
                     <h4 className="text-sm font-semibold mb-2 text-slate-700">Received Batches</h4>
@@ -445,7 +444,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                     </div>
                   </div>
                 )}
-              </div>
+
               {/* Notes Section (for the whole receipt) */}
               <FormField
                 control={form.control}
