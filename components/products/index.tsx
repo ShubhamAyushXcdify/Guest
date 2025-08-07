@@ -33,11 +33,12 @@ export type Product = {
   unitOfMeasure: string;
   requiresPrescription: boolean;
   controlledSubstanceSchedule: string;
- 
+
   storageRequirements: string;
   isActive: boolean;
   reorderThreshold?: number | null; // Added optional reorderThreshold field
   price?: number; // Added price field
+  sellingPrice?: number; // Added sellingPrice field
 };
  
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
@@ -139,6 +140,22 @@ export default function Products() {
     // { accessorKey: "brandName", header: "Brand Name" },
     // { accessorKey: "manufacturer", header: "Manufacturer" },
     // { accessorKey: "strength", header: "Strength" },
+    {
+      accessorKey: "price",
+      header: "Cost Price",
+      cell: ({ getValue }) => {
+        const value = getValue() as number;
+        return value ? `$${value.toFixed(2)}` : '-';
+      }
+    },
+    {
+      accessorKey: "sellingPrice",
+      header: "Selling Price",
+      cell: ({ getValue }) => {
+        const value = getValue() as number;
+        return value ? `${value.toFixed(2)}` : '-';
+      }
+    },
     {
       accessorKey: "requiresPrescription",
       header: "Rx Required",

@@ -66,6 +66,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
         productType: product.productType || '',
         unitOfMeasure: product.unitOfMeasure || '',
         price: product.price ?? 0,
+        sellingPrice: product.sellingPrice ?? 0,
         reorderThreshold: product.reorderThreshold ?? null,
         category: product.category || '',
         requiresPrescription: product.requiresPrescription ?? false,
@@ -253,11 +254,29 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
 
             <FormField name="price" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Cost Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter price"
+                    placeholder="Enter cost price"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField name="sellingPrice" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Selling Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter selling price"
                     {...field}
                     value={field.value ?? ''}
                     onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}

@@ -81,6 +81,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       storageRequirements: "",
       reorderThreshold: null,
       price: 0,
+      sellingPrice: 0,
       isActive: true,
     },
   });
@@ -244,11 +245,29 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             
             <FormField name="price" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Cost Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter price"
+                    placeholder="Enter cost price"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            
+            <FormField name="sellingPrice" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Selling Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter selling price"
                     {...field}
                     value={field.value ?? ''}
                     onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
