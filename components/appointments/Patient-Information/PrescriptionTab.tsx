@@ -406,6 +406,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       const updatePayload = {
         id: existingPrescriptionDetail.id,
         notes: notes,
+        visitId: visitData.id,
         productMappings: formattedMappings
       }
       await updatePrescriptionDetailMutation.mutateAsync(updatePayload)
