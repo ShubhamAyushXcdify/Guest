@@ -65,8 +65,9 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     symptom.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Filter symptoms for right side (all symptoms with search)
+  // Filter symptoms for right side (all symptoms with search, excluding common symptoms)
   const filteredRightSideSymptoms = symptoms.filter(symptom => 
+    !symptom.isComman &&
     symptom.name.toLowerCase().includes(rightSideSearchQuery.toLowerCase())
   )
 
