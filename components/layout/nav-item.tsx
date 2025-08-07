@@ -21,19 +21,21 @@ export function NavItem({ href, label, icon: Icon, isActive, isPending, color }:
   const isCollapsed = state === "collapsed"
 
   const content = (
+    <div>
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 rounded-md my-3 p-2 text-sm transition-all text-white font-bold text-[1rem]",
+        "flex items-center gap-3 rounded-md p-2 text-sm transition-all text-white font-bold text-[1rem]",
         isActive
-          ? "bg-white/20 font-bold shadow"
-          : "opacity-80 hover:bg-white/10 hover:opacity-100",
+          ? "bg-white/20 font-bold shadow my-3"
+          : "opacity-80 hover:bg-white/10 hover:opacity-100 my-3",
         isCollapsed && "justify-center px-2"
       )}
     >
       <Icon className={cn("h-6 w-6 min-h-[1.25rem] min-w-[1.25rem]", color || (isActive ? "text-white" : "text-white/80 group-hover:text-white"))} />
       {!isCollapsed && label}
     </Link>
+    </div>
   )
 
   if (isCollapsed) {
