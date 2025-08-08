@@ -829,11 +829,28 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 id="quantity"
                 type="number"
                 min="1"
+                max={currentMapping.quantityAvailable || undefined}
                 placeholder="e.g., 1"
                 value={currentMapping.quantity ?? ""}
-                onChange={e => isReadOnly ? undefined : setCurrentMapping({ ...currentMapping, quantity: parseInt(e.target.value) || 0 })}
+                onChange={e => {
+                  if (isReadOnly) return;
+                  const newQuantity = parseInt(e.target.value) || 0;
+                  const maxQuantity = currentMapping.quantityAvailable || 0;
+
+                  if (newQuantity > maxQuantity && maxQuantity > 0) {
+                    toast.error(`Quantity cannot exceed available stock (${maxQuantity})`);
+                    return;
+                  }
+
+                  setCurrentMapping({ ...currentMapping, quantity: newQuantity });
+                }}
                 disabled={isReadOnly}
               />
+              {currentMapping.quantityAvailable !== undefined && (
+                <p className="text-sm text-gray-600">
+                  Available: {currentMapping.quantityAvailable} {currentMapping.product?.unitOfMeasure || "EA"}
+                </p>
+              )}
             </div>
           </div>
           
