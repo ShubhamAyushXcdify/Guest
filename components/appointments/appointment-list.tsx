@@ -650,7 +650,8 @@ export default function AppointmentList({
     <div className="p-6">
       {/* Filters */}
       <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-3 mb-6">
-        <div className="flex items-center gap-3 ">
+        <div className="flex items-center gap-3 justify-between">
+          <div className="flex gap-3">
           <DatePickerWithRangeV2
             date={{
               from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : new Date(),
@@ -693,6 +694,7 @@ export default function AppointmentList({
               />
             </div>
           )}
+          </div>
           <Button
             variant="outline"
             onClick={() => {
@@ -708,10 +710,10 @@ export default function AppointmentList({
       </div>
 
       {/* Status Tabs */}
-      <div className="flex overflow-x-auto mb-6 bg-white dark:bg-slate-800 rounded-lg">
+      <div className="flex justify-between overflow-x-auto mb-6 bg-white dark:bg-slate-800 rounded-lg">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "all"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "all"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -720,7 +722,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("scheduled")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "scheduled"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "scheduled"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -729,7 +731,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("checked-in")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "checked-in"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "checked-in"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -738,7 +740,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("completed")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "completed"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "completed"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -747,7 +749,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("cancelled")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "cancelled"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "cancelled"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
