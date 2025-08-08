@@ -302,9 +302,9 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls - always visible at the bottom */}
-      <div className="flex items-center justify-between pt-2 bg-white sticky bottom-0 z-10 flex-shrink-0">
+      <div className="flex items-center justify-between bg-white sticky bottom-0 z-10 flex-shrink-0 p-4 rounded-md">
         <div className="flex items-center space-x-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-md text-muted-foreground">
             Page {page} of {totalPages}
           </p>
           <Select
@@ -324,7 +324,7 @@ export function DataTable<TData, TValue>({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-muted-foreground">rows per page</p>
+          <p className="text-md text-muted-foreground">rows per page</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button
