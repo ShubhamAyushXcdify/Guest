@@ -19,14 +19,16 @@ interface Appointment {
   id: string;
   appointmentDate: string;
   startTime?: string;
+  appointmentTimeFrom?: string;
+  appointmentTimeTo?: string;
   status?: string;
   reason?: string;
   roomSlot?: {
     startTime?: string;
   };
-  patient?: { 
-    name?: string; 
-    species?: string 
+  patient?: {
+    name?: string;
+    species?: string
   } | string;
   veterinarian?: {
     name?: string;
@@ -349,9 +351,11 @@ export const ClinicAdminDashboard = ({
                     <tr key={index} className="dark:hover:bg-slate-750">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200 flex items-center">
                         <Clock className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                        {appointment.roomSlot && appointment.roomSlot.startTime 
-                          ? formatTime(appointment.roomSlot.startTime)
-                          : formatTime(appointment.startTime)}
+                        {formatTime(
+                          appointment.appointmentTimeFrom ||
+                          appointment.startTime ||
+                          (appointment.roomSlot && appointment.roomSlot.startTime)
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                         {typeof appointment.patient === 'string'
