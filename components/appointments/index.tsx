@@ -60,20 +60,20 @@ export default function AppointmentsPage() {
     if (!mounted) return null
 
     return (
-        <>
-            <div className="flex justify-between items-center p-6 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex-1">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 dark:from-slate-100 dark:to-blue-100 bg-clip-text text-transparent mb-4">
+        <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 dark:from-slate-100 dark:to-blue-100 bg-clip-text text-transparent px-6 pt-4">
                         {activeView === "list" && "Appointment List"}
                         {activeView === "calendar" && "Appointment Calendar"}
                         {activeView === "provider" && "Provider View"}
                         {/* {activeView === "room" && "Room View"}
                         {activeView === "waiting" && "Waiting Room"} */}
                     </h1>
-                    <div className="max-w-xl">
+            <div className="flex justify-between items-center p-6 ">
+                <div className="flex-1">
+                    
+                    <div className="w-full pr-2">
                         <PatientSearch
                             onPatientSelect={handlePatientSelect}
-                            className="mb-2"
                         />
                         {selectedPatient && (
                             <div className="flex items-center bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm">
@@ -104,7 +104,7 @@ export default function AppointmentsPage() {
                 <nav className="flex -mb-px">
                     <button
                         onClick={() => handleViewChange("list")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "list"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-md transition-all duration-200 ${activeView === "list"
                             ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
@@ -123,7 +123,7 @@ export default function AppointmentsPage() {
 
                     <button
                         onClick={() => handleViewChange("provider")}
-                        className={`py-4 px-6 text-center border-b-2 font-medium text-sm transition-all duration-200 ${activeView === "provider"
+                        className={`py-4 px-6 text-center border-b-2 font-medium text-md transition-all duration-200 ${activeView === "provider"
                             ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
                             : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
                             }`}
@@ -176,6 +176,6 @@ export default function AppointmentsPage() {
                     onClose={handleCloseAppointmentView} 
                 />
             )}
-        </>
+        </div>
     )
 }

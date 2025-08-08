@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText, Printer } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
@@ -576,27 +576,29 @@ export default function AppointmentList({
                 row.original.appointmentType?.name?.toLowerCase().includes('surgery') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('emergency') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('deworming') ||
+                row.original.appointmentType?.name?.toLowerCase().includes('vaccination') ||
                 (typeof row.original.appointmentType === 'string' && 
                   (row.original.appointmentType.toLowerCase().includes('consultation') ||
                    row.original.appointmentType.toLowerCase().includes('surgery') ||
                    row.original.appointmentType.toLowerCase().includes('emergency') ||
-                   row.original.appointmentType.toLowerCase().includes('deworming')
+                   row.original.appointmentType.toLowerCase().includes('deworming') ||
+                   row.original.appointmentType.toLowerCase().includes('vaccination')
                   )
                 ) ||
                 !row.original.appointmentType) && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="theme-button-outline"
-                  onClick={() => {
-                    setSelectedAppointmentId(row.original.id.toString())
-                    setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
-                    setDischargeSummaryOpen(true)
-                  }}
-                >
-                  <FileText className="h-4 w-4 mr-1" />
-                  Print Discharge Summary
-                </Button>
+                                 <Button 
+                   variant="outline" 
+                   size="sm" 
+                   className="theme-button-outline"
+                   onClick={() => {
+                     setSelectedAppointmentId(row.original.id.toString())
+                     setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
+                     setDischargeSummaryOpen(true)
+                   }}
+                 >
+                   <Printer className="h-4 w-4 mr-1" />
+                   Print
+                 </Button>
               )}
             </>
           )}
@@ -648,7 +650,8 @@ export default function AppointmentList({
     <div className="p-6">
       {/* Filters */}
       <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-3 mb-6">
-        <div className="flex items-center gap-3 ">
+        <div className="flex items-center gap-3 justify-between">
+          <div className="flex gap-3">
           <DatePickerWithRangeV2
             date={{
               from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : new Date(),
@@ -691,6 +694,7 @@ export default function AppointmentList({
               />
             </div>
           )}
+          </div>
           <Button
             variant="outline"
             onClick={() => {
@@ -706,10 +710,10 @@ export default function AppointmentList({
       </div>
 
       {/* Status Tabs */}
-      <div className="flex overflow-x-auto mb-6 bg-white dark:bg-slate-800 rounded-lg">
+      <div className="flex justify-between overflow-x-auto mb-6 bg-white dark:bg-slate-800 rounded-lg">
         <button
           onClick={() => setActiveTab("all")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "all"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "all"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -718,7 +722,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("scheduled")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "scheduled"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "scheduled"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -727,7 +731,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("checked-in")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "checked-in"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "checked-in"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -736,7 +740,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("completed")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "completed"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "completed"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
@@ -745,7 +749,7 @@ export default function AppointmentList({
         </button>
         <button
           onClick={() => setActiveTab("cancelled")}
-          className={`px-6 py-3 text-sm font-medium ${activeTab === "cancelled"
+          className={`px-6 py-3 text-md font-medium  w-full ${activeTab === "cancelled"
             ? "theme-active text-white"
             : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}

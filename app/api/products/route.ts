@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getJwtToken } from "@/utils/serverCookie";
 import { NextRequest } from "next/server";
 
-const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
-const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const testToken = process.env.NEXT_PUBLIC_TEST_TOKEN || '';
 
 // GET API Route
 export async function GET(request: NextRequest) {
@@ -21,6 +21,11 @@ export async function GET(request: NextRequest) {
             token = testToken;
         }
 
+        // Log for debugging
+        console.log('API URL:', apiUrl);
+        console.log('Token available:', !!token);
+        console.log('Request URL:', `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&category=${category}&productType=${productType}`);
+
         const response = await fetch(
             `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&category=${category}&productType=${productType}`,
             {
@@ -32,12 +37,15 @@ export async function GET(request: NextRequest) {
         );
 
         if (!response.ok) {
-            throw new Error('Failed to fetch products from backend');
+            const errorText = await response.text();
+            console.error('Backend response error:', response.status, errorText);
+            throw new Error(`Failed to fetch products from backend: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
+        console.error('Error in products GET route:', error);
         return NextResponse.json({ message: `Error fetching products: ${error.message}` }, { status: 500 });
     }
 }

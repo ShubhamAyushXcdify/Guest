@@ -7,19 +7,21 @@ import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCreateProduct } from "@/queries/products/create-products";
-import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Product } from ".";
-
 import { Combobox } from "../ui/combobox";
  
 type ProductFormValues = Omit<Product, "id">;
  
 const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
 const UNIT_OF_MEASURE_OPTIONS = [
+  { value: "STRIP", label: "Strip" },
   { value: "EA", label: "Each (EA)" },
+  { value: "BOX", label: "Box" },
+  { value: "PACK", label: "Pack" },
+  { value: "BAG", label: "Bag" },
   { value: "BOTTLE", label: "Bottle" },
-  { value: "BOX", label: "Box" }
+  { value: "CAN", label: "Can" }
 ];
 
 const PRODUCT_CATEGORIES = [
@@ -38,11 +40,6 @@ interface NewProductProps {
 }
  
 export default function NewProduct({ onSuccess }: NewProductProps) {
-  const router = useRouter();
-  // const { data: clinicData } = useGetClinic();
- 
-  // Extract clinic items from the paginated response
-  // const clinics = clinicData?.items || [];
  
   const createProduct = useCreateProduct({
     onSuccess: () => {
@@ -50,14 +47,12 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
         title: "Success",
         description: "Product created successfully",
       });
+      // Automatically close the form after successful creation
       if (onSuccess) {
         onSuccess();
-      } else {
-        router.push("/products");
-        router.refresh(); // Ensure the product list is refreshed after navigation
       }
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to create product",
@@ -84,6 +79,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       storageRequirements: "",
       reorderThreshold: null,
       price: 0,
+      sellingPrice: 0,
       isActive: true,
     },
   });
@@ -91,14 +87,16 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
   const handleSubmit = async (values: ProductFormValues) => {
     try {
       await createProduct.mutateAsync(values);
+      // Form will automatically close via onSuccess callback
     } catch (error) {
       // Error is handled in onError callback
     }
   };
  
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
         <div className="flex-1 overflow-y-auto pb-4">
           <div className="grid grid-cols-2 gap-8">
             
@@ -240,11 +238,29 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
             
             <FormField name="price" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Cost Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter price"
+                    placeholder="Enter cost price"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            
+            <FormField name="sellingPrice" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Selling Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter selling price"
                     {...field}
                     value={field.value ?? ''}
                     onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
@@ -322,5 +338,8 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
         </div>
       </form>
     </Form>
+
+
+  </div>
   );
 }

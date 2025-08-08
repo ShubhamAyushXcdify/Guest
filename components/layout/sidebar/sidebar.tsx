@@ -55,14 +55,14 @@ export function Sidebar() {
                             >
                                 <SidebarGroupLabel>
                                     <CollapsibleTrigger className={cn(
-                                        "flex w-full items-center justify-between font-medium rounded-md py-1.5 transition-colors hover:bg-accent hover:text-accent-foreground text-clinical-operations",
+                                        "flex w-full items-center justify-between font-medium rounded-md py-2 transition-colors",
                                         state === "collapsed" && "justify-center"
                                     )}>
                                         <div className={cn(
-                                            "flex items-center gap-2",
+                                            "flex items-center gap-2 text-[1rem] uppercase text-[#dbdbdb]",
                                             state === "collapsed" && "justify-center"
                                         )}>
-                                            <group.icon className="h-5 w-5 min-h-[1.25rem] min-w-[1.25rem]" />
+                                            {/* <group.icon className="h-6 w-6 min-h-[1.25rem] min-w-[1.25rem]" /> */}
                                             {state !== "collapsed" && <span>{group.title}</span>}
                                         </div>
                                         {state !== "collapsed" && (
@@ -76,7 +76,7 @@ export function Sidebar() {
                                 <CollapsibleContent>
                                     <div className={cn(
                                         "mt-2 space-y-1",
-                                        state === "collapsed" ? "pl-0" : "pl-3"
+                                        state === "collapsed" ? "pl-0" : ""
                                     )}>
                                         {group.items.map((item) => {
                                             if (!checkPermission(item.allowedRoles)) return null;
@@ -123,8 +123,8 @@ export function Sidebar() {
                 </SheetContent>
             </Sheet>
             <aside className={cn(
-                "hidden md:flex flex-col bg-gradient-to-b from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white h-screen shadow-xl transition-all duration-200",
-                state === "collapsed" ? "w-16" : "w-64"
+                "hidden md:flex flex-col bg-[#4f46e5] text-white h-screen shadow-xl transition-all duration-200",
+                state === "collapsed" ? "w-16" : "w-72"
             )}>
                 <div className="flex flex-col h-full min-h-0">
                     <div className={cn(
@@ -137,7 +137,7 @@ export function Sidebar() {
                         )}
                     </div>
 
-                    <Separator className="mb-6 bg-white/10 flex-shrink-0" />
+                    <Separator className="mb-2 bg-white/10 flex-shrink-0" />
 
                     <div className="flex-grow overflow-hidden" style={{ height: "calc(100vh - 16rem)" }}>
                         <div className="h-full overflow-y-auto scrollbar-hide">
@@ -149,17 +149,17 @@ export function Sidebar() {
                         <Separator className="my-4 bg-white/10" />
                         <div className="px-3">
                             <div className={cn(
-                                "flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors",
+                                "flex items-center gap-3 p-3 rounded-lg bg-white/20 hover:bg-white/10 transition-colors",
                                 state === "collapsed" && "justify-center"
                             )}>
-                                <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)]/30 rounded-full flex items-center justify-center">
+                                <Avatar className="h-10 w-10 ring-2 ring-[var(--theme-accent)] rounded-full flex items-center justify-center">
                                     <AvatarImage src="/placeholder-user.jpg" alt="User" className="rounded-full" />
                                     <AvatarFallback className="text-white">{user?.firstName?.charAt(0) || ''}{user?.lastName?.charAt(0) || ''}</AvatarFallback>
                                 </Avatar>
                                 {state !== "collapsed" && (
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{user?.firstName} {user?.lastName}</p>
-                                        <p className="text-xs text-white/70 truncate">{user?.email}</p>
+                                        <p className="text-md font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                                        <p className="text-sm text-white/70 truncate">{user?.email}</p>
                                     </div>
                                 )}
                                 {state !== "collapsed" && (

@@ -16,6 +16,7 @@ export interface Product {
   storageRequirements: string;
   isActive: boolean;
   price: number;
+  sellingPrice?: number;
   createdAt: string | null;
   updatedAt: string | null;
   reorderThreshold: number;

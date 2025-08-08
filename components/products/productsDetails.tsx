@@ -24,9 +24,14 @@ const PRODUCT_TYPES = [
 ];
 
 const UNIT_OF_MEASURE_OPTIONS = [
+  { value: "STRIP", label: "Strip" },
   { value: "EA", label: "Each (EA)" },
   { value: "BOTTLE", label: "Bottle" },
-  { value: "BOX", label: "Box" }
+  { value: "BOX", label: "Box" },
+  { value: "PACK", label: "Pack" },
+  { value: "BAG", label: "Bag" },
+  { value: "BOTTLE", label: "Bottle" },
+  { value: "CAN", label: "Can" }
 ];
 
 const PRODUCT_CATEGORIES = [
@@ -66,6 +71,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
         productType: product.productType || '',
         unitOfMeasure: product.unitOfMeasure || '',
         price: product.price ?? 0,
+        sellingPrice: product.sellingPrice ?? 0,
         reorderThreshold: product.reorderThreshold ?? null,
         category: product.category || '',
         requiresPrescription: product.requiresPrescription ?? false,
@@ -119,9 +125,10 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
   console.log("Product Details Form Values:", form.getValues());
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
-        <div className="flex-1 overflow-y-auto pb-4">
+    <div className="flex flex-col w-full h-full overflow-y-auto pb-4">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
+          <div className="flex-1 pb-4">
           <div className="grid grid-cols-2 gap-8">
 
             <FormField name="productNumber" control={form.control} render={({ field }) => (
@@ -252,11 +259,29 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
 
             <FormField name="price" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Price</FormLabel>
+                <FormLabel>Cost Price</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter price"
+                    placeholder="Enter cost price"
+                    {...field}
+                    value={field.value ?? ''}
+                    onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField name="sellingPrice" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Selling Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter selling price"
                     {...field}
                     value={field.value ?? ''}
                     onChange={e => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
@@ -346,5 +371,8 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
         </div>
       </form>
     </Form>
+
+
+  </div>
   );
 }

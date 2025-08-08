@@ -150,7 +150,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                       <AvatarFallback>{provider.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-medium">{provider.name}</h3>
+                      <h3 className="font-medium text-md">{provider.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {provider.role} • {provider.specialty}
                       </p>
@@ -158,16 +158,16 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                      <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{provider.total}</div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400">Total</div>
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{provider.total}</div>
+                      <div className="text-sm text-blue-600 dark:text-blue-400">Total</div>
                     </div>
                     <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                      <div className="text-lg font-bold text-green-600 dark:text-green-400">{provider.done}</div>
-                      <div className="text-xs text-green-600 dark:text-green-400">Done</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{provider.done}</div>
+                      <div className="text-sm text-green-600 dark:text-green-400">Done</div>
                     </div>
                     <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                      <div className="text-lg font-bold text-amber-600 dark:text-amber-400">{provider.pending}</div>
-                      <div className="text-xs text-amber-600 dark:text-amber-400">Pending</div>
+                      <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{provider.pending}</div>
+                      <div className="text-sm text-amber-600 dark:text-amber-400">Pending</div>
                     </div>
                   </div>
                 </CardContent>
@@ -227,23 +227,23 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
               ) : (
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <tr className="text-md font-bold">
+                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Time
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Patient
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Owner
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Visit Type
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>

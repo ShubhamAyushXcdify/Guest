@@ -4,6 +4,7 @@ import { Symptom } from "./get-symptoms";
 interface CreateSymptomData {
   name: string;
   notes?: string;
+  breed?: string;
 }
 
 const createSymptom = async (data: CreateSymptomData): Promise<Symptom> => {

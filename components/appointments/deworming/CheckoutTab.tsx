@@ -233,7 +233,7 @@ export default function CheckoutTab({
           <div className="flex justify-end gap-2 mt-6">
             <Button
               onClick={handleSave}
-              disabled={isSaving || createCheckout.isPending || updateCheckout.isPending || isReadOnly}
+              disabled={isSaving || createCheckout.isPending || updateCheckout.isPending || isReadOnly || !summary.trim() || !nextDue || !instructions.trim()}
               variant="outline"
             >
               {isSaving ? "Saving..." : (hasExistingData ? "Update" : "Save")}

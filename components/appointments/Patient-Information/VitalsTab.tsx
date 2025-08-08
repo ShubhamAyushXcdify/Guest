@@ -56,6 +56,8 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
   // Combined loading state
   const isPending = isCreating || isUpdating
 
+
+
   // Initialize form with existing data when available
   useEffect(() => {
     if (vitalDetail) {

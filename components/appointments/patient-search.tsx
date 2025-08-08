@@ -77,7 +77,7 @@ export function PatientSearch({ onPatientSelect, className }: PatientSearchProps
                         placeholder="Search patients..."
                         value={searchQuery}
                         onChange={handleInputChange}
-                        className="pl-10 h-11 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                        className="pl-10 h-11 transition-all duration-200 focus:ring-2 focus:ring-primary/20 text-md"
                     />
                 </div>
                 <Select value={searchType} onValueChange={setSearchType}>

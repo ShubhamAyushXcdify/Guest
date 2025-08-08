@@ -128,7 +128,7 @@ export default function LoginPage() {
           </div>
           
           {/* Google Sign In Button */}
-          <div className="mb-4 md:mb-6">
+          {/* <div className="mb-4 md:mb-6">
             <Button
               onClick={() => signIn("google", { callbackUrl: "/patientdashboard" })}
               variant="outline"
@@ -156,7 +156,6 @@ export default function LoginPage() {
             </Button>
           </div>
           
-          {/* Divider */}
           <div className="relative mb-4 md:mb-6">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-gray-300 dark:border-gray-600" />
@@ -167,7 +166,7 @@ export default function LoginPage() {
               </span>
             </div>
           </div>
-          
+           */}
           <LoginForm />
           
           {/* Additional Info */}

@@ -3,9 +3,11 @@ import { PrescriptionDetail } from "./get-prescription-detail-by-id";
 
 export interface ProductMappingRequest {
   productId: string;
-  dosage: string | null;
+  isChecked: boolean;
+  quantity: number;
   frequency: string;
   numberOfDays: number;
+  purchaseOrderReceivingHistoryId: string;
 }
 
 export interface CreatePrescriptionDetailRequest {

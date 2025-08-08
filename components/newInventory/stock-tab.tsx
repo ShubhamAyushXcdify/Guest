@@ -7,10 +7,11 @@ import { ColumnDef } from "@tanstack/react-table"
 import Link from "next/link"
 import { useGetInventoryInfinite } from "@/queries/inventory/get-inventory"
 import { useEffect, useState } from "react"
-import { Filter, Loader2 } from "lucide-react"
+import { Filter, Loader2, Eye } from "lucide-react"
 import { InventoryData } from "@/queries/inventory/get-inventory"
 import { StockFilters, StockFilterDialog } from "./stockFilterDialog"
 import { Badge } from "../ui/badge"
+import InventoryItemDetailsSheet from "./inventory-item-details-sheet"
 
 interface StockTabProps {
   clinicId: string
@@ -22,6 +23,8 @@ export default function StockTab({ clinicId }: StockTabProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<StockFilters>({})
   const [openFilter, setOpenFilter] = useState(false)
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryData | null>(null)
+  const [openDetailsSheet, setOpenDetailsSheet] = useState(false)
 
   const {
     data,
@@ -61,6 +64,11 @@ export default function StockTab({ clinicId }: StockTabProps) {
     setPage(1)
   }
 
+  const handleViewDetails = (inventoryItem: InventoryData) => {
+    setSelectedInventoryItem(inventoryItem)
+    setOpenDetailsSheet(true)
+  }
+
   const columns: ColumnDef<InventoryData>[] = [
     { 
       accessorKey: "product.name", 
@@ -74,20 +82,6 @@ export default function StockTab({ clinicId }: StockTabProps) {
       header: "Brand Name",
       cell: ({ row }) => (
         <div className="font-medium">{row.original.product?.name || 'N/A'}</div>
-      )
-    },
-    // { 
-    //   accessorKey: "lotNumber", 
-    //   header: "Lot Number",
-    //   cell: ({ row }) => (
-    //     <div>{row.original.lotNumber || 'N/A'}</div>
-    //   )
-    // },
-    { 
-      accessorKey: "batchNumber", 
-      header: "Batch Number",
-      cell: ({ row }) => (
-        <div>{row.original.batchNumber || 'N/A'}</div>
       )
     },
     { 
@@ -121,11 +115,6 @@ export default function StockTab({ clinicId }: StockTabProps) {
       cell: ({ row }) => (
         <div>₹{row.original.unitCost?.toFixed(2) || '0.00'}</div>
       )
-    },
-    { 
-      accessorKey: "expirationDate", 
-      header: "Expiration",
-      cell: ({ getValue }) => formatDate(getValue() as string)
     },
     {
       accessorKey: "status",
@@ -164,26 +153,29 @@ export default function StockTab({ clinicId }: StockTabProps) {
       );
     }
     },
-    // {
-    //   id: "actions",
-    //   header: () => <div className="text-center">Actions</div>,
-    //   cell: ({ row }) => {
-    //     const reorderThreshold = row.original.product?.reorderThreshold || 0
-    //     const isLowStock = reorderThreshold > 0 && row.original.quantityOnHand <= reorderThreshold
-    //     return (
-    //       <div className="flex gap-2 justify-center">
-    //         <Button 
-    //           variant="secondary" 
-    //           size="sm" 
-    //           className="theme-button-secondary"
-    //         >
-    //           {isLowStock ? 'Order' : 'Adjust'}
-    //         </Button>
-    //       </div>
-    //     )
-    //   },
-    //   meta: { className: "text-center" },
-    // },
+    {
+      id: "actions",
+      header: () => <div className="text-center">Actions</div>,
+      cell: ({ row }) => {
+        return (
+          <div className="flex gap-2 justify-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewDetails(row.original);
+              }}
+              className="flex items-center gap-1"
+            >
+              <Eye className="w-3 h-3" />
+              View
+            </Button>
+          </div>
+        )
+      },
+      meta: { className: "text-center" },
+    },
   ]
   const allItems = data?.pages.flatMap(page => page.items) || []
   const totalPages = data?.pages[0]?.totalPages || 1
@@ -240,6 +232,7 @@ export default function StockTab({ clinicId }: StockTabProps) {
         totalPages={totalPages}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onRowClick={handleViewDetails}
       />
        {/* Filter Dialog */}
       <StockFilterDialog
@@ -247,6 +240,13 @@ export default function StockTab({ clinicId }: StockTabProps) {
         onOpenChange={setOpenFilter}
         filters={filters}
         setFilters={setFilters}
+      />
+
+      {/* Inventory Item Details Sheet */}
+      <InventoryItemDetailsSheet
+        inventoryItem={selectedInventoryItem}
+        open={openDetailsSheet}
+        onOpenChange={setOpenDetailsSheet}
       />
     </div>
   )

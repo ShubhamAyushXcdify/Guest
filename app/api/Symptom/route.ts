@@ -12,7 +12,15 @@ export async function GET(request: NextRequest) {
             token = testToken;
         }
         
-        const response = await fetch(`${apiUrl}/api/Symptom`, {
+        const { searchParams } = new URL(request.url);
+        const breed = searchParams.get('breed');
+        
+        const url = new URL(`${apiUrl}/api/Symptom`);
+        if (breed) {
+            url.searchParams.append('breed', breed);
+        }
+        
+        const response = await fetch(url.toString(), {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,

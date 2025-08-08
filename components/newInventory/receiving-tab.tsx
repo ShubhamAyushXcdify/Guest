@@ -8,7 +8,7 @@ import { useGetPurchaseOrders } from "@/queries/purchaseOrder/get-purchaseOrder"
 import { useState } from "react";
 import { PurchaseOrderReceivingSheet } from "./purchase-order-receiving-sheet";
 import PurchaseOrderFilterDialog, { PurchaseOrderFilters } from "./PurchaseOrderFilterDialog";
-import { Filter } from "lucide-react";
+import { AlertCircle, Check, Clock, Filter, PackageCheck } from "lucide-react";
 import { PurchaseOrderData } from "@/queries/purchaseOrder/create-purchaseOrder";
 
 interface ReceivingTabProps {
@@ -27,7 +27,7 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
   const queryFilters = { 
     ...filters, 
     clinicId, 
-    status: "ordered",
+    status: "ordered , partial",
     search: searchQuery,
     pageNumber: page,
     pageSize
@@ -59,6 +59,36 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
     setPage(1)
   }
 
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'ordered':
+        return {
+          color: 'bg-blue-100 text-blue-800',
+          icon: <Clock className="w-3 h-3 mr-1" />
+        }
+      case 'received':
+        return {
+          color: 'bg-green-100 text-green-800',
+          icon: <Check className="w-3 h-3 mr-1" />
+        }
+      case 'partial':
+        return {
+          color: 'bg-amber-100 text-amber-800',
+          icon: <PackageCheck className="w-3 h-3 mr-1" />
+        }
+      case 'cancelled':
+        return {
+          color: 'bg-red-100 text-red-800',
+          icon: <AlertCircle className="w-3 h-3 mr-1" />
+        }
+      default:
+        return {
+          color: 'bg-gray-100 text-gray-800',
+          icon: null
+        }
+    }
+  }
+
   const columns: ColumnDef<PurchaseOrderData>[] = [
     { 
       accessorKey: "orderNumber", 
@@ -66,6 +96,20 @@ export default function ReceivingTab({ clinicId }: ReceivingTabProps) {
       cell: ({ getValue }) => (
         <div className="font-medium">{getValue() as string}</div>
       )
+    },
+    { 
+      accessorKey: "status", 
+      header: "Status",
+      cell: ({ getValue }) => {
+        const status = getValue() as string;
+        const badge = getStatusBadge(status);
+        return (
+          <span className={`px-2 py-1 text-xs font-medium ${badge.color} rounded-full flex items-center justify-center w-fit`}>
+            {badge.icon}
+            {status}
+          </span>
+        );
+      }
     },
     { 
       accessorKey: "supplier.name", 

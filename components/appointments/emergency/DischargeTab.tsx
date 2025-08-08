@@ -20,6 +20,7 @@ import { useEffect } from 'react';
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 
+
 interface DischargeTabProps {
   patientId: string;
   appointmentId: string;
@@ -45,6 +46,8 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
   const [nextAppointment, setNextAppointment] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [nextApptVet, setNextApptVet] = useState("");
+  const [isDischargeSaved, setIsDischargeSaved] = useState(false);
+
   const { clinic, user } = useRootContext();
   const { data: apptTypes = [] } = useGetAppointmentType(1, 100, '', true);
 
@@ -91,6 +94,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
             }))
           : []
       );
+        setIsDischargeSaved(true); // ✅ Mark as saved
     }
   }, [dischargeData]);
 
@@ -101,7 +105,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
       clinician.trim() !== "" &&
       summary.trim() !== "" &&
       instructions.trim() !== "" &&
-      followUp.trim() !== "" &&
+   
       confirmed
     );
   };
@@ -117,6 +121,8 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
       isEmergencyProcedureCompleted?: boolean;
       isEmergencyDischargeCompleted?: boolean;
     };
+
+ 
     
     return (
       visit.isEmergencyTriageCompleted &&
@@ -125,6 +131,11 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
       isDischargeComplete() // Current discharge tab completion
     );
   };
+
+    // Get appointment data
+  const { data: emergencyData } = useGetAppointmentById(appointmentId) ;
+
+  const isReadOnly = emergencyData?.status === "completed" ;
 
   const handleAddMedication = () => {
     if (medicationRow.name && medicationRow.dose && medicationRow.frequency && medicationRow.duration) {
@@ -159,8 +170,9 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
           isCompleted: true,
         })) as any),
       });
+        setIsDischargeSaved(true); // ✅ Mark as saved
     } catch (e) {
-      // error handled in onError
+      // error handled in onError   
     } finally {
       setIsSubmitting(false);
     }
@@ -324,14 +336,14 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
         <div className="flex justify-end gap-2">
           <Button 
                 onClick={handleSubmit}
-                disabled={isSubmitting || visitLoading}
+                disabled={isSubmitting || visitLoading || !isDischargeComplete() || isReadOnly}
                 className="ml-2"
               >
-                {isSubmitting ? "Saving..." : "Submit Discharge"}
+                {isSubmitting ? "Saving..." : (isDischargeSaved ? "Update Discharge" : "Save Discharge")}
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isSubmitting || visitLoading || !areAllEmergencyTabsCompleted()}
+                disabled={isSubmitting || visitLoading || !areAllEmergencyTabsCompleted() || !isDischargeSaved || isReadOnly}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 {isSubmitting ? "Processing..." : "Checkout"}

@@ -33,6 +33,7 @@ interface DataTableProps<TData, TValue> {
   onEditButtonClick?: (rowId: string) => void
   onSaveButtonClick?: (rowId: string) => void
   onCancelButtonClick?: (rowId: string) => void
+  onRowClick?: (row: TData) => void
   editingRow?: number[]
   page: number
   pageSize: number
@@ -43,12 +44,13 @@ interface DataTableProps<TData, TValue> {
 
 // Memoize individual table row to prevent all rows re-rendering when one row changes
 const MemoizedTableRow = memo(
-  ({ row, editingRow, onEditButtonClick, onSaveButtonClick, onCancelButtonClick }: {
+  ({ row, editingRow, onEditButtonClick, onSaveButtonClick, onCancelButtonClick, onRowClick }: {
     row: Row<any>;
     editingRow?: number[];
     onEditButtonClick?: (rowId: string) => void;
     onSaveButtonClick?: (rowId: string) => void;
     onCancelButtonClick?: (rowId: string) => void;
+    onRowClick?: (row: any) => void;
   }) => {
     const isEditing = editingRow?.includes(row.index);
     
@@ -68,7 +70,11 @@ const MemoizedTableRow = memo(
         data-state={row.getIsSelected() && "selected"}
         data-editing={isEditing ? "true" : undefined}
         data-row-id={row.id}
-        className="hover:bg-muted/30 h-4"
+        className={cn(
+          "hover:bg-muted/30 h-4",
+          onRowClick && "cursor-pointer"
+        )}
+        onClick={() => onRowClick?.(row.original)}
       >
         {row.getVisibleCells().map((cell: Cell<any, unknown>) => (
           <TableCell key={cell.id} className={cn("text-sm py-0", (cell.column.columnDef.meta as any)?.className)}>
@@ -147,6 +153,7 @@ export function DataTable<TData, TValue>({
   onEditButtonClick,
   onSaveButtonClick,
   onCancelButtonClick,
+  onRowClick,
   editingRow,
   page,
   pageSize,
@@ -280,6 +287,7 @@ export function DataTable<TData, TValue>({
                   onEditButtonClick={onEditButtonClick}
                   onSaveButtonClick={onSaveButtonClick}
                   onCancelButtonClick={onCancelButtonClick}
+                  onRowClick={onRowClick}
                 />
               ))
             ) : (
@@ -294,9 +302,9 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls - always visible at the bottom */}
-      <div className="flex items-center justify-between pt-2 bg-white sticky bottom-0 z-10 flex-shrink-0">
+      <div className="flex items-center justify-between bg-white sticky bottom-0 z-10 flex-shrink-0 p-4 rounded-md">
         <div className="flex items-center space-x-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-md text-muted-foreground">
             Page {page} of {totalPages}
           </p>
           <Select
@@ -316,7 +324,7 @@ export function DataTable<TData, TValue>({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-muted-foreground">rows per page</p>
+          <p className="text-md text-muted-foreground">rows per page</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button

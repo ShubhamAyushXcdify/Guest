@@ -275,6 +275,7 @@ export interface Product {
   storageRequirements: string;
   isActive: boolean;
   price: number;
+  sellingPrice?: number;
 }
 
 export interface ProductMapping {

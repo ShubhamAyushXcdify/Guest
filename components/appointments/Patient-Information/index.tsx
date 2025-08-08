@@ -38,13 +38,14 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
   const [activeTab, setActiveTab] = useState("intake")
   const [showNewAppointment, setShowNewAppointment] = useState(false)
   const [showMedicalHistory, setShowMedicalHistory] = useState(false)
+
   const { isTabCompleted } = useTabCompletion()
   const { data: appointment } = useGetAppointmentById(appointmentId)
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
   
   // Define tab navigation functions
   const navigateToNextTab = () => {
-    const tabOrder = ["intake", "cc-hpi", "vitals", "procedure", "assessment", "plan"];
+    const tabOrder = ["intake", "vitals", "cc-hpi", "procedure", "assessment", "plan"];
     const currentIndex = tabOrder.indexOf(activeTab);
     
     if (currentIndex < tabOrder.length - 1) {
@@ -108,19 +109,20 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
                 Intake
                 {shouldShowTabAsCompleted("intake") && <CheckCircle className="h-3 w-3 text-green-600" />}
               </TabsTrigger>
-              <TabsTrigger 
-                value="cc-hpi"
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("cc-hpi") ? "text-green-600" : ""}`}
-              >
-                Complaints
-                {shouldShowTabAsCompleted("cc-hpi") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
+              
               <TabsTrigger 
                 value="vitals"
                 className={`flex items-center gap-1 ${shouldShowTabAsCompleted("vitals") ? "text-green-600" : ""}`}
               >
                 Vitals
                 {shouldShowTabAsCompleted("vitals") && <CheckCircle className="h-3 w-3 text-green-600" />}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="cc-hpi"
+                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("cc-hpi") ? "text-green-600" : ""}`}
+              >
+                Complaints
+                {shouldShowTabAsCompleted("cc-hpi") && <CheckCircle className="h-3 w-3 text-green-600" />}
               </TabsTrigger>
               <TabsTrigger 
                 value="procedure"
@@ -176,7 +178,11 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
 
             {/* Plan Tab */}
             <TabsContent value="plan">
-              <PlanTab patientId={patientId} appointmentId={appointmentId} onClose={onClose} />
+              <PlanTab 
+                patientId={patientId} 
+                appointmentId={appointmentId} 
+                onClose={onClose}
+              />
             </TabsContent>
           </Tabs>
 

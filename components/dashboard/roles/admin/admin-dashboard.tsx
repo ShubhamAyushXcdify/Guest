@@ -74,19 +74,18 @@ export const AdminDashboard = () => {
   return (
     <div className="p-6 space-y-8">
       {/* Date Range Picker */}
-      <div className="mb-4">
-        <DatePickerWithRangeV2
+      <div className="flex justify-between items-center">
+      {/* Admin Header */}
+      <div className="">
+        <h1 className="text-3xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>
+        <p className="text-muted-foreground text-md">Monitor and manage all clinics across the system</p>
+      </div>
+      <DatePickerWithRangeV2
           date={dateRange}
           setDate={setDateRange}
           showYear={true}
-          className="w-[350px]"
+          // className="w-[350px]"
         />
-      </div>
-
-      {/* Admin Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Monitor and manage all clinics across the system</p>
       </div>
 
       {/* NEW LAYOUT: Summary Cards in Grid */}
@@ -100,7 +99,7 @@ export const AdminDashboard = () => {
                   <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Clinics</p>
+                  <p className="text-md font-medium text-muted-foreground">Total Clinics</p>
                   <p className="text-2xl font-bold theme-text-primary">{clinics.length}</p>
                 </div>
               </div>
@@ -114,7 +113,7 @@ export const AdminDashboard = () => {
                   <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Veterinarians</p>
+                  <p className="text-md font-medium text-muted-foreground">Total Veterinarians</p>
                   <p className="text-2xl font-bold theme-text-secondary">
                     {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfVeterinarians || 0), 0)}
                   </p>
@@ -130,7 +129,7 @@ export const AdminDashboard = () => {
                   <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Patients</p>
+                  <p className="text-md font-medium text-muted-foreground">Total Patients</p>
                   <p className="text-2xl font-bold theme-text-accent">
                     {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfPatients || 0), 0)}
                   </p>
@@ -146,7 +145,7 @@ export const AdminDashboard = () => {
                   <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                  <p className="text-md font-medium text-muted-foreground">Total Products</p>
                   <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                     {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfProducts || 0), 0)}
                   </p>
@@ -195,16 +194,16 @@ export const AdminDashboard = () => {
           ];
           
           return (
-            <Card key={idx} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="pb-4">
+            <Card key={idx} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 border">
+              <CardHeader className="pb-4 border-b mb-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-xl font-semibold theme-text-primary">{clinic.clinicName}</CardTitle>
-                    <CardDescription className="text-sm">Clinic Performance Overview</CardDescription>
+                    <CardDescription className="text-md">Clinic Performance Overview</CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-sm text-muted-foreground">Active</span>
+                    <span className="text-md text-muted-foreground">Active</span>
                   </div>
                 </div>
               </CardHeader>
@@ -216,35 +215,35 @@ export const AdminDashboard = () => {
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Veterinarians</span>
+                        <span className="text-md text-muted-foreground">Veterinarians</span>
                       </div>
                       <p className="text-2xl font-bold theme-text-primary">{details.numberOfVeterinarians || 0}</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Patients</span>
+                        <span className="text-md text-muted-foreground">Patients</span>
                       </div>
                       <p className="text-2xl font-bold theme-text-secondary">{details.numberOfPatients || 0}</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Clients</span>
+                        <span className="text-md text-muted-foreground">Clients</span>
                       </div>
                       <p className="text-2xl font-bold theme-text-accent">{details.numberOfClients || 0}</p>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Package className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Products</span>
+                        <span className="text-md text-muted-foreground">Products</span>
                       </div>
                       <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{details.numberOfProducts || 0}</p>
                     </div>
                     <div className="space-y-2 col-span-2">
                       <div className="flex items-center space-x-2">
                         <Truck className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Suppliers</span>
+                        <span className="text-md text-muted-foreground">Suppliers</span>
                       </div>
                       <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{details.numberOfSuppliers || 0}</p>
                     </div>
@@ -274,10 +273,10 @@ export const AdminDashboard = () => {
                     </PieChart>
                   </ChartContainer>
                   <div className="text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-md text-muted-foreground">
                       Total: <span className="font-semibold theme-text-primary">{ratios.totalAppointments || 0}</span>
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-md text-muted-foreground">
                       Completion: <span className="font-semibold text-green-600 dark:text-green-400">{ratios.completionRatio || 0}%</span>
                     </p>
                   </div>
@@ -289,19 +288,19 @@ export const AdminDashboard = () => {
                   <div className="space-y-4">
                     <div className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border border-green-200 dark:border-green-800">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-green-700 dark:text-green-300">Completion Rate</span>
+                        <span className="text-md font-medium text-green-700 dark:text-green-300">Completion Rate</span>
                         <span className="text-lg font-bold text-green-600 dark:text-green-400">{ratios.percentageOfCompleting || 0}</span>
                       </div>
                     </div>
                     <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Efficiency Score</span>
+                        <span className="text-md font-medium text-blue-700 dark:text-blue-300">Efficiency Score</span>
                         <span className="text-lg font-bold text-blue-600 dark:text-blue-400">85%</span>
                       </div>
                     </div>
                     <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Patient Satisfaction</span>
+                        <span className="text-md font-medium text-purple-700 dark:text-purple-300">Patient Satisfaction</span>
                         <span className="text-lg font-bold text-purple-600 dark:text-purple-400">92%</span>
                       </div>
                     </div>
