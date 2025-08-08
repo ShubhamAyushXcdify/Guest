@@ -7,7 +7,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { useGetInventoryInfinite } from "@/queries/inventory/get-inventory"
 import { useGetPurchaseOrders } from "@/queries/purchaseOrder/get-purchaseOrder"
-import { Filter, Loader2, Eye, MapPin, Edit, Save, X, AlertTriangle, Package, FileText } from "lucide-react"
+import { Filter, Loader2, Eye, MapPin, Edit, Save, X, AlertTriangle } from "lucide-react"
 import { InventoryData } from "@/queries/inventory/get-inventory"
 import { Badge } from "../ui/badge"
 import { Input } from "../ui/input"
@@ -62,7 +62,6 @@ interface BatchData {
   purchaseOrderItemId?: string
   quantityOrdered?: number
   unitCost?: number
-  status?: string
   isPurchaseOrderItem?: boolean
   // Shelf and bin information
   shelf?: string | null
@@ -200,7 +199,6 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
               quantityReceived: item.quantityReceived,
               quantityOrdered: item.quantityOrdered,
               unitCost: item.unitCost,
-              status: purchaseOrder.status,
               purchaseOrderId: purchaseOrder.id,
               purchaseOrderItemId: item.id,
               isReceivedItem: false,
@@ -215,7 +213,6 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
             batch.quantityReceived = (batch.quantityReceived || 0) + (item.quantityReceived || 0)
             batch.quantityOrdered = (batch.quantityOrdered || 0) + item.quantityOrdered
             batch.unitCost = item.unitCost
-            batch.status = purchaseOrder.status
             batch.purchaseOrderId = purchaseOrder.id
             batch.purchaseOrderItemId = item.id
             batch.isPurchaseOrderItem = true
@@ -575,16 +572,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
 
 
 
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'received':
-        return { color: 'bg-green-100 text-green-800', icon: <Package className="w-3 h-3 mr-1" /> }
-      case 'partial':
-        return { color: 'bg-amber-100 text-amber-800', icon: <FileText className="w-3 h-3 mr-1" /> }
-      default:
-        return { color: 'bg-gray-100 text-gray-800', icon: null }
-    }
-  }
+
 
   const getColumns = (activeTab: "located" | "unlocated"): ColumnDef<BatchData>[] => {
     const baseColumns: ColumnDef<BatchData>[] = [
@@ -860,7 +848,6 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
                     <>
                       <p className="text-xs text-gray-600">Order: {selectedBatch.orderNumber}</p>
                       <p className="text-xs text-gray-600">Supplier: {selectedBatch.supplierName}</p>
-                      <p className="text-xs text-gray-600">Status: {selectedBatch.status}</p>
                       <p className="text-xs text-gray-600">Quantity Ordered: {selectedBatch.quantityOrdered}</p>
                       <p className="text-xs text-gray-600">Quantity Received: {selectedBatch.quantityReceived}</p>
                       <p className="text-xs text-gray-600 mt-1">

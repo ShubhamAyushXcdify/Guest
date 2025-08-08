@@ -416,29 +416,14 @@ export default function InventoryItemDetailsSheet({
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {(() => {
-                          // Group by purchase order ID to show unique purchase orders
-                          const uniqueOrders = purchaseHistory.reduce((acc, item) => {
-                            const key = item.purchaseOrderId;
-                            if (!acc[key]) {
-                              acc[key] = {
-                                ...item,
-                                totalQuantity: item.quantityReceived,
-                                totalCost: item.quantityReceived * item.unitCost
-                              };
-                            } else {
-                              acc[key].totalQuantity += item.quantityReceived;
-                              acc[key].totalCost += item.quantityReceived * item.unitCost;
-                            }
-                            return acc;
-                          }, {} as Record<string, any>);
-
-                          return Object.values(uniqueOrders).map((item: any) => (
+                          // Show each receiving entry as a separate row (no grouping)
+                          return purchaseHistory.map((item: any) => (
                             <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                               <td className="px-3 py-2">
                                 <div className="font-medium">{item.orderNumber || "-"}</div>
                               </td>
                               <td className="px-3 py-2">{item.supplierName || "-"}</td>
-                              <td className="px-3 py-2 text-center font-medium">{item.totalQuantity}</td>
+                              <td className="px-3 py-2 text-center font-medium">{item.quantityReceived}</td>
                               <td className="px-3 py-2 text-right">{formatCurrency(item.unitCost)}</td>
                               <td className="px-3 py-2">{item.batchNumber}</td>
                               <td className="px-3 py-2">
