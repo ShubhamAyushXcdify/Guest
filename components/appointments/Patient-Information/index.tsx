@@ -11,7 +11,7 @@ import VitalsTab from "./VitalsTab"
 import ProcedureTab from "./ProcedureTab"
 import AssessmentTab from "./PrescriptionTab"
 import PlanTab from "./PlanTab"
-import { ArrowRight, CheckCircle, History, Printer } from "lucide-react"
+import { ArrowRight, CheckCircle, History } from "lucide-react"
 import NewAppointment from "../newAppointment"
 import { TabCompletionProvider, useTabCompletion, TabId } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
@@ -38,7 +38,7 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
   const [activeTab, setActiveTab] = useState("intake")
   const [showNewAppointment, setShowNewAppointment] = useState(false)
   const [showMedicalHistory, setShowMedicalHistory] = useState(false)
-  const [printPrescriptionFn, setPrintPrescriptionFn] = useState<(() => void) | null>(null)
+
   const { isTabCompleted } = useTabCompletion()
   const { data: appointment } = useGetAppointmentById(appointmentId)
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
@@ -182,7 +182,6 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
                 patientId={patientId} 
                 appointmentId={appointmentId} 
                 onClose={onClose}
-                onPrintPrescriptionReady={setPrintPrescriptionFn}
               />
             </TabsContent>
           </Tabs>
@@ -195,19 +194,6 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
             )}
             {activeTab == "plan" && (
               <div className="flex items-center gap-4">
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    if (printPrescriptionFn) {
-                      printPrescriptionFn();
-                    }
-                  }}
-                  className="flex items-center gap-2"
-                  disabled={!printPrescriptionFn}
-                >
-                  <Printer className="h-4 w-4" />
-                  Print Prescription
-                </Button>
                 <Button 
                   onClick={() => setShowNewAppointment(true)}
                   className="theme-button text-white"

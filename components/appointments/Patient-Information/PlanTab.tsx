@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetPlans } from "@/queries/Plan/get-plans"
 import { useCreatePlan } from "@/queries/Plan/create-plan"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CheckCircle, AlertCircle, Mic } from "lucide-react"
+import { PlusCircle, X, CheckCircle, AlertCircle, Mic, Printer } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
 import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-by-visit-id"
@@ -35,10 +35,9 @@ interface PlanTabProps {
   appointmentId: string
   onNext?: () => void
   onClose?: () => void
-  onPrintPrescriptionReady?: (printFn: () => void) => void
 }
 
-export default function PlanTab({ patientId, appointmentId, onNext, onClose, onPrintPrescriptionReady }: PlanTabProps) {
+export default function PlanTab({ patientId, appointmentId, onNext, onClose }: PlanTabProps) {
   const [selectedPlans, setSelectedPlans] = useState<string[]>([])
   const [isAddingPlan, setIsAddingPlan] = useState(false)
   const [newPlanName, setNewPlanName] = useState("")
@@ -59,10 +58,10 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onP
   // Check if appointment is already completed
   const isAppointmentCompleted = appointmentData?.status === "completed"
   
-  // Get prescription PDF data
+  // Get prescription PDF data (disabled by default to prevent auto-opening)
   const { data: prescriptionPdfData, refetch: refetchPrescriptionPdf } = useGetPrescriptionPdf(
     visitData?.id || "",
-    !!visitData?.id
+    false // Disable automatic fetching to prevent auto-opening of PDF
   )
   
   const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
@@ -297,16 +296,9 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onP
     // eslint-disable-next-line
   }, [transcriber.output?.isBusy])
 
-  // Pass the print function to parent component
-  useEffect(() => {
-    if (onPrintPrescriptionReady) {
-      onPrintPrescriptionReady(handlePrintPrescription);
-    }
-  }, [onPrintPrescriptionReady]);
-
   const isReadOnly = appointmentData?.status === "completed"
 
-  const handlePrintPrescription = async () => {
+  const handlePrintPrescription = useCallback(async () => {
     try {
       if (!visitData?.id) {
         toast.error("No visit data found for this appointment")
@@ -334,7 +326,9 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onP
       console.error("Error printing prescription:", error);
       toast.error("Failed to print prescription")
     }
-  }
+  }, [visitData?.id, refetchPrescriptionPdf])
+
+
 
   if (visitLoading || isLoading) {
     return (
@@ -498,6 +492,15 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onP
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
+              <Button 
+                variant="outline"
+                onClick={handlePrintPrescription}
+                className="flex items-center gap-2"
+                disabled={isReadOnly}
+              >
+                <Printer className="h-4 w-4" />
+                Print Prescription
+              </Button>
               <Button 
                 onClick={handleSave}
                 disabled={isPending || selectedPlans.length === 0 || isReadOnly}
