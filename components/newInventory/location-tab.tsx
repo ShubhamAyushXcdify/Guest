@@ -630,23 +630,6 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         )
       },
       { 
-        accessorKey: "status", 
-        header: "Status",
-        cell: ({ row }) => {
-          const status = row.original.status;
-          if (status) {
-            const badge = getStatusBadge(status);
-            return (
-              <span className={`px-2 py-1 text-xs font-medium ${badge.color} rounded-full flex items-center justify-center w-fit`}>
-                {badge.icon}
-                {status}
-              </span>
-            );
-          }
-          return <span className="text-gray-500">N/A</span>
-        }
-      },
-      { 
         accessorKey: "expirationDate", 
         header: "Expiry Date",
         cell: ({ row }) => (

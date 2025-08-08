@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useGetPrescriptionPdf } from "@/queries/PrescriptionDetail/get-prescription-pdf"
 
 // Interface for extended visit data
 interface ExtendedVisitData {
@@ -34,9 +35,10 @@ interface PlanTabProps {
   appointmentId: string
   onNext?: () => void
   onClose?: () => void
+  onPrintPrescriptionReady?: (printFn: () => void) => void
 }
 
-export default function PlanTab({ patientId, appointmentId, onNext, onClose }: PlanTabProps) {
+export default function PlanTab({ patientId, appointmentId, onNext, onClose, onPrintPrescriptionReady }: PlanTabProps) {
   const [selectedPlans, setSelectedPlans] = useState<string[]>([])
   const [isAddingPlan, setIsAddingPlan] = useState(false)
   const [newPlanName, setNewPlanName] = useState("")
@@ -56,6 +58,12 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   
   // Check if appointment is already completed
   const isAppointmentCompleted = appointmentData?.status === "completed"
+  
+  // Get prescription PDF data
+  const { data: prescriptionPdfData, refetch: refetchPrescriptionPdf } = useGetPrescriptionPdf(
+    visitData?.id || "",
+    !!visitData?.id
+  )
   
   const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
@@ -289,7 +297,44 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     // eslint-disable-next-line
   }, [transcriber.output?.isBusy])
 
+  // Pass the print function to parent component
+  useEffect(() => {
+    if (onPrintPrescriptionReady) {
+      onPrintPrescriptionReady(handlePrintPrescription);
+    }
+  }, [onPrintPrescriptionReady]);
+
   const isReadOnly = appointmentData?.status === "completed"
+
+  const handlePrintPrescription = async () => {
+    try {
+      if (!visitData?.id) {
+        toast.error("No visit data found for this appointment")
+        return
+      }
+
+      // Refetch the PDF data to ensure we have the latest
+      const pdfData = await refetchPrescriptionPdf()
+      
+      if (pdfData.data?.pdfBase64) {
+        try {
+          const blob = await fetch(`data:application/pdf;base64,${pdfData.data.pdfBase64}`).then(res => res.blob());
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          // Clean up the URL after a delay
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          console.error("Error opening PDF:", error);
+          toast.error("Failed to open prescription PDF")
+        }
+      } else {
+        toast.error("No prescription PDF available for this visit")
+      }
+    } catch (error) {
+      console.error("Error printing prescription:", error);
+      toast.error("Failed to print prescription")
+    }
+  }
 
   if (visitLoading || isLoading) {
     return (

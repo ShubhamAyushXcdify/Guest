@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, Trash2, Pencil, Mic, Search, Printer } from "lucide-react"
+import { PlusCircle, X, Trash2, Pencil, Mic, Search } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
 import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id"
@@ -22,7 +22,7 @@ import type { Product as ComponentProduct } from "@/components/products"
 import { ProductMapping as BaseProductMapping } from "@/queries/PrescriptionDetail/get-prescription-detail-by-id"
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
 import { useGetBatchByProductName, type BatchDataItem } from "@/queries/purchaseOrderRecevingHiistory/get-batch-by-product-name";
-import { useGetPrescriptionPdf } from "@/queries/PrescriptionDetail/get-prescription-pdf";
+
 
 interface PrescriptionTabProps {
   patientId: string
@@ -147,11 +147,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const { data: existingPrescriptionDetail, refetch: refetchPrescriptionDetail } = 
     useGetPrescriptionDetailByVisitId(visitData?.id || "")
   
-  // Get prescription PDF data
-  const { data: prescriptionPdfData, refetch: refetchPrescriptionPdf } = useGetPrescriptionPdf(
-    visitData?.id || "",
-    !!visitData?.id && !!existingPrescriptionDetail
-  )
+
   
   // Click outside to close dropdown
   useEffect(() => {
@@ -423,35 +419,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   const isReadOnly = appointmentData?.status === "completed"
 
-  const handlePrintPrescription = async () => {
-    try {
-      if (!visitData?.id) {
-        toast.error("No visit data found for this appointment")
-        return
-      }
 
-      // Refetch the PDF data to ensure we have the latest
-      const pdfData = await refetchPrescriptionPdf()
-      
-      if (pdfData.data?.pdfBase64) {
-        try {
-          const blob = await fetch(`data:application/pdf;base64,${pdfData.data.pdfBase64}`).then(res => res.blob());
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          // Clean up the URL after a delay
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } catch (error) {
-          console.error("Error opening PDF:", error);
-          toast.error("Failed to open prescription PDF")
-        }
-      } else {
-        toast.error("No prescription PDF available for this visit")
-      }
-    } catch (error) {
-      console.error("Error printing prescription:", error);
-      toast.error("Failed to print prescription")
-    }
-  }
 
   if (visitLoading) {
     return (
@@ -535,16 +503,6 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Prescription</h2>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1"
-                onClick={handlePrintPrescription}
-                disabled={!existingPrescriptionDetail || isReadOnly}
-              >
-                <Printer className="h-4 w-4" /> 
-                Print
-              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
