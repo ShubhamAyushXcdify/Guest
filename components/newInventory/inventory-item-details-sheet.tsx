@@ -405,6 +405,7 @@ export default function InventoryItemDetailsSheet({
                           <th className="text-left px-3 py-2 font-medium">Order #</th>
                           <th className="text-left px-3 py-2 font-medium">Supplier</th>
                           <th className="text-center px-3 py-2 font-medium">Quantity Received</th>
+                          <th className="text-center px-3 py-2 font-medium">Quantity in hand</th>
                           <th className="text-right px-3 py-2 font-medium">Unit Cost</th>
                           <th className="text-left px-3 py-2 font-medium">Batch</th>
                           <th className="text-left px-3 py-2 font-medium">Expiry Date</th>
@@ -424,6 +425,7 @@ export default function InventoryItemDetailsSheet({
                               </td>
                               <td className="px-3 py-2">{item.supplierName || "-"}</td>
                               <td className="px-3 py-2 text-center font-medium">{item.quantityReceived}</td>
+                              <td className="px-3 py-2 text-center font-medium">{item.quantityInHand}</td>
                               <td className="px-3 py-2 text-right">{formatCurrency(item.unitCost)}</td>
                               <td className="px-3 py-2">{item.batchNumber}</td>
                               <td className="px-3 py-2">
