@@ -318,9 +318,11 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
 
   // Filter batches based on active tab and shelf/bin data
   const filteredBatches = useMemo(() => {
+    let filtered: BatchData[] = [];
+
     if (activeTab === "located") {
       // Show data where shelf and bin are not null
-      return batches.filter(batch => {
+      filtered = batches.filter(batch => {
         // Check if batch has location OR if it has shelf and bin data
         const hasLocation = batch.location;
         const hasShelfBin = batch.shelf && batch.bin;
@@ -328,13 +330,32 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       })
     } else {
       // Show data where shelf and bin are null (unlocated)
-      return batches.filter(batch => {
+      filtered = batches.filter(batch => {
         // Check if batch has no location AND no shelf/bin data
         const hasLocation = batch.location;
         const hasShelfBin = batch.shelf && batch.bin;
         return !hasLocation && !hasShelfBin;
       })
     }
+
+    // Sort by received date (most recent first), then by batch number
+    return filtered.sort((a, b) => {
+      // First sort by received date (most recent first)
+      if (a.receivedDate && b.receivedDate) {
+        const dateA = new Date(a.receivedDate).getTime();
+        const dateB = new Date(b.receivedDate).getTime();
+        if (dateA !== dateB) {
+          return dateB - dateA; // Most recent first
+        }
+      } else if (a.receivedDate && !b.receivedDate) {
+        return -1; // Items with received date come first
+      } else if (!a.receivedDate && b.receivedDate) {
+        return 1; // Items with received date come first
+      }
+
+      // Then sort by batch number for consistent ordering
+      return a.batchNumber.localeCompare(b.batchNumber);
+    });
   }, [batches, activeTab])
 
   const formatDate = (dateString: string) => {
