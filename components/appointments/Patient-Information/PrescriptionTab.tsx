@@ -295,11 +295,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     const shouldShowDosage = unitOfMeasure === "BOTTLE"
     
     // Validate required fields based on unit of measure
-    if (!currentMapping.productId || !currentMapping.frequency || currentMapping.numberOfDays <= 0) {
+    if (!currentMapping.productId || !currentMapping.frequency) {
       toast.error("Please fill in all required fields")
       return
     }
-    
+
     // Only validate dosage if the product is a bottle
     if (shouldShowDosage && !currentMapping.dosage) {
       toast.error("Please fill in all fields")
@@ -379,11 +379,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     
     // Filter out incomplete product mappings
     const validMappings = productMappings.filter(pm => {
-      return pm.productId && pm.frequency && pm.numberOfDays > 0
+      return pm.productId && pm.frequency
     })
-    
+
     if (validMappings.length === 0) {
-      toast.error("Please add at least one product with frequency and number of days")
+      toast.error("Please add at least one product with frequency")
       return
     }
 
@@ -393,7 +393,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       isChecked: mapping.isChecked ?? mapping.checked ?? false,
       quantity: mapping.quantity ?? 0,
       frequency: mapping.frequency,
-      numberOfDays: mapping.numberOfDays,
+      numberOfDays: mapping.numberOfDays || 0,
       purchaseOrderReceivingHistoryId: mapping.purchaseOrderReceivingHistoryId || ""
     }))
 
@@ -812,13 +812,13 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
              </div>
              
              <div className="space-y-3">
-               <Label htmlFor="numberOfDays">Number of Days</Label>
+               <Label htmlFor="numberOfDays">Number of Days (Optional)</Label>
                <Input
                  id="numberOfDays"
                  type="number"
-                 min="1"
-                 placeholder="e.g., 7"
-                 value={currentMapping.numberOfDays}
+                 min="0"
+                 placeholder="e.g., 7 (leave empty if not applicable)"
+                 value={currentMapping.numberOfDays || ""}
                  onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, numberOfDays: parseInt(e.target.value) || 0})}
                  disabled={isReadOnly}
                />
