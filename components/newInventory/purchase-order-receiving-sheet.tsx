@@ -311,7 +311,17 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                   <FormControl>
                                     <DatePicker
                                       value={field.value ? new Date(field.value) : null}
-                                      onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                                      onChange={(date) => {
+                                        if (date) {
+                                          // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
+                                          const year = date.getFullYear();
+                                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                                          const day = String(date.getDate()).padStart(2, '0');
+                                          field.onChange(`${year}-${month}-${day}`);
+                                        } else {
+                                          field.onChange('');
+                                        }
+                                      }}
                                       placeholder="Select expiry date"
                                       minDate={new Date()}
                                     />
@@ -332,7 +342,17 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                   <FormControl>
                                     <DatePicker
                                       value={field.value ? new Date(field.value) : null}
-                                      onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                                      onChange={(date) => {
+                                        if (date) {
+                                          // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
+                                          const year = date.getFullYear();
+                                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                                          const day = String(date.getDate()).padStart(2, '0');
+                                          field.onChange(`${year}-${month}-${day}`);
+                                        } else {
+                                          field.onChange('');
+                                        }
+                                      }}
                                       placeholder="Select mfg date"
                                       maxDate={new Date()}
                                     />

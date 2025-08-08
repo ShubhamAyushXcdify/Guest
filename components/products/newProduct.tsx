@@ -1,6 +1,5 @@
 'use client';
  
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
@@ -8,11 +7,8 @@ import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCreateProduct } from "@/queries/products/create-products";
-import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Product } from ".";
-import ProductCodes from "./ProductCodes";
-
 import { Combobox } from "../ui/combobox";
  
 type ProductFormValues = Omit<Product, "id">;
@@ -44,12 +40,6 @@ interface NewProductProps {
 }
  
 export default function NewProduct({ onSuccess }: NewProductProps) {
-  const router = useRouter();
-  const [createdProduct, setCreatedProduct] = useState<{ id: string; productNumber: string; name: string } | null>(null);
-  // const { data: clinicData } = useGetClinic();
- 
-  // Extract clinic items from the paginated response
-  // const clinics = clinicData?.items || [];
  
   const createProduct = useCreateProduct({
     onSuccess: () => {
@@ -57,8 +47,12 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
         title: "Success",
         description: "Product created successfully",
       });
+      // Automatically close the form after successful creation
+      if (onSuccess) {
+        onSuccess();
+      }
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to create product",
@@ -92,13 +86,8 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
  
   const handleSubmit = async (values: ProductFormValues) => {
     try {
-      const result = await createProduct.mutateAsync(values);
-      // Store the created product data to show codes
-      setCreatedProduct({
-        id: result.id,
-        productNumber: result.productNumber,
-        name: result.name
-      });
+      await createProduct.mutateAsync(values);
+      // Form will automatically close via onSuccess callback
     } catch (error) {
       // Error is handled in onError callback
     }
@@ -350,39 +339,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       </form>
     </Form>
 
-    {/* Show Product Codes after creation */}
-    {createdProduct && (
-      <div className="mt-8">
-        <ProductCodes 
-          productId={createdProduct.id}
-          productNumber={createdProduct.productNumber}
-          productName={createdProduct.name}
-        />
-        <div className="flex justify-center mt-4 gap-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setCreatedProduct(null);
-              form.reset();
-            }}
-          >
-            Create Another Product
-          </Button>
-          <Button
-            onClick={() => {
-              if (onSuccess) {
-                onSuccess();
-              } else {
-                router.push("/products");
-                router.refresh();
-              }
-            }}
-          >
-            Go to Products
-          </Button>
-        </div>
-      </div>
-    )}
+
   </div>
   );
 }
