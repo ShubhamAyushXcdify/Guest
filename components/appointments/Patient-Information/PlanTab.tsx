@@ -492,11 +492,10 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
-              <Button 
+              <Button
                 variant="outline"
                 onClick={handlePrintPrescription}
                 className="flex items-center gap-2"
-                disabled={isReadOnly}
               >
                 <Printer className="h-4 w-4" />
                 Print Prescription
@@ -522,3 +521,4 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     </Card>
   )
 }
+
