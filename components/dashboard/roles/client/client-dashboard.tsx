@@ -131,9 +131,11 @@ export const ClientDashboard = ({
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200 flex items-center">
                         <Clock className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                         {new Date(appointment.appointmentDate).toLocaleDateString()} {' '}
-                        {appointment.roomSlot && appointment.roomSlot.startTime 
-                          ? formatTime(appointment.roomSlot.startTime)
-                          : formatTime(appointment.startTime)}
+                        {formatTime(
+                          appointment.appointmentTimeFrom ||
+                          appointment.startTime ||
+                          (appointment.roomSlot && appointment.roomSlot.startTime)
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                         {typeof appointment.patient === 'string'
@@ -206,9 +208,11 @@ export const ClientDashboard = ({
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200 flex items-center">
                         <Clock className="mr-2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                         {new Date(appointment.appointmentDate).toLocaleDateString()} {' '}
-                        {appointment.roomSlot && appointment.roomSlot.startTime 
-                          ? formatTime(appointment.roomSlot.startTime)
-                          : formatTime(appointment.startTime)}
+                        {formatTime(
+                          appointment.appointmentTimeFrom ||
+                          appointment.startTime ||
+                          (appointment.roomSlot && appointment.roomSlot.startTime)
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                         {typeof appointment.patient === 'string'
