@@ -80,8 +80,7 @@ export default function LoginPage() {
             <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
           </div>
           
-          {/* Google Sign In Button */}
-          <div className="mb-6">
+          {/* <div className="mb-6">
             <Button
               onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
               variant="outline"
@@ -109,7 +108,6 @@ export default function LoginPage() {
             </Button>
           </div>
           
-          {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-gray-300 dark:border-gray-600" />
@@ -119,7 +117,7 @@ export default function LoginPage() {
                 Or continue with
               </span>
             </div>
-          </div>
+          </div> */}
           
           <LoginForm />
         </div>
