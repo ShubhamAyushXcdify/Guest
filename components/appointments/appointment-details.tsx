@@ -460,15 +460,15 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
     <>
       <Sheet open={true} onOpenChange={onClose}>
         <SheetContent className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
-          <SheetHeader className="flex flex-row items-center justify-between">
-            <SheetTitle>Appointment Details</SheetTitle>
+          <SheetHeader className="flex flex-row items-center border-b pb-2">
+            <SheetTitle className="pr-2">Appointment Details</SheetTitle>
             {appointment && appointment.status && 
              !["Completed", "Cancelled", "completed", "cancelled"].includes(appointment.status) && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={() => setIsEditing(!isEditing)}
-                className="h-8 w-8"
+                className="h-6 w-6 !m-0"
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -478,16 +478,16 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
           {!isEditing || (appointment?.status && ["Completed", "Cancelled", "completed", "cancelled"].includes(appointment.status)) ? (
             // View Mode
             <div className="space-y-6 py-4">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Clinic</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="grid grid-cols-1">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Clinic:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                   {appointment?.clinic?.name}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Patient</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Patient:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                     {appointment?.patient ? (
                       appointment.patient.name || 
                       (appointment.patient.patientId ? 
@@ -499,33 +499,33 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                     ) : 'Not assigned'}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Client:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                     {appointment?.client?.firstName} {appointment?.client?.lastName}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Veterinarian</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Veterinarian:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                     {appointment?.veterinarian?.firstName}{appointment?.veterinarian?.lastName}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Room</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Room:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                   {appointment?.room?.name}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Appointment Type</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Appointment Type:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                   {appointment?.appointmentType.name}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Date</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Date:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                     {appointment?.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -533,9 +533,9 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                     }) : ''}
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Time</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Time:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                     {appointment?.roomSlot ? 
                    `${formatTime(appointment.roomSlot.startTime)} - ${formatTime(appointment.roomSlot.endTime)}` : 
                    appointment?.startTime && appointment?.endTime ? 
@@ -544,23 +544,23 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                     }
                   </p>
                 </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 ">Status</h3>
-                  <Badge className={getStatusBadgeClass(appointment?.status || "")}>
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Status:</h3>
+                  <Badge className={`${getStatusBadgeClass(appointment?.status || "")} pl-4 text-md font-medium hover:bg-[#4B5563]`}>
                     {appointment?.status}
                   </Badge>
                   
                 </div>
               </div>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Reason</h3>
-                  <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{appointment?.reason}</p>
+              <div className="!m-0">
+                <div className="flex border-b py-2">
+                  <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Reason:</h3>
+                  <p className="text-md text-gray-900 dark:text-gray-100 pl-4">{appointment?.reason}</p>
                 </div>
                 {appointment?.notes && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Notes</h3>
-                    <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{appointment.notes}</p>
+                  <div className="flex border-b py-2">
+                    <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Notes:</h3>
+                    <p className="text-md text-gray-900 dark:text-gray-100 pl-4">{appointment.notes}</p>
                   </div>
                 )}
                 {(appointment?.status === "in_progress" || appointment?.status === "completed") && (
