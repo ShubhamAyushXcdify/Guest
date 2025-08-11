@@ -132,21 +132,21 @@ export default function AudioRecorder(props: {
             >
                 <Mic className={`w-12 h-12 text-white ${recording ? "animate-pulse" : ""}`} />
             </button>
-            
+
             <p className="text-center text-sm text-gray-500">
-                {recording 
-                    ? `Listening... (${formatAudioTimestamp(duration)})` 
+                {recording
+                    ? `Listening... (${formatAudioTimestamp(duration)})`
                     : "Click to start recording"}
             </p>
 
-            {/* {recordedBlob && (
+            {recordedBlob && (
                 <audio className='w-full' ref={audioRef} controls>
                     <source
                         src={URL.createObjectURL(recordedBlob)}
                         type={recordedBlob.type}
                     />
                 </audio>
-            )} */}
+            )}
         </div>
     );
 }
