@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../u
 import NewProduct from "./newProduct";
 import ProductDetails from "./productsDetails";
 import { useDeleteProduct } from "@/queries/products/delete-products";
-import { toast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useFilter } from "./hooks/useFilter";
 import ProductFilterDialog from "./ProductFilterDialog";
@@ -49,6 +49,7 @@ export default function Products() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const { toast } = useToast();
  
   const { data: productsData, isLoading, isError } = useGetProducts(
     pageNumber, 
@@ -94,12 +95,13 @@ export default function Products() {
       toast({
         title: "Success",
         description: "Product deleted successfully",
+        variant: "error",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete product",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while deleting the product.",
         variant: "destructive",
       });
     } finally {

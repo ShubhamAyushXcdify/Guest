@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useGetSupplierById } from "@/queries/suppliers/get-supplier-by-id";
 import { useUpdateSupplier } from "@/queries/suppliers/update-supplier";
-import { toast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import { Switch } from "../ui/switch";
 import { Supplier } from ".";
@@ -25,6 +25,8 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
   const clinics = clinicsData?.items || [];  
   const { data: supplier, isLoading } = useGetSupplierById(supplierId);
   const updateSupplier = useUpdateSupplier();
+  const { toast } = useToast();
+
   
   const form = useForm<Supplier>({
     defaultValues: supplier,
@@ -63,14 +65,15 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
       toast({
         title: "Success",
         description: "Supplier updated successfully",
+        variant: "success",
       });
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error('Error updating supplier:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update supplier",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the supplier.",
+        variant: "error",
       });
     }
   };

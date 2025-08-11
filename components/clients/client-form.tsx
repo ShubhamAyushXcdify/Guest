@@ -18,11 +18,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Client } from "@/queries/clients/get-client";
 import { useCreateClient } from "@/queries/clients/create-client";
 import { useUpdateClient } from "@/queries/clients/update-client";
-import { toast } from "@/components/ui/use-toast";
 import { useRootContext } from '@/context/RootContext';
 import { Mic, Loader2 } from "lucide-react";
 import { AudioManager } from "@/components/audioTranscriber/AudioManager";
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber";
+import { useToast } from "@/hooks/use-toast";
 
 const clientFormSchema = z.object({
   id: z.string().optional(),
@@ -79,6 +79,7 @@ export function ClientForm({
   const updateClientMutation = useUpdateClient();
   const { clinic } = useRootContext();
   const notesTranscriber = useTranscriber();
+  const { toast } = useToast();
 
   // Audio transcription effect for notes
   useEffect(() => {
@@ -135,6 +136,7 @@ export function ClientForm({
         toast({
           title: "Success",
           description: "Owner updated successfully",
+          variant: "success",
         });
       } else {
         console.log("Using CREATE mutation");
@@ -142,7 +144,8 @@ export function ClientForm({
         updatedClient = await createClientMutation.mutateAsync(clientData);
         toast({
           title: "Success",
-          description: "Owner created successfully",
+          description: "Client created successfully",
+          variant: "success",
         });
       }
       
@@ -154,7 +157,7 @@ export function ClientForm({
       toast({
         title: "Error",
         description: `Failed to ${isUpdate ? "update" : "create"} owner. Please try again.`,
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setIsSubmitting(false);
