@@ -4,13 +4,23 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText, Printer } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText, Printer, Eye, X, AlertTriangle } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useDeleteAppointment } from "@/queries/appointment/delete-appointment"
-import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
@@ -61,6 +71,8 @@ export default function AppointmentList({
   const [selectedProvider, setSelectedProvider] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
@@ -347,19 +359,21 @@ export default function AppointmentList({
   ]
 
   const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case "In Room":
-        return "theme-badge-info"
-      case "Completed":
-        return "theme-badge-success"
-      case "In Progress":
-        return "theme-badge-warning"
-      case "Scheduled":
-        return "theme-badge-neutral"
-      case "Cancelled":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+    switch (status.toLowerCase()) {
+      case "scheduled":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+      case "confirmed":
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300"
+      case "in_progress":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+      case "completed":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      case "cancelled":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+      case "in room":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
       default:
-        return "theme-badge-neutral"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
     }
   }
 
@@ -446,7 +460,7 @@ export default function AppointmentList({
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <Badge className={getStatusBadgeClass(row.original.status)}>
+        <Badge className={`${getStatusBadgeClass(row.original.status)} hover:bg-inherit hover:text-inherit`}>
           {row.original.status}
         </Badge>
       ),
@@ -455,10 +469,18 @@ export default function AppointmentList({
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex space-x-2">
-          <Button variant="secondary" size="sm" onClick={() => onAppointmentClick(row.original.id.toString())}>
-            View
+        <div className="flex items-center space-x-2">
+          {/* View button - always show */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onAppointmentClick(row.original.id.toString())}
+            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+            title="View appointment details"
+          >
+            <Eye className="h-4 w-4" />
           </Button>
+
           {/* For scheduled or confirmed: show Check In and Cancel */}
           {(row.original.status === "scheduled" || row.original.status === "confirmed") && (
             <>
@@ -487,7 +509,7 @@ export default function AppointmentList({
                       createdBy: row.original.createdBy,
                     }
                   });
-                  
+
                   // Also create a visit with intake flags set to false
                   // createVisitMutation.mutate({
                   //   appointmentId: row.original.id.toString(),
@@ -501,60 +523,28 @@ export default function AppointmentList({
                 Check In
               </Button>
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
-                onClick={() => updateAppointmentMutation.mutate({
-                  id: row.original.id.toString(),
-                  data: {
-                    id: row.original.id,
-                    clinicId: row.original.clinicId,
-                    patientId: row.original.patientId,
-                    clientId: row.original.clientId,
-                    veterinarianId: row.original.veterinarianId,
-                    roomId: row.original.roomId,
-                    appointmentDate: row.original.appointmentDate,
-                    startTime: row.original.startTime,
-                    endTime: row.original.endTime,
-                    appointmentTypeId: row.original.appointmentTypeId,
-                    reason: row.original.reason,
-                    status: "cancelled",
-                    notes: row.original.notes,
-                    createdBy: row.original.createdBy,
-                  }
-                })}
+                onClick={() => handleCancelClick(row.original)}
                 disabled={updateAppointmentMutation.isPending}
+                className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                title="Cancel appointment"
               >
-                Cancel
+                <X className="h-4 w-4" />
               </Button>
             </>
           )}
           {/* For in_progress: show Cancel only */}
           {row.original.status === "in_progress" && (
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
-              onClick={() => updateAppointmentMutation.mutate({
-                id: row.original.id.toString(),
-                data: {
-                  id: row.original.id,
-                  clinicId: row.original.clinicId,
-                  patientId: row.original.patientId,
-                  clientId: row.original.clientId,
-                  veterinarianId: row.original.veterinarianId,
-                  roomId: row.original.roomId,
-                  appointmentDate: row.original.appointmentDate,
-                  startTime: row.original.startTime,
-                  endTime: row.original.endTime,
-                  appointmentTypeId: row.original.appointmentTypeId,
-                  reason: row.original.reason,
-                  status: "cancelled",
-                  notes: row.original.notes,
-                  createdBy: row.original.createdBy,
-                }
-              })}
+              onClick={() => handleCancelClick(row.original)}
               disabled={updateAppointmentMutation.isPending}
+              className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+              title="Cancel appointment"
             >
-              Cancel
+              <X className="h-4 w-4" />
             </Button>
           )}
           {/* Delete button removed - appointments should be canceled, not deleted */}
@@ -620,6 +610,52 @@ export default function AppointmentList({
         description: "Failed to delete appointment",
         variant: "destructive",
       })
+    }
+  }
+
+  // Handle cancel appointment with confirmation
+  const handleCancelClick = (appointment: any) => {
+    setAppointmentToCancel(appointment)
+    setIsCancelDialogOpen(true)
+  }
+
+  const handleCancelConfirm = async () => {
+    if (!appointmentToCancel) return
+
+    try {
+      await updateAppointmentMutation.mutateAsync({
+        id: appointmentToCancel.id.toString(),
+        data: {
+          id: appointmentToCancel.id,
+          clinicId: appointmentToCancel.clinicId,
+          patientId: appointmentToCancel.patientId,
+          clientId: appointmentToCancel.clientId,
+          veterinarianId: appointmentToCancel.veterinarianId,
+          roomId: appointmentToCancel.roomId,
+          appointmentDate: appointmentToCancel.appointmentDate,
+          startTime: appointmentToCancel.startTime,
+          endTime: appointmentToCancel.endTime,
+          appointmentTypeId: appointmentToCancel.appointmentTypeId,
+          reason: appointmentToCancel.reason,
+          status: "cancelled",
+          notes: appointmentToCancel.notes,
+          createdBy: appointmentToCancel.createdBy,
+        }
+      })
+
+      toast({
+        title: "Success",
+        description: "Appointment cancelled successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to cancel appointment",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCancelDialogOpen(false)
+      setAppointmentToCancel(null)
     }
   }
 
@@ -784,6 +820,45 @@ export default function AppointmentList({
           appointmentType={selectedAppointmentType || undefined}
         />
       )}
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={(open) => {
+        setIsCancelDialogOpen(open)
+        if (!open) {
+          setAppointmentToCancel(null)
+        }
+      }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-orange-600 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              <span>Cancel Appointment</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className="py-3">
+              Are you sure you want to cancel this appointment
+              {appointmentToCancel?.patient?.name && (
+                <span className="font-medium text-foreground"> for {appointmentToCancel.patient.name}</span>
+              )}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel disabled={updateAppointmentMutation.isPending}>
+              Keep Appointment
+            </AlertDialogCancel>
+            <AlertDialogAction
+              asChild
+              onClick={(e) => {
+                e.preventDefault()
+                handleCancelConfirm()
+              }}
+            >
+              <Button variant="destructive" disabled={updateAppointmentMutation.isPending}>
+                {updateAppointmentMutation.isPending ? "Cancelling..." : "Cancel Appointment"}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   )

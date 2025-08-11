@@ -49,6 +49,17 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const transcriber = useTranscriber()
 
+  // Track original values to detect changes
+  const [originalValues, setOriginalValues] = useState({
+    temperatureC: undefined as number | undefined,
+    heartRateBpm: undefined as number | undefined,
+    respiratoryRateBpm: undefined as number | undefined,
+    mucousMembraneColor: "",
+    capillaryRefillTimeSec: undefined as number | undefined,
+    hydrationStatus: "",
+    notes: ""
+  })
+
   // Use mutateAsync pattern for better control flow
   const { mutateAsync: createVitalDetail, isPending: isCreating } = useCreateVitalDetail()
   const { mutateAsync: updateVitalDetail, isPending: isUpdating } = useUpdateVitalDetail()
@@ -68,11 +79,22 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
       setCapillaryRefillTimeSec(vitalDetail.capillaryRefillTimeSec)
       setHydrationStatus(vitalDetail.hydrationStatus || "")
       setNotes(vitalDetail.notes || "")
-      
+
+      // Store original values for change detection
+      setOriginalValues({
+        temperatureC: vitalDetail.temperatureC,
+        heartRateBpm: vitalDetail.heartRateBpm,
+        respiratoryRateBpm: vitalDetail.respiratoryRateBpm,
+        mucousMembraneColor: vitalDetail.mucousMembraneColor || "",
+        capillaryRefillTimeSec: vitalDetail.capillaryRefillTimeSec,
+        hydrationStatus: vitalDetail.hydrationStatus || "",
+        notes: vitalDetail.notes || ""
+      })
+
       // Mark tab as completed if it was already completed or if basic vitals are present
-      if (vitalDetail.isCompleted || 
-          vitalDetail.temperatureC || 
-          vitalDetail.heartRateBpm || 
+      if (vitalDetail.isCompleted ||
+          vitalDetail.temperatureC ||
+          vitalDetail.heartRateBpm ||
           vitalDetail.respiratoryRateBpm) {
         markTabAsCompleted("vitals")
       }
@@ -145,7 +167,22 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
     }
   }
 
-  const isReadOnly =appointmentData?.status === "completed"
+  const isReadOnly = appointmentData?.status === "completed"
+
+  // Check if any changes have been made to existing data
+  const hasChanges = () => {
+    if (!vitalDetail) return true // For new records, allow save if data exists
+
+    return (
+      temperatureC !== originalValues.temperatureC ||
+      heartRateBpm !== originalValues.heartRateBpm ||
+      respiratoryRateBpm !== originalValues.respiratoryRateBpm ||
+      mucousMembraneColor !== originalValues.mucousMembraneColor ||
+      capillaryRefillTimeSec !== originalValues.capillaryRefillTimeSec ||
+      hydrationStatus !== originalValues.hydrationStatus ||
+      notes !== originalValues.notes
+    )
+  }
 
   if (visitLoading) {
     return (
@@ -305,14 +342,19 @@ export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTa
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Button 
+          <Button
             onClick={handleSave}
-            disabled={isPending || isReadOnly}
+            disabled={
+              isPending ||
+              isReadOnly ||
+              (!temperatureC && !heartRateBpm && !respiratoryRateBpm && !mucousMembraneColor && !capillaryRefillTimeSec && !hydrationStatus) ||
+              (vitalDetail && !hasChanges())
+            }
             className="ml-2"
           >
-            {isPending 
-              ? "Saving..." 
-              : vitalDetail ? "Update" : "Save & Next"}
+            {isPending
+              ? "Saving..."
+              : vitalDetail ? "Update & Next" : "Save & Next"}
           </Button>
         </div>
       </CardContent>

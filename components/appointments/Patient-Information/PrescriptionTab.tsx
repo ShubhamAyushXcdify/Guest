@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, Trash2, Pencil, Mic, Search } from "lucide-react"
+import { PlusCircle, X, Trash2, Pencil, Search, Printer } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
 import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id"
@@ -17,6 +17,8 @@ import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+import { useGetPrescriptionPdf } from "@/queries/PrescriptionDetail/get-prescription-pdf"
 import { useGetProducts } from "@/queries/products/get-products"
 import type { Product as ComponentProduct } from "@/components/products"
 import { ProductMapping as BaseProductMapping } from "@/queries/PrescriptionDetail/get-prescription-detail-by-id"
@@ -59,6 +61,7 @@ interface ExtendedProductMapping extends BaseProductMapping {
   expDate?: string
   checked?: boolean
   isChecked?: boolean
+  directions?: string
   purchaseOrderReceivingHistoryId?: string
   purchaseOrderReceivingHistory?: {
     id: string
@@ -93,21 +96,32 @@ interface ExtendedProductMapping extends BaseProductMapping {
 }
 
 export default function PrescriptionTab({ patientId, appointmentId, onNext }: PrescriptionTabProps) {
-  const [notes, setNotes] = useState("")
+
   const [productMappings, setProductMappings] = useState<ExtendedProductMapping[]>([])
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [currentMapping, setCurrentMapping] = useState<ExtendedProductMapping>({ 
+  const [currentMapping, setCurrentMapping] = useState<ExtendedProductMapping>({
     id: "",
-    productId: "", 
-    dosage: "", 
+    productId: "",
+    dosage: "",
     frequency: "",
     numberOfDays: 0,
+    directions: "",
     productName: undefined,
     product: undefined
   })
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const { markTabAsCompleted } = useTabCompletion()
+
+  // Delete confirmation dialog state
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<{ index: number; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Track original values for edit form change detection
+  const [originalEditValues, setOriginalEditValues] = useState<ExtendedProductMapping | null>(null)
+
+
   
   // Medicine search state
   const [medicineSearchQuery, setMedicineSearchQuery] = useState("")
@@ -137,6 +151,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
   const clinicId = appointmentData?.clinicId || ""
 
+  // Get prescription PDF data (disabled by default to prevent auto-opening)
+  const { data: prescriptionPdfData, refetch: refetchPrescriptionPdf } = useGetPrescriptionPdf(
+    visitData?.id || "",
+    false // Disable automatic fetching to prevent auto-opening of PDF
+  )
+
   // Search for medicines by product name using batch data
   const { data: searchResults, isLoading: isSearching } = useGetBatchByProductName(
     debouncedSearchQuery,
@@ -164,9 +184,6 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   // Initialize from existing data
   useEffect(() => {
     if (existingPrescriptionDetail) {
-      if (existingPrescriptionDetail.notes) {
-        setNotes(existingPrescriptionDetail.notes)
-      }
       
       if (existingPrescriptionDetail.productMappings?.length) {
         setProductMappings(existingPrescriptionDetail.productMappings.map(pm => {
@@ -178,6 +195,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             dosage: extendedPm.dosage,
             frequency: extendedPm.frequency,
             numberOfDays: extendedPm.numberOfDays,
+            directions: extendedPm.directions || "",
             product: extendedPm.product,
             quantity: extendedPm.quantity,
             quantityAvailable: extendedPm.purchaseOrderReceivingHistory?.quantityInHand || extendedPm.quantityAvailable,
@@ -190,9 +208,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           } as ExtendedProductMapping;
         }))
       }
-      
+
+
+
       // Mark tab as completed if it was already completed or if it has products
-      if (existingPrescriptionDetail.productMappings && 
+      if (existingPrescriptionDetail.productMappings &&
            existingPrescriptionDetail.productMappings.length > 0) {
         markTabAsCompleted("assessment")
       }
@@ -200,20 +220,13 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   }, [existingPrescriptionDetail, markTabAsCompleted])
   
   // Handle transcription output
-  useEffect(() => {
-    const output = transcriber.output
-    if (output && !output.isBusy && output.text) {
-      setNotes(prev => prev ? prev + "\n" + output.text : output.text)
-    }
-    // eslint-disable-next-line
-  }, [transcriber.output?.isBusy])
+
   
   const createPrescriptionDetailMutation = useCreatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details saved successfully")
       markTabAsCompleted("assessment")
       refetchPrescriptionDetail()
-      if (onNext) onNext()
     },
     onError: (error) => {
       toast.error(`Failed to save prescription details: ${error.message}`)
@@ -225,12 +238,24 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       toast.success("Prescription details updated successfully")
       markTabAsCompleted("assessment")
       refetchPrescriptionDetail()
-      if (onNext) onNext()
     },
     onError: (error: any) => {
       toast.error(`Failed to update prescription details: ${error.message}`)
     }
   })
+
+  // Auto-calculate quantity when currentMapping frequency or numberOfDays changes
+  useEffect(() => {
+    if (currentMapping.frequency && currentMapping.numberOfDays) {
+      const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
+      if (calculatedQuantity !== currentMapping.quantity) {
+        setCurrentMapping(prev => ({
+          ...prev,
+          quantity: calculatedQuantity
+        }));
+      }
+    }
+  }, [currentMapping.frequency, currentMapping.numberOfDays]);
 
   const openAddSheet = () => {
     setCurrentMapping({
@@ -238,6 +263,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       productId: "",
       dosage: "",
       frequency: "",
+      numberOfDays: 0,
+      directions: "",
       productName: undefined,
       product: undefined,
       quantity: undefined,
@@ -251,13 +278,20 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     setSelectedMedicine(null)
     setSelectedMedicineDetails(null)
     setMedicineSearchQuery("")
+    setOriginalEditValues(null)
     setIsAddSheetOpen(true)
   }
 
   const openEditSheet = (index: number) => {
     const mapping = productMappings[index]
-    setCurrentMapping({ ...mapping })
+    // Ensure quantity is calculated when editing
+    const calculatedQuantity = calculateQuantity(mapping.frequency || "", mapping.numberOfDays || 0)
+    const mappingWithQuantity = { ...mapping, quantity: calculatedQuantity }
+    setCurrentMapping(mappingWithQuantity)
     setEditingIndex(index)
+
+    // Store original values for change detection
+    setOriginalEditValues(mappingWithQuantity)
     
     const extendedMapping = mapping as ExtendedProductMapping;
     
@@ -284,19 +318,65 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     setIsAddSheetOpen(true)
   }
 
-  const handleRemoveProduct = (index: number) => {
-    const updatedMappings = [...productMappings]
-    updatedMappings.splice(index, 1)
-    setProductMappings(updatedMappings)
+  const openDeleteDialog = (index: number) => {
+    const mapping = productMappings[index]
+    const productName = getProductName(mapping.productId)
+    setProductToDelete({ index, name: productName })
+    setIsDeleteDialogOpen(true)
   }
 
-  const handleSaveMapping = () => {
+  const handleDeleteProduct = async () => {
+    if (!productToDelete || !visitData?.id || !existingPrescriptionDetail) return
+
+    setIsDeleting(true)
+    try {
+      const updatedMappings = [...productMappings]
+      updatedMappings.splice(productToDelete.index, 1)
+
+      // Format product mappings for API
+      const formattedMappings = updatedMappings.map(mapping => ({
+        productId: mapping.productId,
+        isChecked: mapping.isChecked ?? mapping.checked ?? false,
+        quantity: mapping.quantity ?? 0,
+        frequency: mapping.frequency,
+        directions: mapping.directions || "",
+        numberOfDays: mapping.numberOfDays || 0,
+        purchaseOrderReceivingHistoryId: mapping.purchaseOrderReceivingHistoryId || ""
+      }))
+
+      // PUT call to update prescription without the deleted medicine
+      const updatePayload = {
+        id: existingPrescriptionDetail.id,
+        notes: "",
+        visitId: visitData.id,
+        productMappings: formattedMappings
+      }
+
+      await updatePrescriptionDetailMutation.mutateAsync(updatePayload)
+
+      // Update local state only after successful API call
+      setProductMappings(updatedMappings)
+      toast.success("Medicine removed successfully")
+      setIsDeleteDialogOpen(false)
+    } catch (error) {
+      toast.error("Failed to remove medicine")
+    } finally {
+      setIsDeleting(false)
+      setProductToDelete(null)
+    }
+  }
+
+  const handleRemoveProduct = (index: number) => {
+    openDeleteDialog(index)
+  }
+
+  const handleSaveMapping = async () => {
     const unitOfMeasure = currentMapping.product?.unitOfMeasure || "EA"
     const shouldShowDosage = unitOfMeasure === "BOTTLE"
-    
+
     // Validate required fields based on unit of measure
-    if (!currentMapping.productId || !currentMapping.frequency) {
-      toast.error("Please fill in all required fields")
+    if (!currentMapping.productId || !currentMapping.frequency || !currentMapping.numberOfDays || currentMapping.numberOfDays <= 0) {
+      toast.error("Please fill in all required fields including number of days")
       return
     }
 
@@ -306,20 +386,65 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       return
     }
 
-    if (editingIndex !== null) {
-      // Update existing mapping
-      const updatedMappings = [...productMappings]
-      updatedMappings[editingIndex] = currentMapping
-      setProductMappings(updatedMappings)
-    } else {
-      // Add new mapping
-      setProductMappings([...productMappings, currentMapping])
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment")
+      return
     }
 
-    setIsAddSheetOpen(false)
-    setSelectedMedicine(null)
-    setSelectedMedicineDetails(null)
-    setMedicineSearchQuery("")
+    let updatedMappings: ExtendedProductMapping[]
+
+    if (editingIndex !== null) {
+      // Update existing mapping
+      updatedMappings = [...productMappings]
+      updatedMappings[editingIndex] = currentMapping
+    } else {
+      // Add new mapping with isChecked set to false
+      updatedMappings = [...productMappings, { ...currentMapping, isChecked: false }]
+    }
+
+    // Format product mappings for API
+    const formattedMappings = updatedMappings.map(mapping => ({
+      productId: mapping.productId,
+      isChecked: mapping.isChecked ?? mapping.checked ?? false,
+      quantity: mapping.quantity ?? 0,
+      frequency: mapping.frequency,
+      directions: mapping.directions || "",
+      numberOfDays: mapping.numberOfDays || 0,
+      purchaseOrderReceivingHistoryId: mapping.purchaseOrderReceivingHistoryId || ""
+    }))
+
+    try {
+      if (existingPrescriptionDetail) {
+        // PUT call - Update existing prescription detail
+        const updatePayload = {
+          id: existingPrescriptionDetail.id,
+          notes: "",
+          visitId: visitData.id,
+          productMappings: formattedMappings
+        }
+        await updatePrescriptionDetailMutation.mutateAsync(updatePayload)
+      } else {
+        // POST call - Create new prescription detail
+        const createPayload = {
+          visitId: visitData.id,
+          notes: "",
+          productMappings: formattedMappings
+        }
+        await createPrescriptionDetailMutation.mutateAsync(createPayload)
+      }
+
+      // Update local state only after successful API call
+      setProductMappings(updatedMappings)
+      setIsAddSheetOpen(false)
+      setSelectedMedicine(null)
+      setSelectedMedicineDetails(null)
+      setMedicineSearchQuery("")
+      setOriginalEditValues(null)
+
+      toast.success(editingIndex !== null ? "Medicine updated successfully" : "Medicine added successfully")
+    } catch (error) {
+      toast.error("Failed to save medicine")
+    }
   }
 
   const handleMedicineSelect = (batchItem: BatchDataItem) => {
@@ -338,6 +463,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       dosage: shouldShowDosage ? currentMapping.dosage : "",
       frequency: currentMapping.frequency,
       numberOfDays: currentMapping.numberOfDays,
+      directions: currentMapping.directions || "",
       productName: medicine.name || "Unknown Medicine",
       product: medicine as unknown as ComponentProduct,
       quantity: currentMapping.quantity,
@@ -371,53 +497,129 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     setCurrentMapping(clearedMapping);
   }
 
-  const handleSave = async () => {
-    if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
-      return
-    }
-    
-    // Filter out incomplete product mappings
-    const validMappings = productMappings.filter(pm => {
-      return pm.productId && pm.frequency
-    })
 
-    if (validMappings.length === 0) {
-      toast.error("Please add at least one product with frequency")
-      return
-    }
-
-    // Format product mappings according to API structure
-    const formattedMappings = validMappings.map(mapping => ({
-      productId: mapping.productId,
-      isChecked: mapping.isChecked ?? mapping.checked ?? false,
-      quantity: mapping.quantity ?? 0,
-      frequency: mapping.frequency,
-      numberOfDays: mapping.numberOfDays || 0,
-      purchaseOrderReceivingHistoryId: mapping.purchaseOrderReceivingHistoryId || ""
-    }))
-
-    if (existingPrescriptionDetail) {
-      // Update existing prescription detail
-      const updatePayload = {
-        id: existingPrescriptionDetail.id,
-        notes: notes,
-        visitId: visitData.id,
-        productMappings: formattedMappings
-      }
-      await updatePrescriptionDetailMutation.mutateAsync(updatePayload)
-    } else {
-      // Create new prescription detail
-      const createPayload = {
-        visitId: visitData.id,
-        notes: notes,
-        productMappings: formattedMappings
-      }
-      await createPrescriptionDetailMutation.mutateAsync(createPayload)
-    }
-  }
 
   const isReadOnly = appointmentData?.status === "completed"
+
+  // Check if there are changes in edit form
+  const hasEditChanges = (): boolean => {
+    if (!originalEditValues || editingIndex === null) return false
+
+    return (
+      currentMapping.dosage !== originalEditValues.dosage ||
+      currentMapping.frequency !== originalEditValues.frequency ||
+      currentMapping.numberOfDays !== originalEditValues.numberOfDays ||
+      currentMapping.directions !== originalEditValues.directions ||
+      currentMapping.productId !== originalEditValues.productId
+    )
+  }
+
+  // Handle print prescription
+  const handlePrintPrescription = useCallback(async () => {
+    try {
+      if (!visitData?.id) {
+        toast.error("No visit data found for this appointment")
+        return
+      }
+
+      // Refetch the PDF data to ensure we have the latest
+      const pdfData = await refetchPrescriptionPdf()
+
+      if (pdfData.data?.pdfBase64) {
+        try {
+          const blob = await fetch(`data:application/pdf;base64,${pdfData.data.pdfBase64}`).then(res => res.blob());
+          const url = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          // Clean up the URL after a delay
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          console.error("Error opening PDF:", error);
+          toast.error("Failed to open prescription PDF")
+        }
+      } else {
+        toast.error("No prescription PDF available for this visit")
+      }
+    } catch (error) {
+      console.error("Error printing prescription:", error);
+      toast.error("Failed to print prescription")
+    }
+  }, [visitData?.id, refetchPrescriptionPdf])
+
+  // Function to calculate quantity based on frequency and number of days
+  const calculateQuantity = (frequency: string, numberOfDays: number): number => {
+    if (!frequency || !numberOfDays || numberOfDays <= 0) return 0;
+
+    // Parse frequency patterns like "1-0-1", "2-0-2", etc.
+    const frequencyPattern = frequency.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
+    if (frequencyPattern) {
+      const morning = parseFloat(frequencyPattern[1]) || 0;
+      const afternoon = parseFloat(frequencyPattern[2]) || 0;
+      const evening = parseFloat(frequencyPattern[3]) || 0;
+      const dailyDoses = morning + afternoon + evening;
+      return Math.ceil(dailyDoses * numberOfDays);
+    }
+
+    // Handle other frequency formats
+    const lowerFreq = frequency.toLowerCase();
+    let dailyDoses = 1; // Default to once daily
+
+    if (lowerFreq.includes('twice') || lowerFreq.includes('2')) {
+      dailyDoses = 2;
+    } else if (lowerFreq.includes('thrice') || lowerFreq.includes('three') || lowerFreq.includes('3')) {
+      dailyDoses = 3;
+    } else if (lowerFreq.includes('four') || lowerFreq.includes('4')) {
+      dailyDoses = 4;
+    } else if (lowerFreq.includes('once') || lowerFreq.includes('1')) {
+      dailyDoses = 1;
+    }
+
+    return Math.ceil(dailyDoses * numberOfDays);
+  };
+
+  // Function to calculate maximum days possible with available stock
+  const calculateMaxDays = (frequency: string, availableQuantity: number): number => {
+    if (!frequency || !availableQuantity || availableQuantity <= 0) return 0;
+
+    // Parse frequency patterns like "1-0-1", "2-0-2", etc.
+    const frequencyPattern = frequency.match(/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/);
+    if (frequencyPattern) {
+      const morning = parseFloat(frequencyPattern[1]) || 0;
+      const afternoon = parseFloat(frequencyPattern[2]) || 0;
+      const evening = parseFloat(frequencyPattern[3]) || 0;
+      const dailyDoses = morning + afternoon + evening;
+      return Math.floor(availableQuantity / dailyDoses);
+    }
+
+    // Handle other frequency formats
+    const lowerFreq = frequency.toLowerCase();
+    let dailyDoses = 1; // Default to once daily
+
+    if (lowerFreq.includes('twice') || lowerFreq.includes('2')) {
+      dailyDoses = 2;
+    } else if (lowerFreq.includes('thrice') || lowerFreq.includes('three') || lowerFreq.includes('3')) {
+      dailyDoses = 3;
+    } else if (lowerFreq.includes('four') || lowerFreq.includes('4')) {
+      dailyDoses = 4;
+    } else if (lowerFreq.includes('once') || lowerFreq.includes('1')) {
+      dailyDoses = 1;
+    }
+
+    return Math.floor(availableQuantity / dailyDoses);
+  };
+
+  // Function to check if current mapping has sufficient stock
+  const hasInsufficientStock = (): boolean => {
+    if (!currentMapping.frequency || !currentMapping.numberOfDays || currentMapping.numberOfDays <= 0 || !currentMapping.quantityAvailable) {
+      return false; // No validation needed if required fields are missing
+    }
+
+    const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
+    const availableQuantity = currentMapping.quantityAvailable || 0;
+
+    return calculatedQuantity > availableQuantity && availableQuantity > 0;
+  };
+
+
 
 
 
@@ -525,15 +727,14 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               <Table>
                              <TableHeader>
                  <TableRow>
-                   <TableHead>Select</TableHead>
+                   <TableHead>Dispense</TableHead>
                    <TableHead>Medicine</TableHead>
                    <TableHead>Frequency</TableHead>
                    <TableHead>Days</TableHead>
                    <TableHead>Quantity</TableHead>
-                   <TableHead>Quantity Available</TableHead>
-                   <TableHead>Batch Number</TableHead>
+                   <TableHead>Directions</TableHead>
                    <TableHead>Expiration Date</TableHead>
-                   <TableHead>Selling Price</TableHead>
+                   <TableHead>Price</TableHead>
                    <TableHead className="w-[100px]">Actions</TableHead>
                  </TableRow>
                </TableHeader>
@@ -541,18 +742,55 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 {productMappings.map((mapping, index) => (
                                      <TableRow key={index}>
                      <TableCell>
-                       <input type="checkbox" checked={!!mapping.isChecked} disabled={isReadOnly} onChange={e => {
-                         const updated = [...productMappings];
-                         updated[index] = { ...mapping, isChecked: e.target.checked, checked: e.target.checked };
-                         setProductMappings(updated);
-                       }} />
+                       <input
+                         type="checkbox"
+                         checked={!!mapping.isChecked}
+                         disabled={isReadOnly}
+                         onChange={async (e) => {
+                           const updated = [...productMappings];
+                           updated[index] = { ...mapping, isChecked: e.target.checked, checked: e.target.checked };
+                           setProductMappings(updated);
+
+                           // Trigger API update when checkbox is changed
+                           if (existingPrescriptionDetail && visitData?.id) {
+                             const formattedMappings = updated.map(pm => ({
+                               productId: pm.productId,
+                               isChecked: pm.isChecked ?? pm.checked ?? false,
+                               quantity: pm.quantity ?? 0,
+                               frequency: pm.frequency,
+                               directions: pm.directions || "",
+                               numberOfDays: pm.numberOfDays || 0,
+                               purchaseOrderReceivingHistoryId: pm.purchaseOrderReceivingHistoryId || ""
+                             }));
+
+                             const updatePayload = {
+                               id: existingPrescriptionDetail.id,
+                               notes: "",
+                               visitId: visitData.id,
+                               productMappings: formattedMappings
+                             };
+
+                             try {
+                               await updatePrescriptionDetailMutation.mutateAsync(updatePayload);
+                             } catch (error) {
+                               toast.error("Failed to update prescription");
+                               // Revert the checkbox state on error
+                               const revertedUpdated = [...productMappings];
+                               revertedUpdated[index] = { ...mapping, isChecked: !e.target.checked, checked: !e.target.checked };
+                               setProductMappings(revertedUpdated);
+                             }
+                           }
+                         }}
+                         className="w-5 h-5 cursor-pointer"
+                       />
                      </TableCell>
                      <TableCell>{getProductName(mapping.productId)}</TableCell>
                      <TableCell>{mapping.frequency}</TableCell>
                      <TableCell>{mapping.numberOfDays}</TableCell>
                      <TableCell>{mapping.quantity ?? "-"}</TableCell>
-                     <TableCell>{mapping.quantityAvailable ?? mapping.purchaseOrderReceivingHistory?.quantityInHand ?? "-"}</TableCell>
-                     <TableCell>{mapping.batchNo ?? mapping.purchaseOrderReceivingHistory?.batchNumber ?? "-"}</TableCell>
+                     <TableCell className="max-w-[200px] truncate" title={mapping.directions || "-"}>
+                       {mapping.directions || "-"}
+                     </TableCell>
                      <TableCell>{formatDate(mapping.expDate ?? mapping.purchaseOrderReceivingHistory?.expiryDate)}</TableCell>
                      <TableCell>{mapping.product?.sellingPrice ?? "-"}</TableCell>
                      <TableCell>
@@ -584,43 +822,30 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           </div>
         )}
 
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Label htmlFor="notes">Additional Notes</Label>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              onClick={() => setAudioModalOpen(true)}
-              title="Record voice note"
-              disabled={isReadOnly}
-            >
-              <Mic className="w-4 h-4" />
-            </Button>
-          </div>
-          <textarea
-            id="notes"
-            className="w-full border rounded-md p-2 min-h-[100px] mt-2"
-            placeholder="Add any additional details about the prescription..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={isReadOnly}
-          />
-        </div>
 
-        <div className="mt-6 flex justify-end">
-          <Button 
-            onClick={handleSave}
-            disabled={
-              createPrescriptionDetailMutation.isPending || 
-              updatePrescriptionDetailMutation.isPending ||
-              productMappings.length === 0 ||
-              isReadOnly
-            }
+
+        <div className="mt-6 flex justify-end gap-2">
+          {productMappings.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={handlePrintPrescription}
+              className="flex items-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Print Prescription
+            </Button>
+          )}
+          <Button
+            onClick={() => {
+              if (onNext) {
+                onNext()
+              }
+            }}
+            disabled={isReadOnly}
           >
-            {createPrescriptionDetailMutation.isPending || updatePrescriptionDetailMutation.isPending 
-              ? "Saving..." 
-              : existingPrescriptionDetail ? "Update" : "Save & Next"}
+            {createPrescriptionDetailMutation.isPending || updatePrescriptionDetailMutation.isPending
+              ? "Saving..."
+              : "Next"}
           </Button>
         </div>
       </CardContent>
@@ -653,8 +878,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                     </div>
                                          {selectedMedicineDetails && (
                        <div className="mt-2 p-2 border rounded bg-gray-50 text-sm">
-                         <div><b>Quantity on Hand:</b> {selectedMedicineDetails.quantityInHand || "-"}</div>
-                         <div><b>DOM:</b> {selectedMedicineDetails.dateOfManufacture || "-"}</div>
+                         <div><b>Available:</b> {selectedMedicineDetails.quantityInHand || "-"} {selectedMedicineDetails.productDetails?.unitOfMeasure || "EA"}</div>
+                         <div><b>DOM:</b> {selectedMedicineDetails.dateOfManufacture ? new Date(selectedMedicineDetails.dateOfManufacture).toLocaleDateString() : "-"}</div>
                          <div><b>Batch Number:</b> {selectedMedicineDetails.batchNumber || "-"}</div>
                          <div><b>Expiry Date:</b> {selectedMedicineDetails.expiryDate ? new Date(selectedMedicineDetails.expiryDate).toLocaleDateString() : "-"}</div>
                        </div>
@@ -784,7 +1009,27 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                  id="frequency"
                  placeholder="e.g., Twice daily"
                  value={currentMapping.frequency}
-                 onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, frequency: e.target.value})}
+                 onChange={(e) => {
+                   if (isReadOnly) return;
+                   const newFrequency = e.target.value;
+                   const newQuantity = calculateQuantity(newFrequency, currentMapping.numberOfDays || 0);
+                   const availableQuantity = currentMapping.quantityAvailable || 0;
+
+                   // Check if calculated quantity exceeds available stock
+                   if (newQuantity > availableQuantity && availableQuantity > 0 && newFrequency && currentMapping.numberOfDays) {
+                     const maxDays = calculateMaxDays(newFrequency, availableQuantity);
+                     toast.error(
+                       `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                       `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed.`
+                     );
+                   }
+
+                   setCurrentMapping({
+                     ...currentMapping,
+                     frequency: newFrequency,
+                     quantity: newQuantity
+                   });
+                 }}
                  disabled={isReadOnly}
                />
                <div className="flex gap-2 mt-2 flex-wrap">
@@ -802,7 +1047,26 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                      key={value}
                      type="button"
                      className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
-                     onClick={() => !isReadOnly && setCurrentMapping({...currentMapping, frequency: value})}
+                     onClick={() => {
+                       if (isReadOnly) return;
+                       const newQuantity = calculateQuantity(value, currentMapping.numberOfDays || 0);
+                       const availableQuantity = currentMapping.quantityAvailable || 0;
+
+                       // Check if calculated quantity exceeds available stock
+                       if (newQuantity > availableQuantity && availableQuantity > 0 && currentMapping.numberOfDays) {
+                         const maxDays = calculateMaxDays(value, availableQuantity);
+                         toast.error(
+                           `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                           `With frequency "${value}", maximum ${maxDays} days can be prescribed.`
+                         );
+                       }
+
+                       setCurrentMapping({
+                         ...currentMapping,
+                         frequency: value,
+                         quantity: newQuantity
+                       });
+                     }}
                      disabled={isReadOnly}
                    >
                      {value}
@@ -812,39 +1076,65 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
              </div>
              
              <div className="space-y-3">
-               <Label htmlFor="numberOfDays">Number of Days (Optional)</Label>
+               <Label htmlFor="numberOfDays">Number of Days</Label>
                <Input
                  id="numberOfDays"
                  type="number"
                  min="0"
-                 placeholder="e.g., 7 (leave empty if not applicable)"
+                 placeholder="e.g., 7"
                  value={currentMapping.numberOfDays || ""}
-                 onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, numberOfDays: parseInt(e.target.value) || 0})}
+                 onChange={(e) => {
+                   if (isReadOnly) return;
+                   const newNumberOfDays = parseInt(e.target.value) || 0;
+                   const newQuantity = calculateQuantity(currentMapping.frequency || "", newNumberOfDays);
+                   const availableQuantity = currentMapping.quantityAvailable || 0;
+
+                   // Check if calculated quantity exceeds available stock
+                   if (newQuantity > availableQuantity && availableQuantity > 0 && currentMapping.frequency) {
+                     const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
+                     toast.error(
+                       `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                       `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed.`
+                     );
+                   }
+
+                   setCurrentMapping({
+                     ...currentMapping,
+                     numberOfDays: newNumberOfDays,
+                     quantity: newQuantity
+                   });
+                 }}
                  disabled={isReadOnly}
                />
+               {/* Stock validation message */}
+               {currentMapping.frequency && currentMapping.numberOfDays && currentMapping.numberOfDays > 0 && currentMapping.quantityAvailable && (
+                 (() => {
+                   const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
+                   const availableQuantity = currentMapping.quantityAvailable;
+                   const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
+
+                   if (calculatedQuantity > availableQuantity) {
+                     return (
+                       <p className="text-sm text-red-600 mt-1">
+                         ⚠️ Insufficient stock! Available: {availableQuantity} {currentMapping.product?.unitOfMeasure || "EA"}.
+                         Maximum {maxDays} days possible with frequency "{currentMapping.frequency}".
+                       </p>
+                     );
+                   }
+                   return null;
+                 })()
+               )}
              </div>
              <div className="space-y-3">
               <Label htmlFor="quantity">Quantity</Label>
               <Input
                 id="quantity"
                 type="number"
-                min="1"
-                max={currentMapping.quantityAvailable || undefined}
-                placeholder="e.g., 1"
-                value={currentMapping.quantity ?? ""}
-                onChange={e => {
-                  if (isReadOnly) return;
-                  const newQuantity = parseInt(e.target.value) || 0;
-                  const maxQuantity = currentMapping.quantityAvailable || 0;
-
-                  if (newQuantity > maxQuantity && maxQuantity > 0) {
-                    toast.error(`Quantity cannot exceed available stock (${maxQuantity})`);
-                    return;
-                  }
-
-                  setCurrentMapping({ ...currentMapping, quantity: newQuantity });
-                }}
+                placeholder="Auto calculated based on frequency and number of days"
+                value={currentMapping.quantity && currentMapping.quantity > 0 ? currentMapping.quantity : ""}
+                readOnly
                 disabled={isReadOnly}
+                className="bg-gray-50 cursor-not-allowed"
               />
               {currentMapping.quantityAvailable !== undefined && (
                 <p className="text-sm text-gray-600">
@@ -852,11 +1142,33 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 </p>
               )}
             </div>
+
+            {/* Directions Field */}
+            <div className="space-y-3">
+              <Label htmlFor="directions">Directions</Label>
+              <textarea
+                id="directions"
+                placeholder="Enter directions for use..."
+                value={currentMapping.directions || ""}
+                onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, directions: e.target.value})}
+                disabled={isReadOnly}
+                className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 resize-vertical"
+              />
+            </div>
           </div>
-          
+
           <SheetFooter className="pt-4">
             <Button variant="outline" onClick={() => setIsAddSheetOpen(false)} disabled={isReadOnly}>Cancel</Button>
-            <Button onClick={handleSaveMapping} disabled={isReadOnly}>Save</Button>
+            <Button
+              onClick={handleSaveMapping}
+              disabled={
+                isReadOnly ||
+                hasInsufficientStock() ||
+                (editingIndex !== null && !hasEditChanges())
+              }
+            >
+              {editingIndex !== null ? "Update" : "Save"}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
@@ -865,10 +1177,20 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         open={audioModalOpen}
         onClose={() => setAudioModalOpen(false)}
         transcriber={transcriber}
-        onTranscriptionComplete={(transcript: string) => {
-          setNotes(prev => prev ? prev + "\n" + transcript : transcript)
+        onTranscriptionComplete={(_transcript: string) => {
+          // Handle transcript if needed for directions field
           setAudioModalOpen(false)
         }}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteProduct}
+        title="Remove Medicine"
+        itemName={productToDelete?.name}
+        isDeleting={isDeleting}
       />
     </Card>
     </>

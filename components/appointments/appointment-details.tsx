@@ -460,17 +460,21 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   }
 
   const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case "In Room":
-        return "theme-badge-info"
-      case "Completed":
-        return "theme-badge-success"
-      case "In Progress":
-        return "theme-badge-warning"
-      case "Scheduled":
-        return "theme-badge-neutral"
+    switch (status.toLowerCase()) {
+      case "scheduled":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+      case "confirmed":
+        return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300"
+      case "in_progress":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+      case "completed":
+        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+      case "cancelled":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+      case "in room":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
       default:
-        return "theme-badge-neutral"
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
     }
   }
 
@@ -611,7 +615,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 </div>
                 <div className="flex border-b py-2">
                   <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Status:</h3>
-                  <Badge className={`${getStatusBadgeClass(appointment?.status || "")} pl-4 text-md font-medium hover:bg-[#4B5563]`}>
+                  <Badge className={`${getStatusBadgeClass(appointment?.status || "")} pl-4 text-md font-medium hover:bg-inherit hover:text-inherit`}>
                     {appointment?.status}
                   </Badge>
                 </div>
