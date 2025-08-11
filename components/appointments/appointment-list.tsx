@@ -62,8 +62,6 @@ export default function AppointmentList({
   const [selectedProvider, setSelectedProvider] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("")
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
-  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
