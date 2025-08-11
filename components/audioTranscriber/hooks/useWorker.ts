@@ -13,13 +13,24 @@ export function useWorker(messageEventHandler: MessageEventHandler): Worker | nu
 
 function createWorker(messageEventHandler: MessageEventHandler): Worker | null {
     if (typeof window !== 'undefined') {
+        try {
+            const worker = new Worker(new URL("../worker.js", import.meta.url), {
+                type: "module",
+            });
 
-        const worker = new Worker(new URL("../worker.js", import.meta.url), {
-            type: "module",
-        });
-        // Listen for messages from the Web Worker
-        worker.addEventListener("message", messageEventHandler);
-        return worker;
+            // Listen for messages from the Web Worker
+            worker.addEventListener("message", messageEventHandler);
+
+            // Listen for errors
+            worker.addEventListener("error", (error) => {
+                console.error("Worker error:", error);
+            });
+
+            return worker;
+        } catch (error) {
+            console.error("Failed to create worker:", error);
+            return null;
+        }
     }
     return null;
 }
