@@ -30,6 +30,12 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const [rightSideSearchQuery, setRightSideSearchQuery] = useState("")
   const [notes, setNotes] = useState("")
   const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
+
+  // Track original values to detect changes
+  const [originalValues, setOriginalValues] = useState({
+    selectedSymptoms: [] as string[],
+    notes: ""
+  })
   
   // Get patient data to access breed information
   const { data: patientData } = useGetPatientById(patientId)
@@ -49,11 +55,15 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   // Initialize selected symptoms and notes from existing data
   useEffect(() => {
     if (existingComplaint) {
-      setSelectedSymptoms(existingComplaint.symptoms.map(s => s.id))
-      if (existingComplaint.notes) {
-        setNotes(existingComplaint.notes)
-      }
-      
+      const symptomIds = existingComplaint.symptoms.map(s => s.id)
+      setSelectedSymptoms(symptomIds)
+      setNotes(existingComplaint.notes || "")
+
+      // Store original values for change detection
+      setOriginalValues({
+        selectedSymptoms: symptomIds,
+        notes: existingComplaint.notes || ""
+      })
     }
   }, [existingComplaint, markTabAsCompleted])
 
@@ -168,6 +178,19 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   }, [transcriber.output?.isBusy])
 
   const isReadOnly = appointmentData?.status === "completed"
+
+  // Check if any changes have been made to existing data
+  const hasChanges = () => {
+    if (!existingComplaint) return true // For new records, allow save if data exists
+
+    const currentSymptoms = [...selectedSymptoms].sort()
+    const originalSymptoms = [...originalValues.selectedSymptoms].sort()
+
+    return (
+      JSON.stringify(currentSymptoms) !== JSON.stringify(originalSymptoms) ||
+      notes !== originalValues.notes
+    )
+  }
 
   if (visitLoading || isLoading) {
     return (
@@ -334,12 +357,18 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={handleSave}
-            disabled={createComplaintMutation.isPending || updateComplaintMutation.isPending || selectedSymptoms.length === 0 || isReadOnly}
+            disabled={
+              createComplaintMutation.isPending ||
+              updateComplaintMutation.isPending ||
+              selectedSymptoms.length === 0 ||
+              isReadOnly ||
+              (!!existingComplaint && !hasChanges())
+            }
             className="ml-2"
           >
-            {createComplaintMutation.isPending || updateComplaintMutation.isPending 
-              ? "Saving..." 
-              : existingComplaint ? "Update" : "Save and Next"}
+            {createComplaintMutation.isPending || updateComplaintMutation.isPending
+              ? "Saving..."
+              : existingComplaint ? "Update & Next" : "Save & Next"}
           </Button>
         </div>
       </CardContent>

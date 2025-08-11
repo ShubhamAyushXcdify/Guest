@@ -69,6 +69,12 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [newProcedureName, setNewProcedureName] = useState("")
   const [notes, setNotes] = useState("")
   const [audioModalOpen, setAudioModalOpen] = useState(false)
+
+  // Track original values to detect changes
+  const [originalValues, setOriginalValues] = useState({
+    selectedProcedures: [] as string[],
+    notes: ""
+  })
   const [urinalysisModalOpen, setUrinalysisModalOpen] = useState(false)
   const [eyeSurgeryModalOpen, setEyeSurgeryModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -149,15 +155,20 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
 
   // Filter procedures based on search query (excluding already selected ones)
   const filteredProcedures = procedures.filter(procedure => {
+    // Only show procedures that are not already selected
+    if (selectedProcedures.includes(procedure.id)) return false
+
+    // If no search query, show all available procedures
+    if (!searchQuery.trim()) return true
+
+    // If there's a search query, filter by it
     const query = searchQuery.toLowerCase()
-    const matchesSearch = (
+    return (
       procedure.name.toLowerCase().includes(query) ||
       procedure.procCode?.toLowerCase().includes(query) ||
       procedure.type?.toLowerCase().includes(query)
     )
-    // Only show procedures that are not already selected
-    return matchesSearch && !selectedProcedures.includes(procedure.id)
-  }).slice(0, 8) // Limit to 8 results for better UX
+  }) // Remove the slice limit to show all procedures
 
   // Get selected procedures data
   const selectedProceduresData = procedures.filter(procedure => 
@@ -175,7 +186,13 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       if (existingProcedureDetail.notes) {
         setNotes(existingProcedureDetail.notes);
       }
-      
+
+      // Store original values for change detection
+      setOriginalValues({
+        selectedProcedures: existingProcedureDetail.procedures?.map(p => p.id) || [],
+        notes: existingProcedureDetail.notes || ""
+      });
+
       // Mark tab as completed if it was already completed or if it has procedures
       if (existingProcedureDetail.isCompleted || 
           (existingProcedureDetail.procedures && 
@@ -228,6 +245,19 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const isPending = isCreating || isUpdating || isAdding || isRemoving
 
   const isReadOnly = appointmentData?.status === "completed"
+
+  // Check if any changes have been made to existing data
+  const hasChanges = () => {
+    if (!existingProcedureDetail) return true // For new records, allow save if data exists
+
+    const currentProcedures = [...selectedProcedures].sort()
+    const originalProcedures = [...originalValues.selectedProcedures].sort()
+
+    return (
+      JSON.stringify(currentProcedures) !== JSON.stringify(originalProcedures) ||
+      notes !== originalValues.notes
+    )
+  }
 
   const handleProcedureClick = async (id: string) => {
     if (!visitData?.id) {
@@ -530,7 +560,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchQuery(value)
-    setShowDropdown(value.length > 0)
+    setShowDropdown(true) // Always show dropdown when typing
     setFocusedIndex(-1)
   }
 
@@ -641,7 +671,8 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={handleKeyDown}
-              onFocus={() => setShowDropdown(searchQuery.length > 0)}
+              onFocus={() => setShowDropdown(true)}
+              onClick={() => setShowDropdown(true)}
               className="pl-10 pr-10"
               disabled={isReadOnly}
             />
@@ -649,9 +680,9 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             
             {/* Dropdown */}
             {showDropdown && filteredProcedures.length > 0 && (
-              <div 
+              <div
                 ref={dropdownRef}
-                className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-y-auto"
               >
                 {filteredProcedures.map((procedure, index) => (
                   <div
@@ -695,10 +726,18 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
               </div>
             )}
             
-            {showDropdown && filteredProcedures.length === 0 && searchQuery && (
+            {showDropdown && filteredProcedures.length === 0 && searchQuery.trim() && (
               <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
                 <div className="px-4 py-3 text-sm text-gray-500">
                   No procedures found matching "{searchQuery}"
+                </div>
+              </div>
+            )}
+
+            {showDropdown && filteredProcedures.length === 0 && !searchQuery.trim() && selectedProcedures.length === procedures.length && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+                <div className="px-4 py-3 text-sm text-gray-500">
+                  All procedures have been added
                 </div>
               </div>
             )}
@@ -794,14 +833,19 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Button 
+          <Button
             onClick={handleSave}
-            disabled={isPending || (!hasCreatedDetail && selectedProcedures.length === 0) || isReadOnly}
+            disabled={
+              isPending ||
+              (!hasCreatedDetail && selectedProcedures.length === 0) ||
+              isReadOnly ||
+              (!!existingProcedureDetail && !hasChanges())
+            }
             className="ml-2"
           >
-            {isPending 
-              ? "Saving..." 
-              : "Save & Continue"}
+            {isPending
+              ? "Saving..."
+              : existingProcedureDetail ? "Update & Next" : "Save & Next"}
           </Button>
         </div>
         

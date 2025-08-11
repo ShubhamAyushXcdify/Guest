@@ -72,7 +72,14 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   const [imagePaths, setImagePaths] = useState<string[]>([])
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [notes, setNotes] = useState("")
-  
+
+  // Track original values to detect changes
+  const [originalValues, setOriginalValues] = useState({
+    weightKg: undefined as number | undefined,
+    imagePaths: [] as string[],
+    notes: ""
+  })
+
   // Image viewer modal state
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [imageZoom, setImageZoom] = useState(1)
@@ -107,6 +114,20 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   const transcriber = useTranscriber()
 
   const isReadOnly = appointmentData?.status === "completed";
+
+  // Check if any changes have been made to existing data
+  const hasChanges = () => {
+    if (!intakeData) return true // For new records, allow save if data exists
+
+    const currentImagePaths = [...imagePaths].sort()
+    const originalImagePaths = [...originalValues.imagePaths].sort()
+
+    return (
+      weightKg !== originalValues.weightKg ||
+      JSON.stringify(currentImagePaths) !== JSON.stringify(originalImagePaths) ||
+      notes !== originalValues.notes
+    )
+  }
 
   // Initialize form with existing data when available
   useEffect(() => {
@@ -169,7 +190,14 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       setImageItems(items);
       setNotes(intakeData.notes || "");
       setHasIntake(true);
-      
+
+      // Store original values for change detection
+      setOriginalValues({
+        weightKg: intakeData.weightKg,
+        imagePaths: paths,
+        notes: intakeData.notes || ""
+      });
+
       // If intake is marked as completed, update the tab completion status
       if (intakeData.isCompleted) {
         markTabAsCompleted("intake");
@@ -549,14 +577,19 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
             />
 
             <div className="mt-6 flex justify-end">
-              <Button 
+              <Button
                 onClick={handleSaveIntake}
-                disabled={weightKg === undefined || isPending || isReadOnly}
+                disabled={
+                  weightKg === undefined ||
+                  isPending ||
+                  isReadOnly ||
+                  (!!intakeData && !!intakeData.isCompleted && !hasChanges())
+                }
                 className="ml-2"
               >
-                {isPending 
-                  ? "Saving..." 
-                  : hasIntake ? "Update" : "Save and Next"}
+                {isPending
+                  ? "Saving..."
+                  : (intakeData && intakeData.isCompleted) ? "Update & Next" : "Save & Next"}
               </Button>
             </div>
           </div>
