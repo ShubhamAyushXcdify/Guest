@@ -11,6 +11,7 @@ import { Combobox } from "@/components/ui/combobox"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useDeleteAppointment } from "@/queries/appointment/delete-appointment"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+import { CancelConfirmationDialog } from "@/components/ui/cancel-confirmation-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
@@ -68,6 +69,8 @@ export default function AppointmentList({
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null)
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
   // Ref to track if dates have been initialized
@@ -516,6 +519,7 @@ export default function AppointmentList({
                 variant="ghost"
                 size="sm"
                 onClick={() => handleCancelClick(row.original)}
+
                 disabled={updateAppointmentMutation.isPending}
                 className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                 title="Cancel appointment"
@@ -530,6 +534,7 @@ export default function AppointmentList({
               variant="ghost"
               size="sm"
               onClick={() => handleCancelClick(row.original)}
+
               disabled={updateAppointmentMutation.isPending}
               className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
               title="Cancel appointment"
@@ -605,12 +610,14 @@ export default function AppointmentList({
 
   // Handle cancel appointment with confirmation
   const handleCancelClick = (appointment: any) => {
+
     setAppointmentToCancel(appointment)
     setIsCancelDialogOpen(true)
   }
 
   const handleCancelConfirm = async () => {
     if (!appointmentToCancel) return
+
 
     try {
       await updateAppointmentMutation.mutateAsync({
@@ -646,6 +653,7 @@ export default function AppointmentList({
     } finally {
       setIsCancelDialogOpen(false)
       setAppointmentToCancel(null)
+
     }
   }
 
@@ -824,6 +832,7 @@ export default function AppointmentList({
         title="Cancel Appointment"
         description={`Are you sure you want to cancel this appointment${appointmentToCancel?.patient?.name ? ` for ${appointmentToCancel.patient.name}` : ''}? This action cannot be undone.`}
         isDeleting={updateAppointmentMutation.isPending}
+
       />
 
     </div>
