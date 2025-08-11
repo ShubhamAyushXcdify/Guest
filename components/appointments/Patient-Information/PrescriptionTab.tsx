@@ -248,14 +248,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   useEffect(() => {
     if (currentMapping.frequency && currentMapping.numberOfDays) {
       const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
-      if (calculatedQuantity !== currentMapping.quantity) {
+      const availableQuantity = currentMapping.quantityAvailable || 0;
+
+      // Cap the calculated quantity to available stock
+      const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+
+      if (finalQuantity !== currentMapping.quantity) {
         setCurrentMapping(prev => ({
           ...prev,
-          quantity: calculatedQuantity
+          quantity: finalQuantity
         }));
       }
     }
-  }, [currentMapping.frequency, currentMapping.numberOfDays]);
+  }, [currentMapping.frequency, currentMapping.numberOfDays, currentMapping.quantityAvailable]);
 
   const openAddSheet = () => {
     setCurrentMapping({
@@ -384,6 +389,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     if (shouldShowDosage && !currentMapping.dosage) {
       toast.error("Please fill in all fields")
       return
+    }
+
+    // Validate that quantity doesn't exceed available stock
+    if (hasInsufficientStock()) {
+      const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
+      const availableQuantity = currentMapping.quantityAvailable || 0;
+      const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
+      toast.error(
+        `Cannot save: Insufficient stock! Required: ${calculatedQuantity} ${unitOfMeasure}, ` +
+        `Available: ${availableQuantity} ${unitOfMeasure}. ` +
+        `Maximum ${maxDays} days possible with frequency "${currentMapping.frequency}".`
+      );
+      return;
     }
 
     if (!visitData?.id) {
@@ -1024,22 +1042,25 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                  onChange={(e) => {
                    if (isReadOnly) return;
                    const newFrequency = e.target.value;
-                   const newQuantity = calculateQuantity(newFrequency, currentMapping.numberOfDays || 0);
+                   const calculatedQuantity = calculateQuantity(newFrequency, currentMapping.numberOfDays || 0);
                    const availableQuantity = currentMapping.quantityAvailable || 0;
 
-                   // Check if calculated quantity exceeds available stock
-                   if (newQuantity > availableQuantity && availableQuantity > 0 && newFrequency && currentMapping.numberOfDays) {
+                   // Cap the quantity to available stock
+                   const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+
+                   // Show warning if calculated quantity exceeds available stock
+                   if (calculatedQuantity > availableQuantity && availableQuantity > 0 && newFrequency && currentMapping.numberOfDays) {
                      const maxDays = calculateMaxDays(newFrequency, availableQuantity);
                      toast.error(
                        `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                       `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed.`
+                       `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
                      );
                    }
 
                    setCurrentMapping({
                      ...currentMapping,
                      frequency: newFrequency,
-                     quantity: newQuantity
+                     quantity: finalQuantity
                    });
                  }}
                  disabled={isReadOnly}
@@ -1061,22 +1082,25 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                      className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
                      onClick={() => {
                        if (isReadOnly) return;
-                       const newQuantity = calculateQuantity(value, currentMapping.numberOfDays || 0);
+                       const calculatedQuantity = calculateQuantity(value, currentMapping.numberOfDays || 0);
                        const availableQuantity = currentMapping.quantityAvailable || 0;
 
-                       // Check if calculated quantity exceeds available stock
-                       if (newQuantity > availableQuantity && availableQuantity > 0 && currentMapping.numberOfDays) {
+                       // Cap the quantity to available stock
+                       const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+
+                       // Show warning if calculated quantity exceeds available stock
+                       if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.numberOfDays) {
                          const maxDays = calculateMaxDays(value, availableQuantity);
                          toast.error(
                            `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                           `With frequency "${value}", maximum ${maxDays} days can be prescribed.`
+                           `With frequency "${value}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
                          );
                        }
 
                        setCurrentMapping({
                          ...currentMapping,
                          frequency: value,
-                         quantity: newQuantity
+                         quantity: finalQuantity
                        });
                      }}
                      disabled={isReadOnly}
@@ -1098,22 +1122,25 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                  onChange={(e) => {
                    if (isReadOnly) return;
                    const newNumberOfDays = parseInt(e.target.value) || 0;
-                   const newQuantity = calculateQuantity(currentMapping.frequency || "", newNumberOfDays);
+                   const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", newNumberOfDays);
                    const availableQuantity = currentMapping.quantityAvailable || 0;
 
-                   // Check if calculated quantity exceeds available stock
-                   if (newQuantity > availableQuantity && availableQuantity > 0 && currentMapping.frequency) {
+                   // Cap the quantity to available stock
+                   const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+
+                   // Show warning if calculated quantity exceeds available stock
+                   if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.frequency) {
                      const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
                      toast.error(
                        `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                       `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed.`
+                       `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
                      );
                    }
 
                    setCurrentMapping({
                      ...currentMapping,
                      numberOfDays: newNumberOfDays,
-                     quantity: newQuantity
+                     quantity: finalQuantity
                    });
                  }}
                  disabled={isReadOnly}
@@ -1136,9 +1163,26 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                 type="number"
                 placeholder="Auto calculated based on frequency and number of days"
                 value={currentMapping.quantity && currentMapping.quantity > 0 ? currentMapping.quantity : ""}
-                readOnly
+                onChange={(e) => {
+                  if (isReadOnly) return;
+                  const newQuantity = parseInt(e.target.value) || 0;
+                  const availableQuantity = currentMapping.quantityAvailable || 0;
+
+                  // Prevent quantity from exceeding available stock
+                  if (newQuantity > availableQuantity && availableQuantity > 0) {
+                    toast.error(
+                      `Quantity cannot exceed available stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}`
+                    );
+                    return;
+                  }
+
+                  setCurrentMapping({
+                    ...currentMapping,
+                    quantity: newQuantity
+                  });
+                }}
                 disabled={isReadOnly}
-                className="bg-gray-50 cursor-not-allowed"
+                className={isReadOnly ? "bg-gray-50 cursor-not-allowed" : ""}
               />
               {currentMapping.quantityAvailable !== undefined && (
                 <p className="text-sm text-gray-600">

@@ -605,12 +605,25 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                 <div className="flex border-b py-2">
                   <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Time:</h3>
                   <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
-                    {appointment?.roomSlot ? 
-                   `${formatTime(appointment.roomSlot.startTime)} - ${formatTime(appointment.roomSlot.endTime)}` : 
-                   appointment?.startTime && appointment?.endTime ? 
-                     `${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime)}` : 
-                     'Not set'
-                    }
+                    {(() => {
+                      // Priority order: appointmentTimeFrom/To, roomSlot, startTime/endTime
+                      const timeFrom = (appointment as any)?.appointmentTimeFrom;
+                      const timeTo = (appointment as any)?.appointmentTimeTo;
+
+                      if (timeFrom && timeTo) {
+                        return `${formatTime(timeFrom)} - ${formatTime(timeTo)}`;
+                      }
+
+                      if (appointment?.roomSlot?.startTime && appointment?.roomSlot?.endTime) {
+                        return `${formatTime(appointment.roomSlot.startTime)} - ${formatTime(appointment.roomSlot.endTime)}`;
+                      }
+
+                      if (appointment?.startTime && appointment?.endTime) {
+                        return `${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime)}`;
+                      }
+
+                      return 'Not set';
+                    })()}
                   </p>
                 </div>
                 <div className="flex border-b py-2">
