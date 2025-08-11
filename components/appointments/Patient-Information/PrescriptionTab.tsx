@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, Trash2, Pencil, Search, Printer } from "lucide-react"
+import { PlusCircle, X, Trash2, Pencil, Search, Printer, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
 import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id"
@@ -619,6 +619,18 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     return calculatedQuantity > availableQuantity && availableQuantity > 0;
   };
 
+  // Function to get validation error message for insufficient stock
+  const getStockValidationMessage = (): string => {
+    if (!hasInsufficientStock()) return "";
+    
+    const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", currentMapping.numberOfDays || 0);
+    const availableQuantity = currentMapping.quantityAvailable || 0;
+    const maxDays = calculateMaxDays(currentMapping.frequency || "", availableQuantity);
+    const unitOfMeasure = currentMapping.product?.unitOfMeasure || "EA";
+    
+    return `Insufficient stock! Required: ${calculatedQuantity} ${unitOfMeasure}, Available: ${availableQuantity} ${unitOfMeasure}. Maximum ${maxDays} days can be prescribed with this frequency.`;
+  };
+
 
 
 
@@ -1105,24 +1117,16 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                    });
                  }}
                  disabled={isReadOnly}
+                 className={hasInsufficientStock() ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
                />
-               {/* Stock validation message */}
-               {currentMapping.frequency && currentMapping.numberOfDays && currentMapping.numberOfDays > 0 && currentMapping.quantityAvailable && (
-                 (() => {
-                   const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
-                   const availableQuantity = currentMapping.quantityAvailable;
-                   const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
-
-                   if (calculatedQuantity > availableQuantity) {
-                     return (
-                       <p className="text-sm text-red-600 mt-1">
-                         ⚠️ Insufficient stock! Available: {availableQuantity} {currentMapping.product?.unitOfMeasure || "EA"}.
-                         Maximum {maxDays} days possible with frequency "{currentMapping.frequency}".
-                       </p>
-                     );
-                   }
-                   return null;
-                 })()
+               {hasInsufficientStock() && (
+                 <div className="flex items-start space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                   <div className="text-sm text-red-700">
+                     <div className="font-medium">Warning: Insufficient Stock</div>
+                     <div className="mt-1">{getStockValidationMessage()}</div>
+                   </div>
+                 </div>
                )}
              </div>
              <div className="space-y-3">
