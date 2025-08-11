@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import NewAppointment from "@/components/appointments/newAppointment"
+import AppointmentDetails from "./appointments/appointment-details"
 
 interface NewAppointmentDrawerProps {
   isOpen: boolean
@@ -31,19 +32,29 @@ export function NewAppointmentDrawer({
 }: NewAppointmentDrawerProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent className="w-[20%] sm:max-w-[800px] overflow-y-auto">
+      <SheetContent className="w-[20%] sm:max-w-[800px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="text-2xl font-bold">{appointmentId ? 'Update Appointment' : 'Schedule New Appointment'}</SheetTitle>
+          <SheetTitle className="text-2xl font-bold">
+            {appointmentId ? "Update Appointment" : "Schedule New Appointment"}
+          </SheetTitle>
         </SheetHeader>
+
         <div className="mt-6">
-          <NewAppointment 
-            isOpen={isOpen} 
-            onClose={onClose} 
-            preSelectedClinic={preSelectedClinic}
-            preSelectedRoom={preSelectedRoom}
-            appointmentId={appointmentId}
-            sendEmail={sendEmail}
-          />
+          {appointmentId ? (
+            <AppointmentDetails
+              appointmentId={appointmentId}
+              onClose={onClose}
+            />
+          ) : (
+            <NewAppointment 
+              isOpen={isOpen} 
+              onClose={onClose} 
+              preSelectedClinic={preSelectedClinic}
+              preSelectedRoom={preSelectedRoom}
+              appointmentId={appointmentId}
+              sendEmail={sendEmail}
+            />
+          )}
         </div>
       </SheetContent>
     </Sheet>
