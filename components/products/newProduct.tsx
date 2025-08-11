@@ -10,6 +10,7 @@ import { useCreateProduct } from "@/queries/products/create-products";
 import { toast } from "../ui/use-toast";
 import { Product } from ".";
 import { Combobox } from "../ui/combobox";
+import { useToast } from "@/hooks/use-toast";
  
 type ProductFormValues = Omit<Product, "id">;
  
@@ -40,23 +41,25 @@ interface NewProductProps {
 }
  
 export default function NewProduct({ onSuccess }: NewProductProps) {
- 
+   const { toast } = useToast();
+
   const createProduct = useCreateProduct({
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Product created successfully",
+        variant: "success",
       });
       // Automatically close the form after successful creation
       if (onSuccess) {
         onSuccess();
       }
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create product",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while creating the product.",
+        variant: "error",
       });
     },
   });

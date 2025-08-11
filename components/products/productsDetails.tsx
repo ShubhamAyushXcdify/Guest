@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Combobox } from "../ui/combobox";
+import { useToast } from "@/hooks/use-toast"; 
 
 // const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
 const PRODUCT_TYPES = [
@@ -53,6 +54,7 @@ interface ProductDetailsProps {
 export default function ProductDetails({ productId, onSuccess }: ProductDetailsProps) {
   const router = useRouter();
   const [isFormReady, setIsFormReady] = useState(false);
+  const { toast } = useToast();
 
   const { data: product, isLoading } = useGetProductById(productId);
 
@@ -109,6 +111,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
       toast({
         title: "Success",
         description: "Product updated successfully",
+        variant: "success",
       });
       if (onSuccess) onSuccess();
       // Refetch product data after update to ensure UI is up to date
@@ -116,8 +119,8 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update product",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the product.",
+        variant: "error",
       });
     }
   };

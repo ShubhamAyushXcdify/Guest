@@ -29,7 +29,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { CalendarIcon, Mic, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -84,6 +84,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
   const [isPending, setIsPending] = useState(false)
   const [isFormReady, setIsFormReady] = useState(false)
   const [audioModalOpen, setAudioModalOpen] = useState<null | "allergies" | "medicalConditions" | "behavioralNotes">(null)
+  const { toast } = useToast()
   
   const updatePatientMutation = useUpdatePatient()
   const { data: patient, isLoading } = useGetPatientById(patientId)
@@ -179,6 +180,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
       toast({
         title: "Success",
         description: "Patient updated successfully",
+        variant: "success",
       })
       
       onSuccess()
@@ -186,7 +188,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
       toast({
         title: "Error",
         description: "Failed to update patient. Please try again.",
-        variant: "destructive",
+        variant: "error",
       })
     } finally {
       setIsPending(false)

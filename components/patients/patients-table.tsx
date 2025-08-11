@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge"
 import { Edit, Eye, Trash2, Calendar } from "lucide-react"
 import { Patient } from "@/queries/patients/get-patients"
 import { useDeletePatient } from "@/queries/patients/delete-patients"
-import { toast } from "@/components/ui/use-toast"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { formatDate } from "@/lib/utils"
 import NewAppointment from "@/components/appointments/newAppointment"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { PatientEditDetails } from "./patient-edit-details"
+import { useToast } from "@/hooks/use-toast"
 
 interface PatientsTableProps {
   patients: Patient[]
@@ -44,6 +44,7 @@ export function PatientsTable({
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const [showEditSheet, setShowEditSheet] = useState(false)
   const [patientToEdit, setPatientToEdit] = useState<string | null>(null)
+  const { toast } = useToast()
   
   const deletePatientMutation = useDeletePatient()
 
@@ -60,14 +61,15 @@ export function PatientsTable({
       toast({
         title: "Patient deleted",
         description: `${patientToDelete.name} has been deleted successfully.`,
+        variant: "success",
       })
       setIsDeleteDialogOpen(false)
-      setPatientToDelete(null)
+      setPatientToDelete(null)      
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to delete the patient. Please try again.",
-        variant: "destructive",
+        variant: "error",
       })
     }
   }
