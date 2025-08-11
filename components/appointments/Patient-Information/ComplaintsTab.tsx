@@ -27,7 +27,6 @@ interface ComplaintsTabProps {
 
 export default function ComplaintsTab({ patientId, appointmentId, onNext }: ComplaintsTabProps) {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
   const [rightSideSearchQuery, setRightSideSearchQuery] = useState("")
   const [notes, setNotes] = useState("")
   const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
@@ -58,12 +57,11 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     }
   }, [existingComplaint, markTabAsCompleted])
 
-  // Filter symptoms for typeahead (exclude already selected and common symptoms)
-  const filteredSymptoms = symptoms.filter(symptom => 
-    !selectedSymptoms.includes(symptom.id) && 
-    !symptom.isComman &&
-    symptom.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Show "Add new symptom" option when search query doesn't match any existing symptoms
+  const hasExactMatch = symptoms.some(symptom => 
+    symptom.name.toLowerCase() === rightSideSearchQuery.toLowerCase()
   )
+  const showAddOption = rightSideSearchQuery.trim() && !hasExactMatch
 
   // Filter symptoms for right side (all symptoms with search, excluding common symptoms)
   const filteredRightSideSymptoms = symptoms.filter(symptom => 
@@ -76,7 +74,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
 
   const createSymptomMutation = useCreateSymptom({
     onSuccess: () => {
-      setSearchQuery("")
+      setRightSideSearchQuery("")
       toast.success("Symptom added successfully")
     },
     onError: (error) => {
@@ -116,18 +114,18 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     )
   }
 
-  const handleAddSymptom = () => {
-  if (searchQuery.trim()) {
-    createSymptomMutation.mutate({
-      name: searchQuery.trim(),
-      breed: patientData?.species?.toLowerCase() || null
-    }, {
-      onSuccess: (newSymptom) => {
-        setSelectedSymptoms((prev) => [...prev, newSymptom.id]);
-      }
-    });
-  }
-};
+  const handleAddSymptom = (symptomName: string) => {
+    if (symptomName.trim()) {
+      createSymptomMutation.mutate({
+        name: symptomName.trim(),
+        breed: patientData?.species?.toLowerCase() || null
+      }, {
+        onSuccess: (newSymptom) => {
+          setSelectedSymptoms((prev) => [...prev, newSymptom.id]);
+        }
+      });
+    }
+  };
 
   const handleSave = () => {
     if (!visitData?.id) {
@@ -199,27 +197,8 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
         </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left side - Add new symptom and Common Symptoms */}
+          {/* Left side - Common Symptoms */}
           <div>
-            <h3 className="text-sm font-medium mb-3">Add New Symptom</h3>
-            <div className="flex gap-2 mb-4">
-              <Input
-                placeholder="Enter new symptom name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
-                disabled={isReadOnly}
-              />
-              <Button
-                onClick={handleAddSymptom}
-                disabled={createSymptomMutation.isPending || !searchQuery.trim() || isReadOnly}
-                size="sm"
-              >
-                <PlusCircle className="h-4 w-4 mr-1" />
-                Add
-              </Button>
-            </div>
-
             <h3 className="text-sm font-medium mb-3">Common Symptoms</h3>
             <div className="flex flex-wrap gap-2">
               {commonSymptoms.map(symptom => (
@@ -253,6 +232,19 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
               />
             </div>
             <div className="max-h-60 overflow-y-auto border rounded-md p-3">
+              {/* Show "Add new symptom" option when search doesn't match existing symptoms */}
+              {showAddOption && !isReadOnly && (
+                <div 
+                  className="flex items-center space-x-2 py-2 px-2 hover:bg-blue-50 cursor-pointer border-b border-gray-200 mb-2"
+                  onClick={() => handleAddSymptom(rightSideSearchQuery)}
+                >
+                  <PlusCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-blue-600 font-medium">
+                    Add new symptom: "{rightSideSearchQuery}"
+                  </span>
+                </div>
+              )}
+              
               {filteredRightSideSymptoms.map(symptom => (
                 <label key={symptom.id} className="flex items-center space-x-2 py-1 hover:bg-gray-50 cursor-pointer">
                   <input
@@ -265,6 +257,13 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
                   <span className="text-sm">{symptom.name}</span>
                 </label>
               ))}
+              
+              {/* Show message when no symptoms found and no search query */}
+              {filteredRightSideSymptoms.length === 0 && !showAddOption && rightSideSearchQuery && (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  No symptoms found matching "{rightSideSearchQuery}"
+                </div>
+              )}
             </div>
           </div>
         </div>
