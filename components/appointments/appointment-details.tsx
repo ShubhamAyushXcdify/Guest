@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -29,11 +29,11 @@ import SurgeryComponent from "./surgery"
 import CertificateGeneration from "./certificate-generation"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
-// import { useGetSlotByRoomId, Slot } from "@/queries/slots/get-slot-by-roomId"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
-import { useUpdateSlotAvailability } from '@/queries/slots/update-slot-availability';
 import { DatePicker } from "@/components/ui/datePicker"
+import { useGetAvailableSlotsByUserId } from "@/queries/users/get-availabelSlots-by-userId"
+import React from "react"
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -48,14 +48,13 @@ const appointmentSchema = z.object({
       today.setHours(0, 0, 0, 0);
       return new Date(date) >= today;
     }, "Appointment date cannot be in the past"),
-  roomSlotId: z.string(),
+  SlotId: z.string().optional(),
   appointmentTypeId: z.string(),
   reason: z.string(),
   status: z.string(),
   notes: z.string().optional(),
-  createdBy: z.string().uuid()
+  createdBy: z.string().uuid().optional(),
 })
-
 
 export interface Slot {
   id: string;
@@ -97,14 +96,14 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
-  
+
   // Patient search state
   const [patientSearchQuery, setPatientSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
-  const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null)
-const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
+  const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string } | null>(null)
+  const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   const searchDropdownRef = useRef<HTMLDivElement>(null)
-  
+
   // Initialize form
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -115,65 +114,132 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
       veterinarianId: "",
       roomId: "",
       appointmentDate: "",
-      roomSlotId: "",
+      SlotId: "",
       appointmentTypeId: "",
       reason: "",
       status: "scheduled",
       notes: "",
-      createdBy: "" // This should be set from your auth context
+      createdBy: ""
     },
   })
-  
+
   // Get selected clinicId and roomId from form
   const selectedClinicId = form.watch("clinicId");
   const selectedRoomId = form.watch("roomId");
-  
+
   // Fetch rooms for the selected clinic
   const { data: filteredRoomsResponse } = useGetRoom(1, 100, '', selectedClinicId);
   const filteredRoomOptions = (filteredRoomsResponse?.items || []).filter(room => room.isActive).map(room => ({
     value: room.id,
     label: room.name
   }));
-  
-  // Fetch slots for the selected room
-  // const { data: filteredSlotsData, isLoading: isLoadingSlots } = useGetSlotByRoomId(1, 100, '', selectedRoomId);
-  // const filteredSlots = filteredSlotsData || { pageNumber: 1, pageSize: 10, totalPages: 0, totalCount: 0, items: [] };
-  
+
+  // Doctor available slots
+  const selectedVeterinarianId = form.watch("veterinarianId");
+  const selectedDate = form.watch("appointmentDate");
+  const {
+    data: availableSlots = [],
+    isLoading: isLoadingSlots,
+  } = useGetAvailableSlotsByUserId(
+    selectedVeterinarianId,
+    selectedDate,
+    !!selectedVeterinarianId && !!selectedDate
+  );
+
+  // Merge available slots with the originally selected one so it stays visible
+  const mergedSlots = useMemo(() => {
+    const originalSlotId = (appointment as any)?.SlotId || (appointment as any)?.slotId;
+    const originalStart = (appointment as any)?.appointmentTimeFrom || (appointment as any)?.startTime;
+    const originalEnd = (appointment as any)?.appointmentTimeTo || (appointment as any)?.endTime;
+
+    let slots: any[] = [...(availableSlots as any[])];
+
+    // Always keep the original slot visible
+    if (originalSlotId || (originalStart && originalEnd)) {
+      const byId = originalSlotId ? slots.find((s) => s.id === originalSlotId) : null;
+      const byTime = (!byId && originalStart && originalEnd)
+        ? slots.find(
+            (s) => s.startTime?.slice(0,5) === String(originalStart).slice(0,5) &&
+                   s.endTime?.slice(0,5) === String(originalEnd).slice(0,5)
+          )
+        : null;
+
+      if (byId) {
+        slots = slots.map((slot) =>
+          slot.id === byId.id ? { ...slot, isOriginalAppointment: true } : slot
+        );
+      } else if (byTime) {
+        slots = slots.map((slot) =>
+          slot.id === byTime.id ? { ...slot, isOriginalAppointment: true } : slot
+        );
+      } else if (originalStart && originalEnd) {
+        slots = [
+          ...slots,
+          {
+            id: originalSlotId || `original-${appointment?.id || "appointment"}`,
+            startTime: originalStart,
+            endTime: originalEnd,
+            isOriginalAppointment: true,
+            isInjected: true,
+          },
+        ];
+      }
+    }
+
+    return slots;
+  }, [availableSlots, appointment, form.watch("SlotId")]);
+
+  // Auto-select matching available slot by time when no SlotId is set
+  useEffect(() => {
+    const currentSlotId = form.getValues("SlotId");
+    if (currentSlotId) return;
+    const currentStart = (appointment as any)?.appointmentTimeFrom || (appointment as any)?.startTime;
+    const currentEnd = (appointment as any)?.appointmentTimeTo || (appointment as any)?.endTime;
+    if (!currentStart || !currentEnd || !(availableSlots as any[])?.length) return;
+    const match = (availableSlots as any[]).find(
+      (s) => s.startTime?.slice(0,5) === String(currentStart).slice(0,5) && s.endTime?.slice(0,5) === String(currentEnd).slice(0,5)
+    );
+    if (match) {
+      form.setValue("SlotId" as any, match.id as any);
+      setSelectedSlot(match.id);
+    }
+  }, [availableSlots, appointment]);
+
   // Use patient search query for edit mode
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
     debouncedPatientQuery,
     "name" // Always search by name as specified
   )
-  
+
   // Convert search results to our format
   const typedSearchResults = searchResults as ExtendedPatient[];
-  
+
   // Format time for display (assuming HH:mm:ss format from API)
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
-    
+
     // If time is already in HH:MM format, return as is
     if (timeString.length <= 5) return timeString;
-    
+
     // Try to parse and format to HH:MM
     try {
       // Handle ISO format (2023-06-01T11:00:00)
       if (timeString.includes('T')) {
         return timeString.split('T')[1].substring(0, 5);
       }
-      
+
       // Handle HH:MM:SS format
       if (timeString.includes(':')) {
         const timeParts = timeString.split(':');
         return `${timeParts[0]}:${timeParts[1]}`;
       }
-      
+
       return timeString;
     } catch (e) {
       return timeString;
     }
   };
-  
+
   // Handle clicking outside the search dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -181,19 +247,19 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
         setIsSearchDropdownOpen(false)
       }
     }
-    
+
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
-  
+
   // Handle selecting a patient from search
   const handlePatientSelect = (patient: ExtendedPatient) => {
     // Determine the correct patient name based on different possible API structures
     let patientName = '';
-    
+
     if (patient.name) {
       patientName = patient.name;
-    } 
+    }
     else if (patient.patientId) {
       patientName = patient.patientId;
       if (patient.species) {
@@ -203,43 +269,31 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
     else if (patient.firstName || patient.lastName) {
       patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
     }
-    
+
     if (!patientName) {
       console.warn('No name found for selected patient:', patient);
       patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
     }
-    
+
     setSelectedPatient({
       id: patient.id,
       name: patientName
     });
-    
+
     form.setValue("patientId", patient.id);
     setPatientSearchQuery(""); // Clear the search input
     setIsSearchDropdownOpen(false); // Close the dropdown
   }
-  
-  const updateSlotAvailabilityMutation = useUpdateSlotAvailability();
-  const prevSelectedSlotRef = useRef<string | null>(null);
 
-  // Handle slot selection
-  const handleSlotClick = async (slotId: string) => {
-    const prevSlot = prevSelectedSlotRef.current;
+  // Simplified handleSlotClick function
+  const handleSlotClick = (slot: { id: string; startTime: string; endTime: string }) => {
+    const slotId = slot.id;
+
+    // Update the selected slot
     setSelectedSlot(slotId);
-    form.setValue("roomSlotId", slotId);
-    try {
-      // Mark new slot as unavailable
-      await updateSlotAvailabilityMutation.mutateAsync({ slotId, isAvailable: false });
-      // Mark previous slot as available (if any and different)
-      if (prevSlot && prevSlot !== slotId) {
-        await updateSlotAvailabilityMutation.mutateAsync({ slotId: prevSlot, isAvailable: true });
-      }
-      prevSelectedSlotRef.current = slotId;
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Failed to update slot availability', variant: 'destructive' });
-    }
+    form.setValue("SlotId" as any, slotId as any);
   };
-  
+
   // Clear selected patient
   const clearSelectedPatient = () => {
     setSelectedPatient(null);
@@ -247,7 +301,7 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }
 
   // Fetch data from APIs
-  const { data: clinicsResponse } = useGetClinic(1, 100)
+  const { data: clinicsResponse } = useGetClinic(1, 100, '', null, null, true)
   const { data: patientsResponse } = useGetPatients(1, 100)
   const { data: clientsResponse } = useGetClients(1, 100)
   const { data: usersResponse } = useGetUsers(1, 100)
@@ -280,10 +334,10 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   const patientOptions = (patientsResponse?.items || []).map((patient: ExtendedPatient) => {
     // Determine the display name based on available properties
     let displayName = '';
-    
+
     if (patient.name) {
       displayName = patient.name;
-    } 
+    }
     else if (patient.patientId) {
       displayName = patient.patientId;
       if (patient.species) {
@@ -293,12 +347,12 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
     else if (patient.firstName || patient.lastName) {
       displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
     }
-    
+
     // If we still don't have a display name, use ID as last resort
     if (!displayName) {
       displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
     }
-    
+
     return {
       value: patient.id,
       label: displayName
@@ -309,10 +363,9 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
     value: client.id,
     label: `${client.firstName} ${client.lastName}`
   }))
-  // const selectedClinicId = form.watch("clinicId");
 
   const veterinarianOptions = (usersResponse?.items || [])
-    .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId) 
+    .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
     .map(vet => ({
       value: vet.id,
       label: `Dr. ${vet.firstName} ${vet.lastName}`
@@ -331,7 +384,7 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   // Update form values when appointment data is loaded
   useEffect(() => {
     if (appointment) {
-      const slotId = appointment.roomSlotId || appointment.slotId || "";
+      const slotId = (appointment as any).SlotId || (appointment as any).slotId || "";
 
       form.reset({
         ...appointment,
@@ -341,16 +394,16 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
       
       // Set the selected slot
       setSelectedSlot(slotId);
-      prevSelectedSlotRef.current = slotId; 
+       
       
       // Set the selected patient for the search component
       if (appointment.patientId && appointment.patient) {
         // Determine the display name based on what's available
         let patientName = '';
-        
+
         if (appointment.patient.name) {
           patientName = appointment.patient.name;
-        } 
+        }
         else if (appointment.patient.patientId) {
           patientName = appointment.patient.patientId;
           if (appointment.patient.species) {
@@ -360,17 +413,17 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
         else if (appointment.patient.firstName || appointment.patient.lastName) {
           patientName = `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim();
         }
-        
+
         if (!patientName) {
           patientName = `Patient (ID: ${appointment.patientId.substring(0, 8)}...)`;
         }
-        
+
         setSelectedPatient({
           id: appointment.patientId,
           name: patientName
         });
       }
-      
+
       // Reset editing state if appointment is completed or cancelled
       if (appointment.status && ["Completed", "Cancelled", "completed", "cancelled"].includes(appointment.status)) {
         setIsEditing(false);
@@ -379,13 +432,30 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
   }, [appointment, form]);
 
   const onSubmit = (data: AppointmentFormValues) => {
+    // Derive time range from selected slot when provided
+    const chosenSlotId = data.SlotId || selectedSlot || "";
+    let appointmentTimeFrom: string | undefined = (appointment as any)?.appointmentTimeFrom || (appointment as any)?.startTime;
+    let appointmentTimeTo: string | undefined = (appointment as any)?.appointmentTimeTo || (appointment as any)?.endTime;
+
+    if (chosenSlotId) {
+      const slot = (mergedSlots as any[])?.find((s) => s.id === chosenSlotId);
+      if (slot) {
+        appointmentTimeFrom = slot.startTime;
+        appointmentTimeTo = slot.endTime;
+      }
+    }
+
+    // Exclude SlotId from payload per API contract
+    const { SlotId, ...rest } = data as any;
+
     updateAppointmentMutation.mutate({
       id: appointmentId,
       data: {
-        id: appointmentId,
-        ...data,
-        appointmentDate: new Date(data.appointmentDate).toISOString(), // Convert back to ISO string
-      }
+        ...rest,
+        appointmentDate: new Date(data.appointmentDate).toISOString(),
+        appointmentTimeFrom,
+        appointmentTimeTo,
+      },
     })
   }
 
@@ -421,11 +491,7 @@ const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300);
     }
   }
 
-//   if (isLoading) {
-//     return null
-//   }
-
-const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
+  const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
   const reasonTranscriber = useTranscriber();
   const notesTranscriber = useTranscriber();
 
@@ -454,7 +520,6 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
     }
     // eslint-disable-next-line
   }, [notesTranscriber.output?.isBusy]);
-
 
   return (
     <>
@@ -489,11 +554,11 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                   <h3 className="text-md font-bold text-gray-500 dark:text-gray-400 min-w-48">Patient:</h3>
                   <p className="text-md text-gray-900 dark:text-gray-100 pl-4">
                     {appointment?.patient ? (
-                      appointment.patient.name || 
-                      (appointment.patient.patientId ? 
-                        `${appointment.patient.patientId}${appointment.patient.species ? ` (${appointment.patient.species})` : ''}` : 
-                        (appointment.patient.firstName || appointment.patient.lastName ? 
-                          `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim() : 
+                      appointment.patient.name ||
+                      (appointment.patient.patientId ?
+                        `${appointment.patient.patientId}${appointment.patient.species ? ` (${appointment.patient.species})` : ''}` :
+                        (appointment.patient.firstName || appointment.patient.lastName ?
+                          `${appointment.patient.firstName || ''} ${appointment.patient.lastName || ''}`.trim() :
                           `Patient (ID: ${appointment.patient.id.substring(0, 8)}...)`)
                       )
                     ) : 'Not assigned'}
@@ -549,7 +614,6 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                   <Badge className={`${getStatusBadgeClass(appointment?.status || "")} pl-4 text-md font-medium hover:bg-[#4B5563]`}>
                     {appointment?.status}
                   </Badge>
-                  
                 </div>
               </div>
               <div className="!m-0">
@@ -564,25 +628,25 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                   </div>
                 )}
                 {(appointment?.status === "in_progress" || appointment?.status === "completed") && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 theme-button-outline"
-                      onClick={handlePatientInfoClick}
-                    >
-                      {appointment?.appointmentType?.name?.toLowerCase().includes('certification') ? (
-                        <>
-                          <FileText className="h-4 w-4 mr-1" />
-                          Generate Certificates
-                        </>
-                      ) : (
-                        <>
-                          <ClipboardList className="h-4 w-4 mr-1" />
-                          Visit Details
-                        </>
-                      )}
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 theme-button-outline"
+                    onClick={handlePatientInfoClick}
+                  >
+                    {appointment?.appointmentType?.name?.toLowerCase().includes('certification') ? (
+                      <>
+                        <FileText className="h-4 w-4 mr-1" />
+                        Generate Certificates
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardList className="h-4 w-4 mr-1" />
+                        Visit Details
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
@@ -620,10 +684,10 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                             {selectedPatient ? (
                               <div className="flex items-center justify-between p-2 border rounded-md">
                                 <span>{selectedPatient.name}</span>
-                                <Button 
-                                  type="button" 
-                                  variant="ghost" 
-                                  size="sm" 
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
                                   className="p-1 h-auto"
                                   onClick={clearSelectedPatient}
                                 >
@@ -645,7 +709,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                                     onFocus={() => setIsSearchDropdownOpen(true)}
                                   />
                                 </div>
-                                
+
                                 {/* Search results dropdown */}
                                 {isSearchDropdownOpen && patientSearchQuery && (
                                   <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
@@ -658,10 +722,10 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                                         {typedSearchResults.map((patient) => {
                                           // Determine the display name
                                           let displayName = '';
-                                          
+
                                           if (patient.name) {
                                             displayName = patient.name;
-                                          } 
+                                          }
                                           else if (patient.patientId) {
                                             displayName = patient.patientId;
                                             if (patient.species) {
@@ -671,11 +735,11 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                                           else if (patient.firstName || patient.lastName) {
                                             displayName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
                                           }
-                                          
+
                                           if (!displayName) {
                                             displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
                                           }
-                                          
+
                                           return (
                                             <li
                                               key={patient.id}
@@ -783,7 +847,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                       // Set minDate to start of today (midnight)
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
-                      
+
                       return (
                         <FormItem>
                           <FormLabel>Date</FormLabel>
@@ -802,9 +866,9 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                     }}
                   />
 
-                  {/* <FormField
+                  <FormField
                     control={form.control}
-                    name="roomSlotId"
+                    name="SlotId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Available Slots</FormLabel>
@@ -815,37 +879,50 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Loading available slots...
                               </div>
-                            ) : filteredSlots.items.length === 0 || filteredSlots.items.every((slot: Slot) => !slot.isAvailable) ? (
+                            ) : mergedSlots.length === 0 ? (
                               <div className="text-sm text-gray-500">
-                                No slots available for this room
+                                No slots available for this veterinarian on the selected date
                               </div>
                             ) : (
                               <div className="flex flex-wrap gap-2">
-                                {filteredSlots.items
-                                  .filter((slot: Slot) => slot.isAvailable || selectedSlot === slot.id || field.value === slot.id)
-                                  .map((slot: Slot) => (
-                                  <button
-                                    key={slot.id}
-                                    type="button"
-                                    onClick={() => handleSlotClick(slot.id)}
-                                    className={`rounded-full px-3 py-1 text-sm border transition-colors ${
-                                      selectedSlot === slot.id || field.value === slot.id
-                                        ? 'bg-green-100 border-green-300 text-green-800'
-                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                                    }`}
-                                  >
-                                    {formatTime(slot.startTime)}
-                                  </button>
-                                ))}
+                                {mergedSlots
+                                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                                  .map((slot) => {
+                                    const originalStart = (appointment as any)?.appointmentTimeFrom || (appointment as any)?.startTime;
+                                    const originalEnd = (appointment as any)?.appointmentTimeTo || (appointment as any)?.endTime;
+                                    const matchesOriginalTime = originalStart && originalEnd && (
+                                      String(slot.startTime).slice(0,5) === String(originalStart).slice(0,5) &&
+                                      String(slot.endTime).slice(0,5) === String(originalEnd).slice(0,5)
+                                    );
+                                    const hasExplicitSelection = Boolean(field.value || selectedSlot);
+                                    const isSelected = hasExplicitSelection
+                                      ? (selectedSlot === slot.id || field.value === slot.id)
+                                      : matchesOriginalTime;
+                                    const isOriginalAppointment = slot.isOriginalAppointment;
+
+                                    return (
+                                      <button
+                                        key={slot.id}
+                                        type="button"
+                                        onClick={() => handleSlotClick(slot as any)}
+                                        className={`rounded-full px-3 py-1 text-sm border transition-colors ${isSelected
+                                            ? "bg-green-100 border-green-300 text-green-800"
+                                            : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                                          }`}
+                                      >
+                                        {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                                      </button>
+                                    );
+                                  })}
                               </div>
                             )}
-                            <input type="hidden" {...field} />
                           </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
-                  /> */}
+                  />
+
                 </div>
 
                 <div className="space-y-6">
@@ -926,7 +1003,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
                   <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" className="theme-button text-white">
+                  <Button type="submit" className="theme-button text-white" onClick={() => onSubmit(form.getValues())}>
                     Save Changes
                   </Button>
                 </SheetFooter>
@@ -937,7 +1014,7 @@ const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(
       </Sheet>
 
       {isPatientInfoOpen && !isVaccinationOpen && !isEmergencyOpen && !isDewormingOpen && !isSurgeryOpen && (
-        <PatientInformation 
+        <PatientInformation
           patientId={appointment?.patientId || ''}
           appointmentId={appointmentId}
           onClose={() => setIsPatientInfoOpen(false)}
