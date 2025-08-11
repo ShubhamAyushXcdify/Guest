@@ -11,6 +11,7 @@ import { Combobox } from "@/components/ui/combobox"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useDeleteAppointment } from "@/queries/appointment/delete-appointment"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
+import { CancelConfirmationDialog } from "@/components/ui/cancel-confirmation-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
@@ -66,6 +67,8 @@ export default function AppointmentList({
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null)
   const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
   
   // Ref to track if dates have been initialized
@@ -503,25 +506,7 @@ export default function AppointmentList({
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => updateAppointmentMutation.mutate({
-                  id: row.original.id.toString(),
-                  data: {
-                    id: row.original.id,
-                    clinicId: row.original.clinicId,
-                    patientId: row.original.patientId,
-                    clientId: row.original.clientId,
-                    veterinarianId: row.original.veterinarianId,
-                    roomId: row.original.roomId,
-                    appointmentDate: row.original.appointmentDate,
-                    startTime: row.original.startTime,
-                    endTime: row.original.endTime,
-                    appointmentTypeId: row.original.appointmentTypeId,
-                    reason: row.original.reason,
-                    status: "cancelled",
-                    notes: row.original.notes,
-                    createdBy: row.original.createdBy,
-                  }
-                })}
+                onClick={() => handleCancelConfirmation(row.original)}
                 disabled={updateAppointmentMutation.isPending}
               >
                 Cancel
@@ -533,25 +518,7 @@ export default function AppointmentList({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => updateAppointmentMutation.mutate({
-                id: row.original.id.toString(),
-                data: {
-                  id: row.original.id,
-                  clinicId: row.original.clinicId,
-                  patientId: row.original.patientId,
-                  clientId: row.original.clientId,
-                  veterinarianId: row.original.veterinarianId,
-                  roomId: row.original.roomId,
-                  appointmentDate: row.original.appointmentDate,
-                  startTime: row.original.startTime,
-                  endTime: row.original.endTime,
-                  appointmentTypeId: row.original.appointmentTypeId,
-                  reason: row.original.reason,
-                  status: "cancelled",
-                  notes: row.original.notes,
-                  createdBy: row.original.createdBy,
-                }
-              })}
+              onClick={() => handleCancelConfirmation(row.original)}
               disabled={updateAppointmentMutation.isPending}
             >
               Cancel
@@ -620,6 +587,39 @@ export default function AppointmentList({
         description: "Failed to delete appointment",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleCancelConfirmation = (appointment: any) => {
+    setAppointmentToCancel(appointment)
+    setIsCancelDialogOpen(true)
+  }
+
+  const handleConfirmCancel = async () => {
+    if (!appointmentToCancel) return
+    
+    try {
+      await updateAppointmentMutation.mutateAsync({
+        id: appointmentToCancel.id.toString(),
+        data: {
+          id: appointmentToCancel.id,
+          clinicId: appointmentToCancel.clinicId,
+          patientId: appointmentToCancel.patientId,
+          clientId: appointmentToCancel.clientId,
+          veterinarianId: appointmentToCancel.veterinarianId,
+          roomId: appointmentToCancel.roomId,
+          appointmentDate: appointmentToCancel.appointmentDate,
+          startTime: appointmentToCancel.startTime,
+          endTime: appointmentToCancel.endTime,
+          appointmentTypeId: appointmentToCancel.appointmentTypeId,
+          reason: appointmentToCancel.reason,
+          status: "cancelled",
+          notes: appointmentToCancel.notes,
+          createdBy: appointmentToCancel.createdBy,
+        }
+      })
+    } catch (error) {
+      // Error handling is already done in the mutation
     }
   }
 
@@ -784,6 +784,18 @@ export default function AppointmentList({
           appointmentType={selectedAppointmentType || undefined}
         />
       )}
+
+      {/* Cancel Confirmation Dialog */}
+      <CancelConfirmationDialog
+        isOpen={isCancelDialogOpen}
+        onOpenChange={setIsCancelDialogOpen}
+        onConfirm={handleConfirmCancel}
+        appointmentInfo={appointmentToCancel ? 
+          `${appointmentToCancel.patient?.name || 'Unknown Patient'} - ${appointmentToCancel.appointmentType?.name || appointmentToCancel.appointmentType || 'Appointment'}` 
+          : undefined
+        }
+        isCancelling={updateAppointmentMutation.isPending}
+      />
 
     </div>
   )
