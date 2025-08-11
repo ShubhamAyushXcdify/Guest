@@ -10,17 +10,7 @@ import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useDeleteAppointment } from "@/queries/appointment/delete-appointment"
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { toast } from "@/components/ui/use-toast"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
@@ -822,43 +812,19 @@ export default function AppointmentList({
       )}
 
       {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={isCancelDialogOpen} onOpenChange={(open) => {
-        setIsCancelDialogOpen(open)
-        if (!open) {
-          setAppointmentToCancel(null)
-        }
-      }}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-orange-600 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Cancel Appointment</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription className="py-3">
-              Are you sure you want to cancel this appointment
-              {appointmentToCancel?.patient?.name && (
-                <span className="font-medium text-foreground"> for {appointmentToCancel.patient.name}</span>
-              )}? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2 sm:gap-0">
-            <AlertDialogCancel disabled={updateAppointmentMutation.isPending}>
-              Keep Appointment
-            </AlertDialogCancel>
-            <AlertDialogAction
-              asChild
-              onClick={(e) => {
-                e.preventDefault()
-                handleCancelConfirm()
-              }}
-            >
-              <Button variant="destructive" disabled={updateAppointmentMutation.isPending}>
-                {updateAppointmentMutation.isPending ? "Cancelling..." : "Cancel Appointment"}
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        isOpen={isCancelDialogOpen}
+        onOpenChange={(open) => {
+          setIsCancelDialogOpen(open)
+          if (!open) {
+            setAppointmentToCancel(null)
+          }
+        }}
+        onConfirm={handleCancelConfirm}
+        title="Cancel Appointment"
+        description={`Are you sure you want to cancel this appointment${appointmentToCancel?.patient?.name ? ` for ${appointmentToCancel.patient.name}` : ''}? This action cannot be undone.`}
+        isDeleting={updateAppointmentMutation.isPending}
+      />
 
     </div>
   )
