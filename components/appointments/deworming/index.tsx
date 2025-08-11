@@ -11,6 +11,7 @@ import NotesTab from "./NotesTab";
 import NewAppointment from "../newAppointment";
 import MedicalHistoryTab from "../MedicalHistoryTab";
 import { TabCompletionProvider } from "@/context/TabCompletionContext";
+import PrescriptionTab from "../Patient-Information/PrescriptionTab";
 
 interface DewormingComponentProps {
   patientId: string;
@@ -22,6 +23,7 @@ const tabOrder = [
   { id: "intake", label: "Intake" },
   { id: "medication", label: "Medication" },
   { id: "notes", label: "Notes" },
+ { id: "prescription", label: "Prescription" },
   { id: "checkout", label: "Checkout" }
 ];
 
@@ -101,6 +103,7 @@ function DewormingTabs({
     if (visitData.isDewormingIntakeCompleted) markTabAsCompleted("intake");
     if (visitData.isDewormingMedicationCompleted) markTabAsCompleted("medication");
     if (visitData.isDewormingNotesCompleted) markTabAsCompleted("notes");
+    if (visitData.isPrescriptionCompleted) markTabAsCompleted("prescription");
     if (visitData.isDewormingCheckoutCompleted) markTabAsCompleted("checkout");
   }, [visitData, markTabAsCompleted]);
 
@@ -120,6 +123,9 @@ function DewormingTabs({
         break;
       case "notes":
         result = visitData.isDewormingNotesCompleted || false;
+        break;
+      case "prescription":
+        result = visitData.isPrescriptionCompleted || false;
         break;
       case "checkout":
         result = visitData.isDewormingCheckoutCompleted || false;
@@ -162,6 +168,13 @@ function DewormingTabs({
           >
             Notes
             {shouldShowTabAsCompleted("notes") && <CheckCircle className="h-3 w-3 text-green-600" />}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="prescription"
+            className={`flex items-center gap-1 ${shouldShowTabAsCompleted("prescription") ? "text-green-600" : ""}`} 
+          >
+            Prescription
+            {shouldShowTabAsCompleted("prescription") && <CheckCircle className="h-3 w-3 text-green-600" />}
           </TabsTrigger>
           <TabsTrigger 
             value="checkout"
@@ -207,6 +220,15 @@ function DewormingTabs({
             onNext={navigateToNextTab}
             isCompleted={shouldShowTabAsCompleted("notes")}
           />
+        </TabsContent>
+        <TabsContent value="prescription">
+          <TabCompletionProvider>
+            <PrescriptionTab 
+              patientId={patientId} 
+              appointmentId={appointmentId}
+              onNext={navigateToNextTab}
+            />
+          </TabCompletionProvider>
         </TabsContent>
         <TabsContent value="checkout">
           <CheckoutTab 

@@ -12,6 +12,7 @@ import MedicalHistoryTab from "../MedicalHistoryTab";
 import { TabCompletionProvider } from "@/context/TabCompletionContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
+import PrescriptionTab from "../Patient-Information/PrescriptionTab";
 
 
 
@@ -28,6 +29,7 @@ interface EmergencyVisitDetail {
   isEmergencyVitalCompleted: boolean;
   isEmergencyProcedureCompleted: boolean;
   isEmergencyDischargeCompleted: boolean; 
+  isPrescriptionCompleted: boolean;
   isComplete: boolean; 
   
 }
@@ -38,6 +40,7 @@ const tabOrder = [
   { id: "triage", label: "Triage" },
   { id: "emergency-vitals", label: "Emergency Vitals" },
   { id: "emergency-procedures", label: "Emergency Procedures" },
+  { id: "prescription", label: "Prescription" },
   { id: "discharge", label: "Discharge" },
 ];
 
@@ -65,6 +68,8 @@ const isTabCompleted = (tabId: string) => {
       return visit.isEmergencyVitalCompleted || false;
     case "emergency-procedures":
       return visit.isEmergencyProcedureCompleted || false;
+    case "prescription":
+      return visit.isPrescriptionCompleted || false;  
     case "discharge":
       return visit.isEmergencyDischargeCompleted || false;
     default:
@@ -125,6 +130,11 @@ const isTabCompleted = (tabId: string) => {
 
             <TabsContent value="emergency-procedures">
               <EmergencyProceduresTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+            </TabsContent>
+            <TabsContent value="prescription">
+              <TabCompletionProvider>
+                <PrescriptionTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
+              </TabCompletionProvider>
             </TabsContent>
 
             <TabsContent value="discharge">
