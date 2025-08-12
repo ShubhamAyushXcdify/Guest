@@ -655,7 +655,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     {appointment?.appointmentType?.name?.toLowerCase().includes('certification') ? (
                       <>
                         <FileText className="h-4 w-4 mr-1" />
-                        Generate Certificates
+                        Certificates
                       </>
                     ) : (
                       <>

@@ -6,18 +6,21 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FileText, Search, Calendar, X, User, Building2, MapPin, Clock } from "lucide-react"
+import { FileText, Search, Calendar, X, User, Building2, MapPin, Clock, Download } from "lucide-react"
 import { useGetDischargeSummaryByClientId } from "@/queries/discharge-summary/get-discharge-summary-by-clientId"
 import { useGetPatients } from "@/queries/patients/get-patients"
 import { getClientId } from "@/utils/clientCookie"
 import DischargeSummarySheet from "@/components/appointments/discharge-summary-sheet"
+import CertificateDownload from "@/components/appointments/certificate-download"
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range"
 import type { DateRange } from "react-day-picker"
 
 export default function MedicalRecords() {
   const [isClient, setIsClient] = useState(false)
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
+  const [certificateDownloadOpen, setCertificateDownloadOpen] = useState(false)
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
 
@@ -81,6 +84,8 @@ export default function MedicalRecords() {
       return <Badge className="bg-green-100 text-green-800">Deworming</Badge>;
     } else if (type.includes('vaccination')) {
       return <Badge className="bg-purple-100 text-purple-800">Vaccination</Badge>;
+    } else if (type.includes('certification')) {
+      return <Badge className="bg-yellow-100 text-yellow-800">Certification</Badge>;
     } else {
       return <Badge className="bg-gray-100 text-gray-800">{appointmentType}</Badge>;
     }
@@ -182,19 +187,39 @@ export default function MedicalRecords() {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="theme-button-outline"
-                    onClick={() => {
-                      setSelectedAppointmentId(summary.appointmentId)
-                      setSelectedAppointmentType(summary.appointmentType)
-                      setDischargeSummaryOpen(true)
-                    }}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Print Discharge Summary
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="theme-button-outline"
+                      onClick={() => {
+                        setSelectedAppointmentId(summary.appointmentId)
+                        setSelectedAppointmentType(summary.appointmentType)
+                        setDischargeSummaryOpen(true)
+                      }}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Print Discharge Summary
+                    </Button>
+
+                    {/* Show Download Certificates button only for Certification appointments */}
+                    {summary.appointmentType?.toLowerCase().includes('certification') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="theme-button-outline"
+                        onClick={() => {
+                          setSelectedAppointmentId(summary.appointmentId)
+                          setSelectedPatientId(summary.patientId)
+                          setSelectedAppointmentType(summary.appointmentType)
+                          setCertificateDownloadOpen(true)
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Certificates
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -288,6 +313,20 @@ export default function MedicalRecords() {
           }}
           appointmentId={selectedAppointmentId}
           appointmentType={selectedAppointmentType || undefined}
+        />
+      )}
+
+      {/* Certificate Download Sheet */}
+      {certificateDownloadOpen && selectedAppointmentId && selectedPatientId && (
+        <CertificateDownload
+          appointmentId={selectedAppointmentId}
+          patientId={selectedPatientId}
+          onClose={() => {
+            setCertificateDownloadOpen(false)
+            setSelectedAppointmentId(null)
+            setSelectedPatientId(null)
+            setSelectedAppointmentType(null)
+          }}
         />
       )}
     </div>
