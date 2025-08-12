@@ -21,8 +21,8 @@ export default function Sidebar() {
   return (
     <aside className="w-64 min-h-screen flex flex-col bg-gradient-to-b from-blue-50 via-white to-blue-50 border-r border-blue-200 shadow-sm">
       {/* Logo Area */}
-      <div className="h-20 flex items-center justify-center bg-white border-b border-blue-100">
-        <img src="/images/logo.png" alt="PawTrack Logo" className="h-full w-fit" />
+      <div className="h-16 flex items-center justify-center bg-white border-b border-blue-100 py-2">
+        <img src="/images/logoPawTrack.png" alt="PawTrack Logo" className="h-full w-fit" />
       </div>
       {/* Navigation */}
       <nav className="flex-1 py-8 px-2">
