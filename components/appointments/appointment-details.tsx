@@ -660,7 +660,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
                     ) : (
                       <>
                         <ClipboardList className="h-4 w-4 mr-1" />
-                        Visit Details
+                        Open Visit Summary
                       </>
                     )}
                   </Button>

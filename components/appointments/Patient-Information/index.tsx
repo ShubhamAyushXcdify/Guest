@@ -86,7 +86,7 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
         <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%] overflow-x-hidden overflow-y-auto">
           <SheetHeader className="mb-6 mr-10">
             <div className="flex items-center justify-between">
-              <SheetTitle>Patient Information</SheetTitle>
+              <SheetTitle>Visit Summary</SheetTitle>
               <Button
                 variant="outline"
                 size="sm"
