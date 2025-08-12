@@ -4,7 +4,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateAppointmentType } from "@/queries/appointmentType/create-appointmentType";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { AppointmentType } from "@/queries/appointmentType/get-appointmentType";
 
 type NewAppointmentTypeProps = {
@@ -19,6 +19,7 @@ export default function NewAppointmentType({ onSuccess }: NewAppointmentTypeProp
       toast({
         title: "Success",
         description: "Appointment type created successfully",
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -26,11 +27,11 @@ export default function NewAppointmentType({ onSuccess }: NewAppointmentTypeProp
         router.push("/clinic");
       }
     },
-    onError: (error: unknown) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create appointment type",
-        variant: "destructive",
+        description: error.message || "Failed to create appointment type",
+        variant: "error",
       });
     },
   });
