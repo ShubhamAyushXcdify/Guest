@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FileText, Search, Calendar, X } from "lucide-react"
+import { FileText, Search, Calendar, X, User, Building2, MapPin, Clock } from "lucide-react"
 import { useGetDischargeSummaryByClientId } from "@/queries/discharge-summary/get-discharge-summary-by-clientId"
 import { useGetPatients } from "@/queries/patients/get-patients"
 import { getClientId } from "@/utils/clientCookie"
@@ -23,7 +23,7 @@ export default function MedicalRecords() {
 
   // Safely get clientId only on client side
   const [clientId, setClientId] = useState<string>("");
-  
+
   useEffect(() => {
     // Only get clientId on client side
     if (typeof window !== 'undefined') {
@@ -39,10 +39,10 @@ export default function MedicalRecords() {
   const toDate = dateRange?.to ? dateRange.to.toISOString().split('T')[0] : undefined;
 
   const dischargeSummaryQuery = useGetDischargeSummaryByClientId(clientId, fromDate, toDate);
-  
+
   // Handle the API response structure properly - the data might be directly an array or have an items property
-  const dischargeSummaries = Array.isArray(dischargeSummaryQuery.data) 
-    ? dischargeSummaryQuery.data 
+  const dischargeSummaries = Array.isArray(dischargeSummaryQuery.data)
+    ? dischargeSummaryQuery.data
     : dischargeSummaryQuery.data?.items || [];
   const isDischargeSummariesLoading = dischargeSummaryQuery.isLoading;
   const dischargeSummariesError = dischargeSummaryQuery.error;
@@ -55,7 +55,7 @@ export default function MedicalRecords() {
   // Safe date formatting to prevent hydration mismatches
   const formatDate = (dateString: string) => {
     if (!isClient) return ''; // Return empty string during SSR
-    
+
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -110,34 +110,28 @@ export default function MedicalRecords() {
           <h2 className="text-2xl font-bold text-gray-900">Medical Records</h2>
           <p className="text-gray-600 mt-1">View your pets' medical history and discharge summaries</p>
         </div>
+        <div className="flex justify-between items-center">
+          {/* Date Range Picker */}
+          <DatePickerWithRangeV2
+            date={dateRange}
+            setDate={setDateRange}
+            className="w-full max-w-md"
+          />
+
+          {/* Clear Filters Button */}
+          {dateRange && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Clear Filters
+            </Button>
+          )}
+        </div>
       </div>
-
-      {/* Filters Section */}
-      <Card className="bg-gray-50 border-0">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center">
-            {/* Date Range Picker */}
-            <DatePickerWithRangeV2
-              date={dateRange}
-              setDate={setDateRange}
-              className="w-full max-w-md"
-            />
-
-            {/* Clear Filters Button */}
-            {dateRange && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                className="flex items-center gap-2"
-              >
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {isDischargeSummariesLoading ? (
         <Card className="bg-white shadow-lg border-0">
@@ -170,10 +164,10 @@ export default function MedicalRecords() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
           {dischargeSummaries.map((summary: any) => (
             <Card key={summary.appointmentId} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-6 border-b mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12">
@@ -204,48 +198,80 @@ export default function MedicalRecords() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-600">Date</p>
-                    <p className="text-gray-900">
-                      {isClient && summary.appointmentDate ? formatDate(summary.appointmentDate) : "N/A"}
-                    </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <User className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Veterinarian</p>
+                        <p className="font-semibold text-slate-900">{summary.veterinarianName || "Not assigned"}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-600">Veterinarian</p>
-                    <p className="text-gray-900">{summary.veterinarianName || "N/A"}</p>
+
+                  <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <Building2 className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Clinic</p>
+                        <p className="font-semibold text-slate-900">{summary.clinicName || "Not specified"}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-600">Clinic</p>
-                    <p className="text-gray-900">{summary.clinicName || "N/A"}</p>
+
+                  <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Room</p>
+                        <p className="font-semibold text-slate-900">{summary.roomName || "Not assigned"}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-600">Room</p>
-                    <p className="text-gray-900">{summary.roomName || "N/A"}</p>
+
+                  <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Created</p>
+                        <p className="font-semibold text-slate-900">
+                          {isClient && summary.visitCreatedAt ? formatDate(summary.visitCreatedAt) : "N/A"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
+
                 {summary.reason && (
-                  <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="bg-gray-50 rounded-lg p-3 border">
                     <p className="font-medium text-gray-700 mb-1">Visit Reason</p>
                     <p className="text-gray-600 text-sm">{summary.reason}</p>
                   </div>
                 )}
-                
+
                 {summary.notes && (
-                  <div className="bg-blue-50 rounded-lg p-3">
+                  <div className="bg-blue-50 rounded-lg p-3 border">
                     <p className="font-medium text-blue-700 mb-1">Notes</p>
                     <p className="text-blue-600 text-sm">{summary.notes}</p>
                   </div>
                 )}
-                
+
                 <div className="flex items-center justify-between pt-2 border-t">
-                  
+
                   <div className="text-xs text-gray-500">
                     {isClient && summary.visitCreatedAt ? formatDate(summary.visitCreatedAt) : ""}
                   </div>
                 </div>
               </CardContent>
+
             </Card>
           ))}
         </div>
