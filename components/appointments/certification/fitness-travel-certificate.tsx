@@ -1,14 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { 
-  FileText, 
-  Download, 
-  Printer, 
+import {
+  FileText,
+  Download,
   Heart,
   Calendar,
   User,
@@ -30,22 +29,24 @@ import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id"
 import { useGetUserById } from "@/queries/users/get-user-by-id"
 import { Document, Page, Text, View } from '@react-pdf/renderer'
 import { certificateStyles, downloadPDF } from './pdf-utils'
+import { useCreateCertificate } from "@/queries/certificate/create-certificate";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import { useGetCertificateByVisitId } from "@/queries/certificate/get-certificate-by-visit-id";
+import { useUpdateCertificate } from "@/queries/certificate/update-certificate";
 
 interface FitnessTravelCertificateProps {
   appointmentId: string
   patientId: string
   onClose: () => void
+  readOnly?: boolean
 }
 
-export default function FitnessTravelCertificate({ appointmentId, patientId, onClose }: FitnessTravelCertificateProps) {
+export default function FitnessTravelCertificate({ appointmentId, patientId, onClose, readOnly = false }: FitnessTravelCertificateProps) {
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
   const [petDescription, setPetDescription] = useState("The pet is completely healthy & fully vaccinated")
-  const [petAge, setPetAge] = useState("")
   const [petWeight, setPetWeight] = useState("")
   const [petPlace, setPetPlace] = useState("")
-  const [petMicrochipId, setPetMicrochipId] = useState("")
-
-
 
   // Fetch real data from APIs
   const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentById(appointmentId)
@@ -54,18 +55,126 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
   const { data: clinic, isLoading: isLoadingClinic } = useGetClinicById(appointment?.clinicId || '')
   const { data: veterinarian, isLoading: isLoadingVet } = useGetUserById(appointment?.veterinarianId || '')
 
+  // Certificate API hooks
+  const { mutateAsync: createCertificate } = useCreateCertificate();
+  const { data: visit, isLoading: isLoadingVisit } = useGetVisitByAppointmentId(appointmentId)
+  const { data: certificateData, isLoading: isLoadingCertificate } = useGetCertificateByVisitId(visit?.id);
+  const { mutateAsync: updateCertificate } = useUpdateCertificate();
+
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth: string) => {
+    if (!dateOfBirth) return ''
+    try {
+      const birthDate = new Date(dateOfBirth)
+      const today = new Date()
+      const ageInYears = Math.floor((today.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+      return ageInYears > 0 ? `${ageInYears} years` : 'Less than 1 year'
+    } catch (e) {
+      return ''
+    }
+  }
+
+  // Get clinic name + city for place field
+  const getClinicPlace = () => {
+    const clinicName = clinic?.name || ''
+    let city = ''
+
+    // First try to get city directly from clinic.city field
+    if (clinic?.city) {
+      city = clinic.city
+    } else if (clinic?.address) {
+      const addressParts = clinic.address.split(',').map((part: string) => part.trim())
+      city = addressParts.length >= 2 ? addressParts[1] : addressParts[0] || ''
+    }
+
+    // Return clinic name + city
+    if (clinicName && city) {
+      return `${clinicName}, ${city}`
+    } else if (clinicName) {
+      return clinicName
+    } else if (city) {
+      return city
+    }
+
+    return ''
+  }
+
+  // Load existing certificate data
+  useEffect(() => {
+    if (certificateData && certificateData.certificateJson) {
+      const parsed = JSON.parse(certificateData.certificateJson);
+      setPetDescription(parsed.petDescription || "");
+      setPetWeight(parsed.petWeight || "");
+      setPetPlace(parsed.petPlace || "");
+      setIsSaved(true); // Certificate exists, so it's been saved before
+    }
+  }, [certificateData]);
+
   const handleGenerateCertificate = async () => {
-    setIsGenerating(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    setIsGenerating(false)
-    
-    toast({
-      title: "Certificate Generated",
-      description: "Fitness Certificate for Travelling has been generated successfully.",
-    })
+    if (!visit?.id) {
+      toast({
+        title: "Missing Visit",
+        description: "Visit not found for this appointment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+
+      const certificateContent = {
+        petDescription,
+        petWeight,
+        petPlace,
+        appointmentId,
+        patientId,
+        ownerName: getOwnerDisplayName(),
+        petName: getPatientDisplayName(),
+        vetName: getVetDisplayName(),
+        vetRegistration: veterinarian?.registrationNumber,
+        vetQualification: veterinarian?.qualification,
+        clinicName: clinic?.name,
+        clinicAddress: clinic?.address,
+        date: appointment?.appointmentDate || new Date().toISOString(),
+      };
+
+      const json = JSON.stringify(certificateContent);
+
+      if (certificateData) {
+        // Update existing certificate (PUT call)
+        await updateCertificate({
+          id: certificateData.id,
+          visitId: visit.id,
+          certificateJson: json,
+        });
+
+        toast({
+          title: "Certificate Updated",
+          description: "Fitness Travel Certificate updated successfully.",
+        });
+      } else {
+        // Create new certificate (POST call)
+        await createCertificate({
+          visitId: visit.id,
+          certificateJson: json,
+        });
+
+        setIsSaved(true);
+        toast({
+          title: "Certificate Saved",
+          description: "Fitness Travel Certificate saved successfully.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to save certificate",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   }
 
   const handleDownloadCertificate = async () => {
@@ -115,31 +224,31 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Species:</Text>
-                  <Text style={certificateStyles.detailValue}>{patient.species || 'N/A'}</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.species || ''}</Text>
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Gender:</Text>
-                  <Text style={certificateStyles.detailValue}>{patient.gender || 'N/A'}</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.gender || ''}</Text>
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Breed:</Text>
-                  <Text style={certificateStyles.detailValue}>{patient.breed || 'N/A'}</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.breed || ''}</Text>
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Age:</Text>
-                  <Text style={certificateStyles.inputValue}>{petAge || patient.age || 'N/A'}</Text>
+                  <Text style={certificateStyles.inputValue}>{calculateAge(patient.dateOfBirth)}</Text>
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Weight:</Text>
-                  <Text style={certificateStyles.inputValue}>{petWeight || (patient.weight ? `${patient.weight} kg` : 'N/A')}</Text>
+                  <Text style={certificateStyles.inputValue}>{petWeight || ''}</Text>
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Color:</Text>
-                  <Text style={certificateStyles.detailValue}>{patient.color || 'N/A'}</Text>
+                  <Text style={certificateStyles.detailValue}>{patient.color || ''}</Text>
                 </View>
                 <View style={certificateStyles.detailRow}>
                   <Text style={certificateStyles.detailLabel}>Microchip ID:</Text>
-                  <Text style={certificateStyles.inputValue}>{petMicrochipId || patient.microchipId || 'N/A'}</Text>
+                  <Text style={certificateStyles.inputValue}>{patient.microchipNumber || ''}</Text>
                 </View>
               </View>
 
@@ -147,12 +256,9 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
               <View style={certificateStyles.vetSection}>
                 <Text style={certificateStyles.sectionTitle}>Vet. Stamp & Sign:</Text>
                 <View style={certificateStyles.vetStamp}>
-                  <Text style={certificateStyles.vetStampText}>Veterinary Stamp</Text>
                 </View>
                 <View style={certificateStyles.signatureLine}></View>
                 <Text style={certificateStyles.vetName}>{getVetDisplayName()}</Text>
-                <Text style={certificateStyles.vetDetails}>{veterinarian.qualification || 'DVM'}</Text>
-                <Text style={certificateStyles.vetDetails}>{veterinarian.registrationNumber || 'N/A'}</Text>
               </View>
             </View>
 
@@ -168,7 +274,7 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
                 <View style={certificateStyles.datePlaceItem}>
                   <Text style={certificateStyles.datePlaceLabel}>Place:</Text>
                   <Text style={certificateStyles.datePlaceValue}>
-                    {petPlace || (clinic.address ? clinic.address.split(',')[0] : 'N/A')}
+                    {petPlace || getClinicPlace()}
                   </Text>
                 </View>
               </View>
@@ -222,12 +328,7 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
     }
   }
 
-  const handlePrintCertificate = () => {
-    toast({
-      title: "Printing",
-      description: "Certificate is being sent to printer...",
-    })
-  }
+
 
   // Helper function to get patient display name
   const getPatientDisplayName = () => {
@@ -294,16 +395,12 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
           </p>
         </div>
 
-        {/* Pet Description */}
+        {/* Pet Description - Always Read-Only */}
         <div className="mb-8">
           <h3 className="font-semibold text-gray-900 mb-3">Pet Description:</h3>
-          <textarea
-            value={petDescription}
-            onChange={(e) => setPetDescription(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg text-gray-800 italic resize-none"
-            rows={3}
-            placeholder="Enter pet description..."
-          />
+          <div className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 min-h-[80px]">
+            {petDescription || "No description available"}
+          </div>
         </div>
 
         {/* Pet and Owner Details */}
@@ -311,40 +408,13 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
           <div className="space-y-3">
             <div><span className="font-semibold">Pet Name:</span> {getPatientDisplayName()}</div>
             <div><span className="font-semibold">Owner Name:</span> {getOwnerDisplayName()}</div>
-            <div><span className="font-semibold">Species:</span> {patient.species || 'N/A'}</div>
-            <div><span className="font-semibold">Gender:</span> {patient.gender || 'N/A'}</div>
-            <div><span className="font-semibold">Breed:</span> {patient.breed || 'N/A'}</div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Age:</span>
-              <input
-                type="text"
-                value={petAge}
-                onChange={(e) => setPetAge(e.target.value)}
-                placeholder={patient.age || 'Enter age'}
-                className="flex-1 p-1 border border-gray-300 rounded text-sm"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Weight:</span>
-              <input
-                type="text"
-                value={petWeight}
-                onChange={(e) => setPetWeight(e.target.value)}
-                placeholder={patient.weight ? `${patient.weight} kg` : 'Enter weight'}
-                className="flex-1 p-1 border border-gray-300 rounded text-sm"
-              />
-            </div>
-            <div><span className="font-semibold">Color:</span> {patient.color || 'N/A'}</div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Microchip ID:</span>
-              <input
-                type="text"
-                value={petMicrochipId}
-                onChange={(e) => setPetMicrochipId(e.target.value)}
-                placeholder={patient.microchipId || 'Enter microchip ID'}
-                className="flex-1 p-1 border border-gray-300 rounded text-sm"
-              />
-            </div>
+            <div><span className="font-semibold">Species:</span> {patient.species || ''}</div>
+            <div><span className="font-semibold">Gender:</span> {patient.gender || ''}</div>
+            <div><span className="font-semibold">Breed:</span> {patient.breed || ''}</div>
+            <div><span className="font-semibold">Age:</span> {calculateAge(patient.dateOfBirth)}</div>
+            <div><span className="font-semibold">Weight:</span> {petWeight || (patient.weightKg ? `${patient.weightKg} kg` : 'Not specified')}</div>
+            <div><span className="font-semibold">Color:</span> {patient.color || ''}</div>
+            <div><span className="font-semibold">Microchip ID:</span> {patient.microchipNumber || ''}</div>
           </div>
 
           {/* Vet Stamp & Sign Section */}
@@ -357,8 +427,6 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
             </div>
             <div className="border-b-2 border-gray-400 w-32 mx-auto mb-2"></div>
             <p className="text-sm font-semibold text-blue-600">{getVetDisplayName()}</p>
-            <p className="text-xs text-gray-600">{veterinarian.qualification || 'DVM'}</p>
-            <p className="text-xs text-gray-600">{veterinarian.registrationNumber || 'N/A'}</p>
           </div>
         </div>
 
@@ -366,16 +434,7 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
         <div className="flex justify-between items-end mb-6">
           <div>
             <p><span className="font-semibold">Date:</span> {appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : new Date().toLocaleDateString()}</p>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Place:</span>
-              <input
-                type="text"
-                value={petPlace}
-                onChange={(e) => setPetPlace(e.target.value)}
-                placeholder={clinic.address ? clinic.address.split(',')[0] : 'Enter place'}
-                className="flex-1 p-1 border border-gray-300 rounded text-sm"
-              />
-            </div>
+            <p><span className="font-semibold">Place:</span> {getClinicPlace()}</p>
           </div>
         </div>
 
@@ -443,20 +502,7 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
             {renderCertificatePreview()}
           </div>
 
-          <div className="flex items-center justify-center space-x-4">
-            <Button
-              onClick={handleGenerateCertificate}
-              disabled={isGenerating}
-              className="flex items-center"
-            >
-              {isGenerating ? (
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <FileText className="h-4 w-4 mr-2" />
-              )}
-              {isGenerating ? "Generating..." : "Generate Certificate"}
-            </Button>
-
+          <div className="flex items-center justify-center">
             <Button
               variant="outline"
               onClick={handleDownloadCertificate}
@@ -464,15 +510,6 @@ export default function FitnessTravelCertificate({ appointmentId, patientId, onC
             >
               <Download className="h-4 w-4 mr-2" />
               Download
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={handlePrintCertificate}
-              className="flex items-center"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print
             </Button>
           </div>
         </div>

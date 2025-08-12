@@ -44,12 +44,8 @@ export const certificateStyles = StyleSheet.create({
   },
   petDescription: {
     fontSize: 14,
-    fontStyle: 'italic',
     marginBottom: 20,
     color: '#374151',
-    border: '1px solid #d1d5db',
-    padding: 10,
-    borderRadius: 5,
   },
   detailsGrid: {
     flexDirection: 'row',
@@ -78,19 +74,13 @@ export const certificateStyles = StyleSheet.create({
     fontSize: 12,
     color: '#374151',
     flex: 1,
-    fontStyle: 'italic',
   },
   vetSection: {
     alignItems: 'flex-end',
     width: '48%',
   },
   vetStamp: {
-    border: '2px solid #d1d5db',
-    borderRadius: 5,
-    padding: 15,
     height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 10,
   },
   vetStampText: {

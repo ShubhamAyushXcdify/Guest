@@ -5,14 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Input } from "@/components/ui/input"
-import {
-  FileText,
-  Heart,
-  Shield,
-  Syringe,
-  Pill,
-  Bug,
-  Cross,
+import { 
+  FileText, 
+  Heart, 
+  Shield, 
+  Syringe, 
+  Pill, 
+  Bug, 
+  Cross, 
   Handshake,
   Clock,
   XCircle,
@@ -23,11 +23,6 @@ import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { useGetClientById } from "@/queries/clients/get-client"
 import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id"
 import { useGetUserById } from "@/queries/users/get-user-by-id"
-import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
-import { useGetCertificateByVisitId } from "@/queries/certificate/get-certificate-by-visit-id"
-import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
-import { useToast } from "@/components/ui/use-toast"
-import { useEffect } from "react"
 
 // Import all certificate components
 import FitnessTravelCertificate from "./certification/fitness-travel-certificate"
@@ -38,7 +33,7 @@ import TickMedicineCertificate from "./certification/tick-medicine-certificate"
 import EuthanasiaCertificate from "./certification/euthanasia-certificate"
 import ConsentBondCertificate from "./certification/consent-bond-certificate"
 
-interface CertificateGenerationProps {
+interface CertificateDownloadProps {
   appointmentId: string
   patientId: string
   onClose: () => void
@@ -121,13 +116,9 @@ const certificateTypes: CertificateData[] = [
   }
 ]
 
-export default function CertificateGeneration({ appointmentId, patientId, onClose }: CertificateGenerationProps) {
+export default function CertificateDownload({ appointmentId, patientId, onClose }: CertificateDownloadProps) {
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateData | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [hasCertificateCreated, setHasCertificateCreated] = useState(false)
-  const [isCheckingOut, setIsCheckingOut] = useState(false)
-
-  const { toast } = useToast()
 
   // Fetch real data from APIs
   const { data: appointment, isLoading: isLoadingAppointment } = useGetAppointmentById(appointmentId)
@@ -136,75 +127,12 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
   const { data: clinic, isLoading: isLoadingClinic } = useGetClinicById(appointment?.clinicId || '')
   const { data: veterinarian, isLoading: isLoadingVet } = useGetUserById(appointment?.veterinarianId || '')
 
-  // Check for existing certificates to enable checkout
-  const { data: visit } = useGetVisitByAppointmentId(appointmentId)
-  const { data: existingCertificate } = useGetCertificateByVisitId(visit?.id)
-
-  // Update appointment mutation
-  const updateAppointmentMutation = useUpdateAppointment({
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Appointment completed successfully",
-      })
-      setIsCheckingOut(false)
-      onClose() // Close the certificate generation modal
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error?.message || "Failed to complete appointment",
-        variant: "destructive",
-      })
-      setIsCheckingOut(false)
-    }
-  })
-
-  // Enable checkout if there are existing certificates
-  useEffect(() => {
-    if (existingCertificate) {
-      setHasCertificateCreated(true)
-    }
-  }, [existingCertificate])
-
   const handleCertificateSelect = (certificate: CertificateData) => {
     setSelectedCertificate(certificate)
   }
 
   const handleBackToSelection = () => {
     setSelectedCertificate(null)
-    // Don't automatically set certificate as created - wait for actual POST call
-  }
-
-  const handleCertificateCreated = () => {
-    setHasCertificateCreated(true)
-  }
-
-  const handleCheckout = async () => {
-    if (!appointment) {
-      toast({
-        title: "Error",
-        description: "Appointment data not found",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsCheckingOut(true)
-
-    try {
-      // Update appointment status to completed
-      await updateAppointmentMutation.mutateAsync({
-        id: appointmentId,
-        data: {
-          ...appointment,
-          status: "completed"
-        }
-      })
-    } catch (error) {
-      console.error("Error during checkout:", error)
-      // Error handling is done in the mutation's onError callback
-    }
   }
 
   // Filter certificates based on search query
@@ -213,7 +141,7 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
     certificate.description.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  // Render the appropriate certificate component based on selection
+  // Render the appropriate certificate component based on selection (READ-ONLY MODE)
   const renderSelectedCertificate = () => {
     if (!selectedCertificate || !appointment || !patient || !client || !clinic || !veterinarian) {
       return (
@@ -229,7 +157,7 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
       appointmentId,
       patientId,
       onClose: handleBackToSelection,
-      onCertificateCreated: handleCertificateCreated
+      readOnly: true // READ-ONLY MODE - No editing, no save buttons
     }
 
     switch (selectedCertificate.template) {
@@ -260,7 +188,7 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
           <SheetHeader>
             <SheetTitle className="flex items-center">
               <FileText className="h-5 w-5 mr-2" />
-              Certificates
+              Download Certificates
             </SheetTitle>
           </SheetHeader>
           <div className="py-6 flex items-center justify-center">
@@ -281,7 +209,7 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
         <SheetHeader className="border-b pb-4 flex-shrink-0">
           <SheetTitle className="flex items-center">
             <FileText className="h-5 w-5 mr-2" />
-            Certificates
+            Download Certificates  
           </SheetTitle>
         </SheetHeader>
 
@@ -340,22 +268,10 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
                 </div>
               </div>
 
-              {/* Checkout Button - Bottom Right */}
-              <div className="flex-shrink-0 pt-4 bg-white">
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleCheckout}
-                    disabled={!hasCertificateCreated || isCheckingOut}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    size="default"
-                  >
-                    {isCheckingOut ? "Processing..." : "Checkout"}
-                  </Button>
-                </div>
-              </div>
+              {/* Note: NO CHECKOUT BUTTON in download mode */}
             </div>
           ) : (
-            // Certificate Preview and Generation View
+            // Certificate Preview and Download View
             <>
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -380,4 +296,4 @@ export default function CertificateGeneration({ appointmentId, patientId, onClos
         </SheetContent>
     </Sheet>
   )
-} 
+}
