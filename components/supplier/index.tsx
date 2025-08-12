@@ -275,7 +275,7 @@ function Supplier() {
       )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Supplier Details</SheetTitle>
           </SheetHeader>
