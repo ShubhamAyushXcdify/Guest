@@ -80,10 +80,10 @@ export function LoginForm() {
   return (
     <Card className="mx-auto max-w-sm max-h-full md:max-h-[calc(100vh-15rem)] overflow-y-auto">
       <CardHeader>
-        <CardTitle className="text-2xl mx-auto">Pet Health Portal</CardTitle>
+        {/* <CardTitle className="text-2xl mx-auto">Pet Health Portal</CardTitle>
         <CardDescription className="mx-auto text-center">
           Enter your credentials to access your pet's health information
-        </CardDescription>
+        </CardDescription> */}
       </CardHeader>
       <CardContent>
         <Form {...form}>
