@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getUserId } from "@/utils/clientCookie";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { DatePicker } from "@/components/ui/datePicker";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -146,13 +146,14 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
           toast({
             title: "Success",
             description: "Order received successfully",
+            variant: "success"
           });
         },
         onError: (error) => {
           toast({
             title: "Error",
             description: `Failed to receive order: ${error.message}`,
-            variant: "destructive"
+            variant: "error"
           });
         }
       }

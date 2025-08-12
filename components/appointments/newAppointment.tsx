@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/ui/datePicker"
 import { useCreateAppointment } from "@/queries/appointment"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetPatients, Patient } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
@@ -240,6 +240,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Success",
         description: "Appointment created successfully",
+        variant: "success", 
       })
       form.reset() // Clear the form after successful creation
       setSelectedPatient(null) // Clear selected patient after creation
@@ -249,7 +250,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Error",
         description: error.message || "Failed to create appointment",
-        variant: "destructive",
+        variant: "error",
       })
     }
   })
@@ -260,6 +261,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Success",
         description: "Appointment updated successfully",
+        variant: "success",
       })
       form.reset() // Clear the form after successful update
       setSelectedPatient(null) // Clear selected patient after update
@@ -269,7 +271,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Error",
         description: error.message || "Failed to update appointment",
-        variant: "destructive",
+        variant: "error",
       })
     }
   })
@@ -470,11 +472,13 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Patient added",
         description: `${latestPatient.name} has been added successfully.`,
+        variant: "success",
       })
     } else {
       toast({
         title: "Patient added",
         description: "Patient has been added successfully, refreshing patient list.",
+        variant: "success",
       })
     }
     

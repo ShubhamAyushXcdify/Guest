@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetPatients } from "@/queries/patients/get-patients"
@@ -313,14 +313,15 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
       toast({
         title: "Success",
         description: "Appointment updated successfully",
+        variant: "success",
       })
       setIsEditing(false)
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update appointment",
-        variant: "destructive",
+        variant: "error",
       })
     }
   })
