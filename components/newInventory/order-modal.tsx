@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 import { useRootContext } from "@/context/RootContext"
 import { getUserId } from "@/utils/clientCookie"
 
-import { toast, useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useCreatePurchaseOrder } from '@/queries/purchaseOrder/create-purchaseOrder'
 import { useGetSupplier } from '@/queries/suppliers/get-supplier'
 import { useGetProducts } from '@/queries/products/get-products'
@@ -398,7 +398,6 @@ function OrderModal({ isOpen, onClose, clinicId, initialProductId }: OrderModalP
       );
       // Format as ISO string for API
       formattedExpectedDeliveryDate = dateObj.toISOString();
-      console.log("Formatted delivery date:", formattedExpectedDeliveryDate);
     } catch (error) {
       console.error("Date formatting error:", error);
       // Fall back to original string if there's an error
@@ -442,7 +441,8 @@ function OrderModal({ isOpen, onClose, clinicId, initialProductId }: OrderModalP
       onSuccess: () => {
         toast({
           title: "Success",
-          description: "Purchase order created successfully"
+          description: "Purchase order created successfully",
+          variant: "success"
         })
         onClose()
       },

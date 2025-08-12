@@ -12,7 +12,7 @@ import { InventoryData } from "@/queries/inventory/get-inventory"
 import { Badge } from "../ui/badge"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
-import { toast } from "../ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { useForm } from "react-hook-form"
@@ -542,17 +542,18 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       toast({
         title: "Location Updated",
         description: `Location ${newLocation} assigned to batch ${selectedBatch.batchNumber}`,
+        variant: "success",
       })
 
       setLocationDialogOpen(false)
       setSelectedBatch(null)
       locationForm.reset()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating location:', error)
       toast({
         title: "Error",
-        description: "Failed to update location",
-        variant: "destructive",
+        description: error.message,
+        variant: "error",
       })
     }
   }
