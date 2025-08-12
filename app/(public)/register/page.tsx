@@ -31,11 +31,14 @@ export default function RegisterPage() {
       <div className="flex-1 flex flex-col justify-center items-center p-4 md:p-8 text-white">
         <div className="max-w-md w-full space-y-6 md:space-y-8">
           <div className="flex flex-col items-center">
-            <div className="relative w-24 h-24 md:w-40 md:h-40 mb-4 md:mb-6">
+            {/* <div className="relative w-24 h-24 md:w-40 md:h-40 mb-4 md:mb-6">
               <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
+            </div> */}
+            <div className="w-80">
+              <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className=" !relative w-40 " priority />
             </div>
-            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
-            <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p>
+            {/* <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
+            <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p> */}
           </div>
 
           {/* Mobile Features Preview */}
@@ -113,8 +116,8 @@ export default function RegisterPage() {
       </div>
 
       {/* Right side - Registration Form */}
-      <div className="flex-1 flex items-center justify-center p-4 md:p-8">
-        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl w-full max-w-md p-4 md:p-8">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-white">
+        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl w-full max-w-lg p-4 md:p-8 border">
           <div className="text-center mb-6 md:mb-8">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">Create your account to access your pet's health portal</p>

@@ -120,8 +120,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl max-w-md w-full p-4 md:p-8  max-h-full md:max-h-[calc(100vh-3rem)] overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-4 bg-white">
+        <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl max-w-md w-full p-4 md:p-8  max-h-full md:max-h-[calc(100vh-3rem)] overflow-y-auto border">
           <div className="text-center mb-6 md:mb-8">
             <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">Sign in to access your pet's health portal</p>

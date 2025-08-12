@@ -127,7 +127,7 @@ export function RegistrationForm() {
 
   if (isSuccess) {
     return (
-      <Card className="mx-auto max-w-2xl">
+      <Card className="mx-auto max-w-3xl">
         <CardHeader>
           <CardTitle className="text-2xl mx-auto">Registration Successful</CardTitle>
         </CardHeader>
@@ -140,16 +140,16 @@ export function RegistrationForm() {
 
   return (
     <Card className="mx-auto max-w-2xl max-h-full md:max-h-[calc(100vh-15rem)] overflow-y-auto">
-      <CardHeader>
+      {/* <CardHeader>
         <CardTitle className="text-2xl mx-auto">Register</CardTitle>
         <CardDescription className="mx-auto text-center">
           Create a new account
         </CardDescription>
-      </CardHeader>
+      </CardHeader> */}
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <FormField
                 control={form.control}
                 name="firstName"
