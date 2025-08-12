@@ -30,7 +30,7 @@ import {
   SelectValue 
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { CalendarIcon, Plus, Mic, Loader2, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -89,6 +89,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
   const [showClientForm, setShowClientForm] = useState(false)
   const { user, userType, clinic } = useRootContext()
   const createPatientMutation = useCreatePatient()
+  const { toast } = useToast()
   
   // New states for client search
   const [clientSearchQuery, setClientSearchQuery] = useState("")
@@ -152,6 +153,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
       toast({
         title: "Pet registered",
         description: "Your pet has been successfully registered.",
+        variant: "success", 
       })
       
       onSuccess()
@@ -159,8 +161,8 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to register your pet. Please try again.",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while registering the pet.",
+        variant: "error",
       })
     } finally {
       setIsPending(false)
@@ -177,6 +179,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
     toast({
       title: "Owner added",
       description: `${client.firstName} ${client.lastName} has been added as an owner.`,
+      variant: "success",
     });
     // Delay closing the form to allow the toast to be seen
     setTimeout(() => {

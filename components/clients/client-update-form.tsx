@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Client } from "@/queries/clients/get-client";
 import { useUpdateClient } from "@/queries/clients/update-client";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
 
 const updateClientSchema = z.object({
@@ -49,6 +49,7 @@ interface ClientUpdateFormProps {
 export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const updateClientMutation = useUpdateClient();
+  const { toast } = useToast();
 
   // Initialize form with client data
   const form = useForm<UpdateClientFormValues>({
@@ -99,7 +100,8 @@ export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
       
       toast({
         title: "Success",
-        description: "Owner updated successfully",
+        description: `Client ${data.firstName} ${data.lastName} updated successfully`,
+        variant: "success",
       });
       
       if (onSuccess) {
@@ -109,8 +111,8 @@ export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
       console.error("Error updating client:", error);
       toast({
         title: "Error",
-        description: "Failed to update owner. Please try again.",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the owner.",
+        variant: "error",
       });
     } finally {
       setIsSubmitting(false);

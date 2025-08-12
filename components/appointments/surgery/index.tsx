@@ -18,6 +18,8 @@ function SurgeryTabs({ patientId, appointmentId, onClose, activeTab, setActiveTa
         return visit.isSurgeryDetailsCompleted === true;
       case "post-op":
         return visit.isSurgeryPostOpCompleted === true;
+      case "prescription":
+        return visit.isPrescriptionCompleted === true;
       case "discharge":
         return visit.isSurgeryDischargeCompleted === true;
       default:
@@ -52,6 +54,12 @@ function SurgeryTabs({ patientId, appointmentId, onClose, activeTab, setActiveTa
         <TabsContent value="post-op">
           <PostOpTab patientId={patientId} appointmentId={appointmentId} />
         </TabsContent>
+       <TabsContent value="prescription">
+          <TabCompletionProvider>
+            <PrescriptionTab patientId={patientId} appointmentId={appointmentId} />
+          </TabCompletionProvider>
+       </TabsContent>
+
         <TabsContent value="discharge">
           <DischargeTab patientId={patientId} appointmentId={appointmentId} onClose={onClose} />
         </TabsContent>
@@ -91,6 +99,7 @@ import NewAppointment from "../newAppointment";
 import MedicalHistoryTab from "../MedicalHistoryTab";
 import { TabCompletionProvider } from "@/context/TabCompletionContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+import PrescriptionTab from "../Patient-Information/PrescriptionTab";
 
 interface SurgeryComponentProps {
   patientId: string;
@@ -102,6 +111,7 @@ const tabOrder = [
   { id: "pre-op", label: "Pre-op" },
   { id: "surgery", label: "Surgery" },
   { id: "post-op", label: "Post-op" },
+  { id: "prescription", label: "Prescription" },
   { id: "discharge", label: "Discharge" },
 ];
 

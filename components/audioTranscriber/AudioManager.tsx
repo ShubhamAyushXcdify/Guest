@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -118,7 +118,7 @@ export function AudioManager(props: AudioManagerProps) {
                 </DialogHeader>
 
                 <div className='space-y-4'>
-                    <div className='flex flex-col justify-center items-center rounded-lg \'>
+                    <div className='flex flex-col justify-center items-center rounded-lg'>
                         <div className='flex flex-row space-x-2 py-2 w-full px-2'>
                             {navigator.mediaDevices && (
                                 <div className="space-y-4 w-full">
@@ -128,7 +128,7 @@ export function AudioManager(props: AudioManagerProps) {
                         </div>
                     </div>
 
-                    {/* {audioData && (
+                    {audioData && (
                         <>
                             <AudioPlayer
                                 audioUrl={audioData.url}
@@ -151,19 +151,21 @@ export function AudioManager(props: AudioManagerProps) {
                                 </div>
                             )}
                         </>
-                    )} */}
+                    )}
                 </div>
 
                 <DialogFooter>
-                    {/* <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose}>
                         Cancel
-                    </Button> */}
-                    {/* <Button
-                        onClick={onSubmit}
-                        disabled={!audioData || props.transcriber.isBusy || props.transcriber.isModelLoading}
-                    >
-                        {props.transcriber.isBusy ? 'Transcribing...' : 'Transcribe'}
-                    </Button> */}
+                    </Button>
+                    {audioData && (
+                        <Button
+                            onClick={onSubmit}
+                            disabled={!audioData || props.transcriber.isBusy || props.transcriber.isModelLoading}
+                        >
+                            {props.transcriber.isBusy ? 'Transcribing...' : 'Transcribe'}
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>

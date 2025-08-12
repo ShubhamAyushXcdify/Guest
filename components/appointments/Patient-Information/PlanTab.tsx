@@ -6,7 +6,7 @@ import { useGetPlans } from "@/queries/Plan/get-plans"
 import { useCreatePlan } from "@/queries/Plan/create-plan"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CheckCircle, AlertCircle, Mic, Printer } from "lucide-react"
+import { PlusCircle, X, CheckCircle, Mic } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
 import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-by-visit-id"
@@ -14,11 +14,11 @@ import { useUpdatePlanDetail } from "@/queries/PlanDetail/update-plan-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
-import { useGetPrescriptionPdf } from "@/queries/PrescriptionDetail/get-prescription-pdf"
+
 
 // Interface for extended visit data
 interface ExtendedVisitData {
@@ -58,11 +58,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   // Check if appointment is already completed
   const isAppointmentCompleted = appointmentData?.status === "completed"
   
-  // Get prescription PDF data (disabled by default to prevent auto-opening)
-  const { data: prescriptionPdfData, refetch: refetchPrescriptionPdf } = useGetPrescriptionPdf(
-    visitData?.id || "",
-    false // Disable automatic fetching to prevent auto-opening of PDF
-  )
+
   
   const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
@@ -74,22 +70,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   // Combined loading state
   const isPending = isCreating || isUpdating
 
-  // Function to check if all visit tabs are completed
-  const areAllVisitTabsCompleted = (): boolean => {
-    if (!visitData) return false;
-    
-    // Cast visitData to access all completion properties
-    const visit = visitData as unknown as ExtendedVisitData;
-    
-    return (
-      visit.isIntakeCompleted &&
-      visit.isComplaintsCompleted &&
-      visit.isVitalsCompleted &&
-      visit.isProceduresCompleted &&
-      visit.isPrescriptionCompleted
-      // Note: We don't check isPlanCompleted here as that's the current tab
-    );
-  };
+
   
   // Initialize selected plans and notes from existing data
   useEffect(() => {
@@ -241,11 +222,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       toast.error("No appointment data found")
       return
     }
-    // Check if all required tabs have been completed using visitData
-    if (!isAppointmentCompleted && !areAllVisitTabsCompleted()) {
-      toast.error("Please complete all tabs before checking out")
-      return
-    }
+
     setIsProcessing(true)
     setHasInitiatedCheckout(true)
     try {
@@ -298,35 +275,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
 
   const isReadOnly = appointmentData?.status === "completed"
 
-  const handlePrintPrescription = useCallback(async () => {
-    try {
-      if (!visitData?.id) {
-        toast.error("No visit data found for this appointment")
-        return
-      }
 
-      // Refetch the PDF data to ensure we have the latest
-      const pdfData = await refetchPrescriptionPdf()
-      
-      if (pdfData.data?.pdfBase64) {
-        try {
-          const blob = await fetch(`data:application/pdf;base64,${pdfData.data.pdfBase64}`).then(res => res.blob());
-          const url = URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          // Clean up the URL after a delay
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } catch (error) {
-          console.error("Error opening PDF:", error);
-          toast.error("Failed to open prescription PDF")
-        }
-      } else {
-        toast.error("No prescription PDF available for this visit")
-      }
-    } catch (error) {
-      console.error("Error printing prescription:", error);
-      toast.error("Failed to print prescription")
-    }
-  }, [visitData?.id, refetchPrescriptionPdf])
 
 
 
@@ -350,8 +299,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
     )
   }
   
-  // Check all tabs completion state for UI display
-  const allVisitTabsComplete = areAllVisitTabsCompleted();
+
   
   return (
     <Card>
@@ -398,17 +346,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           </div>
         )}
 
-        {/* Only show the warning if appointment isn't already completed and not all tabs are complete */}
-        {!isAppointmentCompleted && !allVisitTabsComplete && (
-          <Alert variant="default" className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Incomplete Patient Information</AlertTitle>
-            <AlertDescription>
-              Please complete all tabs before checking out the patient. 
-              Tabs that are completed will show in green.
-            </AlertDescription>
-          </Alert>
-        )}
+
 
         {isLoading ? (
           <div className="py-4 text-sm text-muted-foreground">Loading plans...</div>
@@ -493,14 +431,6 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
 
             <div className="mt-6 flex justify-end gap-2">
               <Button
-                variant="outline"
-                onClick={handlePrintPrescription}
-                className="flex items-center gap-2"
-              >
-                <Printer className="h-4 w-4" />
-                Print Prescription
-              </Button>
-              <Button 
                 onClick={handleSave}
                 disabled={isPending || selectedPlans.length === 0 || isReadOnly}
                 className="ml-2"
@@ -509,7 +439,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               </Button>
               <Button
                 onClick={handleCheckout}
-                disabled={isPending || !allVisitTabsComplete || selectedPlans.length === 0 || isReadOnly || !completedTabs.includes("plan")}
+                disabled={false}
                 className="ml-2 bg-green-600 hover:bg-green-700 text-white"
               >
                 Checkout

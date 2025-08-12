@@ -4,13 +4,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useCreateSupplier } from "@/queries/suppliers/create-supplier";
-import { toast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Supplier } from "./index";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useRootContext } from '@/context/RootContext';
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type NewSupplierProps = {
   onSuccess?: () => void;
@@ -21,12 +21,16 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   const { user, userType, clinic } = useRootContext();
   const { data: clinicsData } = useGetClinic();
   const clinics = clinicsData?.items || [];
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   
   const createSupplier = useCreateSupplier({
     onSuccess: () => {
       toast({
         title: "Success",
         description: "Supplier created successfully",
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -37,8 +41,8 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create supplier",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while creating the supplier.",
+        variant: "error",
       });
     },
   });
@@ -72,9 +76,12 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   
   const handleSubmit = async (values: Omit<Supplier, "id" | "createdAt" | "updatedAt">) => {
     try {
+      setIsSubmitting(true);
       await createSupplier.mutateAsync(values);
     } catch (error) {
       // Error is handled in onError callback
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -196,7 +203,9 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
         </div>
         
         <div className="flex justify-end mt-6">
-          <Button type="submit">
+          <Button type="submit"
+          disabled={isSubmitting}
+          >
             Create Supplier
           </Button>
         </div>

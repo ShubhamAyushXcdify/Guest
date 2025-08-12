@@ -11,7 +11,7 @@ import { useGetSupplier } from "@/queries/suppliers/get-supplier";
 import withAuth from "@/utils/privateRouter";
 import NewSupplier from "./newSupplier";
 import { useDeleteSupplier } from "@/queries/suppliers/delete-supplier";
-import { toast } from "../ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -71,6 +71,7 @@ function Supplier() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const { toast } = useToast();
   
   // If user is clinicAdmin, filter suppliers by clinic ID
   const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? clinic.id || '' : '';
@@ -124,12 +125,13 @@ function Supplier() {
       toast({
         title: "Success",
         description: "Supplier deleted successfully",
+        variant: "error",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete supplier",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while deleting the supplier.",
         variant: "destructive",
       });
     } finally {
@@ -273,7 +275,7 @@ function Supplier() {
       )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-hidden">
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Supplier Details</SheetTitle>
           </SheetHeader>
