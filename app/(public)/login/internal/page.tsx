@@ -34,14 +34,14 @@ export default function LoginPage() {
         </DropdownMenu>
       </div>
       {/* Left side - Branding */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 text-white">
+      <div className="flex-1 flex flex-col justify-center items-center text-white">
         <div className="max-w-md w-full space-y-8">
           <div className="flex flex-col items-center">
-            <div className="relative w-40 h-40 mb-6">
-              <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
+            <div className="w-80">
+              <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className=" !relative w-40 " priority />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight">PawTrack</h1>
-            <p className="mt-2 text-xl">Veterinary Practice Management</p>
+            {/* <h1 className="text-4xl font-bold tracking-tight">PawTrack</h1>
+            <p className="mt-2 text-xl">Veterinary Practice Management</p> */}
           </div>
 
           <div className="mt-10 hidden md:block">
@@ -73,11 +73,11 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-8">
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-8 border">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">Sign in to your account</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Pet Health Portal</h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Enter your credentials to access your pet's health information</p>
           </div>
           
           {/* <div className="mb-6">
