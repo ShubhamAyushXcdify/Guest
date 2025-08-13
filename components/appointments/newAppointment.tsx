@@ -238,18 +238,18 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const { mutate: createAppointment, isPending } = useCreateAppointment({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Appointment created successfully",
+        title: "Appointment Created",
+        description: "Appointment has been created successfully",
         variant: "success", 
       })
       form.reset() // Clear the form after successful creation
       setSelectedPatient(null) // Clear selected patient after creation
       onClose()
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create appointment",
+        description: error instanceof Error ? error.message : "Failed to create appointment",
         variant: "error",
       })
     }
@@ -259,18 +259,18 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Appointment updated successfully",
+        title: "Appointment Updated",
+        description: "Appointment information has been updated successfully",
         variant: "success",
       })
       form.reset() // Clear the form after successful update
       setSelectedPatient(null) // Clear selected patient after update
       onClose()
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update appointment",
+        description: error instanceof Error ? error.message : "Failed to update appointment",
         variant: "error",
       })
     }
@@ -324,6 +324,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       toast({
         title: "Patient Selected",
         description: `Client: ${clientName || 'Unknown Client'}`,
+        duration: 800,
       });
     } else {
       // Show warning that client ID is missing
@@ -331,6 +332,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         title: "Warning: Missing Client Information",
         description: "This patient doesn't have an associated client. You'll need to provide client info before creating an appointment.",
         variant: "destructive", 
+        duration: 800,
       });
     }
   }
@@ -356,6 +358,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
           title: "Patient Required",
           description: "Please select a patient for this appointment.",
           variant: "destructive",
+          duration: 800,
         });
         return;
       }
@@ -385,6 +388,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
           title: "Missing Client Information",
           description: "To create an appointment, this patient must have an associated client. Please update the patient record first.",
           variant: "destructive",
+          duration: 800,
         });
         return; // Prevent form submission
       }
@@ -397,6 +401,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
           title: "Error",
           description: "Selected slot information not found",
           variant: "destructive",
+          duration: 800,
         });
         return;
       }

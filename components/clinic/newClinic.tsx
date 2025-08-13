@@ -4,11 +4,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useCreateClinic } from "@/queries/clinic/create-clinic";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Clinic } from "./index";
 import { DatePicker } from "../ui/datePicker";
 import AdvancedMap from "../map/advanced-map";
 import { LocationData } from "../map/hooks/useMapAdvanced";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { useGetCompanies } from "@/queries/companies/get-company";
+import { Textarea } from "../ui/textarea";
+import { useRootContext } from "@/context/RootContext";
+import { getCompanyId } from "@/utils/clientCookie";
+import { useEffect } from "react";
 
 type NewClinicProps = {
   onSuccess?: () => void;
@@ -16,12 +22,17 @@ type NewClinicProps = {
 
 export default function NewClinic({ onSuccess }: NewClinicProps) {
   const router = useRouter();
+  const { user } = useRootContext();
+  
+  // Fetch companies for selection
+  const { data: companies, isLoading: companiesLoading } = useGetCompanies();
   
   const createClinic = useCreateClinic({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Clinic created successfully",
+        title: "Clinic Created",
+        description: "Clinic has been created successfully",
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -32,7 +43,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create clinic",
+        description: error instanceof Error ? error.message : "Failed to create clinic",
         variant: "destructive",
       });
     },
@@ -40,6 +51,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
   
   const form = useForm<Omit<Clinic, "id" | "createdAt" | "updatedAt">>({
     defaultValues: {
+      companyId: "",
       name: "",
       addressLine1: "",
       addressLine2: "",
@@ -61,6 +73,21 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
       //subscriptionExpiresAt: "",
     },
   });
+
+  // Set company ID from local storage or user context
+  useEffect(() => {
+    const companyId = getCompanyId();
+    if (companyId && !form.getValues('companyId')) {
+      form.setValue('companyId', companyId);
+    }
+  }, [form]);
+
+  // Alternative: Set company ID when user data is available
+  useEffect(() => {
+    if (user?.companyId && !form.getValues('companyId')) {
+      form.setValue('companyId', user.companyId);
+    }
+  }, [user, form]);
 
   // Handle location selection from map
   const handleLocationSelect = (location: LocationData) => {
@@ -113,8 +140,9 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     }
     
     toast({
-      title: "Location Selected",
-      description: "Location has been set for the clinic",
+      title: "Location Saved",
+      description: "Location has been saved for the clinic",
+      duration: 800,
     });
   };
   
@@ -138,6 +166,47 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
         <div className="grid grid-cols-2 gap-8">
+          <FormField name="companyId" control={form.control} render={({ field }) => {
+            const selectedCompany = companies?.find(company => company.id === field.value);
+            const isPreSelected = !!field.value && (getCompanyId() === field.value || user?.companyId === field.value);
+            
+            return (
+              <FormItem>
+                <FormLabel>Company *</FormLabel>
+                <FormControl>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                    disabled={isPreSelected}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        companiesLoading 
+                          ? "Loading companies..." 
+                          : isPreSelected && selectedCompany
+                          ? `${selectedCompany.name} (Auto-selected)`
+                          : "Select a company"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies?.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                {isPreSelected && selectedCompany && (
+                  <p className="text-sm text-muted-foreground">
+                    Company automatically selected from your profile: {selectedCompany.name}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            );
+          }} />
+
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>

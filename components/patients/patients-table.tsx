@@ -68,7 +68,7 @@ export function PatientsTable({
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete the patient. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to delete the patient. Please try again.",
         variant: "error",
       })
     }

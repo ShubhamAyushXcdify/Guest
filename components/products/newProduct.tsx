@@ -7,7 +7,6 @@ import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCreateProduct } from "@/queries/products/create-products";
-import { toast } from "../ui/use-toast";
 import { Product } from ".";
 import { Combobox } from "../ui/combobox";
 import { useToast } from "@/hooks/use-toast";
@@ -46,8 +45,8 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
   const createProduct = useCreateProduct({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Product created successfully",
+        title: "Product Created",
+        description: "Product has been created successfully",
         variant: "success",
       });
       // Automatically close the form after successful creation

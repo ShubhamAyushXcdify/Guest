@@ -33,6 +33,7 @@ import { format } from "date-fns"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/hooks/use-toast"
 
 export const RegisteredClientsScreen = () => {
   const [page, setPage] = useState(1)
@@ -84,9 +85,18 @@ export const RegisteredClientsScreen = () => {
       if (isSidebarOpen) {
         setIsSidebarOpen(false)
       }
+      toast({
+        title: "Registration Approved",
+        description: "Client registration has been approved successfully",
+        variant: "success",
+      })
       refetch()
     } catch (error) {
-      console.error("Error approving registration:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve registration",
+        variant: "error",
+      })
     }
   }
 
@@ -109,9 +119,19 @@ export const RegisteredClientsScreen = () => {
       if (isSidebarOpen) {
         setIsSidebarOpen(false)
       }
+      toast({
+        title: "Registration Rejected",
+        description: "Client registration has been rejected successfully",
+        variant: "success",
+      })
+
       refetch()
     } catch (error) {
-      console.error("Error rejecting registration:", error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reject registration",
+        variant: "error",
+      })
     }
   }
 

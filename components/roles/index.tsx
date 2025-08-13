@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../u
 import NewRole from "./newRole";
 import RoleDetails from "./roleDetails";
 import { useDeleteRole } from "@/queries/roles/delete-role";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { Role } from "@/queries/roles/get-role";
 import { useRouter } from "next/navigation";
@@ -52,15 +52,16 @@ export default function Roles() {
     try {
       await deleteRole.mutateAsync({ id: roleToDelete.id });
       toast({
-        title: "Success",
-        description: "Role deleted successfully",
+        title: "Role Deleted",
+        description: "Role has been deleted successfully",
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete role",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to delete role",
+        variant: "error",
       });
     } finally {
       setIsDeleting(false);

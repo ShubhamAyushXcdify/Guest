@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useUpdateClinic } from "@/queries/clinic/update-clinic";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { Switch } from "../ui/switch";
 import { Clinic } from ".";
@@ -13,6 +13,11 @@ import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id";
 import { DatePicker } from "../ui/datePicker";
 import AdvancedMap from "../map/advanced-map";
 import { LocationData } from "../map/hooks/useMapAdvanced";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { useGetCompanies } from "@/queries/companies/get-company";
+import { Textarea } from "../ui/textarea";
+import { useRootContext } from "@/context/RootContext";
+import { getCompanyId } from "@/utils/clientCookie";
 
 type ClinicDetailsProps = {
   clinicId: string;
@@ -22,13 +27,16 @@ type ClinicDetailsProps = {
 export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProps) {
   const router = useRouter();
   const [isFormReady, setIsFormReady] = useState(false);
+  const { user } = useRootContext();
   
   const { data: clinic, isLoading } = useGetClinicById(clinicId);
+  const { data: companies, isLoading: companiesLoading } = useGetCompanies();
   const updateClinic = useUpdateClinic();
   
   const form = useForm<Clinic>({
     defaultValues: {
       id: "",
+      companyId: "",
       name: "",
       addressLine1: "",
       addressLine2: "",
@@ -73,6 +81,21 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
       setIsFormReady(true);
     }
   }, [clinic, form]);
+
+  // Set company ID from local storage if not already set (for new clinics or when company is not set)
+  useEffect(() => {
+    const companyId = getCompanyId();
+    if (companyId && !form.getValues('companyId')) {
+      form.setValue('companyId', companyId);
+    }
+  }, [form]);
+
+  // Alternative: Set company ID from user context if not already set
+  useEffect(() => {
+    if (user?.companyId && !form.getValues('companyId')) {
+      form.setValue('companyId', user.companyId);
+    }
+  }, [user, form]);
 
   // Handle location selection from map
   const handleLocationSelect = (location: LocationData) => {
@@ -126,7 +149,8 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
     
     toast({
       title: "Location Updated",
-      description: "Clinic location has been updated",
+      description: "Clinic location has been updated successfully",
+      duration: 800,
     });
   };
   
@@ -142,14 +166,15 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
     try {
       await updateClinic.mutateAsync(values);
       toast({
-        title: "Success",
-        description: "Clinic updated successfully",
+        title: "Clinic Updated",
+        description: "Clinic has been updated successfully",
+        variant: "success",
       });
       if (onSuccess) onSuccess();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update clinic",
+        description: error instanceof Error ? error.message : "Failed to update clinic",
         variant: "destructive",
       });
     }
@@ -165,6 +190,53 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full pb-20">
             <div className="grid grid-cols-2 gap-8">
+              <FormField name="companyId" control={form.control} render={({ field }) => {
+                const selectedCompany = companies?.find(company => company.id === field.value);
+                const isPreSelected = !!field.value && (getCompanyId() === field.value || user?.companyId === field.value);
+                const isExistingClinic = !!clinic?.companyId; // Check if this is an existing clinic with a company
+                
+                return (
+                  <FormItem>
+                    <FormLabel>Company *</FormLabel>
+                    <FormControl>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={isPreSelected || isExistingClinic}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={
+                            companiesLoading 
+                              ? "Loading companies..." 
+                              : (isPreSelected || isExistingClinic) && selectedCompany
+                              ? `${selectedCompany.name}${isPreSelected ? ' (Auto-selected)' : ''}`
+                              : "Select a company"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companies?.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    {isPreSelected && selectedCompany && (
+                      <p className="text-sm text-muted-foreground">
+                        Company automatically selected from your profile: {selectedCompany.name}
+                      </p>
+                    )}
+                    {isExistingClinic && selectedCompany && !isPreSelected && (
+                      <p className="text-sm text-muted-foreground">
+                        Company cannot be changed for existing clinic: {selectedCompany.name}
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                );
+              }} />
+
               <FormField name="name" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>Name</FormLabel>

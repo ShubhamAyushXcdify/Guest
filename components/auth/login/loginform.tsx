@@ -63,10 +63,17 @@ export function LoginForm() {
       }
       fetchUser(data, data.user.roleName); 
       router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
-    },
-    onError: (error: any) => {
       toast({
-        description: error.message,
+        title: "Login Successful",
+        description: "Welcome to the PawTrack",
+        variant: "success",
+      })
+
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Login failed. Please try again.",
         variant: 'destructive',
         duration: 3000,
       })

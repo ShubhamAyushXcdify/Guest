@@ -18,6 +18,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import NewSupplier from "@/components/supplier/newSupplier"
 import { ClientDrawerContent } from "@/components/clients/clientDrawer"
 import { OrderModal } from "@/components/newInventory/order-modal"
+import App from "next/app"
+import { ApproveAppointmentDrawer } from "../approve-appointment-drawer"
 
 export const DashboardScreen = () => {
   const [mounted, setMounted] = useState(false)
@@ -25,7 +27,7 @@ export const DashboardScreen = () => {
   const [showNewAppointmentDrawer, setShowNewAppointmentDrawer] = useState(false)
   const [showNewInvoiceDrawer, setShowNewInvoiceDrawer] = useState(false)
   const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null);
-
+  const [showApproveAppointmentDrawer, setShowApproveAppointmentDrawer] = useState(false);
   // New state for veterinarian/provider functionality
   const [showAddProductDrawer, setShowAddProductDrawer] = useState(false)
   const [showAddSupplierDrawer, setShowAddSupplierDrawer] = useState(false)
@@ -40,7 +42,7 @@ export const DashboardScreen = () => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail && customEvent.detail.appointmentId) {
         setEditAppointmentId(customEvent.detail.appointmentId);
-    setShowNewAppointmentDrawer(true);
+        setShowApproveAppointmentDrawer(true);
       }
     };
 
@@ -116,6 +118,14 @@ export const DashboardScreen = () => {
         }} 
         appointmentId={editAppointmentId}
         sendEmail={!!editAppointmentId} // Send email when editing an appointment from requests
+      />
+      <ApproveAppointmentDrawer
+        isOpen={showApproveAppointmentDrawer}
+        appointmentId={editAppointmentId}
+        onClose={() => {
+          setShowApproveAppointmentDrawer(false);
+          setEditAppointmentId(null);
+        }}
       />
       <NewInvoiceDrawer isOpen={showNewInvoiceDrawer} onClose={() => setShowNewInvoiceDrawer(false)} />
 

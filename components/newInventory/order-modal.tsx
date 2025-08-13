@@ -440,8 +440,8 @@ function OrderModal({ isOpen, onClose, clinicId, initialProductId }: OrderModalP
     createPurchaseOrder(purchaseOrderData, {
       onSuccess: () => {
         toast({
-          title: "Success",
-          description: "Purchase order created successfully",
+          title: "Purchase Order Created",
+          description: "Purchase order has been created successfully",
           variant: "success"
         })
         onClose()

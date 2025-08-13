@@ -99,8 +99,8 @@ export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
       });
       
       toast({
-        title: "Success",
-        description: `Client ${data.firstName} ${data.lastName} updated successfully`,
+        title: "Client Updated",
+        description: `Client ${data.firstName} ${data.lastName} has been updated successfully`,
         variant: "success",
       });
       

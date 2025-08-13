@@ -104,4 +104,18 @@ export const getClientId = (): string | undefined => {
   return Cookies.get('clientId');
 };
 
+export const setCompanyId = (id: string): void => {
+  if (!isBrowser) return;
+  Cookies.set('companyId', id); // Set cookie to no expiration
+};
+
+export const getCompanyId = (): string | undefined => {
+  if (!isBrowser) return undefined;
+  return Cookies.get('companyId');
+};
+
+export const removeCompanyId = (): void => {
+  if (!isBrowser) return;
+  Cookies.remove('companyId');
+};
 

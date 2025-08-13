@@ -28,8 +28,8 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   const createSupplier = useCreateSupplier({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Supplier created successfully",
+        title: "Supplier Created",
+        description: "Supplier has been created successfully",
         variant: "success",
       });
       if (onSuccess) {

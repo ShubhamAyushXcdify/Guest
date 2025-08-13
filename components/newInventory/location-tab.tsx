@@ -549,10 +549,9 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       setSelectedBatch(null)
       locationForm.reset()
     } catch (error: any) {
-      console.error('Error updating location:', error)
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to update location",
         variant: "error",
       })
     }
