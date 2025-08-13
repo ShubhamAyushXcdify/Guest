@@ -8,13 +8,13 @@ import AuthProvider from "@/provider/AuthProvider";
 function MainLayout({ children }: { children: React.ReactNode }) {
 
     return (
-        <div className="flex h-screen">
+        <div className="h-full w-full overflow-hidden">
             <AuthProvider>
                 <SidebarProvider>
                     <Sidebar />
                     <div className="flex-1">
                         <Header />
-                        <main className="flex-1 overflow-y-auto p-4 max-h-[calc(100vh-6rem)]">
+                        <main className=" overflow-y-auto p-4 max-h-[calc(100vh-6rem)]">
                             {children}
                         </main>
                     </div>

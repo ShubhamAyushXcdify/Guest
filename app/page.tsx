@@ -1,21 +1,33 @@
 "use client";
 
-import type React from "react"
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Moon, Sun, Calendar, Heart, FileText, Shield, Phone, Mail, MapPin, ArrowRight, CheckCircle, Star, Clock, Users } from "lucide-react"
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+  Calendar,
+  Heart,
+  FileText,
+  Shield,
+  Phone,
+  Mail,
+  MapPin,
+  ArrowRight,
+  CheckCircle,
+  Star,
+  Clock,
+  Menu,
+  X,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
-  export default function LandingPage() {
-    return (
-      <div className="min-h-screen bg-white dark:bg-slate-900 overflow-x-hidden overflow-y-auto max-h-screen">
-        {/* Header */}
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-700">
+export default function LandingPage() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-slate-900 overflow-x-hidden overflow-y-auto max-h-screen">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-200 dark:border-slate-700">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -35,32 +47,94 @@ import { Button } from "@/components/ui/button"
             </nav>
 
             {/* CTA Buttons */}
-            <div className="flex items-center space-x-4">
-              {/* Theme Toggle */}
-      
+            <div className="hidden md:flex items-center space-x-4">
               <Link href="/patientdashboard">
-                <Button variant="outline" className="hidden sm:inline-flex">
+                <Button variant="outline" className="hidden lg:inline-flex bg-transparent">
                   Patient Portal
                 </Button>
               </Link>
               <Link href="/login/internal">
-                <Button variant="ghost" className="hidden md:inline-flex text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                <Button
+                  variant="ghost"
+                  className="hidden lg:inline-flex text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                >
                   Staff Login
                 </Button>
               </Link>
-                <Link href="/patientdashboard">
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    Book Appointment
-                  </Button>
-                </Link>
+              <Link href="/patientdashboard">
+                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                  Book Appointment
+                </Button>
+              </Link>
+            </div>
+
+            <div className="flex items-center space-x-3 md:hidden">
+              <Link href="/patientdashboard">
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  Book
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
+                {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </Button>
             </div>
           </div>
+
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+              <nav className="px-4 py-4 space-y-4">
+                <a
+                  href="#services"
+                  className="block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors py-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Services
+                </a>
+                <a
+                  href="#about"
+                  className="block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors py-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  About
+                </a>
+                <a
+                  href="#doctors"
+                  className="block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors py-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Our Doctors
+                </a>
+                <a
+                  href="#contact"
+                  className="block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors py-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Contact
+                </a>
+                <div className="pt-4 border-t border-gray-200 dark:border-slate-700 space-y-3">
+                  <Link href="/patientdashboard" className="block">
+                    <Button variant="outline" className="w-full justify-center bg-transparent">
+                      Patient Portal
+                    </Button>
+                  </Link>
+                  <Link href="/login/internal" className="block">
+                    <Button variant="ghost" className="w-full justify-center text-gray-600 dark:text-gray-300">
+                      Staff Login
+                    </Button>
+                  </Link>
+                </div>
+              </nav>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto">
+        <div className="md:container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
@@ -69,19 +143,19 @@ import { Button } from "@/components/ui/button"
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Beloved Pets</span>
                 </h1>
                 <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
-                  Trust your furry family members to our experienced veterinary team. 
-                  We provide compassionate care, advanced treatments, and a welcoming environment for pets and their owners.
+                Trust your furry family members to our experienced veterinary team. 
+                We provide compassionate care, advanced treatments, and a welcoming environment for pets and their owners.
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/register">
-                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
+                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
                     Book Your First Appointment
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-4">
+                <Button variant="outline" size="lg" className="text-lg px-8 py-4 bg-transparent">
                   Emergency Care
                 </Button>
               </div>
@@ -99,13 +173,13 @@ import { Button } from "@/components/ui/button"
             </div>
 
             <div className="relative">
-              <div className="relative w-full h-[500px] rounded-2xl overflow-hidden shadow-2xl">
-                <Image 
-                  src="/images/logo.png" 
-                  alt="Happy pets with veterinarian" 
-                  fill 
+              <div className="relative w-full h-[200px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+                <Image
+                  src="/images/logo.png"
+                  alt="Happy pets with veterinarian"
+                  fill
                   className="object-cover"
-                  priority 
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>
@@ -118,12 +192,12 @@ import { Button } from "@/components/ui/button"
       <section id="services" className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-slate-800">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Comprehensive Pet Care Services
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              From routine checkups to specialized treatments, we provide complete veterinary care 
-              to keep your pets healthy and happy throughout their lives.
+            From routine checkups to specialized treatments, we provide complete veterinary care 
+            to keep your pets healthy and happy throughout their lives.
             </p>
           </div>
 
@@ -175,16 +249,16 @@ import { Button } from "@/components/ui/button"
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="container mx-auto text-center">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-4xl font-bold text-white mb-4">
+          <h2 className="text-4xl font-bold text-white mb-4">
               Ready to Give Your Pet the Best Care?
             </h2>
             <p className="text-xl text-blue-100 mb-8">
-              Join thousands of pet parents who trust us with their beloved companions. 
-              Book your first appointment today and experience compassionate, professional care.
+            Join thousands of pet parents who trust us with their beloved companions. 
+            Book your first appointment today and experience compassionate, professional care.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/login">
-                <Button size="lg" variant="secondary" className="text-lg px-8 py-4 bg-white text-blue-600 hover:bg-gray-100">
+              <Button size="lg" variant="secondary" className="text-lg px-8 py-4 bg-white text-blue-600 hover:bg-gray-100">
                   Get Your First Appointment
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -202,7 +276,7 @@ import { Button } from "@/components/ui/button"
         <div className="container mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <h2 className="text-4xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white">
                 Why Pet Parents Choose Us
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300">
@@ -242,8 +316,8 @@ import { Button } from "@/components/ui/button"
                     ))}
                   </div>
                   <p className="text-lg text-gray-700 dark:text-gray-300 italic">
-                    "The care my dog received was exceptional. The staff was so kind and professional. 
-                    I couldn't be happier with the treatment and follow-up care."
+                  "The care my dog received was exceptional. The staff was so kind and professional. 
+                  I couldn't be happier with the treatment and follow-up care."
                   </p>
                   <div>
                     <p className="font-semibold text-gray-900 dark:text-white">Sarah M.</p>
@@ -292,8 +366,8 @@ import { Button } from "@/components/ui/button"
                 <span className="text-xl font-bold">PawTrack</span>
               </div>
               <p className="text-gray-400">
-                Providing compassionate veterinary care for your beloved pets. 
-                Your pet's health and happiness are our top priorities.
+              Providing compassionate veterinary care for your beloved pets. 
+              Your pet's health and happiness are our top priorities.
               </p>
             </div>
 

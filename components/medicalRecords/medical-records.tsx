@@ -173,8 +173,8 @@ export default function MedicalRecords() {
           {dischargeSummaries.map((summary: any) => (
             <Card key={summary.appointmentId} className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300">
               <CardHeader className="pb-6 border-b mb-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-3">
                     <Avatar className="h-12 w-12">
                       <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white font-bold">
                         {summary.patientName?.[0] || "?"}
@@ -187,7 +187,7 @@ export default function MedicalRecords() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
                     <Button
                       variant="outline"
                       size="sm"
@@ -223,7 +223,7 @@ export default function MedicalRecords() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
