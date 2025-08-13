@@ -79,6 +79,15 @@ export const navGroups = [
         icon: Settings2,
         allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
         items: [
+//add companies
+            {
+                href: "/companies",
+                label: "Companies",
+                icon: Building,
+                color: "text-purple-2000",
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+            },
+
             {
                 href: "/clinic",
                 label: "Clinics",
