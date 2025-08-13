@@ -45,20 +45,25 @@ const pathMappings: PathMapping = {
 
 // Function to format segment names for display
 const formatSegmentName = (segment: string, index: number, segments: string[]): string => {
-  // Check if this might be a clinic ID (UUIDs are typically 36 chars)
+  // Check if this might be a UUID (UUIDs are typically 36 chars)
   if (segment.length > 30 && segment.includes('-')) {
-    // If previous segment is "clinic", don't repeat "Clinic" word
+    // If previous segment is "clinic", label it as "Clinic"
     if (index > 0 && segments[index-1].toLowerCase() === "clinic") {
-      // Return nothing - we'll filter this out
-      return "";
+      return "Clinic";
     }
-    
-    // Special case: If this appears to be a roomId (after "rooms"), don't label it as "Clinic"
+
+    // If previous segment is "companies", show the company ID
+    if (index > 0 && segments[index-1].toLowerCase() === "companies") {
+      return segment;
+    }
+
+    // Special case: If this appears to be a roomId (after "rooms"), don't show it
     if (index > 0 && segments[index-1].toLowerCase() === "rooms") {
       return ""; // Skip room IDs in breadcrumb
     }
-    
-    return "Clinic";
+
+    // For other cases, show the ID as is
+    return segment;
   }
   
   // For tabs within the clinic section
