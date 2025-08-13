@@ -65,9 +65,10 @@ export const useContentLayout = () => {
     const router = useRouter();
     const pathname = usePathname();
     const [loading, setLoading] = useState(true);
-    const [clinic, setClinic] = useState<{ id: string | null, name: string | null }>({
+    const [clinic, setClinic] = useState<{ id: string | null, name: string | null, companyId?: string | null }>({
         id: null,
-        name: null
+        name: null,
+        companyId: null
     });
     const [collapsed, setCollapsed] = useState(false);
     const [user, setUser] = useState<User | null>(null);
@@ -123,7 +124,8 @@ export const useContentLayout = () => {
             setClinicName(userData.clinicName)
             setClinic({
                 id: userData.clinicId,
-                name: userData.clinicName
+                name: userData.clinicName,
+                companyId: (userData as any)?.companyId ?? (userData as any)?.clinicCompanyId ?? null
             });
             setAuthorized(true);
             registerUser(userData);
