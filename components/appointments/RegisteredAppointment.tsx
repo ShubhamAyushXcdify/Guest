@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DataTable } from "@/components/ui/data-table"
 import { NewAppointmentDrawer } from "@/components/new-appointment-drawer"
+import { ApproveAppointmentDrawer } from "@/components/approve-appointment-drawer"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from '@/context/RootContext'
 import { useToast } from "@/components/ui/use-toast"
 import { Clock, User, Calendar, MapPin, CheckCircle, AlertCircle } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
+import { DateRange } from 'react-day-picker'
+import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
 
 interface RegisteredAppointmentProps {}
 
@@ -22,14 +25,32 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [showNewAppointmentDrawer, setShowNewAppointmentDrawer] = useState(false)
   const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    return { from, to };
+  });
+
+  // Date range handling like dashboard
+  // If no range chosen, default to today (local)
+  const today = new Date();
+  const startOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+  const endOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+  const startIso = dateRange?.from
+    ? new Date(dateRange.from.getTime() - dateRange.from.getTimezoneOffset() * 60000).toISOString()
+    : new Date(startOfDayLocal.getTime() - startOfDayLocal.getTimezoneOffset() * 60000).toISOString();
+  const endIso = dateRange?.to
+    ? new Date(dateRange.to.getTime() - dateRange.to.getTimezoneOffset() * 60000).toISOString()
+    : new Date(endOfDayLocal.getTime() - endOfDayLocal.getTimezoneOffset() * 60000).toISOString();
 
   // Fetch all appointments and filter for registered/pending ones
   const { data: appointmentsData, isLoading } = useGetAppointments({
     search: null,
     status: null,
     provider: null,
-    dateFrom: new Date().toISOString().split('T')[0], // Today
-    dateTo: new Date().toISOString().split('T')[0], // Today
+    dateFrom: startIso,
+    dateTo: endIso,
     clinicId: clinic?.id || '',
     patientId: null,
     clientId: null,
@@ -212,10 +233,19 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
       {/* Data Table */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Registered Appointments
-          </CardTitle>
+          <div className="flex items-center justify-between w-full">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Registered Appointments
+            </CardTitle>
+            <div className="flex-shrink-0">
+              <DatePickerWithRangeV2
+                date={dateRange}
+                setDate={setDateRange}
+                showYear={true}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -235,14 +265,23 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
       </Card>
       
       {/* New Appointment Drawer - Similar to dashboard-screen.tsx */}
-      <NewAppointmentDrawer 
+      {/* <NewAppointmentDrawer 
         isOpen={showNewAppointmentDrawer} 
         onClose={() => {
           setShowNewAppointmentDrawer(false);
           setEditAppointmentId(null);
         }} 
+        appointmentId={null}
+        sendEmail={false}
+      /> */}
+
+      <ApproveAppointmentDrawer
+        isOpen={showNewAppointmentDrawer}
         appointmentId={editAppointmentId}
-        sendEmail={!!editAppointmentId} // Send email when editing an appointment from requests
+        onClose={() => {
+          setShowNewAppointmentDrawer(false);
+          setEditAppointmentId(null);
+        }}
       />
     </div>
   )
