@@ -18,7 +18,7 @@ export const navGroups = [
                 label: "Appointments",
                 icon: Calendar,
                 color: "text-blue-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Receptionist", "Veterinarian"],
                 activePaths: ["/appointments/confirmed", "/appointments/queue"],
             },
             {
@@ -26,14 +26,14 @@ export const navGroups = [
                 label: "Patients",
                 icon: Users,
                 color: "text-blue-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
             {
                 href: "/clients",
                 label: "Clients",
                 icon: Users,
                 color: "text-blue-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Receptionist", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Receptionist", "Veterinarian"],
                 activePaths: [],
             },
         ],
@@ -41,7 +41,7 @@ export const navGroups = [
     {
         title: "Products & Services",
         icon: FlaskConical,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+        allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
         items: [
 
             // {
@@ -63,14 +63,14 @@ export const navGroups = [
                 label: "Inventory",
                 icon: Package,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
             },
             {
                 href: "/products",
                 label: "Products",
                 icon: Package,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
             }
         ],
     },
@@ -85,7 +85,7 @@ export const navGroups = [
                 label: "Companies",
                 icon: Building,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Super Admin"],
             },
 
             {
@@ -93,7 +93,7 @@ export const navGroups = [
                 label: "Clinics",
                 icon: Building,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
                 activePaths: ["/clinic"],
                 dynamicPaths: ["/clinic/[id]", "/clinic/[id]/rooms", "/clinic/[id]/appointmentType", "/clinic/[id]/users", "/clinic/[id]/doctors","/clinic/[id]/doctors/slots/[doctorId]"],
             },
@@ -102,14 +102,14 @@ export const navGroups = [
                 label: "Users",
                 icon: Users,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
+                allowedRoles: ["Administrator", "Clinic Admin"],
             },
             {
                 href: "/supplier",
                 label: "Suppliers",
                 icon: Users,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
             }
         ],
     }
