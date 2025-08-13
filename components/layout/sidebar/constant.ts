@@ -102,7 +102,7 @@ export const navGroups = [
                 label: "Users",
                 icon: Users,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin"],
+                allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
             },
             {
                 href: "/supplier",

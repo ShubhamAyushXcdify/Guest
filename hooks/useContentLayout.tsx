@@ -96,7 +96,7 @@ export const useContentLayout = () => {
         if (!userid && data?.user?.id) {
             userid = data.user.id;
         }
-        if (!userid && (pathname !== '/login' && pathname !== '/register')) {
+        if (!userid && (pathname !== '/login' && pathname !== '/register' && pathname !== '/login/internal')) {
             setLoading(false);
             handleLogout();
             return;
