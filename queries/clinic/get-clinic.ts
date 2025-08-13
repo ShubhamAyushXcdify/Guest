@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export type Clinic = {
     id: string;
+    companyId: string;
     name: string;
     addressLine1: string;
     addressLine2: string;
@@ -14,8 +15,8 @@ export type Clinic = {
     website: string;
     taxId: string;
     licenseNumber: string;
-    subscriptionStatus: string;
-    subscriptionExpiresAt: string | null;
+    // subscriptionStatus: string;
+    // subscriptionExpiresAt: string;
     createdAt: string | null;
     updatedAt: string | null;
     location: {

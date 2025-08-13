@@ -24,6 +24,7 @@ import { useRootContext } from "@/context/RootContext";
 // Clinic type based on provided schema
 export type Clinic = {
   id: string;
+  companyId: string;
   name: string;
   addressLine1: string;
   addressLine2: string;
