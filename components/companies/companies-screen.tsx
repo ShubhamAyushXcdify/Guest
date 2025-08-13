@@ -72,7 +72,7 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
       header: "Location",
       cell: ({ row }) => {
         const address = row.original.address;
-        return `${address.city}, ${address.state}`;
+        return `${address?.city}, ${address?.state}`;
       }
     },
     { 
