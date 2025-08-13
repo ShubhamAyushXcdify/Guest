@@ -43,12 +43,12 @@ import { Button } from "@/components/ui/button"
                   Patient Portal
                 </Button>
               </Link>
-              <Link href="/login/internal">
+              <Link href="/login/internal" target="_blank">
                 <Button variant="ghost" className="hidden md:inline-flex text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
                   Staff Login
                 </Button>
               </Link>
-                <Link href="/patientdashboard">
+                <Link href="/patientdashboard" target="_blank">
                   <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
                     Book Appointment
                   </Button>
@@ -75,7 +75,7 @@ import { Button } from "@/components/ui/button"
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/register">
+                <Link href="/register" target="_blank">
                   <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-4">
                     Book Your First Appointment
                     <ArrowRight className="ml-2 h-5 w-5" />
