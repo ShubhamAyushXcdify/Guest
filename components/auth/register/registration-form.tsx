@@ -111,10 +111,15 @@ export function RegistrationForm() {
         setTimeout(() => {
           router.push('/');
         }, 3000);
-      },
-      onError: (error: Error) => {
         toast({
-          description: error.message || "Registration failed. Please try again.",
+          title: "Registration successful",
+          description: "Please check your email for approval.",
+          variant: "success",
+        })
+      },
+      onError: (error) => {
+        toast({
+          description: error instanceof Error ? error.message : "Registration failed. Please try again.",
           variant: 'destructive',
         });
         setIsSubmitting(false);

@@ -134,17 +134,16 @@ export function ClientForm({
           isActive: clientData.isActive
         });
         toast({
-          title: "Success",
-          description: "Owner updated successfully",
+          title: "Owner Updated",
+          description: "The owner's details have been updated successfully",
           variant: "success",
         });
       } else {
-        console.log("Using CREATE mutation");
         // Otherwise use create mutation
         updatedClient = await createClientMutation.mutateAsync(clientData);
         toast({
-          title: "Success",
-          description: "Client created successfully",
+          title: "Owner Created",
+          description: "Owner has been created successfully",  
           variant: "success",
         });
       }
@@ -153,7 +152,6 @@ export function ClientForm({
         onSuccess(updatedClient);
       }
     } catch (error) {
-      console.error(`Error ${isUpdate ? "updating" : "creating"} owner:`, error);
       toast({
         title: "Error",
         description: `Failed to ${isUpdate ? "update" : "create"} owner. Please try again.`,

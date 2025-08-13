@@ -123,8 +123,8 @@ function Supplier() {
     try {
       await deleteSupplier.mutateAsync({ id: supplierToDelete.id });
       toast({
-        title: "Success",
-        description: "Supplier deleted successfully",
+        title: "Supplier Deleted",
+        description: "Supplier has been deleted successfully",
         variant: "error",
       });
       setIsDeleteDialogOpen(false);

@@ -109,8 +109,8 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
     try {
       await updateProduct.mutateAsync(values);
       toast({
-        title: "Success",
-        description: "Product updated successfully",
+        title: "Product Updated",
+        description: "Product has been updated successfully",
         variant: "success",
       });
       if (onSuccess) onSuccess();

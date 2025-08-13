@@ -178,8 +178,8 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
       })
       
       toast({
-        title: "Success",
-        description: "Patient updated successfully",
+        title: "Patient Updated",
+        description: "Patient information has been updated successfully",
         variant: "success",
       })
       
@@ -187,7 +187,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update patient. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to update patient. Please try again.",
         variant: "error",
       })
     } finally {

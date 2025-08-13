@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { Switch } from "../ui/switch";
 import { User } from ".";
 import { useRouter } from "next/navigation";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import clinic from "../clinic";
@@ -143,15 +143,16 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
 
       await updateUser.mutateAsync(payload);
       toast({
-        title: "Success",
-        description: "User updated successfully",
+        title: "User Updated",
+        description: "User details have been updated",
+        variant: "success",
       });
       if (onSuccess) onSuccess();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update user",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to update user",
+        variant: "error",
       });
     }
   };

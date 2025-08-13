@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateUser } from "@/queries/users/create-user";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
@@ -26,8 +26,9 @@ export default function NewUser({ clinicId, onSuccess }: NewUserProps) {
   const createUser = useCreateUser({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "User created successfully",
+        title: "User Created",
+        description: "User has been created successfully",
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -35,11 +36,11 @@ export default function NewUser({ clinicId, onSuccess }: NewUserProps) {
         router.push("/clinic");
       }
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create user",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to create user",
+        variant: "error",
       });
     },
   });

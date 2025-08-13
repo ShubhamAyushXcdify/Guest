@@ -311,8 +311,8 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Appointment updated successfully",
+        title: "Appointment Saved",
+        description: "Appointment details have been saved successfully",
         variant: "success",
       })
       setIsEditing(false)
@@ -320,7 +320,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update appointment",
+        description: error.message instanceof Error ? error.message : "Failed to update appointment",
         variant: "error",
       })
     }

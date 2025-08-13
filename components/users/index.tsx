@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../u
 import NewUser from "./newUser";
 import UserDetails from "./userDetails";
 import { useDeleteUser } from "@/queries/users/delete-user";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -179,15 +179,16 @@ export default function Users() {
     try {
       await deleteUser.mutateAsync({ id: userToDelete.id });
       toast({
-        title: "Success",
-        description: "User deleted successfully",
+        title: "User Deleted",
+        description: "User has been deleted successfully",
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to delete user",
+        variant: "error",
       });
     } finally {
       setIsDeleting(false);

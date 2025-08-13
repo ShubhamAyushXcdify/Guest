@@ -4,7 +4,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useCreateClinic } from "@/queries/clinic/create-clinic";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Clinic } from "./index";
 import { DatePicker } from "../ui/datePicker";
 import AdvancedMap from "../map/advanced-map";
@@ -20,8 +20,9 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
   const createClinic = useCreateClinic({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Clinic created successfully",
+        title: "Clinic Created",
+        description: "Clinic has been created successfully",
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -32,7 +33,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create clinic",
+        description: error instanceof Error ? error.message : "Failed to create clinic",
         variant: "destructive",
       });
     },
@@ -113,8 +114,9 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     }
     
     toast({
-      title: "Location Selected",
-      description: "Location has been set for the clinic",
+      title: "Location Saved",
+      description: "Location has been saved for the clinic",
+      duration: 800,
     });
   };
   

@@ -20,6 +20,7 @@ import { useRootContext } from "@/context/RootContext"
 import { navGroups, isPathActive } from "./constant"
 import { useCheckPermission } from "./useCheckPermission"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "@/hooks/use-toast"
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
@@ -32,6 +33,15 @@ export function Sidebar() {
         "Administration": true,
         "Settings": true,
     })
+
+    const successMessage = () => {
+        toast({
+            title: "Logout Successful",
+            description: "You have been logged out successfully",
+            variant: "success",
+        })
+    }
+
     const pathname = usePathname()
 
     const toggleGroup = (groupTitle: string) => {
@@ -163,7 +173,10 @@ export function Sidebar() {
                                     </div>
                                 )}
                                 {state !== "collapsed" && (
-                                    <div onClick={handleLogout}>
+                                    <div onClick={() => {
+                                        handleLogout();
+                                        successMessage();
+                                    }}>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
                                             <LogOut className="h-4 w-4" />
                                             <span className="sr-only">Log out</span>

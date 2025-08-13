@@ -14,6 +14,8 @@ import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Databas
 import Barcode from "react-barcode"
 import { Item } from "@radix-ui/react-select"
 import { Document, Page, View, Image, StyleSheet } from '@react-pdf/renderer'
+import { toast } from "@/hooks/use-toast"
+
 
 // Format currency consistently
 const formatCurrency = (value: number | null | undefined) => {
@@ -79,6 +81,14 @@ export default function InventoryItemDetailsSheet({
 
   const handleDownloadBarcode = async (barcodeValue: string, productName: string) => {
     try {
+      if (!barcodeValue) {
+        toast({
+          title: "Error",
+          description: "Barcode value is missing",
+          variant: "error",
+        })
+        return
+      }
       // Create a temporary barcode element to generate the SVG
       const tempDiv = document.createElement('div')
       tempDiv.style.position = 'absolute'
@@ -109,7 +119,11 @@ export default function InventoryItemDetailsSheet({
       // Get the SVG element
       const svgElement = tempDiv.querySelector('svg') as SVGElement
       if (!svgElement) {
-        console.error('Barcode SVG element not found')
+        toast({
+          title: "Error",
+          description: "Barcode SVG element not found",
+          variant: "error",
+        })
         document.body.removeChild(tempDiv)
         return
       }
@@ -157,10 +171,19 @@ export default function InventoryItemDetailsSheet({
         // Clean up
         document.body.removeChild(tempDiv)
       }
+      toast({
+        title: "Downloading",
+        description: "Barcode PDF download started",
+        variant: "success",
+      })
 
       img.src = 'data:image/svg+xml;base64,' + btoa(svgData)
     } catch (error) {
-      console.error('Error generating barcode PDF:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred while generating the barcode PDF.",
+        variant: "error",
+      })
     }
   }
 
