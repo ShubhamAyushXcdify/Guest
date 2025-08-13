@@ -63,8 +63,8 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
       
       await updateSupplier.mutateAsync(values);
       toast({
-        title: "Success",
-        description: "Supplier updated successfully",
+        title: "Supplier Updated",
+        description: "Supplier has been updated successfully",
         variant: "success",
       });
       if (onSuccess) onSuccess();

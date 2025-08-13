@@ -15,10 +15,10 @@ export default function NewAppointmentType({ onSuccess }: NewAppointmentTypeProp
   const router = useRouter();
   
   const createAppointmentType = useCreateAppointmentType({
-    onSuccess: () => {
+    onSuccess: (appointmentType: AppointmentType) => {
       toast({
-        title: "Success",
-        description: "Appointment type created successfully",
+        title: "Appointment Type Created",
+        description: `Appointment type ${appointmentType.name} created successfully`,
         variant: "success",
       });
       if (onSuccess) {
@@ -30,7 +30,7 @@ export default function NewAppointmentType({ onSuccess }: NewAppointmentTypeProp
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create appointment type",
+        description: error instanceof Error ? error.message : "Failed to create appointment type",
         variant: "error",
       });
     },

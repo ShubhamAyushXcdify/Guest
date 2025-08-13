@@ -8,7 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import withAuth from "@/utils/privateRouter";
 import { useDeleteUser } from "@/queries/users/delete-user";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import NewUser from "./newUser";
 import UserDetails from "./userDetails";
@@ -66,15 +66,16 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
     try {
       await deleteUser.mutateAsync({ id: userToDelete.id });
       toast({
-        title: "Success",
-        description: "User deleted successfully",
+        title: "User Deleted",
+        description: "User has been deleted successfully",
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to delete user",
+        variant: "error",
       });
     } finally {
       setIsDeleting(false);

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { User } from ".";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import { Combobox } from "@/components/ui/combobox";
 
@@ -94,15 +94,16 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
       
       await updateUser.mutateAsync(payload);
       toast({
-        title: "Success",
-        description: "User updated successfully",
+        title: "User Updated",
+        description: "User details have been updated successfully",
+        variant: "success",
       });
       if (onSuccess) onSuccess();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update user",
-        variant: "destructive",
+        description: error instanceof Error ? error.message : "Failed to update user",
+        variant: "error",
       });
     }
   };

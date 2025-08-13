@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import { Switch } from "../ui/switch";
 import { Role } from "@/queries/roles/get-role";
 import { useRouter } from "next/navigation";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 type RoleFormValues = {
   id: string;
@@ -88,8 +88,21 @@ export default function RoleDetails({ roleId, onSuccess }: RoleDetailsProps) {
       priority: values.priority,
     };
 
-    await updateRole.mutateAsync({ id: roleId, ...updatePayload });
-    if (onSuccess) onSuccess();
+    try {
+      await updateRole.mutateAsync({ id: roleId, ...updatePayload });
+      if (onSuccess) onSuccess();
+      toast({
+        title: "Role Updated",
+        description: "Role details have been updated successfully",
+        variant: "success",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update role",
+        variant: "error",
+      });
+    }
   };
   
   return (

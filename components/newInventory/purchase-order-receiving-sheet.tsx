@@ -144,15 +144,15 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
         onSuccess: () => {
           onClose();
           toast({
-            title: "Success",
-            description: "Order received successfully",
+            title: "Purchase Order Received",
+            description: "Purchase order has been received successfully",
             variant: "success"
           });
         },
         onError: (error) => {
           toast({
             title: "Error",
-            description: `Failed to receive order: ${error.message}`,
+            description: "Failed to receive purchase order",      
             variant: "error"
           });
         }

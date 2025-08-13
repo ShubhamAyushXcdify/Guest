@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { DatePicker } from "@/components/ui/datePicker"
 import { useCreateAppointment } from "@/queries/appointment"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetLocation } from '@/hooks/useGetLocation'
 import { NearestClinicMap } from './index';
@@ -122,8 +122,9 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
   const { mutate: createAppointment, isPending } = useCreateAppointment({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Appointment request submitted successfully",
+        title: "Appointment Requested",
+        description: "Your appointment request has been submitted successfully",
+        variant: "success",
       })
       form.reset()
       setSelectedSlot(null)
@@ -132,7 +133,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to submit appointment request",
+        description: error instanceof Error ? error.message : "Failed to submit appointment request",
         variant: "destructive",
       })
       onClose(false)

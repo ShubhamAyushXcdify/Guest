@@ -8,7 +8,7 @@ import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCreateUser } from "@/queries/users/create-user";
 import { useRouter } from "next/navigation";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
@@ -33,8 +33,9 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const createUser = useCreateUser({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "User created successfully",
+        title: "User Added",
+        description: "User has been added successfully",
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -45,7 +46,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create user",
+        description: error instanceof Error ? error.message : "Failed to create user",
         variant: "destructive",
       });
     },

@@ -93,16 +93,16 @@ export default function Products() {
     try {
       await deleteProduct.mutateAsync({ id: productToDelete.id });
       toast({
-        title: "Success",
-        description: "Product deleted successfully",
-        variant: "error",
+        title: "Product Deleted",
+        description: `Product ${productToDelete.name} deleted successfully`,
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "An unexpected error occurred while deleting the product.",
-        variant: "destructive",
+        variant: "error",
       });
     } finally {
       setIsDeleting(false);

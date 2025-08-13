@@ -5,7 +5,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useUpdateClinic } from "@/queries/clinic/update-clinic";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { Switch } from "../ui/switch";
 import { Clinic } from ".";
@@ -126,7 +126,8 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
     
     toast({
       title: "Location Updated",
-      description: "Clinic location has been updated",
+      description: "Clinic location has been updated successfully",
+      duration: 800,
     });
   };
   
@@ -142,14 +143,15 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
     try {
       await updateClinic.mutateAsync(values);
       toast({
-        title: "Success",
-        description: "Clinic updated successfully",
+        title: "Clinic Updated",
+        description: "Clinic has been updated successfully",
+        variant: "success",
       });
       if (onSuccess) onSuccess();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update clinic",
+        description: error instanceof Error ? error.message : "Failed to update clinic",
         variant: "destructive",
       });
     }
