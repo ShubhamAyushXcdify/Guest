@@ -68,7 +68,7 @@ export default function AppointmentsPage() {
                         {/* {activeView === "room" && "Room View"}
                         {activeView === "waiting" && "Waiting Room"} */}
                     </h1>
-            <div className="flex justify-between items-center p-6 ">
+            <div className="md:flex justify-between items-center p-8 ">
                 <div className="flex-1">
                     
                     <div className="w-full pr-2">
@@ -92,7 +92,7 @@ export default function AppointmentsPage() {
                     </div>
                 </div>
                 <Button
-                    className={`theme-button text-white`}
+                    className={`theme-button text-white mt-4 md:mt-0`}
                     onClick={() => setIsNewAppointmentOpen(true)}
                 >
                     <Plus className="mr-2 h-4 w-4" /> New Appointment

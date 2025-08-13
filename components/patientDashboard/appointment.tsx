@@ -40,12 +40,12 @@ export default function AppointmentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center md:mb-4">
         <h2 className="text-xl font-bold">My Appointments</h2>
         <div className="flex flex-col items-center gap-2">
           <Button className="theme-button text-white" disabled={pets.length === 0} onClick={() => setIsAppointmentFormOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            New Appointment
+            <span className="hidden md:flex">New Appointment</span>
           </Button>
           {pets.length === 0 && <span className="text-red-500 text-xs"> (No pets registered)</span>}
         </div>
@@ -87,7 +87,7 @@ export default function AppointmentsPage() {
                           </span>
                         </div>
                         <p className="text-gray-600 font-medium">{appointment.appointmentType?.name}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
                             {isClient && appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}

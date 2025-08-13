@@ -74,7 +74,7 @@ export const AdminDashboard = () => {
   return (
     <div className="p-6 space-y-8">
       {/* Date Range Picker */}
-      <div className="flex justify-between items-center">
+      <div className="md:flex justify-between items-center">
       {/* Admin Header */}
       <div className="">
         <h1 className="text-3xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>

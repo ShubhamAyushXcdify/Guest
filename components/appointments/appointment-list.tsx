@@ -682,8 +682,8 @@ export default function AppointmentList({
     <div className="p-6">
       {/* Filters */}
       <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-3 mb-6">
-        <div className="flex items-center gap-3 justify-between">
-          <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex flex-wrap gap-3">
           <DatePickerWithRangeV2
             date={{
               from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : new Date(),
@@ -715,7 +715,7 @@ export default function AppointmentList({
             className="h-full"
           />
           {!userType.isProvider && (
-            <div className="w-[400px]">
+            <div className="md:w-[400px]">
               <Combobox
                 options={providerOptions}
                 value={selectedProvider}
