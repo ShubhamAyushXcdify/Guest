@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
+import { useGetCompanies } from "@/queries/companies/get-company";
 import clinic from "../clinic";
 import { Combobox } from "../ui/combobox";
 import { useRootContext } from "@/context/RootContext";
@@ -29,7 +30,8 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   
   const { data: user, isLoading } = useGetUserById(userId);
   const { data: rolesData } = useGetRole();
-  const { data: clinicData } = useGetClinic();
+  const { data: clinicData } = useGetClinic(1, 1000, '', null, null, true);
+  const { data: companiesData } = useGetCompanies(userType?.isSuperAdmin);
   const updateUser = useUpdateUser();
   
   // Initialize form with empty values that will be updated when data is loaded
@@ -43,6 +45,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       role: "",
       roleId: "",
       clinicId: "",
+      companyId: "",
       isActive: false
     }
   });
@@ -190,29 +193,53 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
-          <FormField name="roleId" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <FormControl>
-                <Combobox
-                  options={roleOptions}
-                  value={field.value?.toString()}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    // Reset clinicId when role changes (unless clinicAdmin)
-                    if (!userType.isClinicAdmin) {
-                      form.setValue("clinicId", "");
-                    }
-                  }}
-                  placeholder="Select role"
-                  searchPlaceholder="Search roles..."
-                  emptyText="No roles found"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
+
+          {!userType?.isSuperAdmin && (
+            <FormField name="roleId" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Role</FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={roleOptions}
+                    value={field.value?.toString()}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Reset clinicId when role changes (unless clinicAdmin)
+                      if (!userType.isClinicAdmin) {
+                        form.setValue("clinicId", "");
+                      }
+                    }}
+                    placeholder="Select role"
+                    searchPlaceholder="Search roles..."
+                    emptyText="No roles found"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
+
+          {userType?.isSuperAdmin && (
+            <FormField name="companyId" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company</FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={companiesData?.map((company: any) => ({
+                      value: company.id,
+                      label: company.name
+                    })) || []}
+                    value={field.value?.toString()}
+                    onValueChange={field.onChange}
+                    placeholder="Select company"
+                    searchPlaceholder="Search companies..."
+                    emptyText="No companies found"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
 
           {showClinicField && (
             <FormField name="clinicId" control={form.control} render={({ field }) => (

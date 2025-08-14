@@ -24,7 +24,7 @@ import { toast } from "@/hooks/use-toast"
 
 export function Sidebar() {
     const { state, isMobile, openMobile, setOpenMobile } = useSidebar()
-    const { handleLogout, IsAdmin, user } = useRootContext()
+    const { handleLogout, IsAdmin, user, userType } = useRootContext()
     const { checkPermission } = useCheckPermission(user)
     const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({
         "Core Operations": true,
@@ -94,11 +94,16 @@ export function Sidebar() {
                                             // Use activePaths if present, otherwise default to href
                                             const isActive = isPathActive(pathname, item);
 
+                                            // Dynamic label for Users -> Admins for superadmin
+                                            const dynamicLabel = item.href === "/users" && userType?.isSuperAdmin
+                                                ? "Admins"
+                                                : item.label;
+
                                             return (
                                               <NavItem
                                                 key={item.href}
                                                 href={item.href}
-                                                label={item.label}
+                                                label={dynamicLabel}
                                                 icon={item.icon}
                                                 isActive={isActive}
                                                 color={item.color}

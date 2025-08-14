@@ -26,10 +26,11 @@ export type User = {
   firstName: string;
   lastName: string;
   role: string;
-  roleId: string; 
+  roleId: string;
   roleName: string;
   clinicId?: string;
   clinicName?: string;
+  companyId?: string; // Added for superadmin functionality
   clinic?: {
     id: string;
     name: string;
@@ -82,19 +83,28 @@ export default function Users() {
   // If user is clinicAdmin, filter users by clinic ID
   const clinicId = (userType?.isClinicAdmin || userType?.isVeterinarian) ? clinic?.id || '' : '';
 
+  // For superadmin, get Administrator role ID to filter users
+  const administratorRole = rolesData?.data?.find((role: any) => role.name === 'Administrator');
+  const roleIdForQuery = userType?.isSuperAdmin ? (administratorRole?.id || '') : '';
+
   const { data: usersData, isLoading: isUsersLoading, isError: isUsersError } = useGetUsers(
-    pageNumber, 
-    pageSize, 
-    search, 
+    pageNumber,
+    pageSize,
+    search,
     clinicId, // Pass the clinic ID based on user role
     !!rolesData, // enabled
-    '' // roleId
+    roleIdForQuery // Pass roleId for superadmin to filter Administrator users
   );
 
   // Filter users based on role priority
   const filteredUsers = useMemo(() => {
     if (!usersData?.items || !rolesData?.data || !currentUser?.roleId) {
       return [];
+    }
+
+    // For superadmin, show all Administrator users (already filtered by roleId in query)
+    if (userType?.isSuperAdmin) {
+      return usersData.items;
     }
 
     // Get current user's role priority
@@ -105,11 +115,11 @@ export default function Users() {
     return usersData.items.filter(user => {
       const userRole = rolesData.data.find((role: any) => role.id === user.roleId);
       const userPriority = userRole?.priority || 0;
-      
+
       // Keep users with higher priority values (lower privilege)
       return userPriority > currentUserPriority;
     });
-  }, [usersData?.items, rolesData?.data, currentUser?.roleId]);
+  }, [usersData?.items, rolesData?.data, currentUser?.roleId, userType?.isSuperAdmin]);
 
   const totalPages = usersData?.totalPages || 1;
 
@@ -221,10 +231,11 @@ export default function Users() {
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
-    {
+    // Only show clinic column for non-superadmin users
+    ...(userType?.isSuperAdmin ? [] : [{
       accessorKey: "clinic",
       header: "Clinic",
-      cell: ({ row }) => {
+      cell: ({ row }: { row: any }) => {
         const clinicName = row.original.clinic?.name || row.original.clinicName || "No Clinic Assigned";
         const colorValue = clinicColors[clinicName];
 
@@ -239,7 +250,7 @@ export default function Users() {
 
         return <Badge {...badgeProps}>{clinicName}</Badge>;
       },
-    },
+    }]),
     {
       accessorKey: "role",
       header: "Role",
@@ -294,9 +305,9 @@ export default function Users() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Users</h1>
+        <h1 className="text-2xl font-bold">{userType?.isSuperAdmin ? "Admins" : "Users"}</h1>
         <div className="flex flex-row gap-2">
-            {!userType.isClinicAdmin && (
+            {!userType.isClinicAdmin && !userType.isSuperAdmin && (
               <Button className={`theme-button text-white`} onClick={openRolePage}>
                 Manage Roles
               </Button>
@@ -304,12 +315,12 @@ export default function Users() {
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
             <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}>
-              <Plus className="mr-2 h-4 w-4" />Add User
+              <Plus className="mr-2 h-4 w-4" />{userType?.isSuperAdmin ? "Add Admin" : "Add User"}
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[22%] overflow-hidden">
             <SheetHeader>
-              <SheetTitle>New User</SheetTitle>
+              <SheetTitle>{userType?.isSuperAdmin ? "New Admin" : "New User"}</SheetTitle>
             </SheetHeader>
             <NewUser onSuccess={() => {
               setOpenNew(false);

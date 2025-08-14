@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { User } from ".";
 import { Role, useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
+import { useGetCompanies } from "@/queries/companies/get-company";
 import React, { useEffect, useState } from "react";
 import { Combobox } from "../ui/combobox";
 import { useRootContext } from "@/context/RootContext";
@@ -19,6 +20,8 @@ import { Eye, EyeOff } from "lucide-react";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
   clinicId?: string;
+  companyId?: string;
+  role?: string;
 };
 
 interface NewUserProps {
@@ -58,17 +61,21 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       passwordHash: "",
       firstName: "",
       lastName: "",
-      role: "",
+      role: userType?.isSuperAdmin ? "Administrator" : "",
       isActive: true,
       clinicId: "",
+      companyId: "",
     },
   });
   
   const { data: rolesData } = useGetRole();
-  const { data: clinicData } = useGetClinic();
+  const { data: clinicData } = useGetClinic(1, 1000, '', null, null, true);
+  const { data: companiesData } = useGetCompanies(userType?.isSuperAdmin);
   
   const selectedRole = rolesData?.data?.find((role: Role) => role.value === form.watch("role"));
-  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin ;
+  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin;
+  const showCompanyField = userType?.isSuperAdmin;
+  const showRoleField = !userType?.isSuperAdmin; // Hide role field for superadmin
 
   // Set clinic ID for clinicAdmin users
   useEffect(() => {
@@ -103,12 +110,17 @@ export default function NewUser({ onSuccess }: NewUserProps) {
 
   const handleSubmit = async (values: UserFormValues) => {
     try {
-      // Find the selected role again to ensure we have the correct id and name at submission time
-      const roleToSend = rolesData?.data?.find((role: Role) => role.value === values.role);
+      // For superadmin, find Administrator role, otherwise use selected role
+      let roleToSend;
+      if (userType?.isSuperAdmin) {
+        roleToSend = rolesData?.data?.find((role: Role) => role.name === 'Administrator');
+      } else {
+        roleToSend = rolesData?.data?.find((role: Role) => role.value === values.role);
+      }
 
       // Create the payload, excluding the original 'role' value and adding 'roleId' and 'roleName'
       const { role, lastName, ...rest } = values; // Exclude the 'role' field
-      
+
       // Determine clinicId value based on user role
       let clinicId = null;
       if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
@@ -118,17 +130,32 @@ export default function NewUser({ onSuccess }: NewUserProps) {
         // For others, use the selected clinic if required
         clinicId = values.clinicId;
       }
-      
-      const payload = {
-        ...rest, // Include all other fields from values
-        lastName: lastName ? lastName : null, // Set lastName to null if empty
-        isActive: true,
-        roleId: roleToSend?.id, // Add the roleId
-        role: roleToSend?.name, // Add the roleName
-        clinicId: clinicId, // Set based on conditions above
-      };
 
-      await createUser.mutateAsync(payload as any); // Added 'as any' temporarily for type compatibility, you might need to adjust your mutation's expected type
+      // For superadmin creating admin, use new API structure
+      if (userType?.isSuperAdmin) {
+        const payload = {
+          email: values.email,
+          passwordHash: values.passwordHash,
+          firstName: values.firstName,
+          lastName: lastName ? lastName : null,
+          roleId: roleToSend?.id,
+          companyId: values.companyId,
+          clinicIds: [], // Always empty for superadmin
+          slots: [] // Always empty for superadmin
+        };
+        await createUser.mutateAsync(payload as any);
+      } else {
+        // Use existing structure for other roles
+        const payload = {
+          ...rest, // Include all other fields from values
+          lastName: lastName ? lastName : null, // Set lastName to null if empty
+          isActive: true,
+          roleId: roleToSend?.id, // Add the roleId
+          role: roleToSend?.name, // Add the roleName
+          clinicId: clinicId, // Set based on conditions above
+        };
+        await createUser.mutateAsync(payload as any);
+      }
 
     } catch (error) {
       // Error is handled in onError callback
@@ -189,29 +216,53 @@ export default function NewUser({ onSuccess }: NewUserProps) {
               <FormMessage />
             </FormItem>
           )} />
-          
-          <FormField name="role" control={form.control} render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <FormControl>
-                <Combobox
-                  options={roleOptions}
-                  value={field.value || ""}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    // Only reset clinic ID if not a clinicAdmin
-                    if (!userType.isClinicAdmin) {
-                      form.setValue("clinicId", "");
-                    }
-                  }}
-                  placeholder="Select role"
-                  searchPlaceholder="Search roles..."
-                  emptyText="No roles found"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
+
+          {showRoleField && (
+            <FormField name="role" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Role</FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={roleOptions}
+                    value={field.value || ""}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      // Only reset clinic ID if not a clinicAdmin
+                      if (!userType.isClinicAdmin) {
+                        form.setValue("clinicId", "");
+                      }
+                    }}
+                    placeholder="Select role"
+                    searchPlaceholder="Search roles..."
+                    emptyText="No roles found"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
+
+          {showCompanyField && (
+            <FormField name="companyId" control={form.control} render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company</FormLabel>
+                <FormControl>
+                  <Combobox
+                    options={companiesData?.map((company: any) => ({
+                      value: company.id,
+                      label: company.name
+                    })) || []}
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    placeholder="Select company"
+                    searchPlaceholder="Search companies..."
+                    emptyText="No companies found"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          )}
 
           {showClinicField && (
             <FormField name="clinicId" control={form.control} render={({ field }) => (
