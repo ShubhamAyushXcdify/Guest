@@ -186,7 +186,7 @@ const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
   };
 
   // Fetch real data from APIs
-  const { data: clinics } = useGetClinic(1, 100, '', null, null, true)
+  const { data: clinics } = useGetClinic(1, 100, '', true)
   const selectedClinicId = form.watch("clinicId") || clinic?.id || "";
 
   const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId || '', true);

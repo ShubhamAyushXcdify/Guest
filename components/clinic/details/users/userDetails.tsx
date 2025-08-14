@@ -79,17 +79,18 @@ export default function UserDetails({ userId, clinicId, onSuccess }: UserDetails
       // Find the selected role to get additional role information
       const selectedRole = rolesData?.data?.find((role: Role) => role.id === values.roleId);
       
-      // Only include the specific fields needed for update
+      // Create the payload matching the PUT API structure
       const payload = {
         id: values.id,
         email: values.email,
         passwordHash: values.password && isPasswordDirty ? values.password : user.passwordHash || "",
         firstName: values.firstName,
-        lastName: values.lastName,
+        lastName: values.lastName || null,
         roleId: values.roleId,
-        role: selectedRole?.name || "",
-        clinicId: clinicId || user.clinicId || "",
-        isActive: true
+        companyId: user.companyId,
+        clinicIds: clinicId ? [clinicId] : (user.clinicIds || []), // Array of clinic IDs
+        isActive: true,
+        slots: user.slots || [] // Preserve existing slots or empty array
       };
       
       await updateUser.mutateAsync(payload);

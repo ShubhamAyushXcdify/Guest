@@ -70,14 +70,16 @@ export default function NewUser({ clinicId, onSuccess }: NewUserProps) {
       // Find the selected role to get the id and name
       const roleToSend = rolesData?.data?.find((role: Role) => role.value === values.role);
 
-      // Create the payload with role information
-      const { role, ...rest } = values; // Exclude the 'role' field
+      // Create the payload matching the POST API structure
       const payload = {
-        ...rest,
-        isActive: true,
-        clinicId: clinicId || "", // Always use the provided clinicId
-        roleId: roleToSend?.id, // Add the roleId
-        role: roleToSend?.name, // Add the roleName
+        email: values.email,
+        passwordHash: values.passwordHash,
+        firstName: values.firstName,
+        lastName: values.lastName || null,
+        roleId: roleToSend?.id,
+        companyId: values.companyId,
+        clinicIds: clinicId ? [clinicId] : [], // Array of clinic IDs
+        slots: [] // Empty slots array as per API
       };
 
       await createUser.mutateAsync(payload);
