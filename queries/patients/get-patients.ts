@@ -46,9 +46,9 @@ export interface PaginatedResponse<T> {
   hasNextPage: boolean;
 }
 
-const getPatients = async (pageNumber = 1, pageSize = 10, search = '', clientId = '') => {
+const getPatients = async (pageNumber = 1, pageSize = 10, search = '', clientId = '', companyId?: string) => {
   const response = await fetch(
-    `/api/patients?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clientId=${clientId}`
+    `/api/patients?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clientId=${clientId}&companyId=${companyId ?? ''}`
   );
   
   if (!response.ok) {
@@ -62,11 +62,12 @@ export function useGetPatients(
   pageNumber = 1,
   pageSize = 10,
   search = '',
-  clientId = ''
+  clientId = '',
+  companyId?: string
 ) {
   return useQuery({
-    queryKey: ['patients', pageNumber, pageSize, search, clientId],
-    queryFn: () => getPatients(pageNumber, pageSize, search, clientId),
+    queryKey: ['patients', pageNumber, pageSize, search, clientId, companyId],
+    queryFn: () => getPatients(pageNumber, pageSize, search, clientId, companyId),
     placeholderData: keepPreviousData,
   });
 }

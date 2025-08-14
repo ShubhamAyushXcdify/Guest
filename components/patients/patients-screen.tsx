@@ -15,6 +15,7 @@ import { NewPatientForm } from "@/components/patients/new-patient-form"
 import { useGetPatients } from "@/queries/patients/get-patients"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useRootContext } from "@/context/RootContext"
+import { getCompanyId } from "@/utils/clientCookie"
 
 export const PatientsScreen = () => {
   const [openNew, setOpenNew] = useState(false)
@@ -22,14 +23,28 @@ export const PatientsScreen = () => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const { userType, clinic, user } = useRootContext()
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   
   const debouncedSearchQuery = useDebounce(handleSearch, 300)  
+  
+  // Resolve companyId from local storage or user context (same as newClinic.tsx)
+  if (typeof window !== 'undefined' && companyId === undefined) {
+    const stored = getCompanyId()
+    if (stored) {
+      setCompanyId(stored)
+    } else if (user?.companyId) {
+      setCompanyId(user.companyId)
+    } else {
+      setCompanyId('')
+    }
+  }
   
   const { data: patientsData, isLoading, isError } = useGetPatients(
     page,
     pageSize,
     searchQuery,
-    '' // clientId
+    '', // clientId
+    companyId
   )
   
   // Extract patients from the data source

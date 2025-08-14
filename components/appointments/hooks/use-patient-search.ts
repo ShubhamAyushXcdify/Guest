@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { useDebouncedValue } from "@/hooks/use-debounce"
 import { useSearchPatients, Patient as ApiPatient } from "@/queries/patients/get-patients-by-search"
+import { getCompanyId } from "@/utils/clientCookie"
+import { useRootContext } from "@/context/RootContext"
 
 export interface Patient {
     id: string
@@ -13,9 +15,11 @@ export interface Patient {
 
 export function usePatientSearch(query: string, searchType: string) {
     const debouncedQuery = useDebouncedValue(query, 300)
+    const { user } = useRootContext()
+    const companyId = getCompanyId() || user?.companyId
     
     // Use the React Query hook we created
-    const { data, isLoading, error } = useSearchPatients(debouncedQuery, searchType)
+    const { data, isLoading, error } = useSearchPatients(debouncedQuery, searchType, companyId || undefined)
     
     // Transform the data to match the expected interface and filter out any invalid entries
     const transformedResults = data 

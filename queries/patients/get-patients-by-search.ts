@@ -19,7 +19,7 @@ export interface Patient {
   }
 }
 
-const searchPatients = async (query: string, searchType: string): Promise<Patient[]> => {
+const searchPatients = async (query: string, searchType: string, companyId?: string): Promise<Patient[]> => {
   try {
     if (!query) {
       return [];
@@ -29,6 +29,9 @@ const searchPatients = async (query: string, searchType: string): Promise<Patien
       query,
       type: searchType || ''
     });
+    if (companyId) {
+      searchParams.set('companyId', companyId);
+    }
 
     const response = await fetch(`/api/patients/search?${searchParams.toString()}`);
 
@@ -44,10 +47,10 @@ const searchPatients = async (query: string, searchType: string): Promise<Patien
   }
 };
 
-export function useSearchPatients(query: string, searchType: string = '') {
+export function useSearchPatients(query: string, searchType: string = '', companyId?: string) {
   return useQuery({
-    queryKey: ['patients', 'search', query, searchType],
-    queryFn: () => searchPatients(query, searchType),
+    queryKey: ['patients', 'search', query, searchType, companyId],
+    queryFn: () => searchPatients(query, searchType, companyId),
     enabled: !!query, // Only run the query if there's a search term
   });
 }

@@ -107,7 +107,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   
   const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
   
-  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
+const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
     patientSearchQuery,
     "name" // Always search by name as specified
   )

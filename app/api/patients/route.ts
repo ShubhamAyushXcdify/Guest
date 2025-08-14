@@ -17,9 +17,10 @@ export async function GET(request: NextRequest) {
         const medicalRecordId = searchParams.get('medicalRecordId') || '';
         const search = searchParams.get('search') || '';
         const clientId = searchParams.get('clientId') || '';
+        const companyId = searchParams.get('companyId') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&patientId=${patientId}&medicalRecordId=${medicalRecordId}&search=${search}&clientId=${clientId}`,
+            `${apiUrl}/api/Patient?pageNumber=${pageNumber}&pageSize=${pageSize}&patientId=${patientId}&medicalRecordId=${medicalRecordId}&search=${search}&clientId=${clientId}&companyId=${companyId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

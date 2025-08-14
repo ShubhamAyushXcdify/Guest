@@ -13,9 +13,10 @@ export async function GET(request: NextRequest) {
         let token = getJwtToken(request);
         const searchType = searchParams.get('type') || '';    
         const query = searchParams.get('query') || '';
+        const companyId = searchParams.get('companyId') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Patient/search?query=${query}&type=${searchType}`,
+            `${apiUrl}/api/Patient/search?query=${query}&type=${searchType}&companyId=${companyId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

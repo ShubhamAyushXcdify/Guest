@@ -28,6 +28,8 @@ import DewormingComponent from "./deworming"
 import SurgeryComponent from "./surgery"
 import CertificateGeneration from "./certificate-generation"
 import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
+import { getCompanyId } from "@/utils/clientCookie"
+import { useRootContext } from "@/context/RootContext"
 import { useDebounce, useDebouncedValue } from "@/hooks/use-debounce"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
@@ -206,9 +208,12 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   }, [availableSlots, appointment]);
 
   // Use patient search query for edit mode
+  const { user } = useRootContext()
+  const companyId = getCompanyId() || user?.companyId
   const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
     debouncedPatientQuery,
-    "name" // Always search by name as specified
+    "name", // Always search by name as specified
+    companyId || undefined
   )
 
   // Convert search results to our format
@@ -301,7 +306,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   }
 
   // Fetch data from APIs
-  const { data: clinicsResponse } = useGetClinic(1, 100, '', null, null, true)
+  const { data: clinicsResponse } = useGetClinic(1, 100, '', true)
   const { data: patientsResponse } = useGetPatients(1, 100)
   const { data: clientsResponse } = useGetClients(1, 100)
   const { data: usersResponse } = useGetUsers(1, 100)
