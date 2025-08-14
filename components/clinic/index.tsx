@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useRootContext } from "@/context/RootContext";
+import { getCompanyId } from "@/utils/clientCookie";
 
 // Clinic type based on provided schema
 export type Clinic = {
@@ -53,15 +54,31 @@ type ClinicFormValues = Omit<Clinic, "id" | "createdAt" | "updatedAt">;
 
 function Clinic() {
   const router = useRouter();
-  const { userType, clinic: userClinic } = useRootContext();
+  const { userType, clinic: userClinic, user } = useRootContext();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
   
   // Use the useDebouncedValue hook to debounce the search string
   const debouncedSearch = useDebouncedValue(search, 300);
   
-  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, debouncedSearch, null, null, true);
+  // Set company ID from local storage or user context (similar to newClinic.tsx)
+  useEffect(() => {
+    const storedCompanyId = getCompanyId();
+    if (storedCompanyId) {
+      setCompanyId(storedCompanyId);
+    }
+  }, []);
+
+  // Alternative: Set company ID when user data is available
+  useEffect(() => {
+    if (user?.companyId && !companyId) {
+      setCompanyId(user.companyId);
+    }
+  }, [user, companyId]);
+  
+  const { data: clinicData, isLoading, isError } = useGetClinic(pageNumber, pageSize, companyId, true);
   
   // Extract the clinics from the paginated response
   const clinics = clinicData?.items || [];
