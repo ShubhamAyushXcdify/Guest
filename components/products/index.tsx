@@ -19,6 +19,7 @@ import ProductFilterDialog from "./ProductFilterDialog";
 // Product type based on the provided API schema
 export type Product = {
   id: string;
+  companyId: string;
   clinicId: string;
   productNumber: string;
   name: string;
@@ -50,11 +51,16 @@ export default function Products() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const { toast } = useToast();
+  const companyId =
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('user') || '{}')?.companyId
+      : undefined;
  
   const { data: productsData, isLoading, isError } = useGetProducts(
     pageNumber, 
     pageSize, 
-    searchParam
+    searchParam,
+    companyId
   );
  
   // Extract product items from the paginated response

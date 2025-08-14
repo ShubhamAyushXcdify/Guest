@@ -1,22 +1,22 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export type Supplier = {
-    id: string;
-    companyId?: string | null;
-    name: string;
-    addressLine1: string;
-    addressLine2: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-    phone: string;
-    email: string;
-    website: string;
-    taxId: string;
-    createdAt: string;
-    updatedAt: string;
-   clinicDetail?: {
+  id: string;
+  companyId?: string | null;
+  name: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+  email: string;
+  website: string;
+  taxId: string;
+  createdAt: string;
+  updatedAt: string;
+  clinicDetail?: {
     id: string;
     name: string;
     addressLine1: string;
@@ -40,24 +40,24 @@ export type Supplier = {
       address: string;
     };
   };
-}
+};
 
 export interface PaginatedResponse<T> {
-    items: T[];
-    totalCount: number;
-    pageNumber: number;
-    pageSize: number;
-    totalPages: number;
-    hasPreviousPage: boolean;
-    hasNextPage: boolean;
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 }
 
 const getSupplier = async (
   pageNumber = 1,
   pageSize = 10,
   search = '',
-  clinicId?: string,
-  companyId?: string
+  clinicId: string | null = null,
+  companyId: string | null = null
 ) => {
   const params = new URLSearchParams({
     pageNumber: String(pageNumber),
@@ -77,20 +77,18 @@ const getSupplier = async (
   return response.json() as Promise<PaginatedResponse<Supplier>>;
 };
 
-
 export const useGetSupplier = (
   pageNumber = 1,
   pageSize = 10,
   search = '',
-  clinicId?: string,
-  companyId?: string,
-  enabled = true
+  clinicId: string | null = null,
+  companyId: string | null = null,
+  enabled: boolean = true
 ) => {
-  return useQuery({
+  return useQuery<PaginatedResponse<Supplier>, Error>({
     queryKey: ['supplier', pageNumber, pageSize, search, clinicId, companyId],
     queryFn: () => getSupplier(pageNumber, pageSize, search, clinicId, companyId),
     refetchOnWindowFocus: false,
-    placeholderData: keepPreviousData,
-    enabled
+    enabled: enabled,
   });
 };

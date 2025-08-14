@@ -13,21 +13,21 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
 }
 
-const getProducts = async (pageNumber = 1, pageSize = 10, search: string) => {
+const getProducts = async (pageNumber = 1, pageSize = 10, search: string, companyId?: string) => {
 
-    const response = await fetch(`/api/products${search ? `${search}&` : '?'}pageNumber=${pageNumber}&pageSize=${pageSize}`);
+    const response = await fetch(`/api/products${search ? `${search}&` : '?'}pageNumber=${pageNumber}&pageSize=${pageSize}${companyId ? `&companyId=${companyId}` : ''}`);
     if (!response.ok) {
         throw new Error('Failed to fetch product data');
     }
     return response.json() as Promise<PaginatedResponse<Product>>;
 };
 
-export const useGetProducts = (pageNumber = 1, pageSize = 10, search: ProductSearchParamsType, enabled = true) => { 
+export const useGetProducts = (pageNumber = 1, pageSize = 10, search: ProductSearchParamsType, companyId?: string, enabled = true) => {
     return useQuery({
-        queryKey: ["products", pageNumber, pageSize, search],
+        queryKey: ["products", pageNumber, pageSize, search, companyId],
         queryFn: async () => {
             const searchParams = proudctSearchParser({...search});
-            return getProducts(pageNumber, pageSize, searchParams);
+            return getProducts(pageNumber, pageSize, searchParams, companyId);
         },
         refetchOnWindowFocus: false,
         placeholderData: keepPreviousData,

@@ -10,6 +10,8 @@ import { useCreateProduct } from "@/queries/products/create-products";
 import { Product } from ".";
 import { Combobox } from "../ui/combobox";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
+import { getCompanyId } from "@/utils/clientCookie";
  
 type ProductFormValues = Omit<Product, "id">;
  
@@ -65,6 +67,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
  
   const form = useForm<ProductFormValues>({
     defaultValues: {
+      companyId: "",
       productNumber: "",
       name: "",
       brandName: "", // <-- Added brandName default
@@ -85,15 +88,31 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
       isActive: true,
     },
   });
- 
-  const handleSubmit = async (values: ProductFormValues) => {
+useEffect(() => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
     try {
-      await createProduct.mutateAsync(values);
-      // Form will automatically close via onSuccess callback
-    } catch (error) {
-      // Error is handled in onError callback
+      const user = JSON.parse(userStr);
+      if (user?.companyId) {
+        form.setValue("companyId", user.companyId);
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
     }
-  };
+  }
+}, [form]);
+
+  const handleSubmit = (values: ProductFormValues) => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    if (!values.companyId && user?.companyId) {
+      values.companyId = user.companyId;
+    }
+  }
+  createProduct.mutate(values);
+};
+
  
   return (
     <div className="flex flex-col w-full h-full">
@@ -101,6 +120,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
         <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
         <div className="flex-1 overflow-y-auto pb-4">
           <div className="grid grid-cols-2 gap-8">
+            
             
             <FormField name="productNumber" control={form.control} render={({ field }) => (
               <FormItem>
