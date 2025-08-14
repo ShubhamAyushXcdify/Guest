@@ -119,7 +119,7 @@ export function Sidebar() {
         <>
             <Sheet open={openMobile} onOpenChange={setOpenMobile}>
                 <SheetTrigger asChild>
-                    <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white">
+                    <Button variant="outline" size="icon" className="absolute z-50 left-3 top-3 shrink-0 md:hidden bg-gradient-to-r from-[var(--theme-secondary)] to-[var(--theme-primary)] text-white">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Toggle navigation menu</span>
                     </Button>

@@ -11,7 +11,7 @@ import DashboardTab from "./dashboard-tab"
 import PurchaseOrdersTab from "./purchase-orders-tab"
 import ReceivingTab from "./receiving-tab"
 import StockTab from "./stock-tab"
-import { useGetClinics } from "@/queries/clinics/get-clinics"
+import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useRootContext } from "@/context/RootContext"
 import LocationsTab from "./location-tab"
 
@@ -21,8 +21,15 @@ export default function Inventory() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [selectedClinicId, setSelectedClinicId] = useState<string>("")
 
-  const { data: clinicsData } = useGetClinics()
   const { userType, clinic } = useRootContext();
+  const companyId = clinic?.companyId ?? null;
+  console.log("Company ID from clinic context:", companyId);
+  const { data, isLoading, error } = useGetClinic(
+    1,
+    10,
+    companyId
+);
+  const clinicsData = data?.items || null;
   
   // If user is clinicAdmin, filter suppliers by clinic ID
   const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? clinic.id || '' : '';
@@ -37,9 +44,9 @@ export default function Inventory() {
     if (clinicId) {
       // Use clinic ID from user context
       setSelectedClinicId(clinicId)
-    } else if (clinicsData?.items && clinicsData.items.length > 0 && !selectedClinicId) {
+    } else if (clinicsData && clinicsData.length > 0 && !selectedClinicId) {
       // Fallback to first clinic from API if no user clinic
-      setSelectedClinicId(clinicsData.items[0].id)
+      setSelectedClinicId(clinicsData[0].id)
     }
   }, [clinicsData, selectedClinicId])
 
@@ -58,7 +65,7 @@ export default function Inventory() {
                   <SelectValue placeholder="Select a clinic" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clinicsData?.items?.map((clinic) => (
+                  {clinicsData?.map((clinic) => (
                     <SelectItem key={clinic.id} value={clinic.id}>
                       {clinic.name}
                     </SelectItem>

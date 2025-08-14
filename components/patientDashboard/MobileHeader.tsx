@@ -8,7 +8,7 @@ export default function MobileHeader() {
   const { setIsSidebarOpen } = useContext(PatientDashboardContext);
 
   return (
-    <header className="h-16 bg-gradient-to-r from-blue-50 via-white to-blue-50 border-b border-blue-200 shadow-sm flex items-center justify-between px-4">
+    <header className="h-16 bg-gradient-to-r from-blue-50 via-white to-blue-50 border-b border-blue-200 shadow-sm flex items-center px-4 gap-2">
       <Button
         variant="ghost"
         size="sm"
