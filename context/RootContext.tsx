@@ -16,6 +16,7 @@ export type RootContextType = {
     clinic: {
         id: string | null
         name: string | null
+        companyId?: string | null
     }
     collapsed: boolean
     setCollapsed: any
