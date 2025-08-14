@@ -18,7 +18,7 @@ import { Combobox } from "../ui/combobox";
 import { MultiSelect } from "../ui/mulitselect";
 import { useRootContext } from "@/context/RootContext";
 import { Eye, EyeOff } from "lucide-react";
-import { getCompanyId } from "@/utils/clientCookie";
+import { getCompanyId, getClinicId } from "@/utils/clientCookie";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
   clinicId?: string;
@@ -77,18 +77,12 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const { data: clinicData } = useGetClinic(1, 100, companyId, true);
   const { data: companiesData } = useGetCompanies(userType?.isSuperAdmin);
   
-  // Debug logging
-  console.log('Debug - userType:', userType);
-  console.log('Debug - currentUser:', currentUser);
-  console.log('Debug - currentUser.roleName:', currentUser?.roleName);
-  console.log('Debug - userType.isAdmin:', userType?.isAdmin);
-
   const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
   const showCompanyField = userType?.isSuperAdmin;
   const showRoleField = !userType?.isSuperAdmin; // Hide role field for superadmin
+  const isClinicAdmin = userType?.isClinicAdmin || currentUser?.roleName === 'Clinic Admin';
 
-  console.log('Debug - showClinicField:', showClinicField);
-  console.log('Debug - Should show clinic field for Administrator role');
+
 
   // Show loading if user data is not yet loaded
   if (loading || !currentUser) {
@@ -109,13 +103,18 @@ export default function NewUser({ onSuccess }: NewUserProps) {
     }
   }, [clinic.companyId, currentUser?.companyId]);
 
-  // Set clinic ID for clinicAdmin users
+  // Set clinic ID for clinicAdmin users - automatically assign their clinic
   useEffect(() => {
-     if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
-      form.setValue("clinicId", clinic.id);
-      form.setValue("clinicIds", [clinic.id]);
+    const clinicIdFromCookie = getClinicId();
+    // Try both 'id' and 'clinicId' properties as the API might use either
+    const clinicIdFromUser = currentUser?.clinics?.[0]?.id || currentUser?.clinics?.[0]?.clinicId;
+    const clinicIdToUse = clinicIdFromCookie || clinicIdFromUser;
+
+    if (isClinicAdmin && clinicIdToUse) {
+      form.setValue("clinicId", clinicIdToUse);
+      form.setValue("clinicIds", [clinicIdToUse]);
     }
-  }, [userType.isClinicAdmin, userType.isVeterinarian, clinic.id, form]);
+  }, [isClinicAdmin, currentUser?.clinics, form]);
 
   const roleOptions = React.useMemo(() => {
     // Get the current user's role priority
@@ -139,9 +138,6 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       value: clinic.id,
       label: clinic.name
     })) || [];
-    console.log('Debug - clinicOptions:', options);
-    console.log('Debug - clinicData:', clinicData);
-    console.log('Debug - companyId:', companyId);
     return options;
   }, [clinicData?.items]);
 
@@ -161,9 +157,14 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       // Determine clinicIds values based on user role
       let clinicIds: string[] = [];
 
-      if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
-        // For clinicAdmin, always use their clinic ID
-        clinicIds = [clinic.id];
+      const clinicIdFromCookie = getClinicId();
+      // Try both 'id' and 'clinicId' properties as the API might use either
+      const clinicIdFromUser = currentUser?.clinics?.[0]?.id || currentUser?.clinics?.[0]?.clinicId;
+      const clinicIdToUse = clinicIdFromCookie || clinicIdFromUser;
+
+      if (isClinicAdmin && clinicIdToUse) {
+        // For Clinic Admin, always use their clinic ID (from cookies or user object)
+        clinicIds = [clinicIdToUse];
       } else if ((userType?.isAdmin || currentUser?.roleName === 'Administrator') && values.clinicIds && values.clinicIds.length > 0) {
         // For Administrator users, use the selected clinics
         clinicIds = values.clinicIds;
@@ -291,7 +292,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
             )} />
           )}
 
-          {showClinicField && (
+          {showClinicField && !isClinicAdmin && (
             <FormField name="clinicIds" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinics</FormLabel>

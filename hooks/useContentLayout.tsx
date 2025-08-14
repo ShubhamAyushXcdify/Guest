@@ -120,11 +120,16 @@ export const useContentLayout = () => {
             }
             setUserId(userData.id)
             setUser(userData);
-            setClinicId(userData.clinicId)
-            setClinicName(userData.clinicName)
+
+            // Set clinic ID and name - try direct properties first, then from clinics array
+            const clinicId = userData.clinicId || (userData as any)?.clinics?.[0]?.clinicId || (userData as any)?.clinics?.[0]?.id;
+            const clinicName = userData.clinicName || (userData as any)?.clinics?.[0]?.clinicName || (userData as any)?.clinics?.[0]?.name;
+
+            setClinicId(clinicId)
+            setClinicName(clinicName)
             setClinic({
-                id: userData.clinicId,
-                name: userData.clinicName,
+                id: clinicId,
+                name: clinicName,
                 companyId: (userData as any)?.companyId ?? (userData as any)?.clinicCompanyId ?? null
             });
             setAuthorized(true);

@@ -19,7 +19,7 @@ import clinic from "../clinic";
 import { Combobox } from "../ui/combobox";
 import { MultiSelect } from "../ui/mulitselect";
 import { useRootContext } from "@/context/RootContext";
-import { getCompanyId } from "@/utils/clientCookie";
+import { getCompanyId, getClinicId } from "@/utils/clientCookie";
 
 interface UserDetailsProps {
   userId: string;
@@ -87,13 +87,21 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
     }
   }, [user, form]);
 
-  // Set clinic ID for clinicAdmin users and prevent changes
+  // Determine if current user is clinic admin
+  const isClinicAdmin = userType?.isClinicAdmin || currentUser?.roleName === 'Clinic Admin';
+
+  // Set clinic ID for clinicAdmin users - automatically assign their clinic
   useEffect(() => {
-    if (userType.isClinicAdmin && userClinic.id) {
-      form.setValue("clinicId", userClinic.id);
-      form.setValue("clinicIds", [userClinic.id]);
+    const clinicIdFromCookie = getClinicId();
+    // Try both 'id' and 'clinicId' properties as the API might use either
+    const clinicIdFromUser = currentUser?.clinics?.[0]?.clinicId || currentUser?.clinics?.[0]?.id;
+    const clinicIdToUse = clinicIdFromCookie || clinicIdFromUser || userClinic.id;
+
+    if (isClinicAdmin && clinicIdToUse) {
+      form.setValue("clinicId", clinicIdToUse);
+      form.setValue("clinicIds", [clinicIdToUse]);
     }
-  }, [userType.isClinicAdmin, userClinic.id, form]);
+  }, [isClinicAdmin, currentUser?.clinics, userClinic.id, form]);
 
   const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
 
@@ -131,18 +139,8 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       value: clinic.id,
       label: clinic.name
     })) || [];
-    console.log('Debug - clinicOptions:', options);
-    console.log('Debug - clinicData:', clinicData);
-    console.log('Debug - companyId:', companyId);
     return options;
   }, [clinicData?.items]);
-
-  // Debug logging
-  console.log('Debug - userType:', userType);
-  console.log('Debug - currentUser:', currentUser);
-  console.log('Debug - currentUser.roleName:', currentUser?.roleName);
-  console.log('Debug - userType.isAdmin:', userType?.isAdmin);
-  console.log('Debug - showClinicField:', showClinicField);
 
   if (isLoading || loading || !currentUser) {
     return <div>Loading...</div>;
@@ -160,9 +158,14 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       // Determine clinicIds values based on user role
       let clinicIds: string[] = [];
 
-      if (userType.isClinicAdmin && userClinic.id) {
-        // For clinicAdmin, always use their clinic ID
-        clinicIds = [userClinic.id];
+      const clinicIdFromCookie = getClinicId();
+      // Try both 'id' and 'clinicId' properties as the API might use either
+      const clinicIdFromUser = currentUser?.clinics?.[0]?.clinicId || currentUser?.clinics?.[0]?.id;
+      const clinicIdToUse = clinicIdFromCookie || clinicIdFromUser || userClinic.id;
+
+      if (isClinicAdmin && clinicIdToUse) {
+        // For Clinic Admin, always use their clinic ID (from cookies or user object)
+        clinicIds = [clinicIdToUse];
       } else if ((userType?.isAdmin || currentUser?.roleName === 'Administrator') && values.clinicIds && values.clinicIds.length > 0) {
         // For Administrator users, use the selected clinics
         clinicIds = values.clinicIds;
@@ -246,7 +249,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
                     onValueChange={(value) => {
                       field.onChange(value);
                       // Reset clinic IDs when role changes (unless clinicAdmin)
-                      if (!userType.isClinicAdmin) {
+                      if (!isClinicAdmin) {
                         form.setValue("clinicId", "");
                         form.setValue("clinicIds", []);
                       }

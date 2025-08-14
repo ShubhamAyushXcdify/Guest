@@ -93,7 +93,7 @@ export const navGroups = [
                 label: "Clinics",
                 icon: Building,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator"],
                 activePaths: ["/clinic"],
                 dynamicPaths: ["/clinic/[id]", "/clinic/[id]/rooms", "/clinic/[id]/appointmentType", "/clinic/[id]/users", "/clinic/[id]/doctors","/clinic/[id]/doctors/slots/[doctorId]"],
             },
