@@ -9,6 +9,9 @@ export interface User {
   role: string;
   roleId: string;
   roleName: string;
+  clinicIds?: string[]; // Array of clinic IDs as per API
+  companyId?: string;
+  slots?: string[]; // Array of slot IDs as per API
   isActive: boolean;
   lastLogin: string | null;
   createdAt: string | null;

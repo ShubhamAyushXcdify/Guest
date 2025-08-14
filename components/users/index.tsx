@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Badge, BadgeProps } from "../ui/badge";
@@ -7,7 +7,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { useGetUsers } from "@/queries/users/get-users";
 import { useGetRole } from "@/queries/roles/get-role";
+import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import NewUser from "./newUser";
 import UserDetails from "./userDetails";
 import { useDeleteUser } from "@/queries/users/delete-user";
@@ -17,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useRootContext } from "@/context/RootContext";
+import { getCompanyId } from "@/utils/clientCookie";
 
 // User type based on the provided API schema
 export type User = {
@@ -30,7 +33,9 @@ export type User = {
   roleName: string;
   clinicId?: string;
   clinicName?: string;
+  clinicIds?: string[]; // Array of clinic IDs as per API
   companyId?: string; // Added for superadmin functionality
+  slots?: string[]; // Array of slot IDs as per API
   clinic?: {
     id: string;
     name: string;
@@ -65,11 +70,27 @@ export default function Users() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const [selectedClinicId, setSelectedClinicId] = useState<string>('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const { userType, clinic, user: currentUser } = useRootContext();
-  
+
   const debouncedSearch = useDebounce(handleSearch, 300);
   
   const queryClient = useQueryClient();
+
+  // Set company ID from root context or local storage for Administrator users
+  useEffect(() => {
+    if (userType?.isAdmin || currentUser?.roleName === 'Administrator') {
+      if (currentUser?.companyId) {
+        setCompanyId(currentUser.companyId);
+      } else {
+        const storedCompanyId = getCompanyId();
+        if (storedCompanyId) {
+          setCompanyId(storedCompanyId);
+        }
+      }
+    }
+  }, [userType?.isAdmin, currentUser?.roleName, currentUser?.companyId]);
 
   React.useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["role"] });
@@ -80,8 +101,30 @@ export default function Users() {
 
   const { data: rolesData, isLoading: isRolesLoading, isError: isRolesError } = useGetRole(1, 1000, '', true); // Fetch all roles for color mapping
 
-  // If user is clinicAdmin, filter users by clinic ID
-  const clinicId = (userType?.isClinicAdmin || userType?.isVeterinarian) ? clinic?.id || '' : '';
+  // Fetch clinics for Administrator users
+  const { data: clinicData } = useGetClinic(1, 100, companyId, !!(userType?.isAdmin || currentUser?.roleName === 'Administrator') && !!companyId);
+
+  // Set first clinic as default when clinic data is loaded
+  useEffect(() => {
+    if (clinicData?.items && clinicData.items.length > 0 && !selectedClinicId) {
+      setSelectedClinicId(clinicData.items[0].id);
+    }
+  }, [clinicData?.items, selectedClinicId]);
+
+  // Reset pagination when clinic selection changes
+  useEffect(() => {
+    setPageNumber(1);
+  }, [selectedClinicId]);
+
+  // Determine clinic ID based on user role
+  const clinicId = useMemo(() => {
+    if (userType?.isClinicAdmin || userType?.isVeterinarian) {
+      return clinic?.id || '';
+    } else if (userType?.isAdmin || currentUser?.roleName === 'Administrator') {
+      return selectedClinicId; // Use selected clinic for Administrator users
+    }
+    return '';
+  }, [userType?.isClinicAdmin, userType?.isVeterinarian, userType?.isAdmin, currentUser?.roleName, clinic?.id, selectedClinicId]);
 
   // For superadmin, get Administrator role ID to filter users
   const administratorRole = rolesData?.data?.find((role: any) => role.name === 'Administrator');
@@ -133,30 +176,17 @@ export default function Users() {
     return colors;
   }, [rolesData]);
 
-  // Generate random colors for clinics
-  const clinicColors = React.useMemo(() => {
-    const colors: { [key: string]: string } = {};
-    const predefinedColors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
-      '#F9E79F', '#ABEBC6', '#FAD7A0', '#AED6F1', '#D5A6BD'
-    ];
-    
-    if (usersData?.items) {
-      usersData.items.forEach((user: User) => {
-        const clinicName = user.clinic?.name || user.clinicName;
-        if (clinicName && !colors[clinicName]) {
-          const randomIndex = Math.floor(Math.random() * predefinedColors.length);
-          colors[clinicName] = predefinedColors[randomIndex];
-        }
-      });
-    }
-    return colors;
-  }, [usersData?.items]);
+
+
+  // Clinic options for Administrator users
+  const clinicOptions = React.useMemo(() => {
+    return clinicData?.items?.map((clinic) => ({
+      id: clinic.id,
+      name: clinic.name
+    })) || [];
+  }, [clinicData?.items]);
 
   const [openNew, setOpenNew] = useState(false);
-  const [openRole, setOpenRole] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const deleteUser = useDeleteUser();
@@ -231,26 +261,6 @@ export default function Users() {
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
-    // Only show clinic column for non-superadmin users
-    ...(userType?.isSuperAdmin ? [] : [{
-      accessorKey: "clinic",
-      header: "Clinic",
-      cell: ({ row }: { row: any }) => {
-        const clinicName = row.original.clinic?.name || row.original.clinicName || "No Clinic Assigned";
-        const colorValue = clinicColors[clinicName];
-
-        let badgeProps: BadgeProps = {};
-
-        if (colorValue && clinicName !== "No Clinic Assigned") {
-          badgeProps.style = { backgroundColor: colorValue };
-        } else {
-          // Fallback to default color for "No Clinic Assigned"
-          badgeProps.style = { backgroundColor: "#999999" };
-        }
-
-        return <Badge {...badgeProps}>{clinicName}</Badge>;
-      },
-    }]),
     {
       accessorKey: "role",
       header: "Role",
@@ -329,7 +339,27 @@ export default function Users() {
         </Sheet>
         </div>
       </div>
-      
+
+      {/* Clinic Selection for Administrator users */}
+      {(userType?.isAdmin || currentUser?.roleName === 'Administrator') && (
+        <div className="flex items-center gap-4">
+          <div className="w-64">
+            <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a clinic" />
+              </SelectTrigger>
+              <SelectContent>
+                {clinicOptions.map((clinic) => (
+                  <SelectItem key={clinic.id} value={clinic.id}>
+                    {clinic.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       {isUsersLoading || isRolesLoading || !rolesData?.data ? (
         <div className="flex items-center justify-center h-32">
           <p>Loading users...</p>

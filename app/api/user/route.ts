@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ ...body, clinicId: body.clinicId }),
+            body: JSON.stringify(body),
         });
 
 
@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ ...body, clinicId: body.clinicId }),
+            body: JSON.stringify(body),
         });
 
         if (response.status === 401) {

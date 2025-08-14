@@ -17,7 +17,9 @@ import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useGetCompanies } from "@/queries/companies/get-company";
 import clinic from "../clinic";
 import { Combobox } from "../ui/combobox";
+import { MultiSelect } from "../ui/mulitselect";
 import { useRootContext } from "@/context/RootContext";
+import { getCompanyId } from "@/utils/clientCookie";
 
 interface UserDetailsProps {
   userId: string;
@@ -26,16 +28,17 @@ interface UserDetailsProps {
 
 export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   const router = useRouter();
-  const { user: currentUser, userType, clinic: userClinic } = useRootContext();
-  
+  const { user: currentUser, userType, clinic: userClinic, loading } = useRootContext();
+  const [companyId, setCompanyId] = useState<string | null>(null);
+
   const { data: user, isLoading } = useGetUserById(userId);
   const { data: rolesData } = useGetRole();
-  const { data: clinicData } = useGetClinic(1, 1000, '', null, null, true);
+  const { data: clinicData } = useGetClinic(1, 100, companyId, true);
   const { data: companiesData } = useGetCompanies(userType?.isSuperAdmin);
   const updateUser = useUpdateUser();
   
   // Initialize form with empty values that will be updated when data is loaded
-  const form = useForm<User>({
+  const form = useForm<User & { clinicIds?: string[] }>({
     defaultValues: {
       id: userId,
       email: "",
@@ -45,11 +48,26 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       role: "",
       roleId: "",
       clinicId: "",
+      clinicIds: [],
       companyId: "",
       isActive: false
     }
   });
   
+  // Set company ID from root context or local storage
+  useEffect(() => {
+    if (userClinic.companyId) {
+      setCompanyId(userClinic.companyId);
+    } else if (currentUser?.companyId) {
+      setCompanyId(currentUser.companyId);
+    } else {
+      const storedCompanyId = getCompanyId();
+      if (storedCompanyId) {
+        setCompanyId(storedCompanyId);
+      }
+    }
+  }, [userClinic.companyId, currentUser?.companyId]);
+
   // Update form values when user data is loaded
   useEffect(() => {
     if (user) {
@@ -62,6 +80,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
         role: user.role || "",
         roleId: user.roleId || "",
         clinicId: user.clinicId || "",
+        clinicIds: user.clinicId ? [user.clinicId] : [],
         isActive: typeof user.isActive === 'boolean' ? user.isActive : false
       };
       form.reset(defaultValues);
@@ -72,11 +91,11 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   useEffect(() => {
     if (userType.isClinicAdmin && userClinic.id) {
       form.setValue("clinicId", userClinic.id);
+      form.setValue("clinicIds", [userClinic.id]);
     }
   }, [userType.isClinicAdmin, userClinic.id, form]);
 
-  const selectedRole = rolesData?.data?.find((role:any) => role.id === form.watch("roleId"));
-  const showClinicField = selectedRole?.isClinicRequired && !userType.isClinicAdmin;
+  const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
 
   // Filter roles based on current user's role priority
   const roleOptions = React.useMemo(() => {
@@ -106,8 +125,26 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
       label: role.name
     }));
   }, [rolesData?.data, currentUser, user]);
-  
-  if (isLoading) {
+
+  const clinicOptions = React.useMemo(() => {
+    const options = clinicData?.items?.map((clinic) => ({
+      value: clinic.id,
+      label: clinic.name
+    })) || [];
+    console.log('Debug - clinicOptions:', options);
+    console.log('Debug - clinicData:', clinicData);
+    console.log('Debug - companyId:', companyId);
+    return options;
+  }, [clinicData?.items]);
+
+  // Debug logging
+  console.log('Debug - userType:', userType);
+  console.log('Debug - currentUser:', currentUser);
+  console.log('Debug - currentUser.roleName:', currentUser?.roleName);
+  console.log('Debug - userType.isAdmin:', userType?.isAdmin);
+  console.log('Debug - showClinicField:', showClinicField);
+
+  if (isLoading || loading || !currentUser) {
     return <div>Loading...</div>;
   }
   
@@ -115,33 +152,37 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
     return <div>User not found</div>;
   }
   
-  const handleSubmit = async (values: User) => {
+  const handleSubmit = async (values: User & { clinicIds?: string[] }) => {
     try {
       // Find the selected role to ensure we have the correct data
       const roleToSend = rolesData?.data?.find((role : any) => role.id === values.roleId);
-      
-      // Determine clinicId value: 
-      // - Use userClinic.id if user is clinicAdmin
-      // - Use form value if role requires clinic and not empty
-      // - Null otherwise
-      let clinicId = null;
+
+      // Determine clinicIds values based on user role
+      let clinicIds: string[] = [];
+
       if (userType.isClinicAdmin && userClinic.id) {
-        clinicId = userClinic.id;
-      } else if (selectedRole?.isClinicRequired && values.clinicId) {
-        clinicId = values.clinicId;
+        // For clinicAdmin, always use their clinic ID
+        clinicIds = [userClinic.id];
+      } else if ((userType?.isAdmin || currentUser?.roleName === 'Administrator') && values.clinicIds && values.clinicIds.length > 0) {
+        // For Administrator users, use the selected clinics
+        clinicIds = values.clinicIds;
       }
-      
+
       // Extract lastName to handle separately
-      const { lastName, ...restValues } = values;
-      
-      // Create the payload with role and clinic information
+      const { lastName } = values;
+
+      // Create the payload matching the PUT API structure
       const payload = {
-        ...restValues,
-        lastName: lastName ? lastName : null, // Set lastName to null if empty
-        isActive: true,
-        role: roleToSend?.name,
+        id: values.id,
+        email: values.email,
+        passwordHash: values.passwordHash,
+        firstName: values.firstName,
+        lastName: lastName ? lastName : null,
         roleId: roleToSend?.id,
-        clinicId: clinicId, // Set based on conditions above
+        companyId: values.companyId,
+        clinicIds: clinicIds, // Array of clinic IDs
+        isActive: true,
+        slots: [] // Empty slots array as per API
       };
 
       await updateUser.mutateAsync(payload);
@@ -204,9 +245,10 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
                     value={field.value?.toString()}
                     onValueChange={(value) => {
                       field.onChange(value);
-                      // Reset clinicId when role changes (unless clinicAdmin)
+                      // Reset clinic IDs when role changes (unless clinicAdmin)
                       if (!userType.isClinicAdmin) {
                         form.setValue("clinicId", "");
+                        form.setValue("clinicIds", []);
                       }
                     }}
                     placeholder="Select role"
@@ -242,18 +284,16 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
           )}
 
           {showClinicField && (
-            <FormField name="clinicId" control={form.control} render={({ field }) => (
+            <FormField name="clinicIds" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Clinic</FormLabel>
+                <FormLabel>Clinics</FormLabel>
                 <FormControl>
-                  <Combobox
-                    options={clinicData?.items?.map((clinic) => ({
-                      value: clinic.id,
-                      label: clinic.name
-                    })) || []}
-                    value={field.value?.toString()}
+                  <MultiSelect
+                    options={clinicOptions}
+                    defaultValue={field.value || []}
                     onValueChange={field.onChange}
-                    placeholder="Select clinic"
+                    placeholder="Select clinics"
+                    maxCount={3}
                   />
                 </FormControl>
                 <FormMessage />
