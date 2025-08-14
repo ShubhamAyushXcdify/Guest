@@ -8,6 +8,7 @@ import type { BadgeProps } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { useGetSupplier } from "@/queries/suppliers/get-supplier";
+import { useGetClinic } from "@/queries/clinic/get-clinic";
 import withAuth from "@/utils/privateRouter";
 import NewSupplier from "./newSupplier";
 import { useDeleteSupplier } from "@/queries/suppliers/delete-supplier";
@@ -73,11 +74,13 @@ function Supplier() {
   const [search, setSearch] = useState('');
   const { toast } = useToast();
   
-  // If user is clinicAdmin, filter suppliers by clinic ID
-  const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? clinic.id || '' : '';
+  const companyId = clinic?.companyId || '';
   
-  const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search, clinicId);
+  const { data: clinicsData } = useGetClinic(1, 100, companyId, (userType.isClinicAdmin || userType.isVeterinarian) && !!companyId);
   
+  const userClinic = clinicsData?.items?.find((c: any) => c.companyId === companyId);
+  const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? userClinic?.id || '' : '';
+  const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search, clinicId, companyId);
   // Extract suppliers from the paginated response
   const suppliers = supplierData?.items || [];
   const totalPages = supplierData?.totalPages || 1;

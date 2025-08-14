@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 export type Supplier = {
     id: string;
+    companyId?: string | null;
     name: string;
     addressLine1: string;
     addressLine2: string;
@@ -51,22 +52,45 @@ export interface PaginatedResponse<T> {
     hasNextPage: boolean;
 }
 
-const getSupplier = async (pageNumber = 1, pageSize = 10, search = '', clinicId = '') => {
-    const response = await fetch(`/api/supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clinicId=${clinicId}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch supplier data');
-    }
-    return response.json() as Promise<PaginatedResponse<Supplier>>;
+const getSupplier = async (
+  pageNumber = 1,
+  pageSize = 10,
+  search = '',
+  clinicId?: string,
+  companyId?: string
+) => {
+  const params = new URLSearchParams({
+    pageNumber: String(pageNumber),
+    pageSize: String(pageSize),
+    search: search || ''
+  });
+
+  if (clinicId) params.append('clinicId', clinicId);
+  if (companyId) params.append('companyId', companyId);
+
+  const response = await fetch(`/api/supplier?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch supplier data');
+  }
+
+  return response.json() as Promise<PaginatedResponse<Supplier>>;
 };
 
-export const useGetSupplier = (pageNumber = 1, pageSize = 10, search = '', clinicId = '', enabled = true) => {
-    return useQuery({
-        queryKey: ["supplier", pageNumber, pageSize, search, clinicId],
-        queryFn: async () => {
-            return getSupplier(pageNumber, pageSize, search, clinicId);
-        },
-        refetchOnWindowFocus: false,
-        placeholderData: keepPreviousData,
-        enabled
-    });
+
+export const useGetSupplier = (
+  pageNumber = 1,
+  pageSize = 10,
+  search = '',
+  clinicId?: string,
+  companyId?: string,
+  enabled = true
+) => {
+  return useQuery({
+    queryKey: ['supplier', pageNumber, pageSize, search, clinicId, companyId],
+    queryFn: () => getSupplier(pageNumber, pageSize, search, clinicId, companyId),
+    refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
+    enabled
+  });
 };

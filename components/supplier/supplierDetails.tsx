@@ -21,7 +21,7 @@ type SupplierDetailsProps = {
 export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetailsProps) {
   const router = useRouter();
   const { userType, clinic } = useRootContext();
-  const { data: clinicsData } = useGetClinic();
+  const { data: clinicsData } = useGetClinic(1, 10, clinic?.companyId || null);
   const clinics = clinicsData?.items || [];  
   const { data: supplier, isLoading } = useGetSupplierById(supplierId);
   const updateSupplier = useUpdateSupplier();

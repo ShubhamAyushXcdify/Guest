@@ -19,7 +19,7 @@ type NewSupplierProps = {
 export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   const router = useRouter();
   const { user, userType, clinic } = useRootContext();
-  const { data: clinicsData } = useGetClinic();
+  const { data: clinicsData } = useGetClinic(1, 10, clinic?.companyId || null);
   const clinics = clinicsData?.items || [];
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
