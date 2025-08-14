@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { DataTable } from "../ui/data-table";
 import { Button } from "../ui/button";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
@@ -74,13 +74,55 @@ function Supplier() {
   const [search, setSearch] = useState('');
   const { toast } = useToast();
   
-  const companyId = clinic?.companyId || '';
-  
-  const { data: clinicsData } = useGetClinic(1, 100, companyId, (userType.isClinicAdmin || userType.isVeterinarian) && !!companyId);
-  
-  const userClinic = clinicsData?.items?.find((c: any) => c.companyId === companyId);
-  const clinicId = (userType.isClinicAdmin || userType.isVeterinarian) ? userClinic?.id || '' : '';
-  const { data: supplierData, isLoading, isError } = useGetSupplier(pageNumber, pageSize, search, clinicId, companyId);
+const [companyId, setCompanyId] = useState<string | null>(null);
+const [localClinicId, setLocalClinicId] = useState<string | null>(null);
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      setCompanyId(user.companyId || null);
+    }
+  }, []);
+
+useEffect(() => {
+  const userData = localStorage.getItem("user");
+  if (userData) {
+    const user = JSON.parse(userData);
+    setCompanyId(user.companyId || null);
+
+    if (user.roleName === "Clinic Admin" || user.roleName === "Veterinarian") {
+      if (user.clinics && user.clinics.length > 0) {
+        setLocalClinicId(user.clinics[0].clinicId);
+      }
+    }
+  }
+}, []);
+
+const clinicId =
+  (userType.isClinicAdmin || userType.isVeterinarian)
+    ? localClinicId || ''
+    : '';
+
+  const supplierFetchParams = useMemo(() => {
+  if (userType.isAdmin && companyId) return { companyId };
+  if ((userType.isClinicAdmin || userType.isVeterinarian) && clinicId) return { clinicId };
+  return {};
+}, [userType, companyId, clinicId]);
+
+
+const { data: supplierData, isLoading, isError } = useGetSupplier(
+  pageNumber,
+  pageSize,
+  search,
+  userType.isClinicAdmin || userType.isVeterinarian ? clinicId : null,
+  userType.isAdmin ? companyId : null,
+  Boolean(
+    (userType.isClinicAdmin || userType.isVeterinarian) ? clinicId : companyId
+  )
+);
+
+
+
   // Extract suppliers from the paginated response
   const suppliers = supplierData?.items || [];
   const totalPages = supplierData?.totalPages || 1;

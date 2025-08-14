@@ -31,7 +31,6 @@ const UNIT_OF_MEASURE_OPTIONS = [
   { value: "BOX", label: "Box" },
   { value: "PACK", label: "Pack" },
   { value: "BAG", label: "Bag" },
-  { value: "BOTTLE", label: "Bottle" },
   { value: "CAN", label: "Can" }
 ];
 
@@ -92,6 +91,20 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
     }
   }, [product, form, isFormReady]);
 
+useEffect(() => {
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user?.companyId) {
+        form.setValue("companyId", user.companyId);
+      }
+    } catch (err) {
+      console.error("Error parsing user from localStorage:", err);
+    }
+  }
+}, [form]);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -104,6 +117,7 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
   if (!isFormReady) {
     return <div>Preparing form...</div>;
   }
+  
 
   const handleSubmit = async (values: Product) => {
     try {
