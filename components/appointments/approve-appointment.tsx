@@ -21,6 +21,8 @@ import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetPatients } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
+import { getCompanyId } from "@/utils/clientCookie"
+import { useRootContext } from "@/context/RootContext"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRoom } from "@/queries/rooms/get-room"
 import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
@@ -78,9 +80,11 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
   const selectedDate = form.watch("appointmentDate")
 
   // Options data
-  const { data: clinicsResponse } = useGetClinic(1, 100, '', null, null, true)
+  const { data: clinicsResponse } = useGetClinic(1, 100, '', true)
   const { data: patientsResponse } = useGetPatients(1, 100)
-  const { data: clientsResponse } = useGetClients(1, 100)
+  const { user } = useRootContext()
+  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || ''
+  const { data: clientsResponse } = useGetClients(1, 100, '', 'first_name', companyId)
   const { data: usersResponse } = useGetUsers(1, 100)
   const { data: roomsResponse } = useGetRoom(1, 100, '', selectedClinicId)
   const { data: appointmentTypes = [] } = useGetAppointmentType(1, 100, '', true)

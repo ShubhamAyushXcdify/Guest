@@ -34,9 +34,10 @@ const getClients = async (
   pageNumber = 1,
   pageSize = 10,
   search = '',
-  type = 'first_name'
+  type = 'first_name',
+  companyId?: string
 ) => {
-  const url = `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}`;
+  const url = `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}&companyId=${companyId ?? ''}`;
   const response = await fetch(url);
   
   if (!response.ok) {
@@ -53,11 +54,12 @@ export function useGetClients(
   pageSize = 10,
   search = '',
   type = 'first_name',
+  companyId?: string,
   enabled = true
 ) {
   return useQuery({
-    queryKey: ['clients', pageNumber, pageSize, search, type],
-    queryFn: () => getClients(pageNumber, pageSize, search, type),
+    queryKey: ['clients', pageNumber, pageSize, search, type, companyId],
+    queryFn: () => getClients(pageNumber, pageSize, search, type, companyId),
     enabled: !!enabled,
     retry: 1,
     staleTime: 30000,

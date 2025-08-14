@@ -13,6 +13,8 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Control } from "react-hook-form";
 import { useRootContext } from '@/context/RootContext';
 import { useGetClients } from "@/queries/clients/get-client"
+import { getCompanyId } from "@/utils/clientCookie"
+import { useRootContext } from "@/context/RootContext"
 
 interface ClientSelectProps {
   control: Control<any>;
@@ -43,9 +45,13 @@ export function ClientSelect({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Resolve companyId from storage or context
+  const { user } = useRootContext();
+  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || '';
+
   // Use the updated hook to get clients with search
   const { data: clientsData, isLoading, isError } = useGetClients(
-    1, 100, debouncedSearch, 'firstName', !!debouncedSearch
+    1, 100, debouncedSearch, 'first_name', companyId, !!debouncedSearch
   );
   // Always use items array from the response
   const clients = clientsData?.items || [];

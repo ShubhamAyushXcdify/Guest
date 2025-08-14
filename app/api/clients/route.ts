@@ -17,9 +17,10 @@ export async function GET(request: NextRequest) {
         const pageSize = searchParams.get('pageSize') || '10';
         const type = searchParams.get('type') || 'first_name';
         const search = searchParams.get('query') || searchParams.get('search') || '';
+        const companyId = searchParams.get('companyId') || '';
 
         const response = await fetch(
-            `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}`,
+            `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}&companyId=${companyId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

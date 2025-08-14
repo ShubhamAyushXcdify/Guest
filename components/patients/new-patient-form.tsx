@@ -40,6 +40,7 @@ import { Separator } from "@/components/ui/separator"
 import { Client } from "@/queries/clients/get-client"
 import { useRootContext } from '@/context/RootContext'
 import { useGetClients } from "@/queries/clients/get-client"
+import { getCompanyId } from "@/utils/clientCookie"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useDebounce } from "@/hooks/use-debounce"
@@ -97,8 +98,9 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
   const debouncedClientQuery = useDebounce(handleClientSearch, 300)  // Debounce the client search query
   const [selectedClient, setSelectedClient] = useState<{ id: string, name: string } | null>(null)
   
+  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || ''
   const { data: clientsData, isLoading: isLoadingClients } = useGetClients(
-    1, 100, clientSearchQuery, 'firstName', !!clientSearchQuery
+    1, 100, clientSearchQuery, 'first_name', companyId, !!clientSearchQuery
   )
   const clients = clientsData?.items || []
 

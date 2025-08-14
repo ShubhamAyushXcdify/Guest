@@ -308,7 +308,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   // Fetch data from APIs
   const { data: clinicsResponse } = useGetClinic(1, 100, '', true)
   const { data: patientsResponse } = useGetPatients(1, 100)
-  const { data: clientsResponse } = useGetClients(1, 100)
+  const { data: clientsResponse } = useGetClients(1, 100, '', 'first_name', companyId || '')
   const { data: usersResponse } = useGetUsers(1, 100)
   const { data: roomsResponse } = useGetRoom(1, 100)
   const { data: appointmentTypes = [] } = useGetAppointmentType(1, 100, '', true);

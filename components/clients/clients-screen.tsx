@@ -11,6 +11,8 @@ import { useDeleteClient } from "@/queries/clients/delete-client"
 import { toast } from "@/components/ui/use-toast"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { useRouter } from "next/navigation"
+import { getCompanyId } from "@/utils/clientCookie"
+import { useRootContext } from "@/context/RootContext"
 
 interface ClientsScreenProps {
   onEditClient?: (client: Client | null) => void;
@@ -20,6 +22,8 @@ export const ClientsScreen = ({ onEditClient }: ClientsScreenProps) => {
   const [searchQuery, setSearchQuery] = useState("")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const { user } = useRootContext()
+  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || ''
   
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const debouncedSearch = useDebounce((value: string) => {
@@ -30,7 +34,9 @@ export const ClientsScreen = ({ onEditClient }: ClientsScreenProps) => {
   const { data: clientsData, isLoading, isError } = useGetClients(
     page,
     pageSize,
-    searchQuery
+    searchQuery,
+    'first_name',
+    companyId
   )
   
   const clients = clientsData?.items || []
