@@ -21,6 +21,8 @@ import { useRootContext } from "@/context/RootContext"
 import { User } from "@/hooks/useContentLayout"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 import { useGetUsers, User as ApiUser } from "@/queries/users/get-users"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { usePathname, useSearchParams } from "next/navigation"
 import DischargeSummarySheet from "./discharge-summary-sheet"
 
@@ -69,13 +71,36 @@ export default function AppointmentList({
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
   const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null)
-  const { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters } = useAppointmentFilter();
-  
-  // Ref to track if dates have been initialized
+  const { searchParams, handleSearch, handleStatus, handleProvider, handleClinic, handleDate, removeAllFilters } = useAppointmentFilter();
+
   const datesInitializedRef = useRef(false);
   
-  // Fetch veterinarians from users API - if admin, get all; if not admin, filter by clinic
-  const { data: usersData } = useGetUsers(1, 100, '', IsAdmin ? '' : clinic?.id || '', true, '');
+const { data: clinicsData } = useGetClinic(1, 100, clinic?.companyId ?? null);
+const clinics = clinicsData?.items ?? [];
+
+const [localClinicId, setLocalClinicId] = useState<string | null>(null);
+
+useEffect(() => {
+  const userData = localStorage.getItem("user");
+  if (userData) {
+    const user = JSON.parse(userData);
+
+    if (user.roleName === "Clinic Admin") {
+      if (user.clinics && user.clinics.length > 0) {
+        setLocalClinicId(user.clinics[0].clinicId);
+      }
+    }
+  }
+}, []);
+
+const effectiveClinicId =
+  userType.isAdmin
+    ? searchParams.clinicId || clinics[0]?.id || ""
+    : (userType.isClinicAdmin)
+      ? localClinicId || ""
+      : "";
+
+const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '');
   
   // Filter users to get only veterinarians
   const veterinarians = useMemo(() => {
@@ -99,7 +124,7 @@ export default function AppointmentList({
     search: searchParams.search,
     status: searchParams.status,
     provider: searchParams.provider,
-    clinicId: clinic?.id || '', // Show all if clinic is null
+    clinicId: effectiveClinicId,
     patientId: searchParams.patientId,
     clientId: searchParams.clientId,
     veterinarianId: userType.isProvider ? user?.id : searchParams.veterinarianId,
@@ -108,7 +133,7 @@ export default function AppointmentList({
     pageSize: pageSize,
     isRegistered: false // Ensure we don't show appointment requests
   });
-  
+
   // Use patient-specific appointments when selectedPatientId is provided, otherwise use all appointments
   const appointments = selectedPatientId ? patientAppointments : allAppointments;
   const isLoading = selectedPatientId ? isLoadingPatientAppointments : isLoadingAllAppointments;
@@ -714,7 +739,31 @@ export default function AppointmentList({
             }}
             className="h-full"
           />
-          {!userType.isProvider && (
+           {IsAdmin && (
+            <div>
+              <Select 
+                value={searchParams.clinicId ?? clinics[0]?.id ?? ''} 
+                onValueChange={(value) => {
+                  handleClinic(value);
+                  setSelectedProvider("");
+                }}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Select clinic" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clinics?.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            )}
+
+
+           {!userType.isProvider && (
             <div className="md:w-[400px]">
               <Combobox
                 options={providerOptions}
@@ -733,6 +782,7 @@ export default function AppointmentList({
               setSelectedProvider("")
               setSearchQuery("")
               setActiveTab("all")
+              handleClinic(null)
               removeAllFilters()
             }}
           >

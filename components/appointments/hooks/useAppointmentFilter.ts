@@ -41,6 +41,16 @@ function useAppointmentFilter() {
         });
     }
 
+    const handleClinic = (clinicId: string | null) => {
+        setSearchParams({
+            clinicId,
+            // When clinic changes, reset provider filters so list reflects the new clinic
+            veterinarianId: null,
+            provider: null,
+            pageNumber: 1,
+        });
+    }
+
     const handleDate = (dateFrom: string | null, dateTo: string | null) => {
         // Directly set the date parameters without any additional processing
         // If both parameters are provided, use them as is
@@ -101,6 +111,7 @@ function useAppointmentFilter() {
             dateTo: null,
             provider: null,
             veterinarianId: null,
+            clinicId: null,
             pageNumber: 1,
             isRegistered: true,
         });
@@ -111,7 +122,7 @@ function useAppointmentFilter() {
         return date.toISOString().split('T')[0];
     }
     
-    return { searchParams, handleSearch, handleStatus, handleProvider, handleDate, removeAllFilters };
+    return { searchParams, handleSearch, handleStatus, handleProvider, handleClinic, handleDate, removeAllFilters };
 }
 
 export default useAppointmentFilter
