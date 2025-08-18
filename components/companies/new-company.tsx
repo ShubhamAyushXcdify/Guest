@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCreateCompany, CreateCompanyRequest } from "@/queries/companies/create-company";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 const companySchema = z.object({
@@ -62,8 +62,9 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
     try {
       await createCompanyMutation.mutateAsync(values as CreateCompanyRequest);
       toast({
-        title: "Success",
-        description: "Company created successfully",
+        title: "Company Created",
+        description: "Company has been successfully created",
+        variant: "success",
       });
       form.reset();
       onSuccess?.();
