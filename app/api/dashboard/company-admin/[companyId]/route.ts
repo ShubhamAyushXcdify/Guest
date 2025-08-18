@@ -11,7 +11,7 @@ export async function GET(
     try {
         const { searchParams } = new URL(request.url);
         const { companyId } = params;
-        const baseApiUrl = `${apiUrl}/api/Dashboard/company-summary`;
+        const baseApiUrl = `${apiUrl}/api/Dashboard/company-admin`;
         const formattedParams = new URLSearchParams();
 
         // Add companyId parameter from URL path
