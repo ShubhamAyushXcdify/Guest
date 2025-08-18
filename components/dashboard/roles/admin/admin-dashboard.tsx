@@ -10,9 +10,11 @@ import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-w
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
+import { useRootContext } from "@/context/RootContext"
 
 export const AdminDashboard = () => {
   const today = new Date();
+  const { clinic } = useRootContext();
 
   const startOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
   const endOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
@@ -57,9 +59,10 @@ export const AdminDashboard = () => {
   };
 
   const dashboardSummaryParams = useMemo(() => ({
+    companyId: clinic?.companyId || '',
     fromDate: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : startOfDay.toISOString().split('T')[0],
     toDate: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : endOfDay.toISOString().split('T')[0],
-  }), [dateRange, startOfDay, endOfDay]);
+  }), [clinic?.companyId, dateRange, startOfDay, endOfDay]);
 
   const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary(dashboardSummaryParams);
 

@@ -50,6 +50,7 @@ interface PatientAppointmentFormProps {
 
 export default function PatientAppointmentForm({ isOpen, onClose, clientId, patients }: PatientAppointmentFormProps) {
   const { toast } = useToast()
+  const [isClient, setIsClient] = useState(false)
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation()
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   
@@ -68,10 +69,14 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
   })
 
   useEffect(() => {
-    if(!latitude && !longitude){
+    setIsClient(true)
+  }, [])
+
+  useEffect(() => {
+    if(isClient && !latitude && !longitude){
       refetch()
     }
-  }, [latitude, longitude]) 
+  }, [latitude, longitude, isClient]) 
 
   // Get selected veterinarian ID and date for slots
   const selectedClinicId = form.watch("clinicId");
@@ -89,20 +94,20 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     data: availableSlots = [], 
     isLoading: isLoadingSlots 
   } = useGetAvailableSlotsByUserId(
-    selectedVeterinarianId, 
-    formattedDate, 
-    !!selectedVeterinarianId && !!formattedDate
+    selectedVeterinarianId || '', 
+    formattedDate || '', 
+    Boolean(isClient && selectedVeterinarianId && formattedDate && typeof selectedVeterinarianId === 'string' && selectedVeterinarianId.length > 0 && typeof formattedDate === 'string' && formattedDate.length > 0)
   );
 
   // Fetch clinics
-  const { data: clinicsData } = useGetClinic(1, 100, "", latitude, longitude , (latitude && longitude) ? true : false)
+  const { data: clinicsData } = useGetClinic(1, 100, "", Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude)))
   const clinicOptions = (clinicsData?.items || []).map(clinic => ({
     value: clinic.id,
     label: clinic.name
   }))
 
   // Fetch veterinarians for the selected clinic
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId, !!selectedClinicId);
+  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId || '', Boolean(isClient && selectedClinicId && typeof selectedClinicId === 'string' && selectedClinicId.length > 0));
   const veterinarianOptions = (usersResponse.items || [])
     .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
     .map(vet => ({
@@ -111,7 +116,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     }));
 
   // Fetch appointment types
-  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', true);
+  const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', Boolean(isClient));
 
   // Create patient options from provided patients
   const patientOptions = patients.map(patient => ({

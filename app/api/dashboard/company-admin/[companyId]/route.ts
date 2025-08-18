@@ -4,11 +4,18 @@ import { NextRequest } from "next/server";
 
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
-export async function GET(request: NextRequest) {
+export async function GET(
+    request: NextRequest,
+    { params }: { params: { companyId: string } }
+) {
     try {
         const { searchParams } = new URL(request.url);
-        const baseApiUrl = `${apiUrl}/api/Dashboard/summary`;
+        const { companyId } = params;
+        const baseApiUrl = `${apiUrl}/api/Dashboard/company-summary`;
         const formattedParams = new URLSearchParams();
+
+        // Add companyId parameter from URL path
+        formattedParams.set('companyId', companyId);
 
         // Add date parameters if present
         if (searchParams.has('fromDate')) {

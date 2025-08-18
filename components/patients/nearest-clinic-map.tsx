@@ -14,9 +14,15 @@ const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { 
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
 const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> = ({ onClinicSelect }) => {
+  const [isClient, setIsClient] = useState(false);
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation();
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
   // Only fetch clinics when location is available
-  const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(1, 100, '', latitude, longitude, !!latitude && !!longitude);
+  const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(1, 100, '', Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude)));
   
   // Center map on user location
   const center = latitude && longitude ? [latitude, longitude] as [number, number] : [20, 77] as [number, number]; // fallback to India center
