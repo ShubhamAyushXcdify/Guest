@@ -8,7 +8,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useGetCompanyById } from "@/queries/companies/get-company";
 import { useUpdateCompany, UpdateCompanyRequest } from "@/queries/companies/update-comapny";
-import { toast } from "../ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 
 const companySchema = z.object({
@@ -93,8 +93,9 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
     try {
       await updateCompanyMutation.mutateAsync(values as UpdateCompanyRequest);
       toast({
-        title: "Success",
-        description: "Company updated successfully",
+        title: "Company Updated",
+        description: "Company has been successfully updated",
+        variant: "success",
       });
       onSuccess?.();
     } catch (error) {

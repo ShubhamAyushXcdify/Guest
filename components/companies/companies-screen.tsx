@@ -6,7 +6,7 @@ import { Company, useGetCompanies } from "@/queries/companies/get-company";
 import { useDeleteCompany } from "@/queries/companies/delete-comapny";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -39,8 +39,9 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
     try {
       await deleteCompanyMutation.mutateAsync(companyToDelete.id);
       toast({
-        title: "Success",
-        description: "Company deleted successfully",
+        title: "Company Deleted",
+        description: "Company has been successfully deleted",
+        variant: "success",
       });
       setIsDeleteDialogOpen(false);
     } catch (error) {
