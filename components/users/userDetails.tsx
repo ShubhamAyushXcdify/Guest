@@ -20,6 +20,9 @@ import { Combobox } from "../ui/combobox";
 import { MultiSelect } from "../ui/mulitselect";
 import { useRootContext } from "@/context/RootContext";
 import { getCompanyId, getClinicId } from "@/utils/clientCookie";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 
 interface UserDetailsProps {
   userId: string;
@@ -36,9 +39,44 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
   const { data: clinicData } = useGetClinic(1, 100, companyId, true);
   const { data: companiesData } = useGetCompanies(userType?.isSuperAdmin);
   const updateUser = useUpdateUser();
+  const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
+  const showCompanyField = userType?.isSuperAdmin;
+  const showRoleField = !userType?.isSuperAdmin; // Hide role field for superadmin
+
+
+
+  const userDetailsSchema = z.object({
+  id: z.string().min(1, "User ID is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
+  passwordHash: z.string().min(6, "Password must be at least 6 characters"),
+  roleId: showRoleField
+  ? z.string().min(1, "Role is required")
+  : z.string().optional(),
+  companyId: showCompanyField
+  ? z.string().min(1, "Company is required")
+  : z.string().optional(),
+ clinicIds: z.array(z.string()).optional(),
+  clinicId: z.string().optional(),
+  isActive: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+    if (showClinicField) {
+      if ((!data.clinicId || data.clinicId.length === 0) &&
+          (!data.clinicIds || data.clinicIds.length === 0)) {
+        ctx.addIssue({
+          path: ["clinicIds"], 
+          code: z.ZodIssueCode.custom,
+          message: "At least one clinic must be selected",
+        });
+      }
+    }
+  });
+
   
   // Initialize form with empty values that will be updated when data is loaded
   const form = useForm<User & { clinicIds?: string[] }>({
+    resolver: zodResolver(userDetailsSchema),
     defaultValues: {
       id: userId,
       email: "",
@@ -103,7 +141,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
     }
   }, [isClinicAdmin, currentUser?.clinics, userClinic.id, form]);
 
-  const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
+ 
 
   // Filter roles based on current user's role priority
   const roleOptions = React.useMemo(() => {
