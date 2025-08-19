@@ -19,6 +19,8 @@ import { MultiSelect } from "../ui/mulitselect";
 import { useRootContext } from "@/context/RootContext";
 import { Eye, EyeOff } from "lucide-react";
 import { getCompanyId, getClinicId } from "@/utils/clientCookie";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type UserFormValues = Omit<User, "id" | "lastLogin" | "createdAt" | "updatedAt"> & {
   clinicId?: string;
@@ -36,6 +38,48 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const { user: currentUser, userType, clinic, loading } = useRootContext();
   const [showPassword, setShowPassword] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
+  const showCompanyField = userType?.isSuperAdmin;
+  const showRoleField = !userType?.isSuperAdmin; // Hide role field for superadmin
+  const isClinicAdmin = userType?.isClinicAdmin || currentUser?.roleName === 'Clinic Admin';
+
+ const userSchema = z.object({
+  firstName: z
+    .string()
+    .min(1, "First name is required"),
+  lastName: z
+    .string()
+    .min(1, "Last name is required"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Invalid email address"),
+  passwordHash: z
+    .string()
+    .min(6, "Password must be at least 6 characters"),
+  role: showRoleField
+  ? z.string().min(1, "Role is required")
+  : z.string().optional(),
+  companyId: showCompanyField
+  ? z.string().min(1, "Company is required")
+  : z.string().optional(),
+  clinicIds: z.array(z.string()).optional(),
+  clinicId: z.string().optional(),
+  isActive: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+    if (showClinicField) {
+      if ((!data.clinicId || data.clinicId.length === 0) &&
+          (!data.clinicIds || data.clinicIds.length === 0)) {
+        ctx.addIssue({
+          path: ["clinicIds"], 
+          code: z.ZodIssueCode.custom,
+          message: "At least one clinic must be selected",
+        });
+      }
+    }
+  });
+
+
   
   const createUser = useCreateUser({
     onSuccess: () => {
@@ -60,6 +104,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   });
   
   const form = useForm<UserFormValues>({
+    resolver: zodResolver(userSchema),
     defaultValues: {
       email: "",
       passwordHash: "",
@@ -77,10 +122,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const { data: clinicData } = useGetClinic(1, 100, companyId, true);
   const { data: companiesData } = useGetCompanies(userType?.isSuperAdmin);
   
-  const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
-  const showCompanyField = userType?.isSuperAdmin;
-  const showRoleField = !userType?.isSuperAdmin; // Hide role field for superadmin
-  const isClinicAdmin = userType?.isClinicAdmin || currentUser?.roleName === 'Clinic Admin';
+ 
 
 
 

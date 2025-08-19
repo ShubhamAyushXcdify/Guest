@@ -88,7 +88,7 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
-        <div className="grid grid-cols-1 gap-8">
+        <div className="grid grid-cols-2 gap-8">
           {!clinic.id && (
             <FormField name="clinicId" control={form.control} render={({ field }) => (
               <FormItem>

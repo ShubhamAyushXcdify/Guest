@@ -283,7 +283,7 @@ const { data: supplierData, isLoading, isError } = useGetSupplier(
           <SheetTrigger asChild>
             <Button className={`theme-button text-white`} onClick={() => setOpenNew(true)}><Plus className="mr-2 h-4 w-4" />Add Supplier</Button>
           </SheetTrigger>
-          <SheetContent side="right" className="overflow-y-auto">
+          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[37%] overflow-y-auto">
             <SheetHeader>
               <SheetTitle>New Supplier</SheetTitle>
             </SheetHeader>
