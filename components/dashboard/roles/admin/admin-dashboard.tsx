@@ -103,10 +103,6 @@ export const AdminDashboard = () => {
           <h1 className="text-2xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>
           <p className="text-muted-foreground text-sm">Overview of your clinic operations and statistics</p>
         </div>
-      </div>
-      {/* Date Range Picker */}
-      <div className="md:flex justify-between items-center">
-        {/* Admin Header */}
         <div>
           <DatePickerWithRangeV2
             date={dateRange}
