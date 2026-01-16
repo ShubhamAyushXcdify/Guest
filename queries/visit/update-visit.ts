@@ -4,6 +4,23 @@ interface UpdateVisitData {
   id: string;
   isIntakeCompleted?: boolean;
   isComplaintsCompleted?: boolean;
+  isVitalsCompleted?: boolean;
+  isPlanCompleted?: boolean;
+  isProceduresCompleted?: boolean | null;
+  isPrescriptionCompleted?: boolean | null;
+  isVaccinationDetailCompleted?: boolean | null;
+  isEmergencyTriageCompleted?: boolean | null;
+  isEmergencyVitalCompleted?: boolean | null;
+  isEmergencyProcedureCompleted?: boolean | null;
+  isEmergencyDischargeCompleted?: boolean | null;
+  isSurgeryPreOpCompleted?: boolean | null;
+  isSurgeryDetailsCompleted?: boolean | null;
+  isSurgeryPostOpCompleted?: boolean | null;
+  isSurgeryDischargeCompleted?: boolean | null;
+  isDewormingIntakeCompleted?: boolean | null;
+  isDewormingMedicationCompleted?: boolean | null;
+  isDewormingNotesCompleted?: boolean | null;
+  isDewormingCheckoutCompleted?: boolean | null;
 }
 
 export const useUpdateVisit = () => {

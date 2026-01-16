@@ -6,11 +6,11 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { companyId: string } }
+    { params }: { params: Promise<{ companyId: string }> }
 ) {
     try {
         const { searchParams } = new URL(request.url);
-        const { companyId } = params;
+        const { companyId } = await params;
         const baseApiUrl = `${apiUrl}/api/Dashboard/company-admin`;
         const formattedParams = new URLSearchParams();
 

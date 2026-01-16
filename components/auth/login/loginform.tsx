@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button";
 import {
@@ -24,11 +25,13 @@ import {
 } from "@/components/ui/form";
 import { useLoginMutation } from "@/queries/auth/login-user";
 import { useRouter } from "next/navigation";
-import { setJwtToken, setUserId, setClientId } from '@/utils/clientCookie';
+import { setJwtToken, setUserId, setClientId, setCompanyId } from '@/utils/clientCookie';
 import { Loader2 } from 'lucide-react';
 // import { useQueryState } from 'nuqs';
-import { useToast } from '@/hooks/use-toast';
+// import { useToast } from '@/hooks/use-toast';
 import { useRootContext } from '@/context/RootContext';
+import { getCompanySubdomain } from "@/utils/subdomain"
+import { useGetCompanyBySubdomain } from "@/queries/companies"
 
 const loginSchema = z.object({
   email: z.string().min(2, {
@@ -41,9 +44,13 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export function LoginForm() {
+interface LoginFormProps {
+  hideRegisterLink?: boolean;
+}
+
+export function LoginForm({ hideRegisterLink }: LoginFormProps) {
   const { setUser, fetchUser } = useRootContext();
-  const { toast } = useToast();
+  // const { toast } = useToast();
   const router = useRouter();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -51,30 +58,35 @@ export function LoginForm() {
       email: "",
       password: "",
     },
-  });
+  })
+  const subdomain = getCompanySubdomain()
+  const { data: company, isLoading: companyLoading, error: companyError } = useGetCompanyBySubdomain(subdomain)
 
   const loginMutation = useLoginMutation({
     onSuccess: (data: any) => {
       setJwtToken(data.token);
       setUserId(data.user.id);
 
+      // Set company ID if it exists in the response
+      if (data.user.companyId) {
+        setCompanyId(data.user.companyId);
+      } else if (data.user.clinicCompanyId) {
+        // Try alternate property name if companyId is not present
+        setCompanyId(data.user.clinicCompanyId);
+      }
+
       if(data.user.roleName === "Client"){
         setClientId(data.user.id);
       }
-      fetchUser(data, data.user.roleName); 
+      fetchUser(data, data.user.roleName);
       router.push(data.redirectUrl ? data.redirectUrl : "/dashboard");
-      toast({
-        title: "Login Successful",
+      toast.success("Login Successful", {
         description: "Welcome to the PawTrack",
-        variant: "success",
       })
-
     },
     onError: (error) => {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: error instanceof Error ? error.message : "Login failed. Please try again.",
-        variant: 'destructive',
         duration: 3000,
       })
     }
@@ -117,7 +129,7 @@ export function LoginForm() {
                     <FormLabel>Password</FormLabel>
                     <Link
                       href="/forgot-password"
-                      className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80"
+                      className="ml-auto inline-block text-sm underline theme-text-accent hover:opacity-80 font-medium"
                     >
                       Forgot password?
                     </Link>
@@ -130,17 +142,19 @@ export function LoginForm() {
               )}
             />
             <Button type="submit" className="w-full" disabled={loginMutation.isPending} data-testid="login-submit">
-              {loginMutation.isPending ? <Loader2 className="animate-spin" /> : 'Access Pet Portal'}
+              {loginMutation.isPending ? <Loader2 className="animate-spin" /> : "Access"} {company?.name || "Portal"}
             </Button>
           </form>
         </Form>
-        <div className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <Link href="/register"  className="ml-auto inline-block text-sm underline theme-text-accent hover:text-primary/80" data-testid="register-link">
-          
-            Register here
-          </Link>
-        </div>
+        {!hideRegisterLink && (
+          <div className="mt-4 text-center text-sm">
+            Don&apos;t have an account?{" "}
+            <Link href="/register"  className="ml-auto inline-block text-sm underline theme-text-accent hover:opacity-80 font-medium" data-testid="register-link">
+
+              Register here
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

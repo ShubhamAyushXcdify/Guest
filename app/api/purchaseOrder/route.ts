@@ -54,33 +54,45 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    
-    // Process response to ensure consistent format
-    let responseData;
+
+    // Process response to ensure consistent { data, meta } format
+    let responseData: any;
     if (Array.isArray(data)) {
-      // If data is an array, wrap it in the expected format
+      // Case 1: backend returned a flat array
       responseData = {
-        data: data,
+        data,
         meta: {
           currentPage: 1,
           pageSize: data.length,
           totalItems: data.length,
-          totalPages: 1
-        }
+          totalPages: 1,
+        },
       };
-    } else if (data && data.data && Array.isArray(data.data)) {
-      // Already in the correct format
+    } else if (data && Array.isArray(data.data) && data.meta) {
+      // Case 2: backend already returns { data, meta }
       responseData = data;
-    } else {
-      // Unexpected format, try to handle it
+    } else if (data && Array.isArray(data.items)) {
+      // Case 3: backend returns { items, totalCount, pageNumber, pageSize, totalPages, ... }
       responseData = {
-        data: Array.isArray(data) ? data : data ? [data] : [],
+        data: data.items,
+        meta: {
+          currentPage: data.pageNumber ?? 1,
+          pageSize: data.pageSize ?? (Array.isArray(data.items) ? data.items.length : 0),
+          totalItems: data.totalCount ?? (Array.isArray(data.items) ? data.items.length : 0),
+          totalPages: data.totalPages ?? 1,
+        },
+      };
+    } else {
+      // Fallback: wrap single object
+      const wrapped = Array.isArray(data) ? data : data ? [data] : [];
+      responseData = {
+        data: wrapped,
         meta: {
           currentPage: 1,
-          pageSize: Array.isArray(data) ? data.length : data ? 1 : 0,
-          totalItems: Array.isArray(data) ? data.length : data ? 1 : 0,
-          totalPages: 1
-        }
+          pageSize: wrapped.length,
+          totalItems: wrapped.length,
+          totalPages: 1,
+        },
       };
     }
     

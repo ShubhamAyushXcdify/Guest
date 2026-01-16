@@ -13,7 +13,7 @@ const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLaye
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
-const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> = ({ onClinicSelect }) => {
+const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void; companyId?: string }> = ({ onClinicSelect, companyId }) => {
   const [isClient, setIsClient] = useState(false);
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation();
   
@@ -22,7 +22,7 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> =
   }, []);
   
   // Only fetch clinics when location is available
-  const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(1, 100, '', Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude)));
+  const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(1, 100, companyId || '', Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude) && companyId));
   
   // Center map on user location
   const center = latitude && longitude ? [latitude, longitude] as [number, number] : [20, 77] as [number, number]; // fallback to India center
@@ -125,7 +125,7 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> =
                   {clinic.distance && (
                     <p className="text-xs text-green-600 mt-1">{clinic.distance.toFixed(2)} km away</p>
                   )}
-                  <button
+                  {/* <button
                     className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
                     onClick={e => {
                       e.preventDefault();
@@ -133,7 +133,7 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void }> =
                     }}
                   >
                     Select this Clinic
-                  </button>
+                  </button> */}
                 </div>
               </Popup>
             </Marker>

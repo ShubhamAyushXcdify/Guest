@@ -19,6 +19,7 @@ export interface Patient {
   name: string;
   species: string;
   breed: string;
+  secondaryBreed: string;
   color: string;
   gender: string;
   isNeutered: boolean;
@@ -47,15 +48,58 @@ export interface PaginatedResponse<T> {
 }
 
 const getPatients = async (pageNumber = 1, pageSize = 10, search = '', clientId = '', companyId?: string) => {
-  const response = await fetch(
-    `/api/patients?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clientId=${clientId}&companyId=${companyId ?? ''}`
-  );
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch patients data');
+  // If there's a search term, use the search endpoint
+  if (search && companyId) {
+    const searchParams = new URLSearchParams({
+      query: search,
+      type: 'name',
+      companyId,
+      page: pageNumber.toString(),
+      pageSize: pageSize.toString()
+    });
+    
+    const response = await fetch(`/api/patients/search?${searchParams.toString()}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to search patients');
+    }
+    
+    const data = await response.json();
+    // Transform the search response to match the expected pagination format
+    return {
+      items: data,
+      totalCount: data.length,
+      pageNumber,
+      pageSize,
+      totalPages: Math.ceil(data.length / pageSize),
+      hasPreviousPage: pageNumber > 1,
+      hasNextPage: data.length >= pageSize
+    } as PaginatedResponse<Patient>;
+  } 
+  // Regular listing without search
+  else {
+    const params = new URLSearchParams();
+    params.append('pageNumber', pageNumber.toString());
+    params.append('pageSize', pageSize.toString());
+    
+    if (clientId) {
+      params.append('clientId', clientId);
+    }
+    
+    if (companyId) {
+      params.append('companyId', companyId);
+    }
+
+    const response = await fetch(`/api/patients?${params.toString()}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to fetch patients data');
+    }
+    
+    return response.json() as Promise<PaginatedResponse<Patient>>;
   }
-  
-  return response.json() as Promise<PaginatedResponse<Patient>>;
 };
 
 export function useGetPatients(

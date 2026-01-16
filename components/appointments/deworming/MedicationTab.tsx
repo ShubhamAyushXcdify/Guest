@@ -1,10 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { useCreateDewormingMedication } from "@/queries/deworming/medication/create-deworming-medication";
 import { useUpdateDewormingMedication } from "@/queries/deworming/medication/update-deworming-medication";
-import { useGetDewormingMedicationByVisitId, MedicationPrescription } from "@/queries/deworming/medication/get-deworming-medication-by-visit-id";
+import { useGetDewormingMedicationByVisitId, } from "@/queries/deworming/medication/get-deworming-medication-by-visit-id";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { useGetPatientById } from "@/queries/patients/get-patient-by-id";
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { Loader2, Send, Bot, User, Sparkles } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { dewormingMedicationAnalysis } from "@/app/actions/reasonformatting";
+import { toast } from "sonner";
 
 interface MedicationTabProps {
   patientId: string;
@@ -15,36 +27,123 @@ interface MedicationTabProps {
   isCompleted?: boolean;
 }
 
-interface MedicationItem {
-  id?: string;
-  medicationName: string;
-  dose: string;
-  frequency: string;
-  duration: string;
-  isCompleted: boolean;
-}
-
-const frequencyOptions = ["Once daily", "Twice daily", "Three times daily", "As needed", "As directed"];
-const durationOptions = ["3 days", "5 days", "7 days", "10 days", "14 days", "As directed"];
-
 export default function MedicationTab({ patientId, appointmentId, visitId, onComplete, onNext, isCompleted = false }: MedicationTabProps) {
-  const [medicationRow, setMedicationRow] = useState<MedicationItem>({
-    medicationName: "",
-    dose: "",
-    frequency: frequencyOptions[0],
-    duration: durationOptions[0],
-    isCompleted: true,
-  });
-  const [medications, setMedications] = useState<MedicationItem[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentEditingIndex, setCurrentEditingIndex] = useState<number | null>(null);
-  
-  // Common medication data
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isChatMode, setIsChatMode] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState("");
   const [route, setRoute] = useState("Oral");
   const [dateTimeGiven, setDateTimeGiven] = useState("");
   const [veterinarianName, setVeterinarianName] = useState("");
   const [administeredBy, setAdministeredBy] = useState("");
   const [remarks, setRemarks] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Get patient data for species information
+  const { data: patientData } = useGetPatientById(patientId);
+
+  // Build medication context for chat
+  const medicationContextRef = useRef("");
+  const [chatInput, setChatInput] = useState("");
+
+  const buildMedicationContext = () => {
+    if (!patientData) return "";
+
+    const medicationInfo = `
+Current Medication Data:
+- Patient: ${patientData.name || 'Unknown'}
+- Species: ${patientData.species || 'Unknown'}
+- Route: ${route || 'Not specified'}
+- Date/Time Given: ${dateTimeGiven || 'Not recorded'}
+- Veterinarian: ${veterinarianName || 'Not specified'}
+- Administered By: ${administeredBy || 'Not specified'}
+${remarks ? `- Remarks: ${remarks}` : ''}
+    `.trim();
+
+    return medicationInfo;
+  };
+
+  // Update medication context when data changes
+  useEffect(() => {
+    medicationContextRef.current = buildMedicationContext();
+  }, [route, dateTimeGiven, veterinarianName, administeredBy, remarks, patientData]);
+
+  // Set up the chat interface
+  const { messages, sendMessage, status, setMessages } = useChat({
+    id: `deworming-${patientId}-${appointmentId}`,
+    transport: new DefaultChatTransport({
+      prepareSendMessagesRequest: ({ id, messages }) => {
+        const medicationContext = medicationContextRef.current;
+
+        return {
+          body: {
+            id,
+            messages,
+            patientId: patientId ?? null,
+            medicationContext: medicationContext || undefined,
+          },
+        };
+      },
+    }),
+  });
+
+  const handleAnalyze = async () => {
+  if (!patientData?.species) {
+    toast.error("Patient species information is required for analysis");
+    return;
+  }
+
+  // Check if there's any medication data to analyze
+  if (!route && !dateTimeGiven && !veterinarianName && !administeredBy && !remarks) {
+    toast.error("Please enter at least one medication detail before analyzing");
+    return;
+  }
+
+  setIsAnalyzing(true);
+  try {
+    const analysis = await dewormingMedicationAnalysis(patientData.species, {
+      route,
+      dateTimeGiven,
+      veterinarianName,
+      administeredBy,
+      remarks
+    });
+    
+    setAnalysisResult(analysis);
+    setIsChatMode(true);
+    
+    // Initialize chat with the analysis result as the first message
+    setMessages([
+      {
+        id: 'initial-analysis',
+        role: 'assistant',
+        parts: [{ type: 'text', text: analysis }]
+      }
+    ]);
+    
+    toast.success("Medication analysis completed");
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Failed to analyze medication");
+  } finally {
+    setIsAnalyzing(false);
+  }
+};
+const handleChatSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+    
+    await sendMessage({ text: chatInput });
+    setChatInput("");
+  };
+  
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Use visitId if available, otherwise fall back to appointmentId
   const effectiveVisitId = visitId || appointmentId;
@@ -54,40 +153,29 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
   const updateMedication = useUpdateDewormingMedication();
 
   const isMedicationFormComplete = () => {
-  return (
-    medications.length > 0 &&
-    route.trim() !== "" &&
-    dateTimeGiven.trim() !== "" &&
-    veterinarianName.trim() !== "" &&
-    administeredBy.trim() !== ""
-  );
-};
-  const { data: appointmentData } = useGetAppointmentById(appointmentId) ;
-  const isReadOnly =appointmentData?.status === "completed" ;
+    return (
+      route.trim() !== "" &&
+      dateTimeGiven.trim() !== "" &&
+      veterinarianName.trim() !== "" &&
+      administeredBy.trim() !== ""
+    );
+  };
+  const { data: appointmentData } = useGetAppointmentById(appointmentId);
+  const isReadOnly = appointmentData?.status === "completed";
+  const hasExistingData = medicationData && medicationData.length > 0;
 
   // Load medications when component mounts or data changes
   useEffect(() => {
     if (medicationData && medicationData.length > 0) {
       const latestMedication = medicationData[0];
-      
+
       // Set common medication data
       setRoute(latestMedication.route || "Oral");
       setDateTimeGiven(latestMedication.dateTimeGiven || "");
       setVeterinarianName(latestMedication.veterinarianName || "");
       setAdministeredBy(latestMedication.administeredBy || "");
       setRemarks(latestMedication.remarks || "");
-      
-             // Set prescriptions
-       const formattedMedications = latestMedication.prescriptions?.map(prescription => ({
-         medicationName: prescription.medicationName || "",
-         dose: prescription.dose || "",
-         frequency: prescription.frequency || frequencyOptions[0],
-         duration: prescription.duration || durationOptions[0],
-         isCompleted: prescription.isCompleted
-       })) || [];
-      
-      setMedications(formattedMedications);
-      
+
       // Notify parent about completion status
       if (onComplete) {
         onComplete(latestMedication.isCompleted);
@@ -95,54 +183,10 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
     }
   }, [medicationData, onComplete]);
 
-  const handleAddMedication = () => {
-    // Require at least medication name and dose
-    if (medicationRow.medicationName && medicationRow.dose) {
-      if (currentEditingIndex !== null) {
-        // Update existing medication
-        const updatedMedications = [...medications];
-        updatedMedications[currentEditingIndex] = medicationRow;
-        setMedications(updatedMedications);
-        setCurrentEditingIndex(null);
-      } else {
-        // Add new medication
-        setMedications([...medications, medicationRow]);
-      }
-      
-      // Reset form
-      setMedicationRow({
-        medicationName: "",
-        dose: "",
-        frequency: frequencyOptions[0],
-        duration: durationOptions[0],
-        isCompleted: true,
-      });
-    }
-  };
-
-  const handleEditMedication = (index: number) => {
-    setMedicationRow(medications[index]);
-    setCurrentEditingIndex(index);
-  };
-
-  const handleRemoveMedication = (index: number) => {
-    const updatedMedications = medications.filter((_, idx) => idx !== index);
-    setMedications(updatedMedications);
-  };
-
   const handleSaveMedications = async () => {
     setIsSaving(true);
     try {
-      // Format prescriptions for the API
-      const prescriptions: MedicationPrescription[] = medications.map(med => ({
-        medicationName: med.medicationName,
-        dose: med.dose,
-        frequency: med.frequency,
-        duration: med.duration,
-        isCompleted: med.isCompleted
-      }));
-      
-      // Create payload with the new API structure
+      // Create payload with the API structure
       const payload = {
         visitId: effectiveVisitId,
         route: route,
@@ -150,28 +194,27 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
         veterinarianName: veterinarianName,
         administeredBy: administeredBy,
         remarks: remarks,
-        isCompleted: true,
-        prescriptions: prescriptions
+        isCompleted: true
       };
-      
+
       // If we have existing data, use update, otherwise create
       if (medicationData && medicationData.length > 0) {
-        await updateMedication.mutateAsync({ 
+        await updateMedication.mutateAsync({
           id: medicationData[0].id,
           ...payload
         });
       } else {
         await createMedication.mutateAsync(payload);
       }
-      
+
       // After successful save, refetch data
       await refetch();
-      
+
       // Notify parent about completion
       if (onComplete) {
         onComplete(true);
       }
-      
+
       // Move to next tab if provided
       if (onNext) {
         onNext();
@@ -183,13 +226,12 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
     }
   };
 
-  const hasExistingData = medicationData && medicationData.length > 0;
-
   if (isLoading) return <div>Loading...</div>;
 
   return (
     <Card className="relative">
-      <CardContent className="p-6">
+      <CardContent className="p-0">
+      <div className="h-[calc(100vh-20.5rem)] overflow-y-auto p-6">
         <div className="space-y-6">
           {isError && (
             <div className="p-3 bg-red-50 text-red-600 rounded border border-red-200">
@@ -201,153 +243,65 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
           <div className="border-b pb-4">
             <h3 className="text-lg font-semibold mb-4">Medication Administration Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-medium mb-1">Route</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
+              <div >
+                <Label htmlFor="route">Route</Label>
+                <Select
                   value={route}
-                  onChange={e => setRoute(e.target.value)}
+                  onValueChange={setRoute}
+                  disabled={isReadOnly}
                 >
-                  <option value="Oral">Oral</option>
-                  <option value="Injectable">Injectable</option>
-                  <option value="Topical">Topical</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select route" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Oral">Oral</SelectItem>
+                    <SelectItem value="Injectable">Injectable</SelectItem>
+                    <SelectItem value="Topical">Topical</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label className="block font-medium mb-1">Date/Time Given</label>
+                <Label htmlFor="dateTimeGiven">Date/Time Given</Label>
                 <Input
+                  id="dateTimeGiven"
                   type="datetime-local"
                   value={dateTimeGiven}
                   onChange={e => setDateTimeGiven(e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
               <div>
-                <label className="block font-medium mb-1">Veterinarian</label>
+                <Label htmlFor="veterinarianName">Veterinarian</Label>
                 <Input
+                  id="veterinarianName"
                   value={veterinarianName}
                   onChange={e => setVeterinarianName(e.target.value)}
                   placeholder="Enter veterinarian name"
+                  disabled={isReadOnly}
                 />
               </div>
               <div>
-                <label className="block font-medium mb-1">Administered By</label>
+                <Label htmlFor="administeredBy">Administered By</Label>
                 <Input
+                  id="administeredBy"
                   value={administeredBy}
                   onChange={e => setAdministeredBy(e.target.value)}
                   placeholder="Enter staff name"
+                  disabled={isReadOnly}
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block font-medium mb-1">Remarks</label>
+                <Label htmlFor="remarks">Remarks</Label>
                 <Input
+                  id="remarks"
                   value={remarks}
                   onChange={e => setRemarks(e.target.value)}
                   placeholder="Any special notes about administration"
+                  disabled={isReadOnly}
                 />
               </div>
             </div>
           </div>
-
-          {/* Individual Medication Form */}
-          <div className="border-b pb-4">
-            <h3 className="text-lg font-semibold mb-4">Add Medication</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block font-medium mb-1">Medication Name</label>
-                <Input
-                  value={medicationRow.medicationName}
-                  onChange={e => setMedicationRow({ ...medicationRow, medicationName: e.target.value })}
-                  placeholder="Enter medication name"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Dose</label>
-                <Input
-                  value={medicationRow.dose}
-                  onChange={e => setMedicationRow({ ...medicationRow, dose: e.target.value })}
-                  placeholder="e.g., 10mg/kg, 5ml"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Frequency</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={medicationRow.frequency}
-                  onChange={e => setMedicationRow({ ...medicationRow, frequency: e.target.value })}
-                >
-                  {frequencyOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block font-medium mb-1">Duration</label>
-                <select
-                  className="w-full border rounded px-3 py-2"
-                  value={medicationRow.duration}
-                  onChange={e => setMedicationRow({ ...medicationRow, duration: e.target.value })}
-                >
-                  {durationOptions.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button
-                type="button"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={handleAddMedication}
-              >
-                {currentEditingIndex !== null ? "Update Medication" : "Add Medication"}
-              </button>
-            </div>
-          </div>
-
-          {/* Medications List */}
-          {medications.length > 0 && (
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <h3 className="text-lg font-semibold mb-3">Medications List</h3>
-              <div className="space-y-2">
-                {medications.map((med, idx) => (
-                  <div 
-                    key={idx} 
-                    className="bg-white border rounded p-3 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => handleEditMedication(idx)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">{med.medicationName}</div>
-                        <div className="text-sm text-gray-600">
-                          Dose: {med.dose} | Frequency: {med.frequency} | Duration: {med.duration}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 ml-4">
-                        <button 
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditMedication(idx);
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveMedication(idx);
-                          }}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Error/Success Messages */}
           {(createMedication.isError || updateMedication.isError) && (
@@ -362,28 +316,150 @@ export default function MedicationTab({ patientId, appointmentId, visitId, onCom
           )}
 
           {/* Save Button */}
-          <div className="flex justify-end">
-            <button
+          
+        </div>
+        {/* AI Medication Analysis Section */}
+<div className="mt-8 border-t pt-6">
+  <div className="flex items-center justify-between mb-4">
+    <h3 className="text-md font-semibold">AI Medication Analysis</h3>
+    {!isChatMode && (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleAnalyze}
+        disabled={
+          isAnalyzing ||
+          isReadOnly ||
+          (!route && !dateTimeGiven && !veterinarianName && !administeredBy && !remarks)
+        }
+        className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+      >
+        <Sparkles className="w-4 h-4" />
+        {isAnalyzing ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Analyzing...
+          </>
+        ) : (
+          "Analyze Medication"
+        )}
+      </Button>
+    )}
+  </div>
+  
+  {isChatMode ? (
+    <div className="border border-purple-200/50 dark:border-purple-800/50 rounded-lg bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20 shadow-sm">
+      <div className="flex-shrink-0 border-b border-purple-200/30 dark:border-purple-800/30 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-900/20 dark:to-pink-900/20 rounded-t-lg">
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-pink-500">
+            <Bot className="h-3 w-3 text-white" />
+          </div>
+          <h4 className="text-sm text-purple-700 dark:text-purple-300 font-semibold">AI Medication Assistant</h4>
+        </div>
+      </div>
+      <div className="flex flex-col h-[400px]">
+        <ScrollArea className="flex-1 p-3">
+          <div className="space-y-3">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex gap-2",
+                  message.role === "user" ? "justify-end" : "justify-start"
+                )}
+              >
+                {message.role === "assistant" && (
+                  <Avatar className="h-6 w-6 flex-shrink-0">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                      <Bot className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={cn(
+                    "rounded-lg px-3 py-2 max-w-[80%]",
+                    message.role === "user"
+                      ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-sm"
+                      : "bg-gradient-to-r from-slate-100 to-blue-50 dark:from-slate-800 dark:to-blue-950/30 border border-slate-200 dark:border-slate-700"
+                  )}
+                >
+                  <p className="text-sm whitespace-pre-wrap">
+                    {message.parts?.map((part, index) => {
+                      if (part.type === 'text') {
+                        return part.text;
+                      }
+                      return '';
+                    }).join('') || ''}
+                  </p>
+                </div>
+                {message.role === "user" && (
+                  <Avatar className="h-6 w-6 flex-shrink-0">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                      <User className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            ))}
+            {status === 'submitted' && (
+              <div className="flex gap-2 justify-start">
+                <Avatar className="h-6 w-6 flex-shrink-0">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                    <Bot className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="bg-muted rounded-lg px-3 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+        <div className="flex-shrink-0 border-t p-2">
+          <form onSubmit={handleChatSend} className="flex gap-2">
+            <Input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask about the medication analysis..."
+              className="flex-1 h-9 text-sm"
+              disabled={status === 'submitted' || isReadOnly}
+            />
+            <Button 
+              type="submit" 
+              disabled={!chatInput.trim() || status === 'submitted' || isReadOnly} 
+              size="icon" 
+              className="h-9 w-9 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-sm"
+            >
+              <Send className="h-4 w-4" />
+              <span className="sr-only">Send message</span>
+            </Button>
+          </form>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <>
+      {!analysisResult && !isAnalyzing && (
+        <div className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-center text-gray-500 dark:text-gray-400 text-sm">
+          {(!route && !dateTimeGiven && !veterinarianName && !administeredBy && !remarks)
+            ? "Enter medication details to enable AI analysis"
+            : "Click 'Analyze Medication' to get AI-powered insights"}
+        </div>
+      )}
+    </>
+  )}
+</div>
+        </div>
+        <div className="flex justify-end mb-4 mx-4">
+            <Button
               type="button"
               className="bg-black text-white px-6 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
               onClick={handleSaveMedications}
               disabled={isSaving || !isMedicationFormComplete() || isReadOnly}
             >
               {isSaving ? "Saving..." : (hasExistingData ? "Update & Next" : "Save & Next")}
-            </button>
+            </Button>
           </div>
-          
-          {/* Completion Indicator */}
-          {isCompleted && (
-            <div className="absolute top-4 right-4">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );

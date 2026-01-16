@@ -21,6 +21,7 @@ export interface EmergencyDischarge {
   dischargeSummary: string;
   homeCareInstructions: string;
   followupInstructions: string;
+  followupDate?: string;
   reviewedWithClient: boolean;
   isCompleted: boolean;
   createdAt: string;

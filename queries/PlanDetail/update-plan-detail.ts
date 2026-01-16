@@ -5,6 +5,7 @@ export interface UpdatePlanDetailRequest {
   id: string;
   notes?: string;
   isCompleted?: boolean;
+  followUpDate?: Date | null;
   planIds?: string[];
   visitId?: string;
 }

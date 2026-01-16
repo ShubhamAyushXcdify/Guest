@@ -28,7 +28,7 @@ export interface UpdateReceivingHistoryData {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body: UpdateReceivingHistoryData = await request.json();
@@ -38,8 +38,9 @@ export async function PUT(
       token = testToken;
     }
 
+    const { id } = await params;
     const response = await fetch(
-      `${apiUrl}/api/PurchaseOrderReceivingHistory/${params.id}`,
+      `${apiUrl}/api/PurchaseOrderReceivingHistory/${id}`,
       {
         method: 'PUT',
         headers: {
@@ -48,7 +49,7 @@ export async function PUT(
         },
         body: JSON.stringify({
           ...body,
-          id: params.id, // Ensure the ID is included in the body
+          id, // Ensure the ID is included in the body
         }),
       }
     );

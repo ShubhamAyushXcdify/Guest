@@ -13,14 +13,37 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
 
         let token = getJwtToken(request);
-        const pageNumber = searchParams.get('pageNumber') || '1';
-        const pageSize = searchParams.get('pageSize') || '10';
-        const type = searchParams.get('type') || 'first_name';
-        const search = searchParams.get('query') || searchParams.get('search') || '';
-        const companyId = searchParams.get('companyId') || '';
+        if (!token) token = testToken;
+
+        // Support both camelCase and PascalCase from the UI
+        const pageNumber = searchParams.get('PageNumber') || searchParams.get('pageNumber') || '1';
+        const pageSize = searchParams.get('PageSize') || searchParams.get('pageSize') || '10';
+        const type = searchParams.get('Type') || searchParams.get('type') || 'first_name';
+        const search = searchParams.get('Query') || searchParams.get('query') || searchParams.get('search') || '';
+        const companyId = searchParams.get('CompanyId') || searchParams.get('companyId') || '';
+
+        const firstName = searchParams.get('FirstName') || searchParams.get('firstName') || '';
+        const lastName = searchParams.get('LastName') || searchParams.get('lastName') || '';
+        const email = searchParams.get('Email') || searchParams.get('email') || '';
+        const phonePrimary = searchParams.get('PhonePrimary') || searchParams.get('phonePrimary') || '';
+
+        const params = new URLSearchParams({
+            PageNumber: String(pageNumber),
+            PageSize: String(pageSize),
+        });
+
+        if (companyId) params.append('CompanyId', companyId);
+        if (search && search.trim().length > 0) {
+            params.append('Type', type);
+            params.append('Query', search);
+        }
+        if (firstName) params.append('FirstName', firstName);
+        if (lastName) params.append('LastName', lastName);
+        if (email) params.append('Email', email);
+        if (phonePrimary) params.append('PhonePrimary', phonePrimary);
 
         const response = await fetch(
-            `${apiUrl}/api/Client?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}&companyId=${companyId}`,
+            `${apiUrl}/api/Client?${params.toString()}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

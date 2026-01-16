@@ -3,8 +3,10 @@ import "@/app/globals.css"
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import localFont from "next/font/local";
 import QueryWrapper from "@/components/layout/queryWrapper";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import AuthProvider from "@/provider/AuthProvider";
+import PWAInstallPrompt from "@/components/pwa-install-prompt";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -25,12 +27,26 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="PawTrack" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="application-name" content="PawTrack" />
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+      </head>
       <body className={` antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <NuqsAdapter>
             <QueryWrapper>
-              {children}
+              <TooltipProvider delayDuration={100}>
+                {children}
+              </TooltipProvider>
               <Toaster />
+              {/* <PWAInstallPrompt /> */}
             </QueryWrapper>
           </NuqsAdapter>
         </AuthProvider>
@@ -45,4 +61,18 @@ export const metadata = {
   icons: {
     icon: "/images/logo.png",
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PawTrack",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#000000",
 };

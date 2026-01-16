@@ -14,15 +14,8 @@ import { toast } from "../ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Combobox } from "../ui/combobox";
 import { useToast } from "@/hooks/use-toast"; 
-
-// const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
-const PRODUCT_TYPES = [
-  { value: "medication", label: "Medication" },
-  { value: "vaccine", label: "Vaccine" },
-  { value: "supply", label: "Medical Supply" },
-  { value: "food", label: "Food Item" },
-  { value: "supplement", label: "Supplement" }
-];
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 const UNIT_OF_MEASURE_OPTIONS = [
   { value: "STRIP", label: "Strip" },
@@ -35,22 +28,49 @@ const UNIT_OF_MEASURE_OPTIONS = [
 ];
 
 const PRODUCT_CATEGORIES = [
-  { value: "antibiotics", label: "Antibiotics" },
-  { value: "pain_management", label: "Pain Management" },
-  { value: "vaccines", label: "Vaccines" },
-  { value: "supplements", label: "Supplements" },
-  { value: "medical_supplies", label: "Medical Supplies" },
+  { value: "medication", label: "Medication" },
+  { value: "vaccine", label: "Vaccine" },
+  { value: "supplement", label: "Supplement" },
+  { value: "medical_supply", label: "Medical Supply" },
   { value: "equipment", label: "Equipment" },
   { value: "food", label: "Food" },
   { value: "other", label: "Other" }
 ];
 
+const productSchema = z.object({
+    id: z.string(),
+    productNumber: z.string().min(2, 'Product number must be at least 2 characters'),
+    name: z.string().min(2, 'Name is required'),
+    category: z.string().min(1, 'Category is required'),
+    price: z.number({
+      required_error: 'Cost price is required',
+      invalid_type_error: 'Cost price must be a number'
+    }).min(0.01, 'Cost price must be greater than 0'),
+    sellingPrice: z.number().min(0.01, 'Selling price is required and must be greater than 0'),
+    reorderThreshold: z.number().int().nonnegative().optional(),
+    unitOfMeasure: z.string().min(1, 'Unit of measure is required'),
+    brandName: z.string().optional(),
+    genericName: z.string().optional(),
+    manufacturer: z.string().optional(),
+    ndcNumber: z.string().optional(),
+    strength: z.string().optional(),
+    dosageForm: z.string().optional(),
+    controlledSubstanceSchedule: z.string().optional(),
+    storageRequirements: z.string().optional(),
+    requiresPrescription: z.boolean(),
+    isActive: z.boolean(),
+    companyId: z.string().optional(),
+  });
+
+
+
 interface ProductDetailsProps {
   productId: string;
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export default function ProductDetails({ productId, onSuccess }: ProductDetailsProps) {
+export default function ProductDetails({ productId, onSuccess, onCancel }: ProductDetailsProps) {
   const router = useRouter();
   const [isFormReady, setIsFormReady] = useState(false);
   const { toast } = useToast();
@@ -60,16 +80,18 @@ export default function ProductDetails({ productId, onSuccess }: ProductDetailsP
   console.log("Product Details Data:", product);
 
   const updateProduct = useUpdateProduct();
+  type ProductFormValues = z.infer<typeof productSchema>;
 
-  // Don't initialize the form until we have product data
-  const form = useForm<Product>();
+  const form = useForm<ProductFormValues>({
+    mode: 'onChange',
+    resolver: zodResolver(productSchema),
+  });
 
   // Update form values when product data is loaded
   useEffect(() => {
     if (product && !isFormReady) {
       const formData = {
         ...product,
-        productType: product.productType || '',
         unitOfMeasure: product.unitOfMeasure || '',
         price: product.price ?? 0,
         sellingPrice: product.sellingPrice ?? 0,
@@ -119,7 +141,8 @@ useEffect(() => {
   }
   
 
-  const handleSubmit = async (values: Product) => {
+  const handleSubmit = async (values: ProductFormValues) => {
+
     try {
       await updateProduct.mutateAsync(values);
       toast({
@@ -142,11 +165,11 @@ useEffect(() => {
   console.log("Product Details Form Values:", form.getValues());
 
   return (
-    <div className="flex flex-col w-full h-full overflow-y-auto pb-4">
+    <div className="flex flex-col w-full">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
-          <div className="flex-1 pb-4">
-          <div className="grid grid-cols-2 gap-8">
+          <div className="h-[calc(100vh-10rem)] overflow-y-auto pb-4 border rounded-md">
+          <div className="grid grid-cols-2 gap-6 p-4 rounded-md">
 
             <FormField name="productNumber" control={form.control} render={({ field }) => (
               <FormItem>
@@ -204,30 +227,6 @@ useEffect(() => {
               </FormItem>
             )} />
 
-            <FormField name="productType" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Type</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value || ''}
-                  defaultValue={field.value || ''}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PRODUCT_TYPES.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
 
             <FormField name="ndcNumber" control={form.control} render={({ field }) => (
               <FormItem>
@@ -348,7 +347,7 @@ useEffect(() => {
             )} />
           </div>
 
-          <div className="grid grid-cols-2 gap-6 mt-12">
+          <div className="grid grid-cols-2 gap-6 mt-12 p-2">
             <FormField name="requiresPrescription" control={form.control} render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                 <div className="space-y-0.5">
@@ -381,7 +380,16 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="flex justify-end border-t pt-4 mt-2 sticky bottom-0 bg-white">
+        <div className="flex justify-end my-4 bottom-0 bg-white gap-4">
+        <Button type="button" variant="outline" onClick={() => {
+            if (onCancel) {
+              onCancel();
+            } else {
+              form.reset();
+            }
+          }}>
+            Cancel
+          </Button>
           <Button type="submit">
             Update Product
           </Button>

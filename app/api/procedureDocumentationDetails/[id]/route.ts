@@ -11,9 +11,9 @@ interface ErrorResponse {
 
 export async function GET(
     request: NextRequest,
-    ctx: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
-    const { id } = ctx.params;
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {
@@ -47,9 +47,9 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    ctx: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
-    const { id } = ctx.params;
+    const { id } = await ctx.params;
     try {
         const body = await request.json();
         let token = getJwtToken(request);
@@ -101,9 +101,9 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    ctx: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
-    const { id } = ctx.params;
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {

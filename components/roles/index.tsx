@@ -6,6 +6,7 @@ import { Badge } from "../ui/badge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { useGetRole } from "@/queries/roles/get-role";
+import { useRootContext } from "@/context/RootContext"; // Import useRootContext
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewRole from "./newRole";
 import RoleDetails from "./roleDetails";
@@ -20,6 +21,7 @@ export default function Roles() {
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
+  const { userType, user: currentUser } = useRootContext(); // Get userType and currentUser
   
   const { data: rolesData, isLoading, isError } = useGetRole(pageNumber, pageSize, search);
   const roles = rolesData?.data || [];
@@ -101,11 +103,7 @@ export default function Roles() {
       header: "Priority",
       cell: ({ getValue }) => <Badge variant="default">{getValue() as number}</Badge>
     },
-    { 
-      accessorKey: "isPrivileged", 
-      header: "Privileged", 
-      cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "secondary"}>{getValue() ? "Yes" : "No"}</Badge>
-    },
+
     { 
       accessorKey: "isClinicRequired", 
       header: "Clinic Required", 
@@ -144,15 +142,18 @@ export default function Roles() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Button variant="outline" size="sm" onClick={() => router.push('/users')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Users
-        </Button>
-      </div>
+    <div className="">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
+      {!userType?.isSuperAdmin && (
+        <div>
+          <Button variant="outline" size="sm" onClick={() => router.push('/users')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Users
+          </Button>
+        </div>
+      )}
       
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
         <h1 className="text-2xl font-bold">Roles</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
@@ -168,19 +169,23 @@ export default function Roles() {
           </SheetContent>
         </Sheet>
       </div>
-      
+      </div>      
       {isLoading ? (
-        <div className="flex items-center justify-center h-32">
+        <div className="flex items-center justify-center h-64">
           <p>Loading roles...</p>
         </div>
       ) : isError ? (
-        <div className="flex items-center justify-center h-32">
+        <div className="flex items-center justify-center h-64">
           <p className="text-red-500">Error loading roles</p>
         </div>
       ) : (
+        <div className="bg-slate-50 dark:bg-slate-900 border-none p-6">
         <DataTable
           columns={columns}
-          data={roles}
+          data={roles.map((role: Role) => {
+            const { isPrivileged, ...roleWithoutPrivileged } = role;
+            return roleWithoutPrivileged;
+          })}
           searchColumn="name"
           searchPlaceholder="Search roles..."
           page={pageNumber}
@@ -190,6 +195,7 @@ export default function Roles() {
           onPageSizeChange={handlePageSizeChange}
           onSearch={handleSearch}
         />
+        </div>
       )}
       
       {/* Role Details Sheet */}

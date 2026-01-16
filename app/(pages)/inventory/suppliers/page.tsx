@@ -199,7 +199,7 @@ export default function SuppliersPage() {
       
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Suppliers</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Suppliers</h1>
           <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => setAddDrawerOpen(true)}>
             Add Supplier
           </Button>

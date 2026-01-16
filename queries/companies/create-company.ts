@@ -8,6 +8,7 @@ export interface CreateCompanyRequest {
   registrationNumber: string;
   email: string;
   phone: string;
+  domainName: string; // Added domain field
   address: {
     street: string;
     city: string;
@@ -16,6 +17,8 @@ export interface CreateCompanyRequest {
     country: string;
   };
   status: string;
+  privacyPolicy?: string; // Base64 encoded PDF
+  termsOfUse?: string; // Base64 encoded PDF
 }
 
 const createCompany = async (companyData: CreateCompanyRequest): Promise<Company> => {

@@ -32,7 +32,7 @@ export default function InventoryReportsPage() {
       
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Inventory Reports</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Inventory Reports</h1>
         </div>
 
         {/* Filter Controls */}

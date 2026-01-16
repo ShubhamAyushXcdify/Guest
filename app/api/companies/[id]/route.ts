@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-
+ 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
-
+ 
 // GET /api/companies/[id] - Get company by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
-
+    const { id } = await params
+ 
     const response = await fetch(`${API_BASE_URL}/api/company/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-
+ 
     if (!response.ok) {
       if (response.status === 404) {
         return NextResponse.json(
@@ -26,7 +26,7 @@ export async function GET(
       }
       throw new Error(`HTTP error! status: ${response.status}`)
     }
-
+ 
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
@@ -37,16 +37,16 @@ export async function GET(
     )
   }
 }
-
+ 
 // PUT /api/companies/[id] - Update company by ID
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
-
+ 
     const response = await fetch(`${API_BASE_URL}/api/company/${id}`, {
       method: 'PUT',
       headers: {
@@ -54,7 +54,7 @@ export async function PUT(
       },
       body: JSON.stringify(body),
     })
-
+ 
     if (!response.ok) {
       if (response.status === 404) {
         return NextResponse.json(
@@ -64,7 +64,7 @@ export async function PUT(
       }
       throw new Error(`HTTP error! status: ${response.status}`)
     }
-
+ 
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
@@ -75,22 +75,22 @@ export async function PUT(
     )
   }
 }
-
+ 
 // DELETE /api/companies/[id] - Delete company by ID
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
-
+    const { id } = await params
+ 
     const response = await fetch(`${API_BASE_URL}/api/company/${id}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-
+ 
     if (!response.ok) {
       if (response.status === 404) {
         return NextResponse.json(
@@ -100,7 +100,7 @@ export async function DELETE(
       }
       throw new Error(`HTTP error! status: ${response.status}`)
     }
-
+ 
     // DELETE typically returns 204 No Content
     return new NextResponse(null, { status: 204 })
   } catch (error) {

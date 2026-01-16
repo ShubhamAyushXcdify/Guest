@@ -4,8 +4,11 @@ import { Package, AlertTriangle, Clock, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetInventoryDashboard } from "@/queries/inventory/get-dashboard";
+import { ExpiringProductsCard } from "@/components/dashboard/shared/expiring-products-card"
+import { useExpiringProducts } from "@/queries/dashboard/get-expiring-products"
 import React, { useState } from "react"
 import { OrderModal } from "./order-modal"
+import Loader from "@/components/ui/loader"
 
 interface DashboardTabProps {
   clinicId: string
@@ -13,11 +16,18 @@ interface DashboardTabProps {
 
 export default function DashboardTab({ clinicId }: DashboardTabProps) {
   const { data, isLoading, isError } = useGetInventoryDashboard(clinicId);
+  const { data: expiringProducts = [] } = useExpiringProducts(clinicId);
+  const hasExpiringProducts = expiringProducts.length > 0;
   const [isOrderModalOpen, setOrderModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<string | undefined>(undefined);
+  const [initialQuantity, setInitialQuantity] = useState<{current: number, threshold: number} | null>(null);
 
   if (isLoading) {
-    return <div>Loading dashboard...</div>;
+    return <div className="min-h-[calc(100vh-20rem)] flex items-center justify-center p-6">
+    <div className="flex flex-col items-center gap-4 text-center">
+      <Loader size="lg" label="Loading dashboard..." />
+    </div>
+  </div>
   }
   if (isError || !data) {
     return <div>Error loading dashboard data.</div>;
@@ -57,6 +67,12 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
         />
       </div>
 
+      {hasExpiringProducts && (
+        <div className="w-full mb-8">
+          <ExpiringProductsCard className="w-full" clinicId={clinicId} products={expiringProducts} />
+        </div>
+      )}
+
       {/* Low Stock Alert */}
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
         <Card className="bg-white dark:bg-slate-800 shadow-sm">
@@ -68,16 +84,16 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-slate-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Item
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Current
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Threshold
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       Action
                     </th>
                   </tr>
@@ -92,6 +108,10 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
                         threshold={item.threshold}
                         onOrderClick={() => {
                           setSelectedProductId(item.productId);
+                          setInitialQuantity({
+                            current: item.currentItemUnits,
+                            threshold: item.threshold
+                          });
                           setOrderModalOpen(true);
                         }}
                       />
@@ -145,9 +165,11 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
         onClose={() => {
           setOrderModalOpen(false);
           setSelectedProductId(undefined);
+          setInitialQuantity(null);
         }}
         clinicId={clinicId}
         initialProductId={selectedProductId}
+        initialQuantity={initialQuantity}
       />
     </>
   )
@@ -181,7 +203,7 @@ function LowStockItem({ name, current, threshold, onOrderClick } : any) {
       <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${severity}`}>{current}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{threshold}</td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        <Button variant="secondary" size="sm" className="theme-button-secondary" onClick={onOrderClick}>
+        <Button variant="secondary" size="sm" className="theme-button-secondary hover:bg-theme-button-secondary-hover" onClick={onOrderClick}>
           Order
         </Button>
       </td>

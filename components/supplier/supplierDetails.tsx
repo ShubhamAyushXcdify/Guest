@@ -12,6 +12,34 @@ import { Supplier } from ".";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useRootContext } from "@/context/RootContext";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+
+ const supplierSchema = z.object({
+  id: z.string(),
+  clinicId: z.string().min(1, "Clinic is required"),
+  name: z.string().min(1, "Name is required"),
+  contactPerson: z.string().min(1, "Contact person is required"),
+  email: z.string().min(1, "Email is required").email("Invalid email address"),
+  phone: z.string()
+    .min(1, "Phone is required")
+    .regex(/^\d{10}$/, "Phone number must be exactly 10 digits"),
+  addressLine1: z.string().min(1, "Address Line 1 is required"),
+  addressLine2: z.string().optional(), // not required
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  postalCode: z.string().min(1, "Postal Code is required"),
+  accountNumber: z.string().min(1, "Account Number is required"),
+  paymentTerms: z.string().optional(), // not required
+  isActive: z.boolean().optional(), 
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  clinicDetail: z.object({
+    name: z.string(),
+  }),
+
+});
 
 type SupplierDetailsProps = {
   supplierId: string;
@@ -26,25 +54,34 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
   const { data: supplier, isLoading } = useGetSupplierById(supplierId);
   const updateSupplier = useUpdateSupplier();
   const { toast } = useToast();
-
-  
+ 
+  // Update the useForm configuration
   const form = useForm<Supplier>({
-    defaultValues: supplier,
+    resolver: zodResolver(supplierSchema),
+     defaultValues: supplier,
   });
   
   // Update form values when supplier data is loaded
   useEffect(() => {
     if (supplier) {
-      form.reset(supplier);
+      // For admin users, use the supplier's clinic ID, otherwise use the current clinic ID
+      const clinicId = userType.isAdmin 
+        ? supplier.clinicId 
+        : (clinic?.id || supplier.clinicId || '');
+      
+      form.reset({
+        ...supplier,
+        clinicId: clinicId
+      });
+      
+      // Ensure the clinic ID is set in the form state
+      if (clinicId) {
+        setTimeout(() => {
+          form.setValue('clinicId', clinicId, { shouldValidate: true });
+        }, 0);
+      }
     }
-  }, [supplier, form]);
-  
-  // Set clinic ID for clinicAdmin users and prevent changes
-  useEffect(() => {
-    if ((userType.isClinicAdmin || userType.isVeterinarian) && clinic.id) {
-      form.setValue("clinicId", clinic.id);
-    }
-  }, [userType.isClinicAdmin, userType.isVeterinarian, clinic.id, form]);
+  }, [supplier, userType.isAdmin, clinic?.id, form]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -80,14 +117,21 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
-        <div className="grid grid-cols-2 gap-8">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full">
+      <div className="h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md">
+        <div className="grid grid-cols-2 gap-4">
           {/* Only show clinic selection for admin users */}
           {!userType.isClinicAdmin && !userType.isVeterinarian && (
             <FormField name="clinicId" control={form.control} render={({ field }) => (
               <FormItem>
                 <FormLabel>Clinic</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select 
+                  value={field.value || ""}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    form.setValue('clinicId', value, { shouldValidate: true });
+                  }}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a clinic" />
@@ -140,7 +184,22 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
             <FormItem>
               <FormLabel>Phone</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input 
+                  {...field}
+                  type="tel"
+                  maxLength={10}
+                  onKeyPress={(e) => {
+                    // Allow only numbers
+                    if (!/[0-9]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onChange={(e) => {
+                    // Remove any non-digit characters
+                    const value = e.target.value.replace(/\D/g, '');
+                    field.onChange(value);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -226,15 +285,15 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
               </div>
               <FormControl>
                 <Switch
-                  checked={field.value}
+                  checked={Boolean(field.value)}
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
             </FormItem>
           )} />
         </div>
-        
-        <div className="flex justify-end mt-6">
+        </div>
+        <div className="flex justify-end">
           <Button type="submit">
             Update Supplier
           </Button>
@@ -242,4 +301,4 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
       </form>
     </Form>
   );
-} 
+}

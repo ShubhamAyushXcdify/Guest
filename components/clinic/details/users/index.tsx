@@ -13,6 +13,7 @@ import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-di
 import NewUser from "./newUser";
 import UserDetails from "./userDetails";
 import { useGetUsers } from "@/queries/users/get-users";
+import Loader from "@/components/ui/loader";
 
 // Match the User type from the main user component
 export type User = {
@@ -22,6 +23,10 @@ export type User = {
   firstName: string;
   lastName: string;
   role: string;
+  roleName: string;
+  roleId: string;
+  companyId: string;
+  clinics?: { clinicId: string; clinicName: string }[];
   isActive: boolean;
   lastLogin?: string | null;
   createdAt?: string | null;
@@ -36,22 +41,30 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
-  
+
   // Ensure clinicId is a string
   const safeClinicId = clinicId || '';
-  
+
   // Pass clinicId explicitly
-  const { data: usersData, isLoading, isError, refetch } = useGetUsers(pageNumber, pageSize, search, safeClinicId);
+  const { data: usersData, isLoading, isError, refetch } = useGetUsers(
+    pageNumber,
+    pageSize,
+    search,
+    true, // enabled
+    '', // companyId - not needed for clinic users
+    safeClinicId ? [safeClinicId] : [], // Pass clinicId as an array
+    [] // roleIds - not needed for all users
+  );
   const users = usersData?.items || [];
   const totalPages = usersData?.totalPages || 1;
-  
+
   const [openNew, setOpenNew] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   const deleteUser = useDeleteUser();
 
   const handleUserClick = (userId: string) => {
@@ -61,7 +74,7 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
 
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await deleteUser.mutateAsync({ id: userToDelete.id });
@@ -87,7 +100,7 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
     setUserToDelete(user);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const handlePageChange = (page: number) => {
     setPageNumber(page);
   };
@@ -106,17 +119,17 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
     { accessorKey: "firstName", header: "First Name" },
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
-    { 
-      accessorKey: "roleName", 
+    {
+      accessorKey: "roleName",
       header: "Role",
       cell: ({ getValue }) => {
         const value = getValue() as string | undefined;
         return value && typeof value === 'string' && value.trim() !== '' ? value : null;
       }
     },
-    { 
-      accessorKey: "isActive", 
-      header: "Status", 
+    {
+      accessorKey: "isActive",
+      header: "Status",
       cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "destructive"}>{getValue() ? "Active" : "Inactive"}</Badge>
     },
     {
@@ -124,9 +137,9 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => (
         <div className="flex gap-2 justify-center">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               handleUserClick(row.original.id);
@@ -134,8 +147,8 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
           >
             <Edit className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             className="text-red-500 hover:text-red-700 hover:bg-red-100"
             onClick={(e) => {
@@ -151,9 +164,8 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
     },
   ];
 
-  // Filter users by clinicId if provided
   const filteredUsers = clinicId
-    ? users.filter(user => (user as any).clinicId === clinicId)
+    ? users.filter(user => user.clinics?.some(c => c.clinicId === clinicId))
     : users;
 
   // Expose refreshUsers method to parent
@@ -162,8 +174,8 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
   }));
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
         <h1 className="text-2xl font-bold">Users</h1>
         <Sheet open={openNew} onOpenChange={setOpenNew}>
           <SheetTrigger asChild>
@@ -175,38 +187,42 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
             <SheetHeader>
               <SheetTitle>New User</SheetTitle>
             </SheetHeader>
-            <NewUser 
-              clinicId={clinicId} 
+            <NewUser
+              clinicId={clinicId}
               onSuccess={() => {
                 setOpenNew(false);
-                refetch(); 
-              }} 
+                refetch();
+              }}
             />
           </SheetContent>
         </Sheet>
       </div>
-      
+
       {isLoading ? (
-        <div className="flex items-center justify-center h-32">
-          <p>Loading users...</p>
+        <div className="flex items-center justify-center min-h-[200px]">
+          <Loader size="lg" label="Loading users..." />
         </div>
       ) : isError ? (
-        <div className="flex items-center justify-center h-32">
-          <p className="text-red-500">Error loading users</p>
-        </div>
+        <p className="text-red-500 text-center">Error loading users</p>
+      ) : users.length === 0 ? (
+        <p className="text-center">
+          No users found. Click "Add User" to create one.
+        </p>
       ) : (
-        <DataTable
-          columns={columns}
-          data={filteredUsers as unknown as User[]}
-          searchColumn="email"
-          searchPlaceholder="Search users..."
-          page={pageNumber}
-          pageSize={pageSize}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          onSearch={handleSearch}
-        />
+        <div className="bg-slate-50 dark:bg-slate-900 p-6">
+          <DataTable
+            columns={columns}
+            data={filteredUsers as unknown as User[]}
+            searchColumn="email"
+            searchPlaceholder="Search users..."
+            page={pageNumber}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onSearch={handleSearch}
+          />
+        </div>
       )}
 
       <Sheet open={openDetails} onOpenChange={setOpenDetails}>
@@ -215,7 +231,7 @@ const UserComponent = forwardRef(function UserComponent({ clinicId }: UserProps,
             <SheetTitle>User Details</SheetTitle>
           </SheetHeader>
           {selectedUserId && (
-            <UserDetails 
+            <UserDetails
               userId={selectedUserId}
               clinicId={clinicId}
               onSuccess={() => {

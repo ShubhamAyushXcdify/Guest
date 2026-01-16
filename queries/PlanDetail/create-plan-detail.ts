@@ -5,6 +5,7 @@ export interface CreatePlanDetailRequest {
   visitId: string;
   notes?: string;
   isCompleted: boolean;
+  followUpDate?: Date | null;
   planIds: string[];
 }
 

@@ -141,7 +141,15 @@ export function UsageReport() {
   )
 }
 
-function TopUsedItem({ product, category, quantity, value, percentage }) {
+type TopUsedItemProps = {
+  product: string;
+  category: string;
+  quantity: number;
+  value: string;
+  percentage: string;
+}
+
+function TopUsedItem({ product, category, quantity, value, percentage }: TopUsedItemProps) {
   return (
     <tr>
       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{product}</td>
@@ -219,7 +227,7 @@ function DailyUsageTrendChart() {
           750,140
         "
         fill="none"
-        stroke="#9333ea"
+        stroke="#1E3D3D"
         strokeWidth="3"
       />
 
@@ -244,7 +252,7 @@ function DailyUsageTrendChart() {
       />
 
       {/* Legend */}
-      <rect x="600" y="30" width="10" height="10" fill="#9333ea" />
+      <rect x="600" y="30" width="10" height="10" fill="#1E3D3D" />
       <text x="620" y="40" fontSize="12" fill="currentColor">
         Medications
       </text>
@@ -265,7 +273,7 @@ function UsageByCategoryChart() {
         cy="50"
         r="40"
         fill="transparent"
-        stroke="#9333ea"
+        stroke="#1E3D3D"
         strokeWidth="20"
         strokeDasharray="151.2 100.8"
         strokeDashoffset="0"

@@ -19,7 +19,7 @@ export function EmailStep({ email, setEmail, onSubmit, isPending }: EmailStepPro
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400" />
           <Input
             id="email"
             type="email"
@@ -41,7 +41,7 @@ export function EmailStep({ email, setEmail, onSubmit, isPending }: EmailStepPro
       </Button>
 
       <div className="text-center">
-        <Link href="/" className={cn("text-sm font-medium hover:underline", "theme-text-accent")}>
+        <Link href="/" className={cn("text-sm font-medium hover:underline hover:opacity-80", "theme-text-accent")}>
           Back to login
         </Link>
       </div>

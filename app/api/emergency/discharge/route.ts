@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
             token = testToken;
         }
         const response = await fetch(
-            `${apiUrl}/api/EmergencyVisit/discharges-with-prescriptions`,
+            `${apiUrl}/api/EmergencyVisit/discharges`,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             token = testToken;
         }
         const response = await fetch(
-            `${apiUrl}/api/EmergencyVisit/discharges-with-prescriptions`,
+            `${apiUrl}/api/EmergencyVisit/discharges`,
             {
                 method: 'POST',
                 headers: {

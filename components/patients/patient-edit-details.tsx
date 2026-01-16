@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
@@ -16,22 +15,19 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
-import { CalendarIcon, Mic, Loader2 } from "lucide-react"
+import { Mic, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUpdatePatient } from "@/queries/patients/update-patient"
 import { Patient } from "@/queries/patients/get-patients"
@@ -39,24 +35,33 @@ import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { Switch } from "@/components/ui/switch"
+import { getCompanyId } from "@/utils/clientCookie"
+import { useRootContext } from "@/context/RootContext"
 
 const patientFormSchema = z.object({
   clientId: z.string().nonempty("Owner is required"),
   name: z.string().min(1, "Name is required"),
   species: z.string().min(1, "Species is required"),
   breed: z.string().min(1, "Breed is required"),
+  secondaryBreed: z.string().optional(),
   color: z.string().min(1, "Color is required"),
   gender: z.string().min(1, "Gender is required"),
   isNeutered: z.boolean().default(false),
-  dateOfBirth: z.coerce.date().max(new Date(), "Date of birth cannot be in the future"),
+  dateOfBirth: z.string()
+    .refine(dateString => !!dateString, "Date of birth is required")
+    .refine((dateString) => {
+      const [day, month, year] = dateString.split('/').map(Number);
+      const parsedDate = new Date(year, month - 1, day);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return !isNaN(parsedDate.getTime()) && parsedDate <= today;
+    }, "Date of birth cannot be in the future"),
   weightKg: z.coerce.number().min(0, "Weight must be a positive number"),
   microchipNumber: z.string().optional(),
   registrationNumber: z.string().optional(),
   insuranceProvider: z.string().optional(),
   insurancePolicyNumber: z.string().optional(),
-  allergies: z.string().optional(),
-  medicalConditions: z.string().optional(),
-  behavioralNotes: z.string().optional(),
+  notes: z.string().optional(),
   isActive: z.boolean().default(true),
 })
 
@@ -76,47 +81,52 @@ const SPECIES_OPTIONS = [
   { value: "Cat", label: "Cat" },
   { value: "Bird", label: "Bird" },
   { value: "Rabbit", label: "Rabbit" },
-  { value: "Reptile", label: "Reptile" },
-  { value: "Other", label: "Other" }
+  { value: "Turtle", label: "Turtle" },
+  { value: "Hamster", label: "Hamster" },
+  { value: "Fish", label: "Fish" },
+  { value: "Guinea Pig", label: "Guinea Pig" },
 ];
 
 export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsProps) {
   const [isPending, setIsPending] = useState(false)
   const [isFormReady, setIsFormReady] = useState(false)
-  const [audioModalOpen, setAudioModalOpen] = useState<null | "allergies" | "medicalConditions" | "behavioralNotes">(null)
+  const [audioModalOpen, setAudioModalOpen] = useState<null | "notes">(null)
   const { toast } = useToast()
-  
+
   const updatePatientMutation = useUpdatePatient()
   const { data: patient, isLoading } = useGetPatientById(patientId)
-  
-  const allergiesTranscriber = useTranscriber()
-  const medicalConditionsTranscriber = useTranscriber()
-  const behavioralNotesTranscriber = useTranscriber()
+  const { user, userType, clinic } = useRootContext()
+  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || ''
+  const notesTranscriber = useTranscriber()
+
+  const defaultValues: Partial<PatientFormValues> = {
+    clientId: "",
+    name: "",
+    species: "",
+    breed: "",
+    secondaryBreed: "",
+    color: "",
+    gender: "",
+    isNeutered: false,
+    isActive: true,
+    weightKg: 0,
+  }
 
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
-    defaultValues: {
-      clientId: "",
-      name: "",
-      species: "",
-      breed: "",
-      color: "",
-      gender: "",
-      isNeutered: false,
-      weightKg: 0,
-      isActive: true,
-    }
+    defaultValues: defaultValues
   })
 
   // Update form when patient data is loaded
   useEffect(() => {
-    if (patient && !isFormReady) {
+    if (patient) {
       const formData = {
         ...patient,
-        dateOfBirth: new Date(patient.dateOfBirth),
+        dateOfBirth: patient.dateOfBirth ? format(new Date(patient.dateOfBirth), "dd/MM/yyyy") : "",
         species: patient.species || '',
         gender: patient.gender || '',
         breed: patient.breed || '',
+        secondaryBreed: patient.secondaryBreed || '',
         color: patient.color || '',
         weightKg: patient.weightKg ?? 0,
         isNeutered: patient.isNeutered ?? false,
@@ -125,64 +135,52 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
         registrationNumber: patient.registrationNumber || '',
         insuranceProvider: patient.insuranceProvider || '',
         insurancePolicyNumber: patient.insurancePolicyNumber || '',
-        allergies: patient.allergies || '',
-        medicalConditions: patient.medicalConditions || '',
-        behavioralNotes: patient.behavioralNotes || '',
+        notes: patient.notes || '',
       }
-      
+
       form.reset(formData)
-      setIsFormReady(true)
+      if (!isFormReady) {
+        setIsFormReady(true)
+      }
     }
   }, [patient, form, isFormReady])
 
-  // Audio transcription effects
+  // Audio transcription effect for notes
   useEffect(() => {
-    const handleTranscription = (field: "allergies" | "medicalConditions" | "behavioralNotes") => {
-      const transcriber = {
-        allergies: allergiesTranscriber,
-        medicalConditions: medicalConditionsTranscriber,
-        behavioralNotes: behavioralNotesTranscriber
-      }[field]
-
-      const output = transcriber.output
-      if (output && !output.isBusy && output.text) {
-        form.setValue(
-          field,
-          (form.getValues(field) ? form.getValues(field) + "\n" : "") + output.text
-        )
-        setAudioModalOpen(null)
-      }
+    const output = notesTranscriber.output
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        'notes',
+        (form.getValues('notes') ? form.getValues('notes') + "\n" : "") + output.text
+      )
+      setAudioModalOpen(null)
     }
-
-    handleTranscription("allergies")
-    handleTranscription("medicalConditions")
-    handleTranscription("behavioralNotes")
-  }, [
-    allergiesTranscriber.output?.isBusy,
-    medicalConditionsTranscriber.output?.isBusy,
-    behavioralNotesTranscriber.output?.isBusy,
-    form
-  ])
+  }, [notesTranscriber.output?.isBusy, form])
 
   async function onSubmit(data: PatientFormValues) {
     setIsPending(true)
     try {
       const patientData = {
         ...data,
-        dateOfBirth: format(data.dateOfBirth, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
+        companyId,
+        dateOfBirth: data.dateOfBirth ? new Date(
+          +data.dateOfBirth.split('/')[2],
+          +data.dateOfBirth.split('/')[1] - 1,
+          +data.dateOfBirth.split('/')[0]
+        ).toISOString() : "",
       }
 
       await updatePatientMutation.mutateAsync({
         id: patientId,
         ...patientData
       })
-      
+
       toast({
         title: "Patient Updated",
         description: "Patient information has been updated successfully",
         variant: "success",
       })
-      
+
       onSuccess()
     } catch (error) {
       toast({
@@ -211,7 +209,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
+        <div className="space-y-4 border p-4 rounded-md h-[calc(100vh-10rem)] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
@@ -226,14 +224,14 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="species"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Species</FormLabel>
-                  <Select 
+                  <Select
                     onValueChange={field.onChange}
                     value={field.value || ''}
                     defaultValue={field.value || ''}
@@ -255,23 +253,35 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="breed"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Breed</FormLabel>
+                  <FormLabel>Primary Breed</FormLabel>
                   <FormControl>
-                    <Input placeholder="Breed" {...field} />
+                    <Input placeholder="Primary Breed" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
+            <FormField
+              control={form.control}
+              name="secondaryBreed"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Secondary Breed</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Secondary breed (optional)" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="color"
@@ -285,16 +295,14 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="gender"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Gender</FormLabel>
-                  <Select 
+                  <Select
                     onValueChange={field.onChange}
                     value={field.value || ''}
                     defaultValue={field.value || ''}
@@ -316,12 +324,12 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="isNeutered"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-end space-x-2 space-y-0 mt-8">
+                <FormItem className="flex h-fit flex-row items-end space-x-2 space-y-0 mt-8">
                   <FormControl>
                     <Checkbox
                       checked={field.value}
@@ -333,51 +341,45 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="dateOfBirth"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Date of Birth</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
+                  <FormControl>
+                    <DatePicker
+                      selected={field.value ? new Date(
+                        +field.value.split('/')[2],
+                        +field.value.split('/')[1] - 1,
+                        +field.value.split('/')[0]
+                      ) : null}
+                      onChange={(date: Date | null) => {
+                        if (date) {
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const year = date.getFullYear();
+                          field.onChange(`${day}/${month}/${year}`);
+                        } else {
+                          field.onChange("");
                         }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                      }}
+                      minDate={new Date("1900-01-01")}
+                      maxDate={new Date()}
+                      placeholderText="dd/mm/yyyy"
+                      dateFormat="dd/MM/yyyy"
+                      showYearDropdown
+                      showMonthDropdown
+                      dropdownMode="select"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="weightKg"
@@ -391,9 +393,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="microchipNumber"
@@ -407,7 +407,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="registrationNumber"
@@ -421,9 +421,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="insuranceProvider"
@@ -437,7 +435,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="insurancePolicyNumber"
@@ -453,128 +451,44 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="allergies"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-2">
-                  <FormLabel>Allergies</FormLabel>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setAudioModalOpen("allergies")}
-                    title="Record voice note"
-                    disabled={allergiesTranscriber.output?.isBusy}
-                  >
-                    {allergiesTranscriber.output?.isBusy ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <FormControl>
-                  <Textarea
-                    placeholder="Any allergies"
-                    className="resize-none h-20"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormMessage />
-                <AudioManager
-                  open={audioModalOpen === "allergies"}
-                  onClose={() => setAudioModalOpen(null)}
-                  transcriber={allergiesTranscriber}
-                  onTranscriptionComplete={() => setAudioModalOpen(null)}
-                />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="medicalConditions"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-2">
-                  <FormLabel>Medical Conditions</FormLabel>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setAudioModalOpen("medicalConditions")}
-                    title="Record voice note"
-                    disabled={medicalConditionsTranscriber.output?.isBusy}
-                  >
-                    {medicalConditionsTranscriber.output?.isBusy ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <FormControl>
-                  <Textarea
-                    placeholder="Any medical conditions"
-                    className="resize-none h-20"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormMessage />
-                <AudioManager
-                  open={audioModalOpen === "medicalConditions"}
-                  onClose={() => setAudioModalOpen(null)}
-                  transcriber={medicalConditionsTranscriber}
-                  onTranscriptionComplete={() => setAudioModalOpen(null)}
-                />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="behavioralNotes"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center gap-2">
-                  <FormLabel>Behavioral Notes</FormLabel>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => setAudioModalOpen("behavioralNotes")}
-                    title="Record voice note"
-                    disabled={behavioralNotesTranscriber.output?.isBusy}
-                  >
-                    {behavioralNotesTranscriber.output?.isBusy ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <FormControl>
-                  <Textarea
-                    placeholder="Any behavioral notes"
-                    className="resize-none h-20"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
-                <FormMessage />
-                <AudioManager
-                  open={audioModalOpen === "behavioralNotes"}
-                  onClose={() => setAudioModalOpen(null)}
-                  transcriber={behavioralNotesTranscriber}
-                  onTranscriptionComplete={() => setAudioModalOpen(null)}
-                />
-              </FormItem>
-            )}
-          />
+          {/* Notes Section */}
+          <div className="col-span-2">
+            <div className="flex justify-between items-center">
+              <FormLabel>Notes</FormLabel>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setAudioModalOpen("notes")}
+                title="Record voice note"
+                disabled={notesTranscriber.output?.isBusy}
+                className="h-8 w-8"
+              >
+                {notesTranscriber.output?.isBusy ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Additional notes (optional)"
+                      className="min-h-[150px]"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <FormField
             control={form.control}
@@ -596,12 +510,12 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
           />
         </div>
 
-        <div className="flex justify-end space-x-4 pt-4">
+        <div className="flex justify-end space-x-4">
           <Button type="button" variant="outline" onClick={onSuccess}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isPending}
             className="theme-button text-white"
           >
@@ -609,6 +523,13 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
           </Button>
         </div>
       </form>
+
+      <AudioManager
+        open={audioModalOpen === 'notes'}
+        onClose={() => setAudioModalOpen(null)}
+        transcriber={notesTranscriber}
+        onTranscriptionComplete={() => setAudioModalOpen(null)}
+      />
     </Form>
   )
-} 
+}

@@ -17,14 +17,14 @@ export default function Header() {
   }
 
   return (
-    <header className="h-16 bg-gradient-to-r from-blue-50 via-white to-blue-50 border-b border-blue-200 shadow-sm flex items-center justify-between px-6">
-      <div className="font-semibold text-lg text-blue-800">
+    <header className="h-16 bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 border-b border-[#1E3D3D]/30 dark:border-[#1E3D3D]/30 shadow-sm flex items-center justify-between px-6">
+      <div className="font-semibold text-lg text-[#1E3D3D] dark:text-[#D2EFEC]">
         {clientData ? `Welcome, ${clientData.firstName} ${clientData.lastName}` : "PawTrack Dashboard"}
       </div>
       <Button 
         variant="outline" 
         onClick={onLogout}
-        className="bg-white text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 rounded-full p-2 h-10 w-10 shadow-sm transition-all duration-200"
+        className="bg-white dark:bg-slate-800 text-[#1E3D3D] dark:text-[#D2EFEC] border-[#1E3D3D]/30 dark:border-[#1E3D3D]/30 hover:bg-[#1E3D3D] hover:text-white dark:hover:bg-[#D2EFEC] dark:hover:text-[#1E3D3D] rounded-full p-2 h-10 w-10 shadow-sm transition-all duration-200"
         title="Logout"
       >
         <LogOut className="h-5 w-5" />

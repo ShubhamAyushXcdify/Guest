@@ -9,8 +9,13 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { Doctor } from ".";
 import { useRouter } from "next/navigation";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useGetRole } from "@/queries/roles/get-role";
+import { useRootContext } from "@/context/RootContext";
+import { getCompanyId } from "@/utils/clientCookie";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
 
 interface DoctorDetailsProps {
   doctorId: string;
@@ -20,7 +25,8 @@ interface DoctorDetailsProps {
 
 export default function DoctorDetails({ doctorId, clinicId, onSuccess }: DoctorDetailsProps) {
   const router = useRouter();
-  
+  const { clinic, user } = useRootContext();
+
   const { data: doctor, isLoading } = useGetUserById(doctorId);
   const updateUser = useUpdateUser();
   const { data: rolesData } = useGetRole();
@@ -32,7 +38,20 @@ export default function DoctorDetails({ doctorId, clinicId, onSuccess }: DoctorD
   );
   
   // Initialize form with empty values that will be updated when data is loaded
+  const doctorSchema = z.object({
+    id: z.string(),
+    passwordHash: z.string().optional(),
+    firstName: z.string().min(2, 'First name is required'),
+    lastName: z.string().min(2, 'Last name is required'),
+    email: z.string().email('Invalid email address'),
+    password: z.string().optional(),
+    isActive: z.boolean().optional()
+  });
+  
+  type Doctor = z.infer<typeof doctorSchema>;
   const form = useForm<Doctor & { password: string }>({
+    resolver: zodResolver(doctorSchema),
+    mode: 'onChange',
     defaultValues: {
       id: doctorId,
       email: "",
@@ -71,29 +90,34 @@ export default function DoctorDetails({ doctorId, clinicId, onSuccess }: DoctorD
   
   const handleSubmit = async (values: Doctor & { password: string }) => {
     try {
-      // Add clinicId and always set role to Veterinarian
+      // Get company ID from clinic context or cookies
+      const companyId = clinic?.companyId || user?.companyId || getCompanyId();
+
+      // Create the payload matching the expected API structure
       const payload = {
         id: values.id,
         email: values.email,
+        passwordHash: values.password && isPasswordDirty ? values.password : doctor.passwordHash || "",
         firstName: values.firstName,
-        lastName: values.lastName,
-        role: "Veterinarian", // Always set role to Veterinarian with capital first letter
-        roleId: veterinarianRole?.id || "",
-        clinicId: clinicId || (doctor as any).clinicId || "",
-        isActive: true, // Always set to true
-        passwordHash: values.password && isPasswordDirty ? values.password : doctor.passwordHash || ""
+        lastName: values.lastName || null,
+        roleId: veterinarianRole?.id,
+        companyId: companyId,
+        clinicIds: [clinicId || ""], // Array of clinic IDs
+        isActive: true,
+        slots: [] // Empty slots array as per API
       };
-      
+
       await updateUser.mutateAsync(payload);
       toast({
-        title: "Success",
-        description: "Doctor updated successfully",
+        title: "Doctor updated",
+        description: `Doctor ${values.firstName} ${values.lastName} updated successfully`,
+        variant: "success",
       });
       if (onSuccess) onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to update doctor",
+        title: "Update failed",
+        description: error.message || "Failed to update doctor",
         variant: "destructive",
       });
     }
@@ -102,6 +126,7 @@ export default function DoctorDetails({ doctorId, clinicId, onSuccess }: DoctorD
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full max-w-md mx-auto">
+      <div className="h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md">
         <div className="grid grid-cols-1 gap-4">
           <FormField name="firstName" control={form.control} render={({ field }) => (
             <FormItem>
@@ -151,8 +176,8 @@ export default function DoctorDetails({ doctorId, clinicId, onSuccess }: DoctorD
             </FormItem>
           )} />
         </div>
-        
-        <div className="flex justify-end mt-6">
+        </div>
+        <div className="flex justify-end">
           <Button type="submit">
             Update Doctor
           </Button>

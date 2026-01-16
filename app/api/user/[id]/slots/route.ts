@@ -8,7 +8,7 @@ export async function PUT(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
-  
+
   try {
     const token = getJwtToken(request);
 
@@ -19,12 +19,12 @@ export async function PUT(
       );
     }
 
-    const slotIds = await request.json();
-    
-    // Validate that slotIds is an array
-    if (!Array.isArray(slotIds)) {
+    const requestBody = await request.json();
+
+    // Validate the request body format
+    if (!requestBody.clinicId || !Array.isArray(requestBody.slotIds)) {
       return NextResponse.json(
-        { message: 'Invalid request format. Expected an array of slot IDs' },
+        { message: 'Invalid request format. Expected { clinicId: string, slotIds: string[] }' },
         { status: 400 }
       );
     }
@@ -36,7 +36,7 @@ export async function PUT(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify(slotIds),
+      body: JSON.stringify(requestBody), // Forward the entire request body
     });
 
     if (!response.ok) {
@@ -57,4 +57,4 @@ export async function PUT(
       { status: 500 }
     );
   }
-} 
+}

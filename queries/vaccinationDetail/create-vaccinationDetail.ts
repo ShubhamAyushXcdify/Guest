@@ -6,6 +6,8 @@ export interface VaccinationDetailRequest {
   notes: string;
   isCompleted: boolean;
   vaccinationMasterIds: string[];
+  dateGiven?: string;
+  nextDueDate?: string;
 }
 
 // Define the VaccinationDetail response interface (keep as generic for now)

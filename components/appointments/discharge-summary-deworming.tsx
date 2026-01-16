@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Download, FileText, Loader2, AlertCircle } from "lucide-react"
+import { Download, FileText, Loader2, AlertCircle, Printer } from "lucide-react"
 import { useGetDischargeSummaryDeworming } from "@/queries/discharge-summary/get-discharge-summary-deworming"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { toast } from "@/components/ui/use-toast"
@@ -15,14 +15,15 @@ interface DischargeSummarySheetProps {
   appointmentId: string
 }
 
-export default function DischargeSummarySheet({ 
-  isOpen, 
-  onClose, 
-  appointmentId 
+export default function DischargeSummarySheet({
+  isOpen,
+  onClose,
+  appointmentId
 }: DischargeSummarySheetProps) {
   const [isDownloading, setIsDownloading] = useState(false)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   // PDF Styles
   const styles = StyleSheet.create({
@@ -147,6 +148,24 @@ export default function DischargeSummarySheet({
     }
   }, [dischargeData, isOpen])
 
+  // Handle print functionality
+  const handlePrint = () => {
+    if (!pdfUrl) return;
+
+    const printWindow = window.open(pdfUrl, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    } else {
+      toast({
+        title: "Error",
+        description: "Could not open print dialog. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Clean up PDF URL when component unmounts or closes
   useEffect(() => {
     return () => {
@@ -166,17 +185,17 @@ export default function DischargeSummarySheet({
     try {
       setIsDownloading(true)
       console.log('Generating PDF with discharge data:', dischargeData)
-      
+
       // Generate PDF using react-pdf
       const pdfBlob = await pdf(<DischargeSummaryPDF data={dischargeData} />).toBlob()
       setPdfBlob(pdfBlob)
-      
+
       // Create object URL for preview/download
       const url = URL.createObjectURL(pdfBlob)
       setPdfUrl(url)
-      
+
       console.log('PDF generated successfully')
-      
+
     } catch (error) {
       console.error('Error generating PDF:', error)
       toast({
@@ -412,18 +431,18 @@ export default function DischargeSummarySheet({
                 <p className="text-gray-500">No visit data found for this appointment</p>
               </div>
             </div>
-                     ) : !dischargeData ? (
-             <div className="flex items-center justify-center py-12">
-               <div className="text-center">
-                 <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-4" />
-                 <p className="text-gray-500">No discharge summary available for this visit</p>
-                 {dischargeError && (
-                   <p className="text-sm text-red-500 mt-2">
-                     Error: {dischargeError instanceof Error ? dischargeError.message : 'Unknown error'}
-                   </p>
-                 )}
-               </div>
-             </div>
+          ) : !dischargeData ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertCircle className="h-8 w-8 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-500">No discharge summary available for this visit</p>
+                {dischargeError && (
+                  <p className="text-sm text-red-500 mt-2">
+                    Error: {dischargeError instanceof Error ? dischargeError.message : 'Unknown error'}
+                  </p>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
               {/* PDF Preview */}
@@ -437,8 +456,8 @@ export default function DischargeSummarySheet({
                 </div>
               )}
 
-              {/* Download Button */}
-              <div className="flex justify-center">
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-3">
                 <Button
                   onClick={handleDownload}
                   disabled={!pdfBlob || isDownloading}
@@ -449,7 +468,16 @@ export default function DischargeSummarySheet({
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  Download Deworming Summary
+                  Download Discharge Summary
+                </Button>
+                <Button
+                  onClick={handlePrint}
+                  disabled={!pdfBlob || isDownloading}
+                  variant="secondary"
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Discharge Summary
                 </Button>
               </div>
 

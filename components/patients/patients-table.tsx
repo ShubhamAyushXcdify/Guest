@@ -91,21 +91,30 @@ export function PatientsTable({
   const columns: ColumnDef<Patient>[] = [
     { accessorKey: "name", header: "Name" },
     { accessorKey: "species", header: "Species" },
-    { accessorKey: "breed", header: "Breed" },
+    { accessorKey: "breed", header: "Primary Breed" },
+    { accessorKey: "secondaryBreed", header: "Secondary Breed" },
     { 
       accessorKey: "gender", 
       header: "Gender",
-      cell: ({ row }) => (
-        <div>
-          {row.original.gender}
-          {row.original.isNeutered && " (Neutered)"}
-        </div>
-      )
+      cell: ({ row }) => {
+        const gender = row.original.gender;
+        const formattedGender = gender ? gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase() : '';
+        return (
+          <div>
+            {formattedGender}
+            {row.original.isNeutered && " (Neutered)"}
+          </div>
+        );
+      }
     },
     { 
       accessorKey: "dateOfBirth", 
       header: "Date of Birth",
       cell: ({ getValue }) => formatDate(getValue() as string)
+    },
+    { accessorKey: "createdAt",
+       header: "Created Date",
+       cell: ({ getValue }) => formatDate(getValue() as string)
     },
     // { 
     //   accessorKey: "isActive", 
@@ -124,26 +133,28 @@ export function PatientsTable({
       header: () => <div className="text-center">Actions</div>,
       cell: ({ row }) => (
         <div className="flex gap-2 justify-center">
-          <Button 
+          {/* <Button 
             variant="ghost" 
-            size="icon" 
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               handleViewPatient(row.original.id);
             }}
+            title="View Patient"
           >
             <Eye className="h-4 w-4" />
+          </Button> */}
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditPatient(row.original.id);
+            }}
+            title="Edit Patient"
+          >
+            <Edit className="h-4 w-4" />
           </Button>
-             <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditPatient(row.original.id);
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
           <Button 
             variant="ghost" 
             size="icon"
@@ -151,6 +162,7 @@ export function PatientsTable({
               e.stopPropagation();
               handleBookAppointment(row.original.id);
             }}
+            title="Book Appointment"
           >
             <Calendar className="h-4 w-4" />
           </Button>
@@ -162,6 +174,7 @@ export function PatientsTable({
               e.stopPropagation();
               handleDeleteClick(row.original);
             }}
+            title="Delete Patient"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -184,7 +197,7 @@ export function PatientsTable({
         totalPages={totalPages}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
-        onEditButtonClick={(rowId) => handleEditPatient(rowId)}
+        onRowClick={(row) => handleViewPatient(row.id)}
       />
 
       <DeleteConfirmationDialog
@@ -206,8 +219,8 @@ export function PatientsTable({
       />
 
       <Sheet open={showEditSheet} onOpenChange={setShowEditSheet}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[62%] overflow-auto">
-          <SheetHeader>
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[62%]">
+          <SheetHeader className="relative top-[-14px]">
             <SheetTitle>Edit Patient</SheetTitle>
           </SheetHeader>
           {patientToEdit && (

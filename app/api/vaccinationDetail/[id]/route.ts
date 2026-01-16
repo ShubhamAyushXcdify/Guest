@@ -6,7 +6,7 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 // GET endpoint to fetch a specific vaccination detail by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getJwtToken(request);
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Call the API
     const response = await fetch(`${apiUrl}/api/VaccinationDetail/${id}`, {
@@ -47,7 +47,7 @@ export async function GET(
 // PUT endpoint to update a vaccination detail
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getJwtToken(request);
@@ -59,7 +59,7 @@ export async function PUT(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     // Call the API
@@ -91,7 +91,7 @@ export async function PUT(
 // DELETE endpoint to remove a vaccination detail
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = getJwtToken(request);
@@ -103,7 +103,7 @@ export async function DELETE(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Call the API
     const response = await fetch(`${apiUrl}/api/VaccinationDetail/${id}`, {
@@ -129,3 +129,4 @@ export async function DELETE(
     );
   }
 }
+ 

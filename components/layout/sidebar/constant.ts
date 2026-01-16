@@ -1,4 +1,4 @@
-import { ClipboardList, LayoutDashboard, Calendar, Users, Package, FlaskConical, FileText, PieChart, Settings2, Building, DoorOpen, UserCheck, Stethoscope, Clock } from "lucide-react"
+import { ClipboardList, LayoutDashboard, Calendar, Users, Package, FlaskConical, FileText, PieChart, Settings2, Building, DoorOpen, UserCheck, Stethoscope, Clock, DollarSign, Brain } from "lucide-react"
 
 export const navGroups = [
     {
@@ -20,6 +20,13 @@ export const navGroups = [
                 color: "text-blue-2000",
                 allowedRoles: ["Administrator", "Clinic Admin", "Receptionist", "Veterinarian"],
                 activePaths: ["/appointments/confirmed", "/appointments/queue"],
+            },
+            {
+                href: "/ai-assistant",
+                label: "AI Assistant",
+                icon: Brain,
+                color: "text-blue-2000",
+                allowedRoles: ["Administrator", "Clinic Admin", "Receptionist", "Veterinarian"],
             },
             {
                 href: "/patients",
@@ -71,6 +78,20 @@ export const navGroups = [
                 icon: Package,
                 color: "text-purple-2000",
                 allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+            },
+            {
+                href: "/supplier",
+                label: "Suppliers",
+                icon: Users,
+                color: "text-purple-2000",
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+            },
+            {
+                href: "/expense-tracker",
+                label: "Expense Tracker",
+                icon: DollarSign,
+                color: "text-purple-2000",
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
             }
         ],
     },
@@ -79,6 +100,7 @@ export const navGroups = [
         icon: Settings2,
         allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
         items: [
+            
 //add companies
             {
                 href: "/companies",
@@ -87,7 +109,6 @@ export const navGroups = [
                 color: "text-purple-2000",
                 allowedRoles: ["Super Admin"],
             },
-
             {
                 href: "/clinic",
                 label: "Clinics",
@@ -105,11 +126,40 @@ export const navGroups = [
                 allowedRoles: ["Administrator", "Super Admin", "Clinic Admin"],
             },
             {
-                href: "/supplier",
-                label: "Suppliers",
+                href: "/rooms",
+                label: "Rooms",
+                icon: Building,
+                color: "text-purple-2000",
+                allowedRoles: ["Clinic Admin"],
+            },
+            {
+                href: "/doctors",
+                label: "Doctors",
+                icon: Stethoscope,
+                color: "text-purple-2000",
+                allowedRoles: ["Clinic Admin"],
+            },
+            {
+                href: "/my-slots",
+                label: "My Slots",
+                icon: Clock,
+                color: "text-purple-2000",
+                allowedRoles: ["Veterinarian"],
+            },
+           
+            {
+                href: "/roles",
+                label: "Roles",
                 icon: Users,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Super Admin"],
+            },
+            {
+                href: "/screen",
+                label: "RBAC",
+                icon: DoorOpen,
+                color: "text-purple-2000",
+                allowedRoles: ["Administrator"],
             }
         ],
     }
@@ -133,8 +183,11 @@ export const isPathActive = (pathname: string, item: any): boolean => {
     // Check exact href match
     if (pathname === item.href) return true;
     
-    // Check activePaths array
-    if (item.activePaths && item.activePaths.includes(pathname)) return true;
+    // Check nested routes under href (e.g., /patients/[id])
+    if (typeof item.href === "string" && pathname.startsWith(item.href + "/")) return true;
+    
+    // Check activePaths array (exact or as a prefix for nested routes)
+    if (Array.isArray(item.activePaths) && item.activePaths.some((p: string) => pathname === p || pathname.startsWith(p + "/"))) return true;
     
     // Check dynamic paths for clinic routes
     if (item.dynamicPaths) {

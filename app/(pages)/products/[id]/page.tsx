@@ -35,19 +35,17 @@ export default function ProductDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className='border p-4 rounded-md'>
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <Button
-            variant="ghost"
-            size="icon"
+            variant="outline"
             onClick={() => router.back()}
+            className="flex items-center gap-2"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" /> Back to Products
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{product.name}</h1>
-            <p className="text-muted-foreground">Product Details</p>
-          </div>
+          
         </div>
         <Button
           onClick={() => router.push(`/products/${productId}/edit`)}
@@ -59,37 +57,38 @@ export default function ProductDetailPage() {
       </div>
 
       {/* Product Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            
+        </div>
+        
+        {/* <h1 className="text-xl font-bold mb-2">{product.name}</h1> */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
         {/* Basic Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+          <CardHeader className='border-b p-4'>
+            <CardTitle className="text-xl">Basic Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Product Number</label>
-                <p className="text-sm">{product.productNumber || '-'}</p>
+                <p className="text-lg font-bold">{product.productNumber || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Brand Name</label>
-                <p className="text-sm">{product.brandName || '-'}</p>
+                <p className="text-lg font-bold">{product.brandName || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Generic Name</label>
-                <p className="text-sm">{product.genericName || '-'}</p>
+                <p className="text-lg font-bold">{product.genericName || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Category</label>
-                <p className="text-sm">{product.category || '-'}</p>
+                <p className="text-lg font-bold">{product.category || '-'}</p>
               </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Product Type</label>
-                <p className="text-sm">{product.productType || '-'}</p>
-              </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Price</label>
-                <p className="text-sm">${product.price || 0}</p>
+                <p className="text-lg font-bold">${product.price || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -97,34 +96,34 @@ export default function ProductDetailPage() {
 
         {/* Medical Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Medical Information</CardTitle>
+          <CardHeader className='border-b p-4'>
+            <CardTitle className="text-xl">Medical Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">NDC Number</label>
-                <p className="text-sm">{product.ndcNumber || '-'}</p>
+                <p className="text-lg font-bold">{product.ndcNumber || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Dosage Form</label>
-                <p className="text-sm">{product.dosageForm || '-'}</p>
+                <p className="text-lg font-bold">{product.dosageForm || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Unit of Measure</label>
-                <p className="text-sm">{product.unitOfMeasure || '-'}</p>
+                <p className="text-lg font-bold">{product.unitOfMeasure || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Reorder Threshold</label>
-                <p className="text-sm">{product.reorderThreshold || '-'}</p>
+                <p className="text-lg font-bold">{product.reorderThreshold || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Controlled Substance Schedule</label>
-                <p className="text-sm">{product.controlledSubstanceSchedule || '-'}</p>
+                <p className="text-lg font-bold">{product.controlledSubstanceSchedule || '-'}</p>
               </div>
-              <div>
+              <div className='border p-2 rounded-md'>
                 <label className="text-sm font-medium text-muted-foreground">Storage Requirements</label>
-                <p className="text-sm">{product.storageRequirements || '-'}</p>
+                <p className="text-lg font-bold">{product.storageRequirements || '-'}</p>
               </div>
             </div>
           </CardContent>
@@ -132,17 +131,17 @@ export default function ProductDetailPage() {
 
         {/* Status Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Status & Requirements</CardTitle>
+          <CardHeader className='border-b p-4'>
+            <CardTitle className="text-xl">Status & Requirements</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex items-center justify-between border p-2 rounded-md">
               <span className="text-sm font-medium">Requires Prescription</span>
               <Badge variant={product.requiresPrescription ? "default" : "outline"}>
                 {product.requiresPrescription ? "Yes" : "No"}
               </Badge>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border p-2 rounded-md">
               <span className="text-sm font-medium">Status</span>
               <Badge variant={product.isActive ? "default" : "destructive"}>
                 {product.isActive ? "Active" : "Inactive"}
@@ -158,6 +157,7 @@ export default function ProductDetailPage() {
         productNumber={product.productNumber}
         productName={product.name}
       />
+      </div>
     </div>
   );
 } 

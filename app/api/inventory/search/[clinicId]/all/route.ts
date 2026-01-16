@@ -6,14 +6,14 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clinicId: string } }
+  { params }: { params: Promise<{ clinicId: string }> }
 ) {
   try {
     let token = getJwtToken(request);
     if (!token) {
       token = testToken;
     }
-    const clinicId = params.clinicId;
+    const { clinicId } = await params;
     // Parse query parameters from the request URL
     const { searchParams } = new URL(request.url);
     const searchTerm = searchParams.get('searchTerm') || '';

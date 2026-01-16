@@ -34,87 +34,88 @@ export default function PurchaseOrderDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[40%] overflow-x-hidden overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Purchase Order Details</SheetTitle>
+          <SheetTitle  className="relative top-[-10px]">Purchase Order Details</SheetTitle>
         </SheetHeader>
         {isLoading ? (
           <div className="p-6 text-center">Loading...</div>
         ) : isError ? (
           <div className="p-6 text-center text-red-500">Failed to load purchase order details.</div>
         ) : order ? (
-          <div className="space-y-6 p-4">
+          <div>
+          <div className="space-y-6 p-4 border rounded-md">
             <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Order #</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.orderNumber || "-"}</p>
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Order #:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{order.orderNumber || "-"}</p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Supplier</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.supplier?.name || "-"}</p>
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Supplier:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{order.supplier?.name || "-"}</p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Order Date</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Order Date:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {order.orderDate ? formatDate(order.orderDate) : "-"}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Expected Delivery</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Expected Delivery:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : "-"}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Actual Delivery</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Actual Delivery:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {order.actualDeliveryDate ? formatDate(order.actualDeliveryDate) : "-"}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.status || "-"}</p>
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Status:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{order.status || "-"}</p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Subtotal</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Subtotal:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {/* Calculate subtotal as extendedAmount + discountedAmount */}
                   {formatCurrency((order.extendedAmount || 0) + (order.discountedAmount || 0))}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Tax</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Tax:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {/* Sum up tax amounts from items */}
                   {formatCurrency(order.items?.reduce((sum, item) => sum + (item.taxAmount || 0), 0) || 0)}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Discount</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Discount:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {formatCurrency(order.discountedAmount || 0)}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Extended Amount</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Extended Amount:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">
                   {formatCurrency(order.extendedAmount || 0)}
                 </p>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total</h3>
-                <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <div className="flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total:</h3>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {formatCurrency(order.totalAmount || 0)}
                 </p>
               </div>
-              <div className="col-span-2">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Notes</h3>
-                <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{order.notes || "-"}</p>
+              <div className="col-span-2 flex gap-4 items-center border-b pb-2">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Notes:</h3>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{order.notes || "-"}</p>
               </div>
             </div>
             {/* Items Table */}
             {order.items && order.items.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Items</h3>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto border">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
@@ -157,7 +158,9 @@ export default function PurchaseOrderDetailsSheet({
                 </div>
               </div>
             )}
-            <div className="flex justify-end">
+            
+          </div>
+          <div className="flex justify-end mt-4">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>

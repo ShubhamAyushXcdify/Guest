@@ -259,7 +259,7 @@ export function DataTable<TData, TValue>({
 
       {/* Scrollable Table Area */}
       <div className="rounded-md border flex-grow overflow-auto">
-        <Table className="table-auto w-full">
+        <Table className="table-auto w-full bg-white">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -302,7 +302,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls - always visible at the bottom */}
-      <div className="flex items-center justify-between bg-white sticky bottom-0 z-10 flex-shrink-0 p-4 rounded-md">
+      <div className="flex items-center justify-between bg-white sticky bottom-0 z-10 flex-shrink-0 p-4 rounded-md border">
         <div className="flex items-center space-x-2">
           <p className="text-md text-muted-foreground">
             Page {page} of {totalPages}

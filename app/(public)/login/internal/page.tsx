@@ -11,8 +11,12 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { LoginForm } from "@/components/auth/login/loginform"
+import { getCompanySubdomain } from "@/utils/subdomain";
+import { useGetCompanyBySubdomain } from "@/queries/companies";
 
 export default function LoginPage() {
+  const subdomain = getCompanySubdomain();
+  const { data: company, isLoading: companyLoading } = useGetCompanyBySubdomain(subdomain);
 
   return (
     <div
@@ -37,11 +41,19 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center text-white">
         <div className="max-w-md w-full space-y-8">
           <div className="flex flex-col items-center">
-            <div className="w-80">
-              <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className=" !relative w-40 " priority />
+          <div className="w-80">
+              {company?.logoUrl ? (
+                <Image 
+                  src={company.logoUrl} 
+                  alt={`${company.name} Logo`} 
+                  fill 
+                  className="!relative w-40 object-contain" 
+                  priority 
+                />
+              ) : (
+                <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className="!relative w-40" priority />
+              )}
             </div>
-            {/* <h1 className="text-4xl font-bold tracking-tight">PawTrack</h1>
-            <p className="mt-2 text-xl">Veterinary Practice Management</p> */}
           </div>
 
           <div className="mt-10 hidden md:block">
@@ -76,7 +88,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center bg-white">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl max-w-md w-full p-8 border">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Pet Health Portal</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{company?.name || "PawTrack"}</h2>
             <p className="text-gray-600 dark:text-gray-400 mt-2">Enter your credentials to access your pet's health information</p>
           </div>
           
@@ -119,7 +131,7 @@ export default function LoginPage() {
             </div>
           </div> */}
           
-          <LoginForm />
+          <LoginForm hideRegisterLink={true} />
         </div>
       </div>
     </div>

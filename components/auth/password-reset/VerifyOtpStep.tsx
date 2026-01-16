@@ -70,7 +70,7 @@ export function VerifyOtpStep({
       <div className="text-center space-y-2">
         <button
           type="button"
-          className="text-sm font-medium theme-text-accent hover:underline w-full"
+          className="text-sm font-medium theme-text-accent hover:opacity-80 hover:underline w-full"
           onClick={onBack}
         >
           <div className="flex items-center justify-center gap-1">
@@ -81,7 +81,7 @@ export function VerifyOtpStep({
         
         <button
           type="button"
-          className="text-sm hover:underline w-full theme-text-accent font-medium"
+          className="text-sm hover:opacity-80 hover:underline w-full theme-text-accent font-medium"
           onClick={onResend}
           disabled={isPending}
         >

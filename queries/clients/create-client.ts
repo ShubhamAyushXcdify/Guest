@@ -3,6 +3,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Client } from "./get-client";
 
 interface CreateClientPayload {
+  companyId: string;
   firstName: string;
   lastName: string;
   email: string;

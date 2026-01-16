@@ -29,7 +29,7 @@ export function NewPasswordStep({
         <div className="space-y-2">
           <Label htmlFor="newPassword">New Password</Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400" />
             <Input
               id="newPassword"
               type="password"
@@ -45,7 +45,7 @@ export function NewPasswordStep({
         <div className="space-y-2">
           <Label htmlFor="confirmPassword">Confirm Password</Label>
           <div className="relative">
-            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400" />
             <Input
               id="confirmPassword"
               type="password"
@@ -70,7 +70,7 @@ export function NewPasswordStep({
       <div className="text-center">
         <button
           type="button"
-          className="text-sm font-medium theme-text-accent hover:underline flex items-center justify-center gap-1 w-full"
+          className="text-sm font-medium theme-text-accent hover:opacity-80 hover:underline flex items-center justify-center gap-1 w-full"
           onClick={onBack}
         >
           <ArrowLeft className="h-3 w-3" />

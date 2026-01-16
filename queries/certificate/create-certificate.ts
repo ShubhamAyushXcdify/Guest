@@ -1,8 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+export interface Certificate {
+  id?: string;
+  certificateTypeId: string;
+  certificateJson: string;
+}
+
 interface CreateCertificateParams {
   visitId: string;
-  certificateJson: string;
+  certificates: Certificate[];
 }
 
 export const useCreateCertificate = (
@@ -27,7 +33,7 @@ export const useCreateCertificate = (
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.message || "Failed to create certificate");
+      throw new Error(data.message || "Failed to create certificates");
     }
 
     return data;
@@ -36,14 +42,24 @@ export const useCreateCertificate = (
   return useMutation({
     mutationFn: createCertificate,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: ["certificate", data.visitId],
-      });
+      // Invalidate queries for all created certificates
+      if (data.results && Array.isArray(data.results)) {
+        data.results.forEach((result: any) => {
+          queryClient.invalidateQueries({
+            queryKey: ["certificate", result.visitId],
+          });
+        });
+      }
 
       if (options?.onSuccess) {
         options.onSuccess(data);
       }
     },
-    onError: options?.onError,
+    onError: (error) => {
+      console.error("Error creating certificates:", error);
+      if (options?.onError) {
+        options.onError(error);
+      }
+    },
   });
 };

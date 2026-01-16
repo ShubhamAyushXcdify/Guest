@@ -46,7 +46,7 @@ export default function DoctorSlotsPage() {
         )}
       </div>
 
-      <DoctorSlotsManager doctorId={doctorId} />
+      <DoctorSlotsManager doctorId={doctorId} clinicId={clinicId} />
     </div>
   );
 } 

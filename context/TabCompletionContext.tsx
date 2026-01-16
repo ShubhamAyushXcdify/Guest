@@ -3,7 +3,29 @@
 import { createContext, useContext, useState, ReactNode } from "react"
 
 // Define tab IDs
-export type TabId = "intake" | "cc-hpi" | "medical-history" | "vitals" | "procedure" | "assessment" | "plan"
+export type TabId =
+  | "intake"
+  | "cc-hpi"
+  | "medical-history"
+  | "vitals"
+  | "procedure"
+  | "prescription"
+  | "plan"
+  | "surgery-pre-op"
+  | "surgery-details"
+  | "surgery-post-op"
+  | "surgery-discharge"
+  | "emergency-triage"
+  | "emergency-vitals"
+  | "emergency-procedure"
+  | "emergency-discharge"
+  | "deworming-intake"
+  | "deworming-medication"
+  | "deworming-notes"
+  | "deworming-checkout"
+  | "vaccination-planning"
+  | "vaccination-record"
+  | "certification-details"
 
 interface TabCompletionContextType {
   completedTabs: TabId[]
@@ -32,10 +54,10 @@ export function TabCompletionProvider({ children }: { children: ReactNode }) {
 
   const allTabsCompleted = () => {
     // These are the tabs that must be completed before checkout
-    const requiredTabs: TabId[] = ["intake", "cc-hpi", "medical-history", "vitals", "procedure", "assessment"]
+    const requiredTabs: TabId[] = ["intake", "cc-hpi", "medical-history", "vitals", "procedure", "prescription","certification-details" ];
     
     // Check if all required tabs are completed
-    return requiredTabs.every(tab => completedTabs.includes(tab))
+    return requiredTabs.every(tab => completedTabs.includes(tab));
   }
 
   return (

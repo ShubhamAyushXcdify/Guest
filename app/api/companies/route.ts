@@ -2,10 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
-// GET /api/companies - Get all companies
-export async function GET() {
+// GET /api/companies - Get companies with optional pagination
+export async function GET(request: NextRequest) {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/company`, {
+    const { searchParams } = new URL(request.url);
+    const pageNumber = searchParams.get('pageNumber');
+    const pageSize = searchParams.get('pageSize');
+    const paginationRequired = searchParams.get('paginationRequired');
+    const search = searchParams.get('search');
+    const params = new URLSearchParams();
+    if (pageNumber) params.set('pageNumber', pageNumber);
+    if (pageSize) params.set('pageSize', pageSize);
+    // Always enforce pagination on the backend
+    params.set('paginationRequired', 'true');
+    if (search && search !== "undefined" && search !== "null") {
+      params.set("search", search);  // Use set instead of append to avoid duplicates
+    }
+    const qs = params.toString();
+    const response = await fetch(`${API_BASE_URL}/api/company${qs ? `?${qs}` : ''}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

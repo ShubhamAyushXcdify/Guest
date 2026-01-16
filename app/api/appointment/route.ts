@@ -78,6 +78,11 @@ export async function GET(request: NextRequest) {
             formattedParams.set('isRegistered', searchParams.get('isRegistered')!);
         }
 
+        // Add companyId if present
+        if (searchParams.has('companyId')) {
+            formattedParams.set('companyId', searchParams.get('companyId')!);
+        }
+
         // Copy any other parameters we haven't explicitly handled
         searchParams.forEach((value, key) => {
             if (!formattedParams.has(key)) {

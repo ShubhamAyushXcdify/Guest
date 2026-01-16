@@ -91,7 +91,15 @@ export function ExpirationReport() {
   )
 }
 
-function ExpirationItem({ product, category, expiration, quantity, value }) {
+type ExpirationItemProps = {
+  product: string;
+  category: string;
+  expiration: string;
+  quantity: number;
+  value: string;
+}
+
+function ExpirationItem({ product, category, expiration, quantity, value }: ExpirationItemProps) {
   return (
     <tr>
       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{product}</td>

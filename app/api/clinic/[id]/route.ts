@@ -89,3 +89,51 @@ export async function DELETE(
         );
     }
 }
+
+export async function PUT(
+  request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const { id } = await ctx.params;
+  try {
+    const token = getJwtToken(request);
+
+    if (!token) {
+      return NextResponse.json(
+        { message: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const response = await fetch(`${apiUrl}/api/Clinic/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { message: `Failed to update clinic`, status: response.status },
+        { status: response.status }
+      );
+    }
+
+    const contentType = response.headers.get('content-type');
+    let data: any = null;
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json().catch(() => null);
+    }
+
+    return NextResponse.json(data ?? body, { status: 200 });
+  } catch (error) {
+    console.error('Error updating clinic:', error);
+    return NextResponse.json(
+      { message: 'Error updating clinic' },
+      { status: 500 }
+    );
+  }
+}

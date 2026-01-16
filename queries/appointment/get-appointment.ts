@@ -65,11 +65,16 @@ const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
       params.set('search', searchParams.search);
     }
     
+    // Add companyId if present
+    if (searchParams.companyId) {
+      params.set('companyId', searchParams.companyId);
+    }
+
     // Always include the isRegistered parameter since it's important for filtering
     params.set('isRegistered', searchParams.isRegistered !== undefined ? String(searchParams.isRegistered) : 'false');
     // Construct URL with query string only if we have parameters
     const queryString = params.toString();
-    const url = queryString ? `/api/appointment?${queryString}` : '/api/appointment';
+    const url = queryString ? `/api/appointment?${queryString}` : '/api/appointment';    
     
     const response = await fetch(url, {
       method: 'GET',
@@ -82,6 +87,7 @@ const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
     if (!response.ok) {
       throw result;
     }
+    
     
     // Check if the response data format is as expected
     if (result.data && typeof result.data === 'object') {
@@ -100,29 +106,36 @@ const getAppointments = async (searchParams: AppointmentSearchParamsType) => {
       return { items: [], totalCount: 0, pageNumber: 1, pageSize: 10, totalPages: 0 };
     }
   } catch (error) {
+    console.error('API Error fetching appointments:', error);
     throw error;
   }
 }
 
-export const useGetAppointments = (searchParams: AppointmentSearchParamsType) => {
+export const useGetAppointments = (
+  searchParams: AppointmentSearchParamsType,
+  options?: {
+    enabled?: boolean;
+  }
+) => {
   // Create a stable query key that includes all relevant search parameters
-  const queryKey = useMemo(() => {
-    return [
-      'appointment',
-      searchParams.search || '',
-      searchParams.status || '',
-      searchParams.provider || '',
-      searchParams.dateFrom || '',
-      searchParams.dateTo || '',
-      searchParams.clinicId || '',
-      searchParams.patientId || '',
-      searchParams.clientId || '',
-      searchParams.veterinarianId || '',
-      searchParams.roomId || '',
-      searchParams.pageNumber || 1,
-      searchParams.pageSize || 10,
-      searchParams.isRegistered !== undefined ? searchParams.isRegistered : false    ];
-  }, [searchParams]);
+  // Break down into individual dependencies instead of using the whole searchParams object
+  const queryKey = [
+    'appointment',
+    searchParams.clinicId || '', // Explicitly list clinicId first for visibility
+    searchParams.veterinarianId || '',
+    searchParams.dateFrom || '',
+    searchParams.dateTo || '',
+    searchParams.search || '',
+    searchParams.status || '',
+    searchParams.provider || '',
+    searchParams.patientId || '',
+    searchParams.clientId || '',
+    searchParams.roomId || '',
+    searchParams.pageNumber || 1,
+    searchParams.pageSize || 10,
+    searchParams.isRegistered !== undefined ? searchParams.isRegistered : false,
+    searchParams.companyId || ''
+  ];
 
   return useQuery({
     queryKey,
@@ -130,5 +143,6 @@ export const useGetAppointments = (searchParams: AppointmentSearchParamsType) =>
     // Ensure we refetch on window focus and don't cache too aggressively
     refetchOnWindowFocus: true,
     staleTime: 30000, // 30 seconds
+    ...options,
   });
 } 

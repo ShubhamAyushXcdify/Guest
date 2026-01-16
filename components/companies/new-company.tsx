@@ -6,17 +6,20 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { PDFUpload } from "../ui/pdf-upload";
 import { useCreateCompany, CreateCompanyRequest } from "@/queries/companies/create-company";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Building, Mail, MapPin, FileText } from "lucide-react";
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
-  description: z.string().min(1, "Description is required"),
-  logoUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  description: z.string().optional(),
+  logoUrl: z.string().min(1, "Logo URL is required").url("Please enter a valid URL"),
   registrationNumber: z.string().min(1, "Registration number is required"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(1, "Phone number is required"),
+  domainName: z.string().min(1, "Domain is required"),
   address: z.object({
     street: z.string().min(1, "Street address is required"),
     city: z.string().min(1, "City is required"),
@@ -25,6 +28,8 @@ const companySchema = z.object({
     country: z.string().min(1, "Country is required"),
   }),
   status: z.string().min(1, "Status is required"),
+  privacyPolicy: z.string().optional(),
+  termsOfUse: z.string().optional(),
 });
 
 type CompanyFormValues = z.infer<typeof companySchema>;
@@ -46,6 +51,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
       registrationNumber: "",
       email: "",
       phone: "",
+      domainName: "",
       address: {
         street: "",
         city: "",
@@ -53,7 +59,9 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
         postalCode: "",
         country: "",
       },
-      status: "active",
+      status: "Active",
+      privacyPolicy: "",
+      termsOfUse: "",
     },
   });
 
@@ -81,16 +89,20 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 mt-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         {/* Basic Information */}
+        <div className="h-[calc(100vh-10rem)] overflow-y-auto border p-4 rounded-md">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Basic Information</h3>
-          
+          <div className="flex gap-2 items-center">
+            <Building className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold">Basic Information</h3>
+          </div>
+          <div className="border p-4 rounded-md bg-gray-50">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="mb-4">
                 <FormLabel>Company Name*</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter company name" {...field} />
@@ -99,18 +111,17 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description*</FormLabel>
+              <FormItem className="mb-4">
+                <FormLabel>Description</FormLabel>
                 <FormControl>
-                  <Textarea 
-                    placeholder="Enter company description" 
+                  <Textarea
+                    placeholder="Enter company description"
                     className="min-h-[100px]"
-                    {...field} 
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -122,8 +133,8 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
             control={form.control}
             name="logoUrl"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Logo URL</FormLabel>
+              <FormItem className="mb-4">
+                <FormLabel>Logo URL*</FormLabel>
                 <FormControl>
                   <Input placeholder="https://example.com/logo.png" {...field} />
                 </FormControl>
@@ -137,7 +148,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               control={form.control}
               name="registrationNumber"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="mb-4">
                   <FormLabel>Registration Number*</FormLabel>
                   <FormControl>
                     <Input placeholder="REG123456" {...field} />
@@ -149,34 +160,51 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
 
             <FormField
               control={form.control}
-              name="status"
+              name="domainName"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status*</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <FormItem className="mb-4">
+                  <FormLabel>Domain*</FormLabel>
+                  <FormControl>
+                    <Input placeholder="company.pawtrack.com" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem className="mb-4">
+                <FormLabel>Status*</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         </div>
 
         {/* Contact Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Contact Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4 mt-4">
+          <div className="flex gap-2 items-center">
+              <Mail className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold">Contact Information</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md bg-gray-50">
             <FormField
               control={form.control}
               name="email"
@@ -208,14 +236,17 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
         </div>
 
         {/* Address Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Address Information</h3>
-          
+        <div className="space-y-4 mt-4">
+          <div className="flex gap-2 items-center">
+            <MapPin className="h-5 w-5 text-red-600" />
+            <h3 className="text-lg font-semibold">Address Information</h3>
+          </div>
+          <div className="border p-4 rounded-md bg-gray-50">
           <FormField
             control={form.control}
             name="address.street"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="mb-4">
                 <FormLabel>Street Address*</FormLabel>
                 <FormControl>
                   <Input placeholder="123 Main Street" {...field} />
@@ -230,7 +261,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               control={form.control}
               name="address.city"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="mb-4">
                   <FormLabel>City*</FormLabel>
                   <FormControl>
                     <Input placeholder="New York" {...field} />
@@ -244,7 +275,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               control={form.control}
               name="address.state"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="mb-4">
                   <FormLabel>State*</FormLabel>
                   <FormControl>
                     <Input placeholder="NY" {...field} />
@@ -260,7 +291,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               control={form.control}
               name="address.postalCode"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="mb-4">
                   <FormLabel>Postal Code*</FormLabel>
                   <FormControl>
                     <Input placeholder="10001" {...field} />
@@ -274,7 +305,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               control={form.control}
               name="address.country"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="mb-4">
                   <FormLabel>Country*</FormLabel>
                   <FormControl>
                     <Input placeholder="United States" {...field} />
@@ -284,15 +315,66 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
               )}
             />
           </div>
+          </div>
         </div>
 
-        <Button 
-          type="submit" 
-          className="w-full theme-button text-white" 
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Creating..." : "Create Company"}
-        </Button>
+        {/* Legal Documents */}
+        <div className="space-y-4 mt-4">
+          <div className="flex gap-2 items-center">
+            <FileText className="h-5 w-5 text-purple-600" />
+            <h3 className="text-lg font-semibold">Legal Documents</h3>
+          </div>
+          <div className="border p-4 rounded-md bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="privacyPolicy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <PDFUpload
+                        label="Privacy Policy"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={form.formState.errors.privacyPolicy?.message}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="termsOfUse"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <PDFUpload
+                        label="Terms of Use"
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={form.formState.errors.termsOfUse?.message}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            className="theme-button text-white px-6"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating..." : "Create Company"}
+          </Button>
+        </div>
       </form>
     </Form>
   );

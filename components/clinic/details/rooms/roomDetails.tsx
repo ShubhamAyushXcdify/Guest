@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGetRoomById } from "@/queries/rooms/get-room-by-id";
 import { useUpdateRoom } from "@/queries/rooms/update-room";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import { Combobox } from "@/components/ui/combobox";
 import { Checkbox } from "@/components/ui/checkbox";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 // Define form values explicitly to avoid TypeScript errors
 type FormValues = {
@@ -38,21 +40,34 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
   const updateRoom = useUpdateRoom({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Room updated successfully",
+        title: "Room updated",
+        description: `Room ${form.getValues().name} has been updated successfully`,
+        variant: "success",
       });
       if (onSuccess) onSuccess();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to update room",
+        title: "Room update failed",
+        description: error.message || "Failed to update room",
         variant: "destructive",
       });
     }
   });
 
+  const roomSchema = z.object({
+    name: z.string()
+      .min(3, 'Name must be at least 3 characters')
+      .refine((val) => val.trim().length >= 3, 'Name must be at least 3 characters and cannot be just spaces'),
+    roomType: z.string().min(1, 'Room type is required'),
+    isActive: z.boolean().optional(),
+
+  });
+  
+  type FormValues = z.infer<typeof roomSchema>;
+
   const form = useForm<FormValues>({
+    resolver: zodResolver(roomSchema),
     defaultValues: {
       name: "",
       roomType: "",
@@ -84,6 +99,7 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
       // Cast to any to avoid TypeScript errors with the API
       const updateData: any = {
         ...values,
+        name: values.name.trim(),
         id: roomId,
         clinicId,
       };
@@ -99,7 +115,8 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full">
+      <div className="h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md">
         <div className="grid grid-cols-1 gap-8">
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>
@@ -142,8 +159,8 @@ export default function RoomDetails({ roomId, clinicId, onSuccess }: RoomDetails
             </FormItem>
           )} />
         </div>
-
-        <div className="flex justify-end mt-6">
+        </div>
+        <div className="flex justify-end">
           <Button type="submit">
             Update Room
           </Button>

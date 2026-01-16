@@ -7,6 +7,7 @@ interface UpdatePatientPayload {
   name: string;
   species: string;
   breed: string;
+  secondaryBreed?: string;
   color: string;
   gender: string;
   isNeutered: boolean;

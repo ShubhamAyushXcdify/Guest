@@ -5,15 +5,18 @@ interface ClientDrawerContentProps {
   onClose: () => void;
   defaultValues?: Client;
   isUpdate?: boolean;
+  isClientContext?: boolean;
 }
 
-export function ClientDrawerContent({ onClose, defaultValues, isUpdate }: ClientDrawerContentProps) {
+export function ClientDrawerContent({ onClose, defaultValues, isUpdate, isClientContext }: ClientDrawerContentProps) {
   return (
-    <div className="p-4">
+    <div className="">
       <ClientForm 
         onSuccess={onClose} 
         defaultValues={defaultValues} 
         isUpdate={isUpdate || !!defaultValues}
+        onCancel={onClose}
+         isClientContext={isClientContext}
       />
     </div>
   );

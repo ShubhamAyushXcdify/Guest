@@ -7,6 +7,7 @@ export const appointmentSearchParamsParser = {
     dateFrom: parseAsString,
     dateTo: parseAsString,
     clinicId: parseAsString,
+    companyId: parseAsString,
     patientId: parseAsString,
     clientId: parseAsString,
     veterinarianId: parseAsString,
@@ -14,6 +15,8 @@ export const appointmentSearchParamsParser = {
     pageNumber: parseAsInteger.withDefault(1),
     pageSize: parseAsInteger.withDefault(10),
     isRegistered: parseAsBoolean.withDefault(false),
+    appointmentId: parseAsString, // For opening appointment details
+    tab: parseAsString, // For tab persistence in Visit Summary
 }
 
 export const appointmentSearchParamsSerializer = createSerializer(appointmentSearchParamsParser);
@@ -52,12 +55,14 @@ function useAppointmentFilter() {
     }
 
     const handleDate = (dateFrom: string | null, dateTo: string | null) => {
-        // Directly set the date parameters without any additional processing
-        // If both parameters are provided, use them as is
-        if (dateFrom && dateTo) {
+        // If both parameters are provided and they are not preset keywords, use them as is
+        if (dateFrom && dateTo && 
+            !["today", "yesterday", "thisWeek", "thisMonth", "thisYear", "lastWeek", "lastMonth", "lastYear"].includes(dateFrom)) {
             setSearchParams({
                 dateFrom,
                 dateTo,
+                veterinarianId: searchParams.veterinarianId, // Preserve existing veterinarianId
+                pageNumber: 1, // Reset to page 1 when changing date
             });
             return;
         }
@@ -70,8 +75,11 @@ function useAppointmentFilter() {
             dateToApi = today;
             dateFromApi = today;
         } else if (dateFrom === "yesterday") {
-            dateToApi = formatDateOnly(new Date(new Date().setDate(new Date().getDate() - 1)));
-            dateFromApi = formatDateOnly(new Date(new Date().setDate(new Date().getDate() - 1)));
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayFormatted = formatDateOnly(yesterday);
+            dateToApi = yesterdayFormatted;
+            dateFromApi = yesterdayFormatted;
         } else if (dateFrom === "thisWeek") {
             dateToApi = formatDateOnly(new Date());
             dateFromApi = formatDateOnly(new Date(new Date().setDate(new Date().getDate() - 7)));
@@ -119,7 +127,8 @@ function useAppointmentFilter() {
 
     // Helper function to format date as YYYY-MM-DD
     const formatDateOnly = (date: Date): string => {
-        return date.toISOString().split('T')[0];
+        // Use local date, not UTC, to avoid timezone issues
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
     
     return { searchParams, handleSearch, handleStatus, handleProvider, handleClinic, handleDate, removeAllFilters };

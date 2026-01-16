@@ -25,14 +25,14 @@ export function NavItem({ href, label, icon: Icon, isActive, isPending, color }:
     <Link
       href={href}
       className={cn(
-        "flex items-center gap-3 rounded-md p-2 text-sm transition-all text-white font-bold text-[1rem]",
+        "flex items-center gap-2 rounded-md p-2 text-sm transition-all text-black font-[600] text-sm",
         isActive
-          ? "bg-white/20 font-bold shadow my-3"
-          : "opacity-80 hover:bg-white/10 hover:opacity-100 my-3",
+          ? "bg-[#1E3D3D] font-[600] shadow text-white"
+          : "opacity-80 hover:bg-[#1E3D3D]/10 hover:opacity-100",
         isCollapsed && "justify-center px-2"
       )}
     >
-      <Icon className={cn("h-6 w-6 min-h-[1.25rem] min-w-[1.25rem]", color || (isActive ? "text-white" : "text-white/80 group-hover:text-white"))} />
+      <Icon className={cn("h-3 w-3 min-h-[1.25rem] min-w-[1.25rem]", color || (isActive ? "text-white" : "text-white/80 group-hover:text-white"))} />
       {!isCollapsed && label}
     </Link>
     </div>

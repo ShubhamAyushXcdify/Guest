@@ -6,9 +6,10 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    ctx: { params: { visitId: string } } 
+    ctx: { params: Promise<{ visitId: string }> } 
 ) {
-    const { visitId } = ctx.params;
+    const { visitId } = await ctx.params;
+
     try {
         let token = getJwtToken(request);
         if (!token) {

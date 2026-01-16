@@ -90,7 +90,7 @@ export default function ProductCatalog() {
    
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Product Catalog</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Product Catalog</h1>
           <div className="flex flex-wrap gap-3">
             <Button
               variant="outline"

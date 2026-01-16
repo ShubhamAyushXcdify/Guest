@@ -2,6 +2,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export interface Client {
   id: string;
+  companyId?: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -20,6 +21,13 @@ export interface Client {
   updatedAt: string | null;
 }
 
+export interface ClientFilters {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phonePrimary?: string;
+}
+
 interface ClientResponse {
   items: Client[];
   totalCount: number;
@@ -35,9 +43,29 @@ const getClients = async (
   pageSize = 10,
   search = '',
   type = 'first_name',
-  companyId?: string
+  companyId?: string,
+  filters: ClientFilters = {}
 ) => {
-  const url = `/api/clients?pageNumber=${pageNumber}&pageSize=${pageSize}&type=${type}&query=${encodeURIComponent(search)}&companyId=${companyId ?? ''}`;
+  const params = new URLSearchParams({
+    PageNumber: String(pageNumber),
+    PageSize: String(pageSize)
+  });
+
+  // Only include generic search params when there's a search term
+  if (search && search.trim().length > 0) {
+    params.append('Type', type);
+    params.append('Query', search);
+  }
+
+  if (companyId) params.append('CompanyId', companyId);
+
+  // Append optional filters if present
+  if (filters.firstName) params.append('FirstName', filters.firstName);
+  if (filters.lastName) params.append('LastName', filters.lastName);
+  if (filters.email) params.append('Email', filters.email);
+  if (filters.phonePrimary) params.append('PhonePrimary', filters.phonePrimary);
+
+  const url = `/api/clients?${params.toString()}`;
   const response = await fetch(url);
   
   if (!response.ok) {
@@ -55,11 +83,12 @@ export function useGetClients(
   search = '',
   type = 'first_name',
   companyId?: string,
-  enabled = true
+  enabled = true,
+  filters: ClientFilters = {}
 ) {
   return useQuery({
-    queryKey: ['clients', pageNumber, pageSize, search, type, companyId],
-    queryFn: () => getClients(pageNumber, pageSize, search, type, companyId),
+    queryKey: ['clients', pageNumber, pageSize, search, type, companyId, filters],
+    queryFn: () => getClients(pageNumber, pageSize, search, type, companyId, filters),
     enabled: !!enabled,
     retry: 1,
     staleTime: 30000,

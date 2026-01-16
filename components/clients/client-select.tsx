@@ -14,7 +14,6 @@ import { Control } from "react-hook-form";
 import { useRootContext } from '@/context/RootContext';
 import { useGetClients } from "@/queries/clients/get-client"
 import { getCompanyId } from "@/utils/clientCookie"
-import { useRootContext } from "@/context/RootContext"
 
 interface ClientSelectProps {
   control: Control<any>;

@@ -8,6 +8,11 @@ import { useUpdateDewormingVisit } from "@/queries/deworming/intake/update-dewor
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import { useGetDewormingVisitByVisitId } from "@/queries/deworming/intake/get-deworming-visit-by-visit-id";
 import { DatePicker } from "@/components/ui/datePicker";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label"
+import { TrendingUp } from "lucide-react";
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
+
 
 interface IntakeTabProps {
   patientId: string;
@@ -16,9 +21,18 @@ interface IntakeTabProps {
   onComplete?: (completed: boolean) => void;
   onNext?: () => void;
   isCompleted?: boolean;
+  setWeightGraphOpen?: (open: boolean) => void;
 }
 
-export default function IntakeTab({ patientId, appointmentId, visitId, onComplete, onNext, isCompleted = false }: IntakeTabProps) {
+export default function IntakeTab({
+  patientId,
+  appointmentId,
+  visitId,
+  onComplete,
+  onNext,
+  isCompleted = false,
+  setWeightGraphOpen = () => { }
+}: IntakeTabProps) {
   const [weight, setWeight] = useState("");
   const [lastDeworming, setLastDeworming] = useState<Date | null>(null);
   const [symptoms, setSymptoms] = useState("");
@@ -29,26 +43,24 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
   const [sampleImage, setSampleImage] = useState<File | null>(null);
   const [sampleImageUrl, setSampleImageUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
   const { data: appointmentData } = useGetAppointmentById(appointmentId);
-  const isReadOnly = appointmentData?.status === "completed";
-  
-  // Use visitId if available, otherwise fall back to appointmentId
-  const effectiveVisitId = visitId || appointmentId;
-  const { data, isLoading, isError, refetch } = useGetDewormingVisitByVisitId(effectiveVisitId);
+  const isReadOnly = appointmentData?.status === "completed"
+
+  const { data, isLoading, isError, refetch } = useGetDewormingVisitByVisitId(visitData?.id || "", !!visitData?.id);
   const createMutation = useCreateDewormingVisit();
   const updateMutation = useUpdateDewormingVisit();
 
   const isIntakeCompleted = () => {
-  return (
-    weight.trim() !== "" &&
-    lastDeworming !== null &&
-    symptoms.trim() !== "" &&
-    temperature.trim() !== "" &&
-    appetite.trim() !== "" &&
-    currentMeds.trim() !== ""
-  );
-};
+    return (
+      weight.trim() !== "" &&
+      lastDeworming !== null &&
+      symptoms.trim() !== "" &&
+      temperature.trim() !== "" &&
+      appetite.trim() !== "" &&
+      currentMeds.trim() !== ""
+    );
+  };
 
 
   // Notify parent component when data is loaded
@@ -68,15 +80,41 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
       setTemperature(data.temperatureC?.toString() || "");
       setAppetite(data.appetiteFeedingNotes || "");
       setCurrentMeds(data.currentMedications || "");
-      // No image from backend yet
+      setSampleCollected(!!data.isStoolSampleCollected);
     }
   }, [data]);
 
+  const handleDateChange = (date: Date | null) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
+
+    if (date && date > today) {
+      toast.error('Last deworming date cannot be in the future');
+      setLastDeworming(null);
+      return;
+    }
+    setLastDeworming(date);
+  };
+
   const handleSave = async () => {
+    if (!visitData?.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+
+    // Validate last deworming date is not in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (lastDeworming && lastDeworming > today) {
+      toast.error('Last deworming date cannot be in the future');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload = {
-        visitId: effectiveVisitId,
+        visitId: visitData.id,
         weightKg: weight ? parseFloat(weight) : undefined,
         lastDewormingDate: lastDeworming ? lastDeworming.toISOString().split('T')[0] : undefined,
         symptomsNotes: symptoms || undefined,
@@ -84,25 +122,32 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
         appetiteFeedingNotes: appetite || undefined,
         currentMedications: currentMeds || undefined,
         isStoolSampleCollected: sampleCollected,
-        isCompleted: true, // Mark as completed
+        isCompleted: isIntakeCompleted(),
       };
 
       if (data?.id) {
-        await updateMutation.mutateAsync({ id: data.id, ...payload });
+        await updateMutation.mutateAsync({ 
+          id: data.id, 
+          ...payload 
+        });
       } else {
         await createMutation.mutateAsync(payload);
       }
+      
       await refetch();
       
       if (onComplete) {
-        onComplete(true);
+        onComplete(isIntakeCompleted());
       }
 
-      if (onNext) {
+      toast.success("Intake information saved successfully");
+      
+      if (onNext && isIntakeCompleted()) {
         onNext();
       }
     } catch (error: any) {
       console.error(error);
+      toast.error(error.message || "Failed to save intake information");
     } finally {
       setIsSubmitting(false);
     }
@@ -122,37 +167,53 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
 
   return (
     <Card className="relative">
-      <CardContent className="p-6">
+      <CardContent className="p-0">
+      <div className="h-[calc(100vh-23rem)] overflow-y-auto p-6">
         <div className="space-y-4">
           {isError && (
             <div className="p-2 bg-red-50 text-red-600 rounded mb-4">
               Error loading intake data. You can still create a new record.
             </div>
           )}
-          
+
           <div>
-            <label className="block font-medium mb-1">Weight (kg)</label>
-            <Input
-              type="number"
-              step="0.01"
-              value={weight}
-              onChange={e => setWeight(e.target.value)}
-              placeholder="Enter weight in kg"
-              disabled={isReadOnly}
-            />
+            <Label id="weight">Weight (kg)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="weight"
+                type="number"
+                step="0.01"
+                value={weight}
+                onChange={e => setWeight(e.target.value)}
+                placeholder="Enter weight in kg"
+                disabled={isReadOnly}
+                className="flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setWeightGraphOpen?.(true)}
+                className="flex items-center gap-1"
+              >
+                <TrendingUp className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div>
-            <label className="block font-medium mb-1">Last Deworming Date</label>
+            <Label id="lastDeworming">Last Deworming Date</Label>
             <DatePicker
               value={lastDeworming}
-              onChange={setLastDeworming}
+              onChange={handleDateChange}
               placeholder="Select last deworming date"
+              className="w-full"
               disabled={isReadOnly}
+              maxDate={new Date()}
             />
           </div>
           <div>
-            <label className="block font-medium mb-1">Symptoms / Notes</label>
+            <Label id="symptoms">Symptoms / Notes</Label>
             <Textarea
+              id="symptoms"
               value={symptoms}
               onChange={e => setSymptoms(e.target.value)}
               placeholder="Describe any symptoms or relevant notes"
@@ -160,8 +221,9 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
             />
           </div>
           <div>
-            <label className="block font-medium mb-1">Temperature (°C)</label>
+            <Label id="temperature">Temperature (°C)</Label>
             <Input
+              id="temperature"
               type="number"
               step="0.1"
               value={temperature}
@@ -171,8 +233,9 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
             />
           </div>
           <div>
-            <label className="block font-medium mb-1">Appetite / Feeding Notes</label>
+            <Label id="appetite">Appetite / Feeding Notes</Label>
             <Textarea
+              id="appetite"
               value={appetite}
               onChange={e => setAppetite(e.target.value)}
               placeholder="Describe appetite or feeding changes"
@@ -180,23 +243,16 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
             />
           </div>
           <div>
-            <label className="block font-medium mb-1">Current Medications</label>
+            <Label id="currentMeds">Current Medications</Label>
             <Textarea
+              id="currentMeds"
               value={currentMeds}
               onChange={e => setCurrentMeds(e.target.value)}
               placeholder="List any current medications"
               disabled={isReadOnly}
             />
           </div>
-          <div className="mt-6 flex justify-end">
-            <Button
-              onClick={handleSave}
-              disabled={isSubmitting || isReadOnly || !isIntakeCompleted()}
-              className="bg-black text-white"
-            >
-              {hasExistingData ? "Update & Next" : "Save & Next"}
-            </Button>
-          </div>
+          
 
           {(createMutation.isError || updateMutation.isError) && (
             <div className="text-red-500 text-sm mt-2">Error saving data.</div>
@@ -206,18 +262,18 @@ export default function IntakeTab({ patientId, appointmentId, visitId, onComplet
             <div className="text-green-600 text-sm mt-2">Saved successfully!</div>
           )}
         </div>
+        </div>
+        <div className="mt-6 flex justify-end mb-4 mx-4">
+            <Button
+              onClick={handleSave}
+              disabled={isSubmitting || isReadOnly || !isIntakeCompleted()}
+              className="bg-black text-white"
+            >
+              {hasExistingData ? "Update & Next" : "Save & Next"}
+            </Button>
+          </div>
       </CardContent>
 
-      {/* Show status indicator if completed */}
-      {isCompleted && (
-        <div className="absolute top-2 right-2">
-          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          </div>
-        </div>
-      )}
     </Card>
   );
 }

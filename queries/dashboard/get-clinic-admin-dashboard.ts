@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { UseQueryResult, useQuery } from "@tanstack/react-query";
 
 export interface ClinicAdminDashboardParams {
   clinicId: string;
@@ -37,8 +37,11 @@ export interface ClinicAdminDashboardResponse {
   clinicName: string;
   clinicDetail: ClinicDetail;
   appointmentCompletionRatios: AppointmentCompletionRatios;
-  fromDate: string | null;
-  toDate: string | null;
+  fromDate?: string;
+  toDate?: string;
+  averageRating: number | null;
+  serviceProfit: number;
+  productProfit: number;
 }
 
 const getClinicAdminDashboard = async (params: ClinicAdminDashboardParams) => {
@@ -46,7 +49,7 @@ const getClinicAdminDashboard = async (params: ClinicAdminDashboardParams) => {
   query.set('clinicId', params.clinicId);
   if (params.fromDate) query.set('fromDate', params.fromDate);
   if (params.toDate) query.set('toDate', params.toDate);
-  
+
   const url = `/api/dashboard/clinic-admin?${query.toString()}`;
 
   const response = await fetch(url, {
@@ -55,7 +58,7 @@ const getClinicAdminDashboard = async (params: ClinicAdminDashboardParams) => {
       'Content-Type': 'application/json',
     },
   });
-  
+
   const result = await response.json();
   if (!response.ok) {
     throw result;
@@ -63,9 +66,23 @@ const getClinicAdminDashboard = async (params: ClinicAdminDashboardParams) => {
   return result as ClinicAdminDashboardResponse;
 };
 
-export const useGetClinicAdminDashboard = (params: ClinicAdminDashboardParams) => {
-  return useQuery({
+// export const useGetClinicAdminDashboard = (params: ClinicAdminDashboardParams) => {
+//   return useQuery({
+//     queryKey: ['clinic-admin-dashboard', params],
+//     queryFn: () => getClinicAdminDashboard(params),
+//   });
+// }; 
+
+export const useGetClinicAdminDashboard = (
+  params: ClinicAdminDashboardParams,
+  options?: any
+): UseQueryResult<ClinicAdminDashboardResponse> => {
+
+  return useQuery<ClinicAdminDashboardResponse>({
     queryKey: ['clinic-admin-dashboard', params],
     queryFn: () => getClinicAdminDashboard(params),
+    enabled: options?.enabled ?? true,
+    ...options,
   });
-}; 
+};
+

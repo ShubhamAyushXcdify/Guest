@@ -11,6 +11,7 @@ import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from "@/context/RootContext"
+import Loader from "@/components/ui/loader"
 
 export const AdminDashboard = () => {
   const today = new Date();
@@ -24,9 +25,10 @@ export const AdminDashboard = () => {
   const endOfDay = new Date(endOfDayLocal.getTime() - endOfDayLocal.getTimezoneOffset() * 60000);
 
   // Date range state for admin dashboard
+  // Update this part in your component
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfDay,
-    to: endOfDay
+    from: today,  // This will set the default "from" date to today
+    to: today     // This will set the default "to" date to today
   });
 
   // Request appointments search params
@@ -41,10 +43,14 @@ export const AdminDashboard = () => {
     clientId: null,
     veterinarianId: null,
     roomId: null,
+    companyId: clinic?.companyId || null,
+    appointmentId: null,
+    tab: "admin-dashboard",
     pageNumber: 1,
     pageSize: 5,
-    isRegistered: true
-  }), []);
+    isRegistered: true,
+  }), [clinic?.companyId]);
+
 
   // Fetch appointment requests
   const { data: appointmentRequestsData } = useGetAppointments(requestAppointmentsParams);
@@ -58,48 +64,68 @@ export const AdminDashboard = () => {
     }
   };
 
-  const dashboardSummaryParams = useMemo(() => ({
-    companyId: clinic?.companyId || '',
-    fromDate: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : startOfDay.toISOString().split('T')[0],
-    toDate: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : endOfDay.toISOString().split('T')[0],
-  }), [clinic?.companyId, dateRange, startOfDay, endOfDay]);
+  const dashboardSummaryParams = useMemo(() => {
+    if (!clinic?.companyId) return null;  // Return null if no companyId
 
-  const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary(dashboardSummaryParams);
+    const formatDate = (date: Date | undefined, fallback: Date) => {
+      const d = date || fallback;
+      return d.toISOString().split('T')[0];
+    };
+
+    return {
+      companyId: clinic.companyId,  // We know this is defined here
+      fromDate: formatDate(dateRange?.from, startOfDay),
+      toDate: formatDate(dateRange?.to, endOfDay),
+    };
+  }, [clinic?.companyId, dateRange, startOfDay, endOfDay]);
+
+  const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary(
+    dashboardSummaryParams || { companyId: '' }  // Provide a default value
+  );
 
   // Get appointment requests
   const appointmentRequests = appointmentRequestsData?.items || [];
 
-  if (isLoading) return <div className="p-6">Loading...</div>;
+  if (isLoading) return <div className="min-h-svh flex items-center justify-center p-6">
+    <div className="flex flex-col items-center gap-4 text-center">
+      <Loader size="lg" label="Loading..." />
+    </div>
+  </div>
   if (error) return <div className="p-6 text-red-500">Error loading dashboard summary</div>;
 
   const clinics = dashboardSummaryData?.data?.clinics || [];
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 -m-4 mb-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>
+          <p className="text-muted-foreground text-sm">Overview of your clinic operations and statistics</p>
+        </div>
+      </div>
       {/* Date Range Picker */}
       <div className="md:flex justify-between items-center">
-      {/* Admin Header */}
-      <div className="">
-        <h1 className="text-3xl font-bold tracking-tight theme-text-primary">Admin Dashboard</h1>
-        <p className="text-muted-foreground text-md">Monitor and manage all clinics across the system</p>
-      </div>
-      <DatePickerWithRangeV2
-          date={dateRange}
-          setDate={setDateRange}
-          showYear={true}
+        {/* Admin Header */}
+        <div>
+          <DatePickerWithRangeV2
+            date={dateRange}
+            setDate={setDateRange}
+            showYear={true}
           // className="w-[350px]"
-        />
+          />
+        </div>
       </div>
 
       {/* NEW LAYOUT: Summary Cards in Grid */}
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Summary Cards - 50% width on desktop, 2 columns if appointment requests are present */}
         <div className={`grid ${appointmentRequests.length > 0 ? 'md:grid-cols-2' : 'md:grid-cols-4'} grid-cols-1 gap-6 flex-1 lg:w-1/2`}>
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50">
+          <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/50">
-                  <Building2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                  <Building2 className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
                 </div>
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Clinics</p>
@@ -109,11 +135,11 @@ export const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
+          <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                  <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                  <Stethoscope className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
                 </div>
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Veterinarians</p>
@@ -125,32 +151,32 @@ export const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+          <Card className="border bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
+                <div className="p-3 rounded-full bg-green-200 dark:bg-green-900/50">
                   <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Patients</p>
                   <p className="text-2xl font-bold theme-text-accent">
-                    {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfPatients || 0), 0)}
+                    {clinics.length > 0 ? (clinics[0].clinicDetails?.numberOfPatients || 0) : 0}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
+          <Card className="border bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900/50">
+                <div className="p-3 rounded-full bg-orange-200 dark:bg-orange-900/50">
                   <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Products</p>
                   <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {clinics.reduce((sum: number, clinic: any) => sum + (clinic.clinicDetails?.numberOfProducts || 0), 0)}
+                    {clinics.length > 0 ? (clinics[0].clinicDetails?.numberOfProducts || 0) : 0}
                   </p>
                 </div>
               </div>
@@ -195,14 +221,14 @@ export const AdminDashboard = () => {
             { name: "Canceled", value: ratios.canceledAppointments || 0, fill: "hsl(var(--destructive))" },
             { name: "Other", value: (ratios.totalAppointments || 0) - (ratios.completedAppointments || 0) - (ratios.canceledAppointments || 0), fill: "hsl(var(--muted))" },
           ];
-          
+
           return (
             <Card key={idx} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 border">
-              <CardHeader className="pb-4 border-b mb-4">
+              <CardHeader className="py-2 border-b mb-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-xl font-semibold theme-text-primary">{clinic.clinicName}</CardTitle>
-                    <CardDescription className="text-md">Clinic Performance Overview</CardDescription>
+                    <CardDescription className="text-sm">Clinic Performance Overview</CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -212,49 +238,49 @@ export const AdminDashboard = () => {
               </CardHeader>
               <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Stats Grid */}
-                <div className="space-y-6">
+                <div className="space-y-6 border-r">
                   <h3 className="text-lg font-medium theme-text-secondary">Clinic Statistics</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4 pr-6 !mt-4">
+                    <div className="space-y-2 border p-4 rounded-md">
                       <div className="flex items-center space-x-2">
                         <Stethoscope className="h-4 w-4 text-muted-foreground" />
                         <span className="text-md text-muted-foreground">Veterinarians</span>
                       </div>
                       <p className="text-2xl font-bold theme-text-primary">{details.numberOfVeterinarians || 0}</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 border p-4 rounded-md">
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="text-md text-muted-foreground">Patients</span>
                       </div>
                       <p className="text-2xl font-bold theme-text-secondary">{details.numberOfPatients || 0}</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 border p-4 rounded-md">
                       <div className="flex items-center space-x-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="text-md text-muted-foreground">Clients</span>
                       </div>
                       <p className="text-2xl font-bold theme-text-accent">{details.numberOfClients || 0}</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 border p-4 rounded-md">
                       <div className="flex items-center space-x-2">
                         <Package className="h-4 w-4 text-muted-foreground" />
                         <span className="text-md text-muted-foreground">Products</span>
                       </div>
                       <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{details.numberOfProducts || 0}</p>
                     </div>
-                    <div className="space-y-2 col-span-2">
+                    <div className="space-y-2 border p-4 rounded-md col-span-2">
                       <div className="flex items-center space-x-2">
                         <Truck className="h-4 w-4 text-muted-foreground" />
                         <span className="text-md text-muted-foreground">Suppliers</span>
                       </div>
-                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{details.numberOfSuppliers || 0}</p>
+                      <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfSuppliers || 0}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Chart */}
-                <div className="space-y-4">
+                <div className="space-y-4 border-r">
                   <h3 className="text-lg font-medium theme-text-secondary">Appointment Analytics</h3>
                   <ChartContainer
                     config={{
@@ -266,10 +292,10 @@ export const AdminDashboard = () => {
                   >
                     <PieChart>
                       <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                      <Pie 
-                        data={pieData} 
-                        dataKey="value" 
-                        nameKey="name" 
+                      <Pie
+                        data={pieData}
+                        dataKey="value"
+                        nameKey="name"
                         innerRadius={40}
                         outerRadius={80}
                       />
@@ -296,15 +322,30 @@ export const AdminDashboard = () => {
                       </div>
                     </div>
                     <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
-                      <div className="flex items-center justify-between">
+                      {/* <div className="flex items-center justify-between">
                         <span className="text-md font-medium text-blue-700 dark:text-blue-300">Efficiency Score</span>
-                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">85%</span>
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{clinic.productProfit ?? 0}</span>
+                      </div> */}
+                       {/* <div className="flex items-center justify-between">
+                        <span className="text-md font-medium text-blue-700 dark:text-blue-300">Efficiency Score</span>
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{clinic.serviceProfit ?? 0}</span>
+                      </div> */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-md font-medium text-blue-700 dark:text-blue-300">Profit By Products</span>
+                        <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{clinic.productProfit ?? 0}</span>
                       </div>
                     </div>
-                    <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
+                    <div className="p-4 rounded-lg bg-gradient-to-r from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/20 dark:to-[#1E3D3D]/20 border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/80">
                       <div className="flex items-center justify-between">
-                        <span className="text-md font-medium text-purple-700 dark:text-purple-300">Patient Satisfaction</span>
-                        <span className="text-lg font-bold text-purple-600 dark:text-purple-400">92%</span>
+                        <span className="text-md font-medium text-purple-700 dark:text-purple-300">Profit By Services</span>
+                        <span className="text-lg font-bold text-purple-600 dark:text-purple-400">{clinic.serviceProfit ?? 0}</span>
+                      </div>
+                    </div>
+                    {/* NEW: Average Rating */}
+                    <div className="p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-md font-medium text-yellow-700 dark:text-yellow-300">Average Rating</span>
+                        <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{clinic.averageRating ?? 0}</span>
                       </div>
                     </div>
                   </div>
@@ -325,4 +366,4 @@ export const AdminDashboard = () => {
       </div>
     </div>
   )
-} 
+}

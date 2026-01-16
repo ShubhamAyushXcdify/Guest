@@ -20,7 +20,7 @@ interface ProcessedAppointment {
   day: string;
   dayNumber: string;
   time: string;
-  hourBlock: string; // The hour block this appointment belongs to (e.g., "8:00")
+  hourBlock: string; 
   patient: string;
   type: string;
   status: string;

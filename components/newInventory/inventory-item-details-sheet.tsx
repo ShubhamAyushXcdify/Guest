@@ -4,7 +4,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useGetProductById } from "@/queries/products/get-product-by-id"
 import { useGetPurchaseOrderHistoryByProductIdClinicId } from "@/queries/purchaseOrderReceiving/get-purchase-order-history-by-productId-clinidId"
@@ -12,7 +11,6 @@ import { formatDate } from "@/lib/utils"
 import { InventoryData } from "@/queries/inventory/get-inventory"
 import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Database, Download } from "lucide-react"
 import Barcode from "react-barcode"
-import { Item } from "@radix-ui/react-select"
 import { Document, Page, View, Image, StyleSheet } from '@react-pdf/renderer'
 import { toast } from "@/hooks/use-toast"
 
@@ -234,7 +232,7 @@ export default function InventoryItemDetailsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
+          <SheetTitle className="flex items-center gap-2 relative top-[-10px]">
             <Package className="w-5 h-5" />
             Inventory Item Details
           </SheetTitle>
@@ -244,17 +242,68 @@ export default function InventoryItemDetailsSheet({
           <div className="p-6 text-center text-gray-500">No inventory item selected.</div>
         ) : (
           <div className="space-y-6 p-4">
+            {/* Summary Header */}
+            <div className="rounded-xl border bg-white/70 dark:bg-gray-900/60 backdrop-blur p-4 md:p-6 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="text-lg md:text-xl font-semibold tracking-tight">
+                      {product?.name || "Product"}
+                    </h3>
+                    {getStatusBadge(getStockStatus())}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {product?.brandName ? `${product.brandName} • ` : ""}
+                    {product?.category || "Uncategorized"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 md:gap-3">
+                  {product?.productNumber && (
+                    <Badge variant="secondary" className="text-xs">SKU: {product.productNumber}</Badge>
+                  )}
+                  {inventoryItem.lotNumber && (
+                    <Badge variant="outline" className="text-xs">Lot: {inventoryItem.lotNumber}</Badge>
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="shadow-none border border-gray-200/80 dark:border-gray-800/80">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground">Current Stock</p>
+                    <p className="mt-1 text-base font-semibold">{inventoryItem.quantityOnHand}</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-none border border-gray-200/80 dark:border-gray-800/80">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground">Reserved</p>
+                    <p className="mt-1 text-base font-semibold">{inventoryItem.quantityReserved}</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-none border border-gray-200/80 dark:border-gray-800/80">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground">Unit Cost</p>
+                    <p className="mt-1 text-base font-semibold">{formatCurrency(inventoryItem.unitCost)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-none border border-gray-200/80 dark:border-gray-800/80">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground">Retail Price</p>
+                    <p className="mt-1 text-base font-semibold">{formatCurrency(inventoryItem.retailPrice)}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
             <Accordion type="multiple" defaultValue={[]} className="w-full">
               {/* Product Information */}
-              <AccordionItem value="product-info">
-                <AccordionTrigger className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <AccordionItem value="product-info" className="border-none mb-2">
+                <AccordionTrigger className="flex items-center justify-between px-4 py-3 bg-gray-50/80 dark:bg-gray-800/50 rounded-lg border border-gray-200/70 dark:border-gray-800/70">
                   <div className="flex items-center gap-2">
                     <Package className="w-5 h-5" />
                     <span className="font-semibold">Product Information</span>
                   </div>
                   {getStatusBadge(getStockStatus())}
                 </AccordionTrigger>
-                <AccordionContent className="px-4 py-4">
+                <AccordionContent className="px-4 py-4 border rounded-md mt-1">
                   {productLoading ? (
                     <div className="flex items-center justify-center p-4">
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -264,66 +313,62 @@ export default function InventoryItemDetailsSheet({
                     <div className="text-red-500 p-4">Failed to load product details.</div>
                   ) : product ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Product Name</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Product Name:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.name}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Brand Name</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Brand Name:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.brandName || "-"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Generic Name</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Generic Name:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.genericName || "-"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Product Number</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Product Number:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.productNumber}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Category</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Category:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.category}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Product Type</h4>
-                        <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.productType}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Manufacturer</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Manufacturer:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.manufacturer || "-"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">NDC Number</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">NDC Number:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.ndcNumber || "-"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Strength</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Strength:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.strength || "-"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Dosage Form</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Dosage Form:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.dosageForm}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit of Measure</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit of Measure:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.unitOfMeasure}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Requires Prescription</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Requires Prescription:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                           {product.requiresPrescription ? "Yes" : "No"}
                         </p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Storage Requirements</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Storage Requirements:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.storageRequirements || "-"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Reorder Threshold</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Reorder Threshold:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{product.reorderThreshold || "Not set"}</p>
                       </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Price</h4>
+                      <div className="flex border-b gap-2 items-center pb-2">
+                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Price:</h4>
                         <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatCurrency(product.price)}</p>
                       </div>
                     </div>
@@ -334,69 +379,69 @@ export default function InventoryItemDetailsSheet({
               </AccordionItem>
 
               {/* Inventory Details */}
-              <AccordionItem value="inventory-details">
-                <AccordionTrigger className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <AccordionItem value="inventory-details" className="border-none mb-2">
+                <AccordionTrigger className="flex items-center justify-between px-4 py-3 bg-gray-50/80 dark:bg-gray-800/50 rounded-lg border border-gray-200/70 dark:border-gray-800/70">
                   <div className="flex items-center gap-2">
                     <Database className="w-5 h-5" />
                     <span className="font-semibold">Inventory Details</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="px-4 py-4">
+                <AccordionContent className="px-4 py-4 border rounded-md mt-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Stock</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Stock:</h4>
                       <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {inventoryItem.quantityOnHand}
                       </p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Reserved Quantity</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Reserved Quantity:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{inventoryItem.quantityReserved}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Cost</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Unit Cost:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatCurrency(inventoryItem.unitCost)}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Wholesale Cost</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Wholesale Cost:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatCurrency(inventoryItem.wholesaleCost)}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Retail Price</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Retail Price:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{formatCurrency(inventoryItem.retailPrice)}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Location:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{inventoryItem.location || "Not specified"}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Batch Number</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Batch Number:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{inventoryItem.batchNumber}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Lot Number</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Lot Number:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{inventoryItem.lotNumber || "Not specified"}</p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Expiration Date</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Expiration Date:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                         {inventoryItem.expirationDate ? formatDate(inventoryItem.expirationDate) : "Not specified"}
                       </p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Date of Manufacture</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Date of Manufacture:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                         {inventoryItem.dateOfManufacture ? formatDate(inventoryItem.dateOfManufacture) : "Not specified"}
                       </p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Received Date</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Received Date:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
                         {inventoryItem.receivedDate ? formatDate(inventoryItem.receivedDate) : "Not specified"}
                       </p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Units Per Package</h4>
+                    <div className="flex border-b gap-2 items-center pb-2">
+                      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">Units Per Package:</h4>
                       <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">{inventoryItem.unitsPerPackage}</p>
                     </div>
                   </div>
@@ -405,9 +450,9 @@ export default function InventoryItemDetailsSheet({
             </Accordion>
 
             {/* Purchase Order History */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="rounded-xl border shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <History className="w-5 h-5" />
                   Purchase Order History
                 </CardTitle>
@@ -421,28 +466,29 @@ export default function InventoryItemDetailsSheet({
                 ) : historyError ? (
                   <div className="text-red-500 p-4">Failed to load purchase history.</div>
                 ) : purchaseHistory && purchaseHistory.length > 0 ? (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 dark:bg-gray-800">
+                      <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
                         <tr>
-                          <th className="text-left px-3 py-2 font-medium">Order #</th>
+                          <th className="text-left px-3 py-2 font-medium whitespace-nowrap">Order #</th>
                           <th className="text-left px-3 py-2 font-medium">Supplier</th>
-                          <th className="text-center px-3 py-2 font-medium">Quantity Received</th>
-                          <th className="text-center px-3 py-2 font-medium">Quantity in hand</th>
-                          <th className="text-right px-3 py-2 font-medium">Unit Cost</th>
+                          <th className="text-center px-3 py-2 font-medium whitespace-nowrap">Qty Received</th>
+                          <th className="text-center px-3 py-2 font-medium whitespace-nowrap">Qty In Hand</th>
+                          <th className="text-right px-3 py-2 font-medium whitespace-nowrap">Unit Cost</th>
                           <th className="text-left px-3 py-2 font-medium">Batch</th>
+                          <th className="text-left px-3 py-2 font-medium whitespace-nowrap">Barcode No.</th>
                           <th className="text-left px-3 py-2 font-medium">Expiry Date</th>
                           <th className="text-left px-3 py-2 font-medium">Received Date</th>
                           <th className="text-left px-3 py-2 font-medium">Shelf</th>
                           <th className="text-left px-3 py-2 font-medium">Bin</th>
-                          <th className="text-left px-3 py-2 font-medium">Barcode</th>
+                          <th className="text-left pl-3 pr-0 py-2 font-medium">Barcode</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {(() => {
                           // Show each receiving entry as a separate row (no grouping)
                           return purchaseHistory.map((item: any) => (
-                            <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <tr key={item.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/60 odd:bg-white even:bg-gray-50/40 dark:odd:bg-gray-900 dark:even:bg-gray-800/40">
                               <td className="px-3 py-2">
                                 <div className="font-medium">{item.orderNumber || "-"}</div>
                               </td>
@@ -452,18 +498,21 @@ export default function InventoryItemDetailsSheet({
                               <td className="px-3 py-2 text-right">{formatCurrency(item.unitCost)}</td>
                               <td className="px-3 py-2">{item.batchNumber}</td>
                               <td className="px-3 py-2">
+                                {item.barcodeNumber || "-"}
+                              </td>
+                              <td className="px-3 py-2 min-w-32">
                                 {item.expiryDate ? formatDate(item.expiryDate) : "-"}
                               </td>
-                              <td className="px-3 py-2">
+                              <td className="px-3 py-2 min-w-32">
                                 {item.receivedDate ? formatDate(item.receivedDate) : "-"}
                               </td>
                               <td className="px-3 py-2">{item.shelf || "-"}</td>
                               <td className="px-3 py-2">{item.bin || "-"}</td>
-                              <td className="px-3 py-2">
-                                                                 {product && item.barcode && (
-                                   <div className="w-[180px]">
-                                     <div className="flex flex-row items-center gap-2">
-                                       <div className="w-full">
+                              <td className="pl-3 pr-0 py-2">
+                                 {product && item.barcode && (
+                                   <div className="flex justify-end">
+                                     <div className="inline-flex items-center gap-2">
+                                       <div>
                                          <Barcode
                                            value={item.barcode}
                                            format="CODE128"          
@@ -474,13 +523,13 @@ export default function InventoryItemDetailsSheet({
                                          />
                                        </div>
                                        <Button
-                                         variant="outline"
+                                         variant="ghost"
                                          size="sm"
                                          onClick={() => handleDownloadBarcode(item.barcode, product.name)}
-                                         className="h-8 w-8 p-0"
+                                         className="h-8 w-8 p-0 hover:bg-primary/10 mr-2"
                                          title="Download Barcode PDF"
                                        >
-                                         <Download className="h-4 w-4" />
+                                         <Download className="h-4 w-4 " />
                                        </Button>
                                      </div>
                                    </div>
@@ -499,7 +548,7 @@ export default function InventoryItemDetailsSheet({
             </Card>
 
             <div className="flex justify-end">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="secondary" onClick={() => onOpenChange(false)} className="shadow-sm">
                 Close
               </Button>
             </div>

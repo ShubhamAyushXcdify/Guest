@@ -129,8 +129,8 @@ export function DatePickerWithRangeV2({
     {
       label: "This Month",
       value: {
-        from: startOfMonth(today),
-        to: endOfMonth(today)
+        from: startOfMonth(today), // Ensure this is the 1st of the month
+        to: endOfMonth(today)      // Ensure this is the last day of the month
       }
     },
     {
@@ -147,20 +147,20 @@ export function DatePickerWithRangeV2({
   };
 
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn("grid gap-2 w-full", className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant="outline"
             className={cn(
-              "w-fit justify-start text-left font-normal",
+              "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4 stroke-primary" />
             {date?.from ? (
-              date.to ? (
+              date.to && !isSameDay(date.from, date.to) ? (
                 <>
                   {formatDate(date.from)} - {formatDate(date.to)}
                 </>

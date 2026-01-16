@@ -28,7 +28,6 @@ export interface PurchaseOrderItem {
     name: string;
     genericName?: string;
     category?: string;
-    productType?: string;
     manufacturer?: string | null;
     ndcNumber?: string;
     strength?: string | null;
@@ -50,6 +49,7 @@ export interface ReceivedItem {
   clinicId: string;
   quantityReceived: number;
   batchNumber: string;
+  barcodeNumber: string;
   expiryDate?: string;
   dateOfManufacture?: string;
   receivedDate?: string;

@@ -5,12 +5,13 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 export async function GET(
   request: NextRequest,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
   const { searchParams } = new URL(request.url);
   const date = searchParams.get('date');
-  
+  const clinicId = searchParams.get('clinicId');
+
   try {
     const token = getJwtToken(request);
 
@@ -21,10 +22,19 @@ export async function GET(
       );
     }
 
-    // Build the URL with query parameters if date is provided
+    // Build the URL with query parameters
     let url = `${apiUrl}/api/User/${id}/available-slots`;
+    const params = new URLSearchParams();
+
+    if (clinicId) {
+      params.append('clinicId', clinicId);
+    }
     if (date) {
-      url += `?date=${date}`;
+      params.append('date', date);
+    }
+
+    if (params.toString()) {
+      url += `?${params.toString()}`;
     }
 
     const response = await fetch(url, {

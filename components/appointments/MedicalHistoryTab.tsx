@@ -5,11 +5,11 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Loader2, Save, Mic } from "lucide-react"
-import { 
-  useGetMedicalHistoryDetailByPatientId, 
-  useCreateMedicalHistoryDetail, 
+import {
+  useGetMedicalHistoryDetailByPatientId,
+  useCreateMedicalHistoryDetail,
   useUpdateMedicalHistoryDetail,
   MedicalHistoryDetail
 } from "@/queries/MedicalHistoryDetail"
@@ -25,7 +25,6 @@ interface MedicalHistoryTabProps {
 }
 
 export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: MedicalHistoryTabProps) {
-  const { toast } = useToast()
   const { markTabAsCompleted } = useTabCompletion()
   const [formData, setFormData] = useState<Partial<MedicalHistoryDetail>>({
     chronicConditionsNotes: '',
@@ -37,13 +36,13 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
   const [medicalHistoryId, setMedicalHistoryId] = useState<string | null>(null)
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const [activeField, setActiveField] = useState<keyof MedicalHistoryDetail | null>(null)
-  
+
   const transcriber = useTranscriber()
 
   // Get medical history data by patientId
   const { data: medicalHistoryDetail, isLoading: historyLoading } = useGetMedicalHistoryDetailByPatientId(patientId)
   const { data: appointmentData } = useGetAppointmentById(appointmentId)
-  
+
   const { mutateAsync: createMedicalHistory, isPending: isCreating } = useCreateMedicalHistoryDetail()
   const { mutateAsync: updateMedicalHistory, isPending: isUpdating } = useUpdateMedicalHistoryDetail()
 
@@ -61,7 +60,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         isCompleted: medicalHistoryDetail.isCompleted || false,
       })
       setMedicalHistoryId(medicalHistoryDetail.id)
-      
+
       // Mark tab as completed if data exists and is completed
       if (medicalHistoryDetail.isCompleted) {
         markTabAsCompleted("medical-history")
@@ -97,41 +96,31 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
         ...formData,
         isCompleted: true
       }
-      
+
       if (medicalHistoryId) {
         await updateMedicalHistory({
           id: medicalHistoryId,
           ...updatedFormData,
         })
-        toast({
-          title: "Medical history updated",
-          description: "Medical history has been updated successfully.",
-        })
+        toast.success("Medical history has been updated successfully.")
       } else {
         const result = await createMedicalHistory({
           ...updatedFormData,
           patientId: patientId,
         })
         setMedicalHistoryId(result.id)
-        toast({
-          title: "Medical history created",
-          description: "Medical history has been created successfully.",
-        })
+        toast.success("Medical history has been created successfully.")
       }
-      
+
       // Mark the tab as completed
       markTabAsCompleted("medical-history")
-      
+
       if (onNext) {
         onNext()
       }
     } catch (error) {
       console.error('Error saving medical history:', error)
-      toast({
-        title: "Error",
-        description: "Failed to save medical history information.",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "Failed to save medical history information.")
     }
   }
 
@@ -145,6 +134,13 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
       </Card>
     )
   }
+  const isRequiredFieldsEmpty = () => {
+    return !formData.chronicConditionsNotes ||
+      !formData.surgeriesNotes ||
+      !formData.currentMedicationsNotes;
+
+  }
+
 
   return (
     <Card>
@@ -173,7 +169,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               disabled={isReadOnly}
             />
           </div>
-          
+
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Label htmlFor="surgeries">Surgeries</Label>
@@ -197,7 +193,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               disabled={isReadOnly}
             />
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="currentMedications">Current Medications</Label>
@@ -221,7 +217,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               disabled={isReadOnly}
             />
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="generalNotes">General Notes</Label>
@@ -245,17 +241,18 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
               disabled={isReadOnly}
             />
           </div>
-          
+
           <div className="flex justify-end space-x-2">
-            <Button 
-              onClick={handleSave} 
-              disabled={isPending || isReadOnly}
+            <Button
+              onClick={handleSave}
+              disabled={isPending || isReadOnly || isRequiredFieldsEmpty()}
               className="mt-4"
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isPending && <Save className="mr-2 h-4 w-4" />}
               {medicalHistoryId ? "Update" : "Save"}
             </Button>
+
           </div>
         </div>
 

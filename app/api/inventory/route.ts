@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
       'productId',
       'clinicId',
       'search',
-      'productType',
       'lotNumber',
       'quantityOnHand',
       'quantityReserved',

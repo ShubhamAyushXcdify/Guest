@@ -1,6 +1,26 @@
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 
+export interface PetRegistration {
+  name: string;
+  species: string;
+  breed?: string;
+  secondaryBreed?: string;
+  color?: string;
+  gender?: string;
+  isNeutered?: boolean;
+  dateOfBirth?: string;
+  weightKg?: number;
+  microchipNumber?: string;
+  registrationNumber?: string;
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  allergies?: string;
+  medicalConditions?: string;
+  behavioralNotes?: string;
+  isActive?: boolean;
+}
+
 export interface ClientRegistrationPayload {
   firstName: string;
   lastName: string;
@@ -16,6 +36,9 @@ export interface ClientRegistrationPayload {
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   notes?: string;
+  companyId: string;
+  includePetsInRegistration?: boolean;
+  pets?: PetRegistration[];
 }
 
 export interface ClientRegistration {

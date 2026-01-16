@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Form,
@@ -17,11 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover"
+import DatePicker from "react-datepicker"
 import { 
   Select, 
   SelectContent, 
@@ -32,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
-import { CalendarIcon, Plus, Mic, Loader2, Search, X } from "lucide-react"
+import { Plus, Mic, Loader2, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCreatePatient } from "@/queries/patients/create-patients"
 import { ClientForm } from "@/components/clients/client-form"
@@ -44,40 +38,8 @@ import { getCompanyId } from "@/utils/clientCookie"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { useDebounce } from "@/hooks/use-debounce"
-
-const patientFormSchema = z.object({
-  clientId: z.string().nonempty("Owner is required"),
-  name: z.string().min(1, "Name is required"),
-  species: z.string().min(1, "Species is required"),
-  breed: z.string().min(1, "Breed is required"),
-  color: z.string().min(1, "Color is required"),
-  gender: z.string().min(1, "Gender is required"),
-  isNeutered: z.boolean().default(false),
-  dateOfBirth: z.coerce.date().max(new Date(), "Date of birth cannot be in the future"),
-  weightKg: z.coerce.number().min(0, "Weight must be a positive number"),
-  microchipNumber: z.string().optional(),
-  registrationNumber: z.string().optional(),
-  insuranceProvider: z.string().optional(),
-  insurancePolicyNumber: z.string().optional(),
-  allergies: z.string().optional(),
-  medicalConditions: z.string().optional(),
-  behavioralNotes: z.string().optional(),
-  isActive: z.boolean().default(true),
-})
-
-type PatientFormValues = z.infer<typeof patientFormSchema>
-
-const defaultValues: Partial<PatientFormValues> = {
-  clientId: "",
-  name: "",
-  species: "",
-  breed: "",
-  color: "",
-  gender: "",
-  isNeutered: false,
-  isActive: true,
-  weightKg: 0,
-}
+import { patientFormSchema, PatientFormValues, defaultPatientValues } from "@/components/schema/patientSchema"
+import "react-datepicker/dist/react-datepicker.css"
 
 interface NewPatientFormProps {
   onSuccess: () => void;
@@ -106,7 +68,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
 
   // Set default values with provided clientId
   const initialValues = {
-    ...defaultValues,
+    ...defaultPatientValues,
     clientId: defaultClientId || "",
   }
 
@@ -147,6 +109,9 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
       // Use the selected client ID from the form
       const patientData = {
         ...data,
+        // Ensure weight is always a number, defaulting to 0 when cleared
+        weightKg: data.weightKg ?? 0,
+        companyId,
         dateOfBirth: format(data.dateOfBirth, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx"),
       }
 
@@ -178,6 +143,10 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
   const handleClientCreated = (client: Client) => {
     // Set the client ID in the form
     form.setValue("clientId", client.id);
+    setSelectedClient({
+      id: client.id,
+      name: `${client.firstName} ${client.lastName}`
+    });
     toast({
       title: "Owner added",
       description: `${client.firstName} ${client.lastName} has been added as an owner.`,
@@ -189,20 +158,16 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
     }, 500); // Adjust delay as needed, 500ms (0.5 seconds) is usually enough
   };
 
-  const [audioModalOpen, setAudioModalOpen] = useState<null | "allergies" | "medicalConditions" | "behavioralNotes">(null);
-  const allergiesTranscriber = useTranscriber();
-  const medicalConditionsTranscriber = useTranscriber();
-  const behavioralNotesTranscriber = useTranscriber();
-
-  // Audio transcription effects remain the same...
+  const [audioModalOpen, setAudioModalOpen] = useState<null>(null);
+  const transcriber = useTranscriber();
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 h-[calc(100vh-6rem)]">
+        <div className="flex flex-col lg:flex-row  rounded-md gap-4">
           {/* Left side - Owner information */}
           {!hideOwnerSection && (
-            <div className="flex-1 space-y-6">
+            <div className="flex-1 space-y-6 p-4 border rounded-md h-[calc(100vh-10rem)] overflow-y-auto">
               <h3 className="text-lg font-medium">Owner Information</h3>
               {!showClientForm ? (
                 <div className="space-y-4">
@@ -212,7 +177,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Owner</FormLabel>
+                        <FormLabel>Owner*</FormLabel>
                         <FormControl>
                           <div className="flex gap-2">
                             <div className="relative flex-grow">
@@ -290,15 +255,6 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                       </FormItem>
                     )}
                   />
-                  
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="px-0 text-primary flex items-center"
-                    onClick={() => setShowClientForm(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" /> Add a new owner
-                  </Button>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -339,7 +295,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
           )}
 
           {/* Right side - Patient information */}
-          <div className={`flex-1 space-y-6 ${hideOwnerSection ? 'w-full' : ''}`}>
+          <div className={`flex-1 p-4 space-y-6 h-[calc(100vh-10rem)] border rounded-md overflow-y-auto ${hideOwnerSection ? 'w-full' : ''}`}>
             <h3 className="text-lg font-medium">Pet Information</h3>
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -348,7 +304,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel>Name*</FormLabel>
                       <FormControl>
                         <Input placeholder="Pet name" {...field} />
                       </FormControl>
@@ -362,7 +318,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                   name="species"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Species</FormLabel>
+                      <FormLabel>Species*</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -374,25 +330,30 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                           <SelectItem value="Cat">Cat</SelectItem>
                           <SelectItem value="Bird">Bird</SelectItem>
                           <SelectItem value="Rabbit">Rabbit</SelectItem>
-                          <SelectItem value="Reptile">Reptile</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="Turtle">Turtle</SelectItem>
+                          <SelectItem value="Hamster">Hamster</SelectItem>
+                          <SelectItem value="Fish">Fish</SelectItem>
+                          <SelectItem value="Guinea Pig">Guinea Pig</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
+              <FormField
                   control={form.control}
                   name="breed"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Breed</FormLabel>
+                      <FormLabel>Primary Breed*</FormLabel>
                       <FormControl>
-                        <Input placeholder="Breed" {...field} />
+                        <Input
+                          placeholder="Primary Breed"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value.replace(/\d/g, ""))}
+                          inputMode="text"
+                          pattern="[^0-9]*"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -401,10 +362,27 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                 
                 <FormField
                   control={form.control}
+                  name="secondaryBreed"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Secondary Breed</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Secondary breed (optional)" {...field} 
+                        onChange={(e) => field.onChange(e.target.value.replace(/\d/g, ""))}
+                        inputMode="text"
+                        pattern="[^0-9]*"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="color"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Color</FormLabel>
+                      <FormLabel>Color*</FormLabel>
                       <FormControl>
                         <Input placeholder="Color" {...field} />
                       </FormControl>
@@ -412,15 +390,13 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
                 <FormField
                   control={form.control}
                   name="gender"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Gender</FormLabel>
+                      <FormLabel>Gender*</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -428,72 +404,36 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="male">male</SelectItem>
-                          <SelectItem value="female">female</SelectItem>
-                          <SelectItem value="unknown">unknown</SelectItem>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="unknown">Unknown</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
-                <FormField
-                  control={form.control}
-                  name="isNeutered"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-end space-x-2 space-y-0 mt-8">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel>Neutered/Spayed</FormLabel>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
                 <FormField
                   control={form.control}
                   name="dateOfBirth"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                    <FormItem>
+                      <FormLabel>Date of Birth*</FormLabel>
+                      <FormControl>
+                        <DatePicker
+                          selected={field.value}
+                          onChange={(date) => field.onChange(date)}
+                          minDate={new Date("1900-01-01")}
+                          maxDate={new Date()}
+                          placeholderText="dd/mm/yyyy"
+                          dateFormat="dd/MM/yyyy"
+                          showYearDropdown
+                          showMonthDropdown
+                          dropdownMode="select"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -508,13 +448,10 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                       <FormControl>
                         <Input type="number" step="0.1" min="0" {...field} />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
                 <FormField
                   control={form.control}
                   name="microchipNumber"
@@ -542,9 +479,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
                 <FormField
                   control={form.control}
                   name="insuranceProvider"
@@ -574,133 +509,31 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="allergies"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                    <FormLabel>Allergies</FormLabel>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setAudioModalOpen("allergies")}
-                      title="Record voice note"
-                      disabled={allergiesTranscriber.output?.isBusy}
-                    >
-                      {allergiesTranscriber.output?.isBusy ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Mic className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                    <FormControl>
-                      <textarea
-                        id="allergies"
-                        value={field.value}
-                        onChange={e => field.onChange(e.target.value)}
-                        className="w-full h-20 p-2 border rounded-md"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <AudioManager
-                      open={audioModalOpen === "allergies"}
-                      onClose={() => setAudioModalOpen(null)}
-                      transcriber={allergiesTranscriber}
-                      onTranscriptionComplete={() => setAudioModalOpen(null)}
-                    />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="medicalConditions"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Medical Conditions</FormLabel>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setAudioModalOpen("medicalConditions")}
-                        title="Record voice note"
-                        disabled={medicalConditionsTranscriber.output?.isBusy}
-                      >
-                        {medicalConditionsTranscriber.output?.isBusy ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Mic className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <FormControl>
-                      <textarea
-                        id="medicalConditions"
-                        value={field.value}
-                        onChange={e => field.onChange(e.target.value)}
-                        className="w-full h-20 p-2 border rounded-md"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <AudioManager
-                      open={audioModalOpen === "medicalConditions"}
-                      onClose={() => setAudioModalOpen(null)}
-                      transcriber={medicalConditionsTranscriber}
-                      onTranscriptionComplete={() => setAudioModalOpen(null)}
-                    />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="behavioralNotes"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Behavioral Notes</FormLabel>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setAudioModalOpen("behavioralNotes")}
-                        title="Record voice note"
-                        disabled={behavioralNotesTranscriber.output?.isBusy}
-                      >
-                        {behavioralNotesTranscriber.output?.isBusy ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Mic className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                    <FormControl>
-                      <textarea
-                        id="behavioralNotes"
-                        value={field.value}
-                        onChange={e => field.onChange(e.target.value)}
-                        className="w-full h-20 p-2 border rounded-md"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <AudioManager
-                      open={audioModalOpen === "behavioralNotes"}
-                      onClose={() => setAudioModalOpen(null)}
-                      transcriber={behavioralNotesTranscriber}
-                      onTranscriptionComplete={() => setAudioModalOpen(null)}
-                    />
-                  </FormItem>
-                )}
-              />
+              {/* Notes field */}
+              <div className="col-span-2">
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Additional notes (optional)" 
+                          className="min-h-[100px]"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end space-x-4 pt-4">
+        <div className="flex justify-end space-x-4">
           <Button type="button" variant="outline" onClick={() => onSuccess()}>
             Cancel
           </Button>

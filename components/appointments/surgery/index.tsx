@@ -1,202 +1,254 @@
-interface SurgeryTabsProps extends SurgeryComponentProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  navigateToNextTab: () => void;
-}
-
-function SurgeryTabs({ patientId, appointmentId, onClose, activeTab, setActiveTab, navigateToNextTab }: SurgeryTabsProps) {
-  const { isTabCompleted } = useSurgeryTabCompletion();
-  const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
-
-  function shouldShowTabAsCompleted(tabId: string) {
-    if (!visitData) return false;
-    const visit: any = visitData;
-    switch(tabId) {
-      case "pre-op":
-        return visit.isSurgeryPreOpCompleted === true;
-      case "surgery":
-        return visit.isSurgeryDetailsCompleted === true;
-      case "post-op":
-        return visit.isSurgeryPostOpCompleted === true;
-      case "prescription":
-        return visit.isPrescriptionCompleted === true;
-      case "discharge":
-        return visit.isSurgeryDischargeCompleted === true;
-      default:
-        return false;
-    }
-  }
-
-  const [showNewAppointment, setShowNewAppointment] = useState(false)
-  return (
-    <>
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          {tabOrder.map(tab => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className={`flex items-center gap-1 ${shouldShowTabAsCompleted(tab.id) ? "text-green-600 border-b-2 border-green-600" : ""}`}
-            >
-              {tab.label}
-              {shouldShowTabAsCompleted(tab.id) && (
-                <CheckCircle className="h-3 w-3 text-green-600 ml-1" />
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value="pre-op">
-          <PreOpTab patientId={patientId} appointmentId={appointmentId} />
-        </TabsContent>
-        <TabsContent value="surgery">
-          <SurgeryTab patientId={patientId} appointmentId={appointmentId} />
-        </TabsContent>
-        <TabsContent value="post-op">
-          <PostOpTab patientId={patientId} appointmentId={appointmentId} />
-        </TabsContent>
-       <TabsContent value="prescription">
-          <TabCompletionProvider>
-            <PrescriptionTab patientId={patientId} appointmentId={appointmentId} />
-          </TabCompletionProvider>
-       </TabsContent>
-
-        <TabsContent value="discharge">
-          <DischargeTab patientId={patientId} appointmentId={appointmentId} onClose={onClose} />
-        </TabsContent>
-      </Tabs>
-      <div className="mt-4 flex justify-end">
-        {activeTab !== "discharge" ? (
-          <Button onClick={navigateToNextTab}>Next</Button>
-        ) : (
-          <div className="flex items-center gap-4">
-              <Button 
-                onClick={() => setShowNewAppointment(true)}
-                className="theme-button text-white"
-              >
-                Book Another Appointment
-              </Button>
-            </div>
-        )}
-         <NewAppointment 
-        isOpen={showNewAppointment} 
-        onClose={() => setShowNewAppointment(false)}
-        patientId={patientId}
-        />
-      </div>
-    </>
-  );
-}
-import React, { useState, createContext, useContext, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs-new";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new";
 import { Button } from "@/components/ui/button";
-import PreOpTab from "./PreOpTab";
-import SurgeryTab from "./SurgeryTab";
-import PostOpTab from "./PostOpTab";
-import DischargeTab from "./DischargeTab";
 import { CheckCircle, History } from "lucide-react";
-import NewAppointment from "../newAppointment";
-import MedicalHistoryTab from "../MedicalHistoryTab";
-import { TabCompletionProvider } from "@/context/TabCompletionContext";
+import { TabCompletionProvider, TabId, useTabCompletion } from "@/context/TabCompletionContext";
+import { useGetPatientAppointmentHistory } from "@/queries/patients/get-patient-appointment-history";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
-import PrescriptionTab from "../Patient-Information/PrescriptionTab";
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
+import AppointmentHistoryNavigation from "../AppointmentHistoryNavigation";
+import MedicalHistoryTab from "../MedicalHistoryTab";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import WeightGraph from "../WeightGraph";
+import "react-datepicker/dist/react-datepicker.css";
+import { appointmentTabConfigMap } from "../appointmentTabConfig";
+import DewormingComponent from "../deworming";
+import VaccinationManagerComp from "../vaccination";
+import VaccinationPlanning from "../vaccination/VaccinationPlanning";
+import CertificateManagementWrapper from "../certification";
 
 interface SurgeryComponentProps {
   patientId: string;
   appointmentId: string;
   onClose: () => void;
+  onAppointmentChange?: (newAppointmentId: string) => void;
 }
 
-const tabOrder = [
-  { id: "pre-op", label: "Pre-op" },
-  { id: "surgery", label: "Surgery" },
-  { id: "post-op", label: "Post-op" },
-  { id: "prescription", label: "Prescription" },
-  { id: "discharge", label: "Discharge" },
-];
+function SurgeryContent({ patientId, appointmentId: initialAppointmentId, onClose, onAppointmentChange }: SurgeryComponentProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabId>("surgery-pre-op");
+  const [weightGraphOpen, setWeightGraphOpen] = useState(false);
+  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
+  const [currentAppointmentId, setCurrentAppointmentId] = useState(initialAppointmentId);
+  const { data: appointment } = useGetAppointmentById(currentAppointmentId);
+  const { data: history } = useGetPatientAppointmentHistory(patientId);
+  const { data: visitData, refetch: refetchVisitData } = useGetVisitByAppointmentId(currentAppointmentId);
+  const [followUpDateFooter, setFollowUpDateFooter] = useState<string>("");
 
-// Surgery tab completion context
-const SurgeryTabCompletionContext = createContext<any>(null);
+  // Keep currentAppointmentId in sync if parent prop changes
+  useEffect(() => {
+    setCurrentAppointmentId(initialAppointmentId);
+  }, [initialAppointmentId]);
 
-function SurgeryTabCompletionProvider({ children, patientId, appointmentId }: { children: React.ReactNode, patientId: string, appointmentId: string }) {
-  const STORAGE_KEY = `surgeryTabsCompleted-${patientId}-${appointmentId}`;
-  const [completedTabs, setCompletedTabs] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-      } catch {
-        return [];
+  // Get tab completion state
+  const { isTabCompleted } = useTabCompletion();
+
+  // Get the current tab configuration based on appointment type
+  const currentTabConfig = useMemo(() => {
+    const type = appointment?.appointmentType?.name || "Surgery";
+    return appointmentTabConfigMap[type] || [];
+  }, [appointment?.appointmentType?.name]);
+
+  // Determine the appropriate provider based on appointment type
+  const TabProvider = useMemo(() => {
+    const type = appointment?.appointmentType?.name || "Surgery";
+    switch (type) {
+      case "deworming":
+        return DewormingComponent;
+      case "Surgery":
+      default:
+        return TabCompletionProvider;
+    }
+  }, [appointment?.appointmentType?.name]);
+
+  // Initialize tab from URL parameter or default to first tab
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab") as TabId | null;
+    if (tabFromUrl && currentTabConfig.some(tab => tab.value === tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    } else if (currentTabConfig.length > 0 && appointment?.appointmentType?.name) {
+      const defaultTab = currentTabConfig[0].value;
+      setActiveTab(defaultTab);
+      // Update URL if no valid tab in URL
+      if (!tabFromUrl) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", defaultTab);
+        router.replace(`?${params.toString()}`, { scroll: false });
       }
     }
-    return [];
-  });
+  }, [currentTabConfig, appointment?.appointmentType?.name, searchParams, router]);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(completedTabs));
-    }
-  }, [completedTabs, STORAGE_KEY]);
-
-  const markTabAsCompleted = (tabId: string) => {
-    setCompletedTabs(prev => (prev.includes(tabId) ? prev : [...prev, tabId]));
+  // Update URL when tab changes (only when Visit Summary is already open)
+  const handleTabChange = (value: string) => {
+    const newTab = value as TabId;
+    setActiveTab(newTab);
+    // Only update URL if Visit Summary is open (this component is rendered)
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", newTab);
+    params.set("appointmentId", currentAppointmentId); // Ensure appointmentId is also in URL
+    router.replace(`?${params.toString()}`, { scroll: false });
   };
-  const isTabCompleted = (tabId: string) => completedTabs.includes(tabId);
 
-  return (
-    <SurgeryTabCompletionContext.Provider value={{ completedTabs, markTabAsCompleted, isTabCompleted }}>
-      {children}
-    </SurgeryTabCompletionContext.Provider>
-  );
-}
+  // Filter appointment history to exclude scheduled appointments
+  const filteredAppointmentHistory = useMemo(() => {
+    return history?.appointmentHistory.filter(appt => appt.status !== "scheduled") || [];
+  }, [history?.appointmentHistory]);
 
-function useSurgeryTabCompletion() {
-  const ctx = useContext(SurgeryTabCompletionContext);
-  if (!ctx) throw new Error("useSurgeryTabCompletion must be used within SurgeryTabCompletionProvider");
-  return ctx;
-}
+  // Keep currentAppointmentId in sync if parent prop changes
+  useEffect(() => {
+    setCurrentAppointmentId(initialAppointmentId);
+  }, [initialAppointmentId]);
 
-export { useSurgeryTabCompletion };
+  // When currentAppointmentId changes, refetch visit data
+  useEffect(() => {
+    refetchVisitData();
+  }, [currentAppointmentId, refetchVisitData]);
 
-export default function SurgeryComponent({ patientId, appointmentId, onClose }: SurgeryComponentProps) {
-  const [activeTab, setActiveTab] = useState(tabOrder[0].id);
-  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
+  const isSurgeryTabCompleted = (tabValue: string): boolean => {
+    if (!visitData) return false;
 
+    const visit = visitData as any;
+    const tabConfig = currentTabConfig.find(tab => tab.value === tabValue);
+
+    if (!tabConfig || !tabConfig.isCompletedKey) {
+      return false;
+    }
+
+    const isCompleted = Boolean(visit[tabConfig.isCompletedKey]);
+    return isCompleted;
+  };
   const navigateToNextTab = () => {
-    const currentIndex = tabOrder.findIndex(tab => tab.id === activeTab);
-    if (currentIndex < tabOrder.length - 1) {
-      setActiveTab(tabOrder[currentIndex + 1].id);
+    if (!currentTabConfig) return;
+    const currentIndex = currentTabConfig.findIndex(tab => tab.value === activeTab);
+    if (currentIndex < currentTabConfig.length - 1) {
+      setActiveTab(currentTabConfig[currentIndex + 1].value);
     }
   };
 
   return (
     <>
       <Sheet open={true} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%]">
           <SheetHeader className="mb-6 mr-10">
             <div className="flex items-center justify-between">
               <SheetTitle>Surgery Visit</SheetTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMedicalHistory(true)}
-                className="flex items-center gap-2"
-              >
-                <History className="h-4 w-4" />
-                Medical History
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMedicalHistory(true)}
+                  className="flex items-center gap-2"
+                >
+                  <History className="h-4 w-4" />
+                  Medical History
+                </Button>
+              </div>
             </div>
           </SheetHeader>
-          <SurgeryTabCompletionProvider patientId={patientId} appointmentId={appointmentId}>
-            <SurgeryTabs
-              patientId={patientId}
-              appointmentId={appointmentId}
-              onClose={onClose}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              navigateToNextTab={navigateToNextTab}
-            />
-          </SurgeryTabCompletionProvider>
+
+          {/* Appointment History Navigation */}
+          {filteredAppointmentHistory.length > 0 && (
+            <div className="mb-4">
+              <AppointmentHistoryNavigation
+                patientHistory={filteredAppointmentHistory}
+                currentAppointmentId={currentAppointmentId}
+                onAppointmentSelect={(newAppointmentId) => {
+                  setCurrentAppointmentId(newAppointmentId);
+                  // Reset to first tab when changing appointments, but preserve URL param if valid
+                  if (currentTabConfig && currentTabConfig.length > 0) {
+                    const tabFromUrl = searchParams.get("tab") as TabId | null;
+                    const validTab = tabFromUrl && currentTabConfig.some(tab => tab.value === tabFromUrl)
+                      ? tabFromUrl
+                      : currentTabConfig[0].value;
+                    setActiveTab(validTab);
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("tab", validTab);
+                    router.replace(`?${params.toString()}`, { scroll: false });
+                  }
+                }}
+                selectedAppointmentType="Surgery"
+              />
+            </div>
+          )}
+          {(() => {
+            const appointmentType = appointment?.appointmentType?.name?.toLowerCase();
+
+            if (appointmentType === "vaccination" && currentTabConfig.length === 0) {
+              return (
+                <div className="p-4">
+                  <VaccinationPlanning
+                    patientId={patientId}
+                    appointmentId={currentAppointmentId}
+                    species={appointment?.patient?.species || "dog"}
+                    onNext={() => { }}
+                    onClose={onClose}
+                    clinicId={appointment?.clinicId}
+                    isReadOnly={appointment?.status === "completed"}
+                    embedded={true}
+                    hideMedicalHistoryButton={true}
+                  />
+                </div>
+              );
+            }
+
+            if (appointmentType === "certification" || appointmentType === "certificate") {
+              return (
+                <div className="p-4">
+                  <CertificateManagementWrapper
+                    appointmentId={currentAppointmentId}
+                    patientId={patientId}
+                    onClose={onClose}
+                    embedded={true}
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+                <TabsList className="w-full">
+                  {currentTabConfig.map((tab) => (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className={`flex items-center gap-1 text-lg font-bold ${isSurgeryTabCompleted(tab.value) ? 'data-[state=active]:text-green-600' : ''
+                        }`}
+                    >
+                      <span className="flex items-center gap-1">
+                        {tab.label}
+                        {isSurgeryTabCompleted(tab.value) && (
+                          <CheckCircle className="h-4 w-4 text-green-600 ml-1" />
+                        )}
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {currentTabConfig?.map((tab: any) => {
+                  const TabComponent = tab.component;
+                  return (
+                    <TabsContent key={tab.value} value={tab.value}>
+                      <TabProvider patientId={patientId} appointmentId={currentAppointmentId} onClose={onClose}>
+                        <TabComponent
+                          patientId={patientId}
+                          appointmentId={currentAppointmentId}
+                          visitId={visitData?.id} // Add this line to pass visitId
+                          onNext={navigateToNextTab}
+                          onClose={onClose}
+                          externalFollowUpDate={followUpDateFooter}
+                          onExternalFollowUpDateChange={setFollowUpDateFooter}
+                          setWeightGraphOpen={tab.value === "surgery-pre-op" ? setWeightGraphOpen : undefined}
+                        />
+                      </TabProvider>
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
@@ -206,15 +258,39 @@ export default function SurgeryComponent({ patientId, appointmentId, onClose }: 
           <SheetHeader className="mb-6">
             <SheetTitle>Medical History</SheetTitle>
           </SheetHeader>
-          <TabCompletionProvider>
-            <MedicalHistoryTab 
-              patientId={patientId} 
-              appointmentId={appointmentId} 
-              onNext={() => setShowMedicalHistory(false)} 
-            />
-          </TabCompletionProvider>
+
+          <MedicalHistoryTab
+            patientId={patientId}
+            appointmentId={currentAppointmentId}
+            onNext={() => setShowMedicalHistory(false)}
+          />
+
         </SheetContent>
       </Sheet>
+
+      <Dialog open={weightGraphOpen} onOpenChange={setWeightGraphOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Weight History</DialogTitle>
+            <DialogDescription>
+              View the patient's weight history over time
+            </DialogDescription>
+          </DialogHeader>
+          <WeightGraph
+            patientId={patientId}
+            isOpen={weightGraphOpen}
+            onClose={() => setWeightGraphOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+export default function SurgeryComponent(props: SurgeryComponentProps) {
+  return (
+    <TabCompletionProvider>
+      <SurgeryContent {...props} />
+    </TabCompletionProvider>
   );
 }

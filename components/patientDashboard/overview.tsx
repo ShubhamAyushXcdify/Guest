@@ -31,94 +31,94 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-white dark:bg-slate-900 shadow-lg border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/20">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-full">
-                <CalendarDays className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-[#D2EFEC] dark:bg-[#1E3D3D] rounded-full">
+                <CalendarDays className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Upcoming Appointments</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Upcoming Appointments</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">
                   {appointments.filter((apt: any) => apt.status === "upcoming").length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-white dark:bg-slate-900 shadow-lg border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/20">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <PawPrint className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+                <PawPrint className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Pets</p>
-                <p className="text-2xl font-bold text-gray-900">{pets.length}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Pets</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{pets.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-white dark:bg-slate-900 shadow-lg border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/20">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-purple-100 rounded-full">
-                <Heart className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-[#D2EFEC] dark:bg-[#1E3D3D] rounded-full">
+                <Heart className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Completed Visits</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completed Visits</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">
                   {appointments.filter((apt: any) => apt.status === "completed").length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-white dark:bg-slate-900 shadow-lg border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/20">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-100 rounded-full">
-                <Building className="h-6 w-6 text-orange-600" />
+              <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                <Building className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Preferred Clinic</p>
-                <p className="text-sm font-bold text-gray-900">PawTrack Veterinary</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Preferred Clinic</p>
+                <p className="text-sm font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">PawTrack Veterinary</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-white shadow-lg border-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 ">
+        <Card className="bg-white dark:bg-slate-900 shadow-lg border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/20 flex flex-col min-h-[calc(100vh-14rem)] overflow-y-auto">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-[#1E3D3D] dark:text-[#D2EFEC]">
               <Calendar className="h-5 w-5" />
               Recent Appointments
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex-1 overflow-y-auto space-y-4">
             {isAppointmentsLoading ? (
-              <div>Loading appointments...</div>
+              <div className="text-gray-600 dark:text-gray-400">Loading appointments...</div>
             ) : appointmentsError ? (
-              <div>Error loading appointments.</div>
+              <div className="text-red-600 dark:text-red-400">Error loading appointments.</div>
             ) : appointments.length === 0 ? (
-              <div>No appointments found.</div>
+              <div className="text-gray-600 dark:text-gray-400">No appointments found.</div>
             ) : (
               appointments.slice(0, 3).map((appointment: any) => (
-                <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg border border-[#1E3D3D]/10 dark:border-[#1E3D3D]/10">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
+                      <AvatarFallback className="bg-[#D2EFEC] dark:bg-[#1E3D3D] text-[#1E3D3D] dark:text-[#D2EFEC]">
                         {appointment.patient?.name?.[0] || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-gray-900">{appointment.patient?.name}</p>
-                      <p className="text-sm text-gray-600">{appointment.appointmentType?.name || "Unknown"}</p>
+                      <p className="font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">{appointment.patient?.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{appointment.appointmentType?.name || "Unknown"}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">
                       {isClient && appointment.appointmentDate ? formatDate(appointment.appointmentDate) : ""}
                     </p>
                   </div>
@@ -127,34 +127,34 @@ export default function OverviewPage() {
             )}
           </CardContent>
         </Card>
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-white dark:bg-slate-900 shadow-lg border border-[#1E3D3D]/20 dark:border-[#1E3D3D]/20 flex flex-col min-h-[calc(100vh-14rem)] overflow-y-auto">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-[#1E3D3D] dark:text-[#D2EFEC]">
               <PawPrint className="h-5 w-5" />
               My Pets
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex-1 overflow-y-auto space-y-4">
             {petsLoading ? (
-              <div>Loading pets...</div>
+              <div className="text-gray-600 dark:text-gray-400">Loading pets...</div>
             ) : petsError ? (
-              <div>Error loading pets.</div>
+              <div className="text-red-600 dark:text-red-400">Error loading pets.</div>
             ) : pets.length === 0 ? (
-              <div>No pets found.</div>
+              <div className="text-gray-600 dark:text-gray-400">No pets found.</div>
             ) : (
               pets.map((pet: any) => (
-                <div key={pet.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <div key={pet.id} className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg border border-[#1E3D3D]/10 dark:border-[#1E3D3D]/10">
                   <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-purple-100 text-purple-600">
+                    <AvatarFallback className="bg-[#D2EFEC] dark:bg-[#1E3D3D] text-[#1E3D3D] dark:text-[#D2EFEC]">
                       {pet.name?.[0] || "?"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{pet.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">{pet.name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
                       {pet.breed} • {isClient && pet.dateOfBirth ? calculateAge(pet.dateOfBirth) : "Unknown age"}
                     </p>
-                    <p className="text-sm text-gray-600">{pet.weightKg} kg</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{pet.weightKg} kg</p>
                   </div>
                 </div>
               ))

@@ -1,5 +1,6 @@
+import { Slot } from "@/components/appointments/appointment-details";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Slot } from "./get-slot-by-roomId";
+ 
 
 type CreateSlotData = Omit<Slot, "id">;
 

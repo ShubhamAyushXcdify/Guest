@@ -8,6 +8,7 @@ import { useRootContext } from "@/context/RootContext"
 
 // Import role-specific dashboards
 import AdminDashboardWrapper from "./roles/admin"
+import SuperAdminDashboardWrapper from "./roles/super-admin"
 import ClinicAdminDashboardWrapper from "./roles/clinic-admin"
 import ClinicStaffDashboardWrapper from "./roles/clinic-staff"
 import ClientDashboardWrapper from "./roles/client"
@@ -62,7 +63,11 @@ export const DashboardScreen = () => {
 
   // Render different dashboards based on user role
   const renderDashboardByRole = () => {
-    if (IsAdmin) {
+    if (IsAdmin && userType.isSuperAdmin) {
+      return (
+        <SuperAdminDashboardWrapper />
+      );
+    } else if (IsAdmin) {
       return (
         <AdminDashboardWrapper />
       );
@@ -127,21 +132,29 @@ export const DashboardScreen = () => {
           setEditAppointmentId(null);
         }}
       />
-      <NewInvoiceDrawer isOpen={showNewInvoiceDrawer} onClose={() => setShowNewInvoiceDrawer(false)} />
+      <NewInvoiceDrawer 
+        isOpen={showNewInvoiceDrawer} 
+        onClose={() => setShowNewInvoiceDrawer(false)} 
+        patientId=""
+        appointmentId=""
+      />
 
       {/* Veterinarian/Provider specific modals and drawers */}
       <Sheet open={showAddProductDrawer} onOpenChange={setShowAddProductDrawer}>
         <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl overflow-y-auto">
-          <SheetHeader>
+          <SheetHeader className="relative top-[-14px]">
             <SheetTitle>Add Product</SheetTitle>
           </SheetHeader>
-          <NewProduct onSuccess={() => setShowAddProductDrawer(false)} />
+          <NewProduct 
+            onSuccess={() => setShowAddProductDrawer(false)} 
+            onCancel={() => setShowAddProductDrawer(false)} 
+          />
         </SheetContent>
       </Sheet>
       
       <Sheet open={showAddSupplierDrawer} onOpenChange={setShowAddSupplierDrawer}>
         <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-4xl lg:max-w-5xl overflow-y-auto">
-          <SheetHeader>
+          <SheetHeader className="relative top-[-14px]">
             <SheetTitle>Add Supplier</SheetTitle>
           </SheetHeader>
           <NewSupplier onSuccess={() => setShowAddSupplierDrawer(false)} />
@@ -150,7 +163,7 @@ export const DashboardScreen = () => {
 
       <Sheet open={showAddClientDrawer} onOpenChange={setShowAddClientDrawer}>
         <SheetContent side="right" className="w-full sm:w-full md:!max-w-[40%] overflow-auto">
-          <SheetHeader>
+          <SheetHeader className="relative top-[-14px]">
             <SheetTitle>Add Client</SheetTitle>
           </SheetHeader>
           <ClientDrawerContent onClose={() => setShowAddClientDrawer(false)} />

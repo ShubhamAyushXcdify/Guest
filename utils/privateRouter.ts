@@ -5,6 +5,7 @@ import { useContext, useEffect } from "react";
 import React from "react";
 import { RootContextType } from "@/context/RootContext";
 import * as clientCookie from "./clientCookie";
+import { isTokenExpired } from "./jwtToken";
 // import { useHasPermission } from "./auth";
 // import { Resource } from "../components/settings/rbac/rbac";
 
@@ -56,6 +57,22 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
       const jwtToken = clientCookie.getJwtToken();
       const userId = clientCookie.getUserId();
 
+      // Check if token is expired
+      if (jwtToken && isTokenExpired(jwtToken)) {
+        console.warn('Token expired in privateRouter, logging out...');
+        if (rootContext?.handleLogout) {
+          rootContext.handleLogout();
+        } else {
+          // Fallback: redirect to login if handleLogout is not available
+          const timeout = setTimeout(() => {
+            if (typeof window !== "undefined" && pathname !== "/login") {
+              router.push(`/?redirect=${encodeURIComponent(pathname)}`);
+            }
+          }, 1000);
+          return () => clearTimeout(timeout);
+        }
+        return;
+      }
 
       if (!jwtToken || !userId) {
         const timeout = setTimeout(() => {
@@ -76,7 +93,7 @@ const withAuth = (WrappedComponent: any, Loader?: any) => {
 
         return () => clearTimeout(timeout);
       }
-    }, [authorized, pathname, router]);
+    }, [authorized, pathname, router, rootContext]);
 
     if (loading) {
       if (Loader) {

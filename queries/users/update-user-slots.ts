@@ -2,22 +2,27 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface UpdateUserSlotsParams {
   userId: string;
+  clinicId: string;
   slotIds: string[];
 }
 
 /**
  * Updates the slots assigned to a user
  * @param userId The ID of the user
+ * @param clinicId The ID of the clinic
  * @param slotIds Array of slot IDs to assign to the user
  */
-const updateUserSlots = async ({ userId, slotIds }: UpdateUserSlotsParams) => {
+const updateUserSlots = async ({ userId, clinicId, slotIds }: UpdateUserSlotsParams) => {
   try {
     const response = await fetch(`/api/user/${userId}/slots`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(slotIds),
+      body: JSON.stringify({
+        clinicId,
+        slotIds
+      }),
     });
 
     if (!response.ok) {
@@ -43,4 +48,4 @@ export const useUpdateUserSlots = () => {
       queryClient.invalidateQueries({ queryKey: ['doctorSlots'] });
     },
   });
-}; 
+};

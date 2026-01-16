@@ -4,6 +4,7 @@ import { Client } from "./get-client";
 
 interface UpdateClientPayload {
   id: string;
+  companyId?: string;
   firstName: string;
   lastName: string;
   email: string;

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         const pageSize = searchParams.get('pageSize') || '10';
         const search = searchParams.get('searchByname') || '';
         const category = searchParams.get('category') || '';
-        const productType = searchParams.get('productType') || '';
+        const companyId = searchParams.get('companyId') || '';
         
         // Get token from cookie or use test token as fallback
         let token = getJwtToken(request);
@@ -21,13 +21,9 @@ export async function GET(request: NextRequest) {
             token = testToken;
         }
 
-        // Log for debugging
-        console.log('API URL:', apiUrl);
-        console.log('Token available:', !!token);
-        console.log('Request URL:', `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&category=${category}&productType=${productType}`);
 
         const response = await fetch(
-            `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&category=${category}&productType=${productType}`,
+            `${apiUrl}/api/Product?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&category=${category}&companyId=${companyId}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

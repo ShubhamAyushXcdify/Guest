@@ -9,6 +9,7 @@ export interface User {
   role: string;
   roleId: string;
   roleName: string;
+  clinics?: { clinicId: string; clinicName: string }[];
   clinicIds?: string[]; // Array of clinic IDs as per API
   companyId?: string;
   slots?: string[]; // Array of slot IDs as per API
@@ -28,15 +29,29 @@ export interface UserResponse {
   hasNextPage: boolean;
 }
 
-const getUsers = async (pageNumber = 1, pageSize = 10, search = '', clinicId = '', roleId = ''): Promise<UserResponse> => {
+const getUsers = async (
+  pageNumber = 1,
+  pageSize = 10,
+  search = '',
+  companyId = '',
+  clinicIds: string[] = [], // Added clinicIds as an array
+  roleIds: string[] = [] // Added roleIds as an array
+): Promise<UserResponse> => {
   const queryParams = new URLSearchParams({
     pageNumber: pageNumber.toString(),
     pageSize: pageSize.toString(),
+    paginationRequired: 'true',
   });
   
   if (search) queryParams.append('search', search);
-  if (clinicId) queryParams.append('clinicId', clinicId);
-  if (roleId) queryParams.append('roleId', roleId);
+  if (companyId) queryParams.append('companyId', companyId);
+
+  clinicIds.forEach(id => {
+    queryParams.append('clinicIds', id);
+  });
+  roleIds.forEach(id => {
+    queryParams.append('roleIds', id);
+  });
   
   const url = `/api/user?${queryParams.toString()}`;
   
@@ -50,10 +65,10 @@ const getUsers = async (pageNumber = 1, pageSize = 10, search = '', clinicId = '
   return data as UserResponse;
 };
 
-export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', clinicId = '', enabled = true, roleId = '') => {
+export const useGetUsers = (pageNumber = 1, pageSize = 10, search = '', enabled = true, companyId = '', clinicIds: string[] = [], roleIds: string[] = []) => {
   return useQuery({
-    queryKey: ["users", pageNumber, pageSize, search, clinicId, roleId],
-    queryFn: () => getUsers(pageNumber, pageSize, search, clinicId, roleId),
+    queryKey: ["users", pageNumber, pageSize, search, companyId, clinicIds, roleIds],
+    queryFn: () => getUsers(pageNumber, pageSize, search, companyId, clinicIds, roleIds),
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     placeholderData: keepPreviousData,

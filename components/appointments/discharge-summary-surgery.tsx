@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Download, FileText, Loader2, AlertCircle } from "lucide-react"
+import { Download, FileText, Loader2, AlertCircle, Printer } from "lucide-react"
 import { useGetDischargeSummarySurgery } from "@/queries/discharge-summary/get-discharge-summary-surgery"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { toast } from "@/components/ui/use-toast"
@@ -23,6 +23,7 @@ export default function DischargeSummarySheet({
   const [isDownloading, setIsDownloading] = useState(false)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   // PDF Styles
   const styles = StyleSheet.create({
@@ -152,6 +153,32 @@ export default function DischargeSummarySheet({
       generatePDF()
     }
   }, [dischargeData, isOpen])
+
+  // Handle print functionality
+  const handlePrint = () => {
+    if (!pdfUrl) return
+
+    const iframeWindow = iframeRef.current?.contentWindow
+    if (iframeWindow) {
+      iframeWindow.focus()
+      iframeWindow.print()
+      return
+    }
+
+    // Fallback to window.open if iframe method fails
+    const printWindow = window.open(pdfUrl, '_blank')
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print()
+      }
+    } else {
+      toast({
+        title: "Error",
+        description: "Could not open print dialog. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
 
   // Clean up PDF URL when component unmounts or closes
   useEffect(() => {
@@ -556,8 +583,8 @@ export default function DischargeSummarySheet({
                 </div>
               )}
 
-              {/* Download Button */}
-              <div className="flex justify-center">
+              {/* Action Buttons */}
+              <div className="flex justify-center gap-3">
                 <Button
                   onClick={handleDownload}
                   disabled={!pdfBlob || isDownloading}
@@ -569,6 +596,15 @@ export default function DischargeSummarySheet({
                     <Download className="h-4 w-4" />
                   )}
                   Download Surgery Summary
+                </Button>
+                <Button
+                  onClick={handlePrint}
+                  disabled={!pdfBlob || isDownloading}
+                  variant="secondary"
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Discharge Summary
                 </Button>
               </div>
 

@@ -1,14 +1,15 @@
 'use client'
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Eye, Trash2, Building } from "lucide-react";
+import { useDebouncedValue } from "@/hooks/use-debounce";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Company, useGetCompanies } from "@/queries/companies/get-company";
 import { useDeleteCompany } from "@/queries/companies/delete-comapny";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "@/components/ui/data-table";
 import { toast } from "@/hooks/use-toast";
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog";
-import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 
 interface CompaniesScreenProps {
@@ -16,16 +17,34 @@ interface CompaniesScreenProps {
 }
 
 export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps) {
-  const router = useRouter();
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const searchParams = useSearchParams();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
   const deleteCompanyMutation = useDeleteCompany();
 
-  const { data, isLoading, isError } = useGetCompanies(true);
+  const { data, isLoading, isError } = useGetCompanies(
+    true,
+    pageNumber,
+    pageSize,
+    debouncedSearch
+  );
 
-  const companies = data || [];
+  // Initialize search from URL on component mount and keep it in sync
+  useEffect(() => {
+    const searchParam = searchParams.get('search');
+    // Only update if the search param exists and is different from current search state
+    if (searchParam !== null && decodeURIComponent(searchParam) !== search) {
+      setSearch(decodeURIComponent(searchParam));
+    }
+  }, [searchParams, search]);
+
+  const companies = data?.items || [];
+  const totalPages = data?.totalPages || 1;
 
   const openDeleteDialog = (company: Company) => {
     setCompanyToDelete(company);
@@ -34,7 +53,7 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
 
   const handleDeleteCompany = async () => {
     if (!companyToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await deleteCompanyMutation.mutateAsync(companyToDelete.id);
@@ -56,34 +75,58 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
     }
   };
 
+  const handleSearch = (value: string) => {
+    // Only update if the value has actually changed
+    if (value !== search) {
+      setSearch(value);
+      setPageNumber(1);
+
+      // Update URL with search parameter
+      const url = new URL(window.location.href);
+      if (value) {
+        url.searchParams.set('search', encodeURIComponent(value));
+      } else {
+        url.searchParams.delete('search');
+      }
+
+      // Update the URL without page reload
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(Number(newPageSize));
+    setPageNumber(1); // Reset to first page when changing page size
+  };
+
+  const handlePageChange = (page: number) => {
+    setPageNumber(page);
+  };
+
   const columns: ColumnDef<Company>[] = [
-    { 
-      accessorKey: "name", 
+    {
+      accessorKey: "name",
       header: "Company Name",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{row.getValue("name")}</span>
-        </div>
-      )
     },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "phone", header: "Phone" },
-    { 
-      accessorKey: "address", 
+    {
+      accessorKey: "address",
       header: "Location",
       cell: ({ row }) => {
         const address = row.original.address;
         return `${address?.city}, ${address?.state}`;
       }
     },
-    { 
-      accessorKey: "status", 
+    {
+      accessorKey: "status",
       header: "Status",
       cell: ({ getValue }) => {
         const status = getValue() as string;
+        const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
         return (
           <Badge variant={status === "active" ? "default" : "secondary"}>
-            {status}
+            {capitalizedStatus}
           </Badge>
         );
       }
@@ -94,9 +137,9 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
       cell: ({ row }) => (
         <div className="flex gap-2 justify-center">
           {onEditCompany && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 onEditCompany(row.original);
@@ -105,7 +148,7 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
               <Edit className="h-4 w-4" />
             </Button>
           )}
-          <Button 
+          {/* <Button 
             variant="ghost" 
             size="icon" 
             onClick={(e) => {
@@ -114,9 +157,9 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
             }}
           >
             <Eye className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
+          </Button> */}
+          <Button
+            variant="ghost"
             size="icon"
             onClick={(e) => {
               e.stopPropagation();
@@ -143,27 +186,21 @@ export default function CompaniesScreen({ onEditCompany }: CompaniesScreenProps)
             <p className="text-destructive">Error loading companies. Please try again.</p>
           </div>
         ) : (
-          <>
-            <div 
-              onKeyDown={(e) => { 
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-              className="search-container"
-            >
-              <DataTable
-                columns={columns}
-                data={companies as Company[]}
-                page={1}
-                pageSize={companies.length || 10}
-                totalPages={1}
-                onPageChange={() => {}}
-                onPageSizeChange={() => {}}
-              />
-            </div>
-          </>
+          <div onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} className="bg-slate-50 dark:bg-slate-900 p-1">
+
+            <DataTable
+              columns={columns}
+              data={companies as unknown as Company[]}
+              searchColumn="name"
+              searchPlaceholder="Search companies..."
+              page={pageNumber}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              onSearch={handleSearch}
+            />
+          </div>
         )}
       </div>
       <DeleteConfirmationDialog

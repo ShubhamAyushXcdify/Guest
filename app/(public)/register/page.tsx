@@ -2,7 +2,7 @@
 
 import type React from "react"
 import Image from "next/image"
-import { Moon, Sun, Calendar, PawPrint, Heart, FileText, Bell } from "lucide-react"
+import { Moon, Sun, Calendar, PawPrint, Heart, FileText, Bell, Building2 } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -10,8 +10,13 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { RegistrationForm } from "@/components/auth/register/registration-form"
+import { getCompanySubdomain } from "@/utils/subdomain";
+import { useGetCompanyBySubdomain } from "@/queries/companies";
 
 export default function RegisterPage() {
+  // Get company information based on subdomain
+  const subdomain = getCompanySubdomain();
+  const { data: company, isLoading: companyLoading } = useGetCompanyBySubdomain(subdomain);
 
   return (
     <div
@@ -34,8 +39,17 @@ export default function RegisterPage() {
             {/* <div className="relative w-24 h-24 md:w-40 md:h-40 mb-4 md:mb-6">
               <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
             </div> */}
-            <div className="w-80">
-              <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className=" !relative w-40 " priority />
+            <div className="w-80 relative h-20">
+              {company?.logoUrl ? (
+                <Image 
+                  src={company.logoUrl} 
+                  alt={`${company.name} Logo`} 
+                  fill 
+                  className="object-contain" 
+                />
+              ) : (
+                <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className="object-contain" />
+              )}
             </div>
             {/* <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
             <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p> */}
@@ -119,8 +133,12 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-center justify-center p-4 md:p-8 bg-white">
         <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl w-full max-w-lg p-4 md:p-8 border">
           <div className="text-center mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
-            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">Create your account to access your pet's health portal</p>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+              Welcome to {company?.name || "PawTrack"}
+            </h2>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">
+              Create your account to access your pet's health portal
+            </p>
           </div>
           
           <RegistrationForm />

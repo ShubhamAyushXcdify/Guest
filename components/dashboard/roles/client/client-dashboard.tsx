@@ -32,13 +32,16 @@ export const ClientDashboard = ({
     dateFrom: startOfDay.toISOString(),
     dateTo: endOfDay.toISOString(),
     clinicId: clinic?.id ?? null,
+    companyId: clinic?.companyId ?? null,
     patientId: null,
     clientId: user?.id, // Filter by current client
     veterinarianId: null,
     roomId: null,
     pageNumber: 1,
     pageSize: 10,
-    isRegistered: false
+    isRegistered: false,
+    appointmentId: null,
+    tab: "client-dashboard",
   };
 
   const { data: appointmentsData } = useGetAppointments(searchParams);

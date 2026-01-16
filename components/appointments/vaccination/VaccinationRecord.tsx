@@ -14,7 +14,6 @@ import { useGetVaccinationMasters } from "@/queries/vaccinationMaster/get-vaccin
 import { CalendarIcon, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
 import { 
   VaccinationDetailRequest, 
-  VaccinationDetailItem,
   useCreateVaccinationDetail 
 } from "@/queries/vaccinationDetail/create-vaccinationDetail"
 import { useGetUsers } from "@/queries/users/get-users"
@@ -22,6 +21,7 @@ import { useRootContext } from "@/context/RootContext"
 import { useToast } from "@/components/ui/use-toast"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import { useGetRole } from "@/queries/roles/get-role";
 
 interface Vaccination {
   id: string;
@@ -48,12 +48,20 @@ const vaccinationRecordSchema = z.object({
   vaccineId: z.string({
     required_error: "Please select a vaccine",
   }),
-  dateGiven: z.date({
+  dateGiven: z.string({
     required_error: "Date given is required",
-  }),
-  nextDueDate: z.date({
+  }).refine((dateString) => {
+    const [day, month, year] = dateString.split('/').map(Number);
+    const parsedDate = new Date(year, month - 1, day);
+    return !isNaN(parsedDate.getTime());
+  }, "Invalid date format, expected DD/MM/YYYY"),
+  nextDueDate: z.string({
     required_error: "Next due date is required",
-  }),
+  }).refine((dateString) => {
+    const [day, month, year] = dateString.split('/').map(Number);
+    const parsedDate = new Date(year, month - 1, day);
+    return !isNaN(parsedDate.getTime());
+  }, "Invalid date format, expected DD/MM/YYYY"),
   batchNumber: z.string({
     required_error: "Batch number is required",
   }),
@@ -103,9 +111,32 @@ export default function VaccinationRecord({
 
   // Get clinic context
   const { clinic } = useRootContext();
+
+  const [veterinarianRoleId, setVeterinarianRoleId] = useState<string | null>(null);
+
+  const { data: rolesData } = useGetRole();
+
+  useEffect(() => {
+    if (rolesData?.data) {
+      const vetRole = rolesData.data.find(
+        (role: any) => role.name.toLowerCase() === 'veterinarian'
+      );
+      if (vetRole) {
+        setVeterinarianRoleId(vetRole.id);
+      }
+    }
+  }, [rolesData]);
   
   // Fetch veterinarians (users with role "Veterinarian")
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', clinic?.id || '');
+  const { data: usersResponse = { items: [] } } = useGetUsers(
+    1,
+    100,
+    '',
+    !!clinic?.id && !!veterinarianRoleId, // enabled
+    '',
+    clinic?.id ? [clinic.id] : [], // clinicIds
+    veterinarianRoleId ? [veterinarianRoleId] : [] // roleIds
+  );
   
   // Filter and format veterinarians for dropdown
   const veterinarianOptions = usersResponse.items
@@ -123,6 +154,8 @@ export default function VaccinationRecord({
       batchNumber: "",
       veterinarian: "",
       adverseReactions: "",
+      dateGiven: "", // Initialize as empty string
+      nextDueDate: "", // Initialize as empty string
     },
   });
 
@@ -167,6 +200,11 @@ export default function VaccinationRecord({
         form.setValue("batchNumber", prevValues.batchNumber);
         form.setValue("veterinarian", prevValues.veterinarian);
         form.setValue("adverseReactions", prevValues.adverseReactions || "");
+      } else {
+        // Set just the vaccine ID
+        form.setValue("vaccineId", currentVaccine.id);
+        form.setValue("dateGiven", ""); // Clear date fields
+        form.setValue("nextDueDate", ""); // Clear date fields
       }
     }
   };
@@ -207,20 +245,27 @@ export default function VaccinationRecord({
     };
     
     // Convert to array format for the API
-    const allFormsArray = Object.values(allFormValues);
+    const allFormsArray: VaccinationRecordFormValues[] = Object.values(allFormValues);
     
     // Prepare the data in the format expected by the API
     const batchSubmission: VaccinationDetailRequest = {
-      details: allFormsArray.map(record => ({
-        visitId: visitData.id, // Use the correct visit ID from the fetched data
-        vaccinationMasterId: record.vaccineId,
-        dateGiven: record.dateGiven.toISOString(),
-        nextDueDate: record.nextDueDate.toISOString(),
-        batchNumber: record.batchNumber,
-        adverseReactions: record.adverseReactions || "",
-        veterinarianId: record.veterinarian
-      })),
-      isCompleted: true
+      visitId: visitData.id,
+      // Aggregate any notes/adverse reactions across records if present; fallback to empty string
+      notes: allFormsArray.map(r => r.adverseReactions).filter(Boolean).join("; ") || "",
+      isCompleted: true,
+      vaccinationMasterIds: allFormsArray.map(record => record.vaccineId),
+      
+      // Convert DD/MM/YYYY strings to ISO strings for API
+      dateGiven: allFormsArray[0].dateGiven ? new Date(
+        parseInt(allFormsArray[0].dateGiven.split('/')[2]), 
+        parseInt(allFormsArray[0].dateGiven.split('/')[1]) - 1, 
+        parseInt(allFormsArray[0].dateGiven.split('/')[0])
+      ).toISOString() : "",
+      nextDueDate: allFormsArray[0].nextDueDate ? new Date(
+        parseInt(allFormsArray[0].nextDueDate.split('/')[2]), 
+        parseInt(allFormsArray[0].nextDueDate.split('/')[1]) - 1, 
+        parseInt(allFormsArray[0].nextDueDate.split('/')[0])
+      ).toISOString() : "",
     };
     
     console.log("Submitting vaccination records:", batchSubmission);
@@ -232,6 +277,7 @@ export default function VaccinationRecord({
         updateAppointment.mutate({
           id: appointmentId,
           data: {
+            id: appointmentId,
             status: "completed"
           }
         });
@@ -361,9 +407,20 @@ export default function VaccinationRecord({
                       <FormItem className="flex flex-col">
                         <FormLabel>Date Given *</FormLabel>
                         <DatePicker
-                          value={field.value}
-                          onChange={field.onChange}
+                          value={field.value ? new Date(parseInt(field.value.split('/')[2]), parseInt(field.value.split('/')[1]) - 1, parseInt(field.value.split('/')[0])) : null}
+                          onChange={(date) => {
+                            if (date) {
+                              const day = String(date.getDate()).padStart(2, '0');
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const year = date.getFullYear();
+                              field.onChange(`${day}/${month}/${year}`);
+                            } else {
+                              field.onChange("");
+                            }
+                          }}
                           className="w-full"
+                          inputFormat="dd/MM/yyyy"
+                          autoFormatTyping={true}
                         />
                         <FormMessage />
                       </FormItem>
@@ -377,9 +434,20 @@ export default function VaccinationRecord({
                       <FormItem className="flex flex-col">
                         <FormLabel>Next Due Date *</FormLabel>
                         <DatePicker
-                          value={field.value}
-                          onChange={field.onChange}
+                          value={field.value ? new Date(parseInt(field.value.split('/')[2]), parseInt(field.value.split('/')[1]) - 1, parseInt(field.value.split('/')[0])) : null}
+                          onChange={(date) => {
+                            if (date) {
+                              const day = String(date.getDate()).padStart(2, '0');
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const year = date.getFullYear();
+                              field.onChange(`${day}/${month}/${year}`);
+                            } else {
+                              field.onChange("");
+                            }
+                          }}
                           className="w-full"
+                          inputFormat="dd/MM/yyyy"
+                          autoFormatTyping={true}
                         />
                         <FormMessage />
                       </FormItem>

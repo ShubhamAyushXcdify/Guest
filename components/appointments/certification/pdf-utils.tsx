@@ -164,4 +164,44 @@ export const downloadPDF = async (
     if (onError) onError(error);
     throw error;
   }
+};
+
+// Helper function to print PDF
+export const printPDF = async (
+  pdfComponent: React.ReactElement<DocumentProps>,
+  onSuccess?: () => void,
+  onError?: (error: any) => void
+) => {
+  try {
+    const { pdf } = await import('@react-pdf/renderer');
+    const blob = await pdf(pdfComponent).toBlob();
+    const url = URL.createObjectURL(blob);
+    
+    // Open in new window and print
+    const printWindow = window.open(url);
+    if (printWindow) {
+      const onLoad = () => {
+        printWindow.focus();
+        printWindow.print();
+        URL.revokeObjectURL(url);
+      };
+      
+      // If already loaded, try printing immediately; otherwise, wait for load
+      try {
+        if (printWindow.document?.readyState === 'complete') {
+          onLoad();
+        } else {
+          printWindow.addEventListener('load', onLoad, { once: true });
+        }
+      } catch (_) {
+        // Cross-origin or timing issue; user can print manually
+        URL.revokeObjectURL(url);
+      }
+    }
+    
+    if (onSuccess) onSuccess();
+  } catch (error) {
+    if (onError) onError(error);
+    throw error;
+  }
 }; 

@@ -4,19 +4,26 @@ import { useQueryClient } from "@tanstack/react-query";
 interface UpdateAppointmentData {
   id: string;
   data: {
-    isRegistered?: boolean;
-    status?: string;
-    rejectionReason?: string;
-    appointmentDate?: string;
-    reason?: string;
-    notes?: string;
-    roomId?: string;
+    id: string; // Add this line - the appointment ID should be in the data payload
+    clinicId?: string;
+    patientId?: string;
+    clientId?: string;
     veterinarianId?: string;
-    [key: string]: any; // Allow other properties
+    roomId?: string;
+    appointmentDate?: string;
+    appointmentTimeFrom?: string;
+    appointmentTimeTo?: string;
+    appointmentTypeId?: string;
+    reason?: string;
+    status?: string;
+    notes?: string;
+    isRegistered?: boolean;
+    createdBy?: string;
     sendEmail?: boolean;
+    rejectionReason?: string;
+    [key: string]: any; // Allow other properties
   };
 }
-
 const updateAppointment = async ({ id, data }: UpdateAppointmentData) => {
   try {
     const url = `/api/appointment/${id}`;

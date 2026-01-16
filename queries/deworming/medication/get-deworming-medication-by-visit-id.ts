@@ -1,13 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 
-export interface MedicationPrescription {
-  medicationName: string;
-  dose: string;
-  frequency: string;
-  duration: string;
-  isCompleted: boolean;
-}
-
 export interface DewormingMedicationDetail {
   id: string;
   visitId: string;
@@ -19,7 +11,7 @@ export interface DewormingMedicationDetail {
   isCompleted: boolean;
   createdAt: string;
   updatedAt: string;
-  prescriptions: MedicationPrescription[];
+  
 }
 
 const getDewormingMedicationByVisitId = async (visitId: string): Promise<DewormingMedicationDetail[] | null> => {
@@ -35,10 +27,10 @@ const getDewormingMedicationByVisitId = async (visitId: string): Promise<Dewormi
   return response.json();
 };
 
-export const useGetDewormingMedicationByVisitId = (visitId: string, enabled = true) => {
+export const useGetDewormingMedicationByVisitId = (visitId: string) => {
   return useQuery({
     queryKey: ['dewormingMedicationByVisitId', visitId],
     queryFn: () => getDewormingMedicationByVisitId(visitId),
-    enabled: !!visitId && enabled,
+    enabled: !!visitId,
   });
 }; 

@@ -24,14 +24,8 @@ import { useGetClientById } from "@/queries/clients/get-client"
 import { useGetClinicById } from "@/queries/clinic/get-clinic-by-id"
 import { useGetUserById } from "@/queries/users/get-user-by-id"
 
-// Import all certificate components
-import FitnessTravelCertificate from "./certification/fitness-travel-certificate"
-import HealthHostelCertificate from "./certification/health-hostel-certificate"
-import VaccinationCertificate from "./certification/vaccination-certificate"
-import DewormingCertificate from "./certification/deworming-certificate"
-import TickMedicineCertificate from "./certification/tick-medicine-certificate"
-import EuthanasiaCertificate from "./certification/euthanasia-certificate"
-import ConsentBondCertificate from "./certification/consent-bond-certificate"
+// Import the generic Certificate component
+import Certificate from "./certification/certificate"
 
 interface CertificateDownloadProps {
   appointmentId: string
@@ -153,31 +147,15 @@ export default function CertificateDownload({ appointmentId, patientId, onClose 
       )
     }
 
-    const certificateProps = {
-      appointmentId,
-      patientId,
-      onClose: handleBackToSelection,
-      readOnly: true // READ-ONLY MODE - No editing, no save buttons
-    }
-
-    switch (selectedCertificate.template) {
-      case "fitness-travel":
-        return <FitnessTravelCertificate {...certificateProps} />
-      case "health-hostel":
-        return <HealthHostelCertificate {...certificateProps} />
-      case "vaccination":
-        return <VaccinationCertificate {...certificateProps} />
-      case "deworming":
-        return <DewormingCertificate {...certificateProps} />
-      case "tick-medicine":
-        return <TickMedicineCertificate {...certificateProps} />
-      case "euthanasia":
-        return <EuthanasiaCertificate {...certificateProps} />
-      case "consent-bond":
-        return <ConsentBondCertificate {...certificateProps} />
-      default:
-        return <div>Certificate template not found</div>
-    }
+    return (
+      <Certificate
+        certificateName={`${selectedCertificate.name}`}
+        appointmentId={appointmentId}
+        patientId={patientId}
+        onClose={handleBackToSelection}
+        readOnly={true}
+      />
+    )
   }
 
   // Show loading state while fetching data

@@ -12,7 +12,6 @@ import { Button } from "../ui/button";
 export type StockFilters = {
   search?: string
   batchNumber?: string
-  productType?: string
 }
 
 interface StockFilterDialogProps {
@@ -56,11 +55,6 @@ export function StockFilterDialog({ isOpen, onOpenChange, filters, setFilters }:
             value={localFilters.batchNumber || ""}
             onChange={e => setLocalFilters(f => ({ ...f, batchNumber: e.target.value }))}
           />
-            {/* <Input
-                placeholder="Product type..."
-                value={localFilters.productType || ""}
-                onChange={e => setLocalFilters(f => ({ ...f, productType: e.target.value }))}
-            /> */}
         </div>
 
         <div className="flex justify-between pt-4">

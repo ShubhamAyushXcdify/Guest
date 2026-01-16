@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState,useRef } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -7,36 +9,48 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useCreateEmergencyDischarge } from "@/queries/emergency/discharge/create-emergency-discharge";
+import { useUpdateEmergencyDischarge } from "@/queries/emergency/discharge/update-emergency-discharge";
 import { toast } from "sonner";
 import { useRootContext } from '@/context/RootContext';
-import { useGetUsers, User } from '@/queries/users/get-users';
+import { useGetUsers } from '@/queries/users/get-users';
 import { useGetRoomsByClinicId } from '@/queries/rooms/get-room-by-clinic-id';
 import { useGetAppointmentType, AppointmentType } from '@/queries/appointmentType/get-appointmentType';
 import { useGetAvailableSlotsByUserId } from '@/queries/users/get-availabelSlots-by-userId';
 import { useCreateAppointment } from '@/queries/appointment/create-appointment';
+import { useGetRole } from "@/queries/roles/get-role";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetEmergencyDischargeByVisitId } from '@/queries/emergency/discharge/get-emergency-discharge-by-visit-id';
 import { useEffect } from 'react';
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
+import { useUpdateVisit } from "@/queries/visit/update-visit";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { Loader2, Send, Bot, User, Sparkles } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { emergencydischargeAnalysis } from "@/app/actions/reasonformatting";
 
 
 interface DischargeTabProps {
   patientId: string;
   appointmentId: string;
   onClose?: () => void;
+  externalFollowUpDate?: string;
+  onExternalFollowUpDateChange?: (v: string) => void;
 }
 
 const dischargeStatuses = [
-  { value: "recovered", label: "Recovered" },
-  { value: "admitted", label: "Admitted" },
-  { value: "referred", label: "Referred" },
-  { value: "deceased", label: "Deceased" },
+  { value: "Discharged", label: "Discharged" },
+  { value: "Transferred", label: "Transferred" },
+  { value: "Deceased", label: "Deceased" },
+  { value: "Against Medical Advice", label: "Against Medical Advice" },
 ];
 
-export default function DischargeTab({ patientId, appointmentId, onClose }: DischargeTabProps) {
+export default function DischargeTab({ patientId, appointmentId, onClose, externalFollowUpDate, onExternalFollowUpDateChange }: DischargeTabProps) {
   const [status, setStatus] = useState("");
-  const [dischargeTime, setDischargeTime] = useState(() => new Date().toISOString().slice(0, 16));
+  const [dischargeTime, setDischargeTime] = useState<Date>(() => new Date());
   const [clinician, setClinician] = useState("");
   const [summary, setSummary] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -46,23 +60,134 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
   const [nextAppointment, setNextAppointment] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [nextApptVet, setNextApptVet] = useState("");
+  const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [isDischargeSaved, setIsDischargeSaved] = useState(false);
+  const [veterinarianRoleId, setVeterinarianRoleId] = useState<string | null>(null);
 
   const { clinic, user } = useRootContext();
   const { data: apptTypes = [] } = useGetAppointmentType(1, 100, '', true);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+const [isChatMode, setIsChatMode] = useState(false);
+const [analysisResult, setAnalysisResult] = useState("");
+const [chatInput, setChatInput] = useState("");
 
-  const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
+const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+const dischargeContextRef = useRef("");
+
+const buildDischargeContext = () => {
+  const dischargeInfo = `
+Current Discharge Data:
+- Discharge Status: ${status || "Not specified"}
+- Discharge Time: ${
+    dischargeTime ? dischargeTime.toISOString() : "Not recorded"
+  }
+- Responsible Clinician: ${clinician || "Not specified"}
+
+- Discharge Summary:
+${summary || "Not provided"}
+
+- Home Care Instructions:
+${instructions || "Not provided"}
+
+- Follow-up Instructions:
+${followUp || "Not provided"}
+
+- Follow-up Date: ${
+    followUpDate ? followUpDate.toISOString() : "Not scheduled"
+  }
+
+- Reviewed With Client: ${
+    confirmed === true
+      ? "Yes"
+      : confirmed === false
+      ? "No"
+      : "Not recorded"
+  }
+  `.trim();
+
+  return dischargeInfo;
+};
+useEffect(() => {
+  dischargeContextRef.current = buildDischargeContext();
+}, [
+  status,
+  dischargeTime,
+  clinician,
+  summary,
+  instructions,
+  followUp,
+  followUpDate,
+  confirmed,
+]);
+const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
+  id: `discharge-analysis-${patientId}-${appointmentId}`,
+  transport: new DefaultChatTransport({
+    prepareSendMessagesRequest: ({ id, messages }) => {
+      const dischargeContext = dischargeContextRef.current;
+
+      return {
+        body: {
+          id,
+          messages,
+          patientId: patientId ?? null,
+          dischargeContext: dischargeContext || undefined,
+        },
+      };
+    },
+  }),
+});
+
+
+  const { data: rolesData } = useGetRole();
+
+  useEffect(() => {
+    if (rolesData?.data) {
+      const vetRole = rolesData.data.find(
+        (role: any) => role.name.toLowerCase() === 'veterinarian'
+      );
+      if (vetRole) {
+        setVeterinarianRoleId(vetRole.id);
+      }
+    }
+  }, [rolesData]);
+
+  const { data: usersData, isLoading: usersLoading } = useGetUsers(
+    1,
+    100,
+    '',
+    !!clinic?.id && !!veterinarianRoleId,
+    '',
+    clinic?.id ? [clinic.id] : [],
+    veterinarianRoleId ? [veterinarianRoleId] : []
+  );
+
+  const { data: roomsData, isLoading: roomsLoading } = useGetRoomsByClinicId(clinic?.id || '', !!clinic?.id);
+
+  const { data: visitData, isLoading: visitLoading, refetch: refetchVisit } = useGetVisitByAppointmentId(appointmentId);
   const { data: dischargeData, isLoading: dischargeLoading } = useGetEmergencyDischargeByVisitId(visitData?.id || '', !!visitData?.id);
   const createDischarge = useCreateEmergencyDischarge({
     onSuccess: () => {
       toast.success("Discharge record saved successfully");
+      setIsDischargeSaved(true);
     },
     onError: (error) => {
       toast.error(error.message || "Failed to save discharge record");
     }
   });
+
+  const updateDischarge = useUpdateEmergencyDischarge({
+    onSuccess: () => {
+      toast.success("Discharge record updated successfully");
+      setIsDischargeSaved(true);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update discharge record");
+    }
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: appointmentData } = useGetAppointmentById(appointmentId);
+  const updateVisit = useUpdateVisit();
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
       toast.success("Visit completed successfully");
@@ -78,42 +203,119 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
   useEffect(() => {
     if (dischargeData) {
       setStatus(dischargeData.dischargeStatus || '');
-      setDischargeTime(dischargeData.dischargeTime ? dischargeData.dischargeTime.slice(0, 16) : new Date().toISOString().slice(0, 16));
+      setDischargeTime(dischargeData.dischargeTime ? new Date(dischargeData.dischargeTime) : new Date());
       setClinician(dischargeData.responsibleClinician || '');
       setSummary(dischargeData.dischargeSummary || '');
       setInstructions(dischargeData.homeCareInstructions || '');
       setFollowUp(dischargeData.followupInstructions || '');
+      const apiFollowUpDate = (dischargeData as any)?.followupDate || (dischargeData as any)?.followUpDate as string | undefined;
+      const parsed = apiFollowUpDate ? new Date(apiFollowUpDate) : null;
+      setFollowUpDate(parsed);
+      if (parsed && onExternalFollowUpDateChange) {
+        onExternalFollowUpDateChange(parsed.toISOString());
+      }
       setConfirmed(!!dischargeData.reviewedWithClient);
-      setMedications(
-        Array.isArray(dischargeData.prescriptions)
-          ? dischargeData.prescriptions.map(med => ({
-              name: med.medicationName || '',
-              dose: med.dose || '',
-              frequency: med.frequency || '',
-              duration: med.duration || '',
-            }))
-          : []
-      );
-        setIsDischargeSaved(true); // ✅ Mark as saved
+      setIsDischargeSaved(true); // ✅ Mark as saved
     }
   }, [dischargeData]);
 
+  // Keep internal Follow-up Date in sync with footer picker (if provided)
+  useEffect(() => {
+    if (typeof externalFollowUpDate !== "undefined") {
+      setFollowUpDate(externalFollowUpDate ? new Date(externalFollowUpDate) : null);
+    }
+  }, [externalFollowUpDate]);
+
+  const handleAnalyze = async () => {
+    const species = appointmentData?.patient?.species;
+  
+    if (!species) {
+      toast.error("Patient species information is required for analysis");
+      return;
+    }
+  
+    if (!hasAnyInput()) {
+      toast.error("Please enter at least one discharge detail before analyzing");
+      return;
+    }
+  
+    setIsAnalyzing(true);
+  
+    try {
+      const analysis = await emergencydischargeAnalysis(species, {
+        dischargeStatus: status,
+        dischargeTime: dischargeTime ? dischargeTime.toISOString() : undefined,
+        responsibleClinician: clinician,
+        dischargeSummary: summary,
+        homeCareInstructions: instructions,
+        followupInstructions: followUp,
+        followupDate: followUpDate
+          ? followUpDate.toISOString()
+          : undefined,
+        reviewedWithClient: confirmed,
+      });
+  
+      setAnalysisResult(analysis);
+      setIsChatMode(true);
+  
+      setMessages([
+        {
+          id: "initial-discharge-analysis",
+          role: "assistant",
+          parts: [{ type: "text", text: analysis }],
+        },
+      ]);
+  
+      toast.success("Discharge analysis completed");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to analyze discharge"
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+  const handleChatSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+  
+    await sendMessage({ text: chatInput });
+    setChatInput("");
+  };
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+    
+
   const isDischargeComplete = (): boolean => {
     return (
-      status.trim() !== "" &&
-      dischargeTime.trim() !== "" &&
-      clinician.trim() !== "" &&
-      summary.trim() !== "" &&
-      instructions.trim() !== "" &&
-   
+      status.trim() !== "" ||
+      !!dischargeTime ||
+      clinician.trim() !== "" ||
+      summary.trim() !== "" ||
+      instructions.trim() !== "" ||
       confirmed
     );
   };
 
-  // Add this function to check if all emergency tabs are completed
-  const areAllEmergencyTabsCompleted = () => {
+  const hasAnyInput = (): boolean => {
+    return (
+      status.trim() !== "" ||
+      clinician.trim() !== "" ||
+      summary.trim() !== "" ||
+      instructions.trim() !== "" ||
+      followUp.trim() !== "" ||
+      !!followUpDate ||
+      confirmed === true
+    );
+  };
+
+  // Check if any one emergency tab is completed
+  const isAnyEmergencyTabCompleted = () => {
     if (!visitData) return false;
-    
+
     // Cast visitData to access emergency completion properties
     const visit = visitData as unknown as {
       isEmergencyTriageCompleted?: boolean;
@@ -122,55 +324,67 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
       isEmergencyDischargeCompleted?: boolean;
     };
 
- 
-    
     return (
-      visit.isEmergencyTriageCompleted &&
-      visit.isEmergencyVitalCompleted &&
-      visit.isEmergencyProcedureCompleted &&
-      isDischargeComplete() // Current discharge tab completion
+      Boolean(visit.isEmergencyTriageCompleted) ||
+      Boolean(visit.isEmergencyVitalCompleted) ||
+      Boolean(visit.isEmergencyProcedureCompleted) ||
+      isDischargeComplete()
     );
   };
 
-    // Get appointment data
-  const { data: emergencyData } = useGetAppointmentById(appointmentId) ;
+  // Get appointment data
+  const { data: emergencyData } = useGetAppointmentById(appointmentId);
 
-  const isReadOnly = emergencyData?.status === "completed" ;
+  const isReadOnly = emergencyData?.status === "completed";
+  // Using Date objects and ISO strings for consistency
 
-  const handleAddMedication = () => {
-    if (medicationRow.name && medicationRow.dose && medicationRow.frequency && medicationRow.duration) {
-      setMedications([...medications, medicationRow]);
-      setMedicationRow({ name: "", dose: "", frequency: "", duration: "" });
-    }
+  const toLocalDateStartString = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}T00:00:00`;
   };
 
   const handleSubmit = async () => {
-    if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
-      return;
+    // Ensure we have a visit id, try refetch and use the returned data if needed
+    let currentVisitId = visitData?.id as string | undefined;
+    if (!currentVisitId) {
+      try {
+        const ref = await refetchVisit();
+        currentVisitId = (ref.data as any)?.id;
+      } catch {}
+      if (!currentVisitId) {
+        toast.error("No visit data found for this appointment");
+        return;
+      }
     }
+    // Allow proceeding even if appointment data hasn't loaded yet
     setIsSubmitting(true);
     try {
-      await createDischarge.mutateAsync({
-        visitId: visitData.id,
+      const payload = {
+        visitId: currentVisitId,
         dischargeStatus: status,
-        dischargeTime,
+        dischargeTime: dischargeTime.toISOString(),
         responsibleClinician: clinician,
         dischargeSummary: summary,
         homeCareInstructions: instructions,
         followupInstructions: followUp,
+        followupDate: followUpDate ? toLocalDateStartString(followUpDate) : undefined,
         reviewedWithClient: confirmed,
-        isCompleted: isDischargeComplete(),
-        prescriptions: (medications.map(med => ({
-          visitId: visitData.id,
-          medicationName: med.name,
-          dose: med.dose,
-          frequency: med.frequency,
-          duration: med.duration,
-          isCompleted: true,
-        })) as any),
-      });
-        setIsDischargeSaved(true); // ✅ Mark as saved
+        isCompleted: true,
+      };
+
+      console.log('Submitting discharge payload:', JSON.stringify(payload, null, 2));
+
+      if (dischargeData?.id) {
+        await updateDischarge.mutateAsync({ id: dischargeData.id, ...payload });
+      } else {
+        await createDischarge.mutateAsync(payload as any);
+      }
+      // Only mark visit flag completed if discharge is complete
+      if (visitData?.id && isDischargeComplete()) {
+        try { await updateVisit.mutateAsync({ id: visitData.id, isEmergencyDischargeCompleted: true }); } catch {}
+      }
     } catch (e) {
       // error handled in onError   
     } finally {
@@ -183,35 +397,41 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
       toast.error("No visit data found for this appointment");
       return;
     }
-    if (!appointmentData) {
-      toast.error("No appointment data found");
-      return;
-    }
+    // Proceed even if appointment data hasn't loaded; we'll skip appointment status update in that case
     setIsSubmitting(true);
     try {
-      // Save discharge as completed
-      await createDischarge.mutateAsync({
-        visitId: visitData.id,
-        dischargeStatus: status,
-        dischargeTime,
-        responsibleClinician: clinician,
-        dischargeSummary: summary,
-        homeCareInstructions: instructions,
-        followupInstructions: followUp,
-        reviewedWithClient: confirmed,
-        isCompleted: isDischargeComplete(),
-        prescriptions: (medications.map(med => ({
+      // Only save discharge on checkout if any input is present
+      if (hasAnyInput()) {
+        const payload = {
           visitId: visitData.id,
-          medicationName: med.name,
-          dose: med.dose,
-          frequency: med.frequency,
-          duration: med.duration,
+          dischargeStatus: status,
+          dischargeTime: dischargeTime.toISOString(),
+          responsibleClinician: clinician,
+          dischargeSummary: summary,
+          homeCareInstructions: instructions,
+          followupInstructions: followUp,
+          followupDate: followUpDate ? toLocalDateStartString(followUpDate) : undefined,
+          reviewedWithClient: confirmed,
           isCompleted: true,
-        })) as any),
-      });
+        };
 
-      // Mark appointment as completed
-      if (appointmentData.status !== "completed") {
+        if (dischargeData?.id) {
+          await updateDischarge.mutateAsync({ id: dischargeData.id, ...payload });
+        } else {
+          await createDischarge.mutateAsync(payload as any);
+        }
+
+        // Mark visit flag completed ONLY when discharge is complete during checkout (same pattern as Triage)
+         if (visitData?.id) {
+            await updateVisit.mutateAsync({ 
+            id: visitData.id, 
+            isEmergencyDischargeCompleted: true 
+            });
+          }
+      }
+
+      // Mark appointment as completed only if we have appointmentData
+      if (appointmentData && appointmentData.status !== "completed") {
         await updateAppointmentMutation.mutateAsync({
           id: appointmentId,
           data: {
@@ -232,9 +452,11 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
 
   return (
     <Card>
-      <CardContent className="space-y-4 p-6">
+      <CardContent className="p-0">
+      <div className="h-[calc(100vh-26rem)] overflow-y-auto p-6">
+        <div className={isReadOnly ? "pointer-events-none opacity-60" : ""}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="mb-4">
             <Label htmlFor="status">Discharge Status</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger id="status">
@@ -247,17 +469,22 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="mb-4">
             <Label htmlFor="dischargeTime">Discharge Time</Label>
-            <Input
-              id="dischargeTime"
-              type="datetime-local"
-              value={dischargeTime}
-              onChange={e => setDischargeTime(e.target.value)}
+            <DatePicker
+              selected={dischargeTime}
+              onChange={(date) => date && setDischargeTime(date)}
+              showTimeSelect
+              timeIntervals={5}
+              showYearDropdown
+              showMonthDropdown
+              dropdownMode="select"
+              dateFormat="dd/MM/yyyy h:mm aa"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
-        <div>
+        <div className="mb-4">
           <Label htmlFor="clinician">Responsible Clinician</Label>
           <Input
             id="clinician"
@@ -266,7 +493,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
             onChange={e => setClinician(e.target.value)}
           />
         </div>
-        <div>
+        <div className="mb-4">
           <Label htmlFor="dischargeSummary">Discharge Summary</Label>
           <Textarea
             id="dischargeSummary"
@@ -275,7 +502,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
             onChange={e => setSummary(e.target.value)}
           />
         </div>
-        <div>
+        <div className="mb-4">
           <Label htmlFor="instructions">Home Care Instructions</Label>
           <Textarea
             id="instructions"
@@ -284,43 +511,7 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
             onChange={e => setInstructions(e.target.value)}
           />
         </div>
-        <div>
-          <Label>Medications to Go Home</Label>
-          <div className="flex gap-2 mb-2">
-            <Input
-              placeholder="Name"
-              value={medicationRow.name}
-              onChange={e => setMedicationRow({ ...medicationRow, name: e.target.value })}
-            />
-            <Input
-              placeholder="Dose"
-              value={medicationRow.dose}
-              onChange={e => setMedicationRow({ ...medicationRow, dose: e.target.value })}
-            />
-            <Input
-              placeholder="Frequency"
-              value={medicationRow.frequency}
-              onChange={e => setMedicationRow({ ...medicationRow, frequency: e.target.value })}
-            />
-            <Input
-              placeholder="Duration"
-              value={medicationRow.duration}
-              onChange={e => setMedicationRow({ ...medicationRow, duration: e.target.value })}
-            />
-            <Button type="button" variant="outline" onClick={handleAddMedication}>Add</Button>
-          </div>
-          {medications.length > 0 && (
-            <div className="border rounded-lg p-2 bg-gray-50 text-sm mt-2">
-              <div className="font-medium mb-1">Medications List:</div>
-              <ul>
-                {medications.map((med, idx) => (
-                  <li key={idx}>{med.name} - {med.dose} - {med.frequency} for {med.duration}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-        <div>
+        <div className="mb-4">
           <Label htmlFor="followUp">Follow-up Instructions</Label>
           <Textarea
             id="followUp"
@@ -329,25 +520,164 @@ export default function DischargeTab({ patientId, appointmentId, onClose }: Disc
             onChange={e => setFollowUp(e.target.value)}
           />
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mb-4">
           <Checkbox id="confirmed" checked={confirmed} onCheckedChange={val => setConfirmed(val === true)} />
           <Label htmlFor="confirmed">Reviewed with client / Signature</Label>
         </div>
-        <div className="flex justify-end gap-2">
-          <Button 
-                onClick={handleSubmit}
-                disabled={isSubmitting || visitLoading || !isDischargeComplete() || isReadOnly}
-                className="ml-2"
-              >
-                {isSubmitting ? "Saving..." : (isDischargeSaved ? "Update Discharge" : "Save Discharge")}
-              </Button>
-              <Button
-                onClick={handleCheckout}
-                disabled={isSubmitting || visitLoading || !areAllEmergencyTabsCompleted() || !isDischargeSaved || isReadOnly}
-                className="ml-2 bg-green-600 hover:bg-green-700 text-white"
-              >
-                {isSubmitting ? "Processing..." : "Checkout"}
-              </Button>
+        </div>
+        {/* AI Emergency Procedures Analysis */}
+        <div className="mt-8 border-t pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-md font-semibold">AI Emergency Procedures Analysis</h3>
+              {!isChatMode && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAnalyze}
+                  disabled={
+                    isAnalyzing ||
+                    isReadOnly ||
+                    !hasAnyInput()
+                  }
+                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    "Analyze Procedures"
+                  )}
+                </Button>
+              )}
+            </div>
+
+            {isChatMode ? (
+              <div className="border border-purple-200/50 dark:border-purple-800/50 rounded-lg bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20 shadow-sm">
+                <div className="flex-shrink-0 border-b border-purple-200/30 dark:border-purple-800/30 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-900/20 dark:to-pink-900/20 rounded-t-lg">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-pink-500">
+                      <Bot className="h-3 w-3 text-white" />
+                    </div>
+                    <h4 className="text-sm text-purple-700 dark:text-purple-300 font-semibold">
+                      AI Emergency Procedures Assistant
+                    </h4>
+                  </div>
+                </div>
+                <div className="flex flex-col h-[400px]">
+                  <ScrollArea className="flex-1 p-3">
+                    <div className="space-y-3">
+                      {messages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={cn(
+                            "flex gap-2",
+                            message.role === "user" ? "justify-end" : "justify-start"
+                          )}
+                        >
+                          {message.role === "assistant" && (
+                            <Avatar className="h-6 w-6 flex-shrink-0">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                                <Bot className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <div
+                            className={cn(
+                              "rounded-lg px-3 py-2 max-w-[80%]",
+                              message.role === "user"
+                                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-sm"
+                                : "bg-gradient-to-r from-slate-100 to-blue-50 dark:from-slate-800 dark:to-blue-950/30 border border-slate-200 dark:border-slate-700"
+                            )}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">
+                              {message.parts
+                                ?.map((part) =>
+                                  part.type === "text" ? part.text : ""
+                                )
+                                .join("") || ""}
+                            </p>
+                          </div>
+                          {message.role === "user" && (
+                            <Avatar className="h-6 w-6 flex-shrink-0">
+                              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                                <User className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                        </div>
+                      ))}
+                      {status === "submitted" && (
+                        <div className="flex gap-2 justify-start">
+                          <Avatar className="h-6 w-6 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                              <Bot className="h-3 w-3" />
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="bg-muted rounded-lg px-3 py-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </div>
+                        </div>
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+                  <div className="flex-shrink-0 border-t p-2">
+                    <form onSubmit={handleChatSend} className="flex gap-2">
+                      <Input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask about the emergency discharge analysis..."
+                        className="flex-1 h-9 text-sm"
+                        disabled={status === "submitted" || isReadOnly}
+                      />
+                      <Button
+                        type="submit"
+                        disabled={
+                          !chatInput.trim() ||
+                          status === "submitted" ||
+                          isReadOnly
+                        }
+                        size="icon"
+                        className="h-9 w-9 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-sm"
+                      >
+                        <Send className="h-4 w-4" />
+                        <span className="sr-only">Send message</span>
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {!analysisResult && !isAnalyzing && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-center text-gray-500 dark:text-gray-400 text-sm">
+                    {!hasAnyInput()
+                      ? "Enter emergency procedures data to enable AI analysis"
+                      : "Click 'Analyze Procedures' to get AI-powered insights"}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+      </div>
+        <div className="flex justify-end gap-2 my-4 mx-4">
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || visitLoading || !hasAnyInput() || isReadOnly}
+            className="ml-2"
+          >
+            {isSubmitting ? "Saving..." : (isDischargeSaved ? "Update Discharge" : "Save Discharge")}
+          </Button>
+          <Button
+            onClick={handleCheckout}
+            disabled={isSubmitting || visitLoading || !isAnyEmergencyTabCompleted() || isReadOnly}
+            className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isSubmitting ? "Processing..." : "Checkout"}
+          </Button>
         </div>
       </CardContent>
     </Card>

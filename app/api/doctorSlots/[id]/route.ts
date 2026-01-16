@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJwtToken } from "@/utils/serverCookie";
 
 interface Params {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: Params) {
-  const { id } = params;
+  const { id } = await params;
   const token = getJwtToken(request);
 
   try {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 export async function PUT(request: NextRequest, { params }: Params) {
-  const { id } = params;
+  const { id } = await params;
   const token = getJwtToken(request);
 
   try {
@@ -75,7 +75,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(request: NextRequest, { params }: Params) {
-  const { id } = params;
+  const { id } = await params;
   const token = getJwtToken(request);
 
   try {

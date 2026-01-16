@@ -13,7 +13,8 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getUserId } from "@/utils/clientCookie";
 import { toast } from "@/hooks/use-toast";
-import { DatePicker } from "@/components/ui/datePicker";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { Plus, Trash2 } from "lucide-react";
 
 // 1. Define a schema for the form data with batch support
@@ -26,32 +27,28 @@ const formSchema = z.object({
       productId: z.string(),
       batches: z.array(
         z.object({
-          quantityReceived: z.number().min(0),
-          batchNumber: z.string().min(1, "Batch number is required"),
+          quantityReceived: z.number().min(1, "Quantity must be at least 1"),
+          batchNumber: z.string().optional(),
+          barcodeNumber: z.string().optional(),
           expiryDate: z
             .string()
             .optional()
-            .refine(
-              (val) => {
-                if (!val) return true;
-                const today = new Date().setHours(0, 0, 0, 0);
-                const selected = new Date(val).setHours(0, 0, 0, 0);
-                return selected >= today;
-              },
-              { message: "Expiry date cannot be in the past" }
-            ),
+            .refine((val) => {
+              if (!val || val === "") return true; // Allow empty values
+              const [day, month, year] = val.split('/').map(Number);
+              const parsedDate = new Date(year, month - 1, day);
+              const today = new Date().setHours(0, 0, 0, 0);
+              return !isNaN(parsedDate.getTime()) && parsedDate.setHours(0, 0, 0, 0) >= today;
+            }, { message: "Expiry date cannot be in the past" }),
           dateOfManufacture: z
-            .string()
-            .optional()
-            .refine(
-              (val) => {
-                if (!val) return true;
-                const today = new Date().setHours(0, 0, 0, 0);
-                const selected = new Date(val).setHours(0, 0, 0, 0);
-                return selected <= today;
-              },
-              { message: "Manufacturing date cannot be in the future" }
-            ),
+            .string({ required_error: "Manufacturing date is required" })
+            .min(1, "Manufacturing date is required")
+            .refine((val) => {
+              const [day, month, year] = val.split('/').map(Number);
+              const parsedDate = new Date(year, month - 1, day);
+              const today = new Date().setHours(0, 0, 0, 0);
+              return !isNaN(parsedDate.getTime()) && parsedDate.setHours(0, 0, 0, 0) <= today;
+            }, { message: "Manufacturing date cannot be in the future" }),
           notes: z.string().optional(),
         })
       ).min(1, "At least one batch is required"),
@@ -88,9 +85,10 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
             purchaseOrderItemId: item.id,
             productId: item.productId,
             batches: [
-              {
+              {           
                 quantityReceived: maxReceivable, // Set default to max receivable
                 batchNumber: "",
+                barcodeNumber: "",
                 expiryDate: "",
                 dateOfManufacture: "",
                 notes: "",
@@ -133,9 +131,10 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
           productId: item.productId,
           batches: item.batches.map(batch => ({
             quantityReceived: Number(batch.quantityReceived),
-            batchNumber: batch.batchNumber,
-            expiryDate: batch.expiryDate ? new Date(batch.expiryDate).toISOString() : undefined,
-            dateOfManufacture: batch.dateOfManufacture ? new Date(batch.dateOfManufacture).toISOString() : undefined,
+            batchNumber: batch.batchNumber || "",
+            barcodeNumber: batch.barcodeNumber || "",
+            expiryDate: batch.expiryDate && batch.expiryDate.trim() !== "" ? new Date(parseInt(batch.expiryDate.split('/')[2]), parseInt(batch.expiryDate.split('/')[1]) - 1, parseInt(batch.expiryDate.split('/')[0])).toISOString() : null,
+            dateOfManufacture: batch.dateOfManufacture ? new Date(parseInt(batch.dateOfManufacture.split('/')[2]), parseInt(batch.dateOfManufacture.split('/')[1]) - 1, parseInt(batch.dateOfManufacture.split('/')[0])).toISOString() : null,
             notes: batch.notes || "",
           })),
         })),
@@ -162,16 +161,16 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[90%] sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-y-auto">
+      <SheetContent className="w-[90%] sm:!max-w-full md:!max-w-[80%] lg:!max-w-[90%] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Receive Purchase Order</SheetTitle>
+          <SheetTitle className="relative top-[-10px]">Receive Purchase Order</SheetTitle>
         </SheetHeader>
         {isLoading ? (
           <div>Loading...</div>
         ) : order ? (
           <>
             {/* Purchase Order Info */}
-            <div className="flex gap-6 mt-4 text-sm text-gray-600">
+            <div className="flex gap-6 mt-1 text-sm text-gray-600">
               <div>
                 <span className="font-medium">PO Number:</span> {order.orderNumber}
               </div>
@@ -181,19 +180,20 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
             </div>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6 border p-4 rounded-md">
               {/* Items with Batches */}
-              <div className="bg-slate-50 p-4 rounded-md">
+              <div className="bg-slate-50 p-4 rounded-md border">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-md font-semibold">Receiving Items</h3>
                 </div>
 
                 {/* Single Header Row for All Products */}
-                <div className="grid grid-cols-8 gap-2 mb-2 px-2 text-sm font-medium text-gray-700 bg-gray-100 py-2 rounded">
+                <div className="grid grid-cols-9 gap-2 mb-2 px-2 text-sm font-medium text-gray-700 bg-gray-100 py-2 rounded">
                   <div className="col-span-1">Product</div>
                   <div className="col-span-1">Ordered</div>
                   <div className="col-span-1">Qty Receiving</div>
                   <div className="col-span-1">Batch #</div>
+                  <div className="col-span-1">Barcode Number</div>
                   <div className="col-span-1">Expiry Date</div>
                   <div className="col-span-1">Mfg Date</div>
                   <div className="col-span-1">Notes</div>
@@ -211,7 +211,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
 
                       {/* Batches for this item */}
                       {receivedItem.batches.map((_, batchIdx) => (
-                        <div key={batchIdx} className="grid grid-cols-8 gap-2 mb-2 items-center px-2">
+                        <div key={batchIdx} className="grid grid-cols-9 gap-2 mb-4 items-start px-2 relative">
                           {/* Product Name - Only show for first batch */}
                           <div className="col-span-1">
                             {batchIdx === 0 ? (
@@ -251,7 +251,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                 const maxForThisBatch = Math.max(0, maxReceivable - otherBatchesTotal);
 
                                 return (
-                                  <FormItem className="mb-0">
+                                  <FormItem className="mb-0 relative pb-5">
                                     <FormControl>
                                       <Input
                                         type="number"
@@ -279,7 +279,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                         }}
                                       />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage className="absolute left-0" />
                                   </FormItem>
                                 );
                               }}
@@ -292,11 +292,27 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                               control={form.control}
                               name={`receivedItems.${itemIdx}.batches.${batchIdx}.batchNumber`}
                               render={({ field }) => (
-                                <FormItem className="mb-0">
+                                <FormItem className="mb-0 relative pb-5">
                                   <FormControl>
-                                    <Input type="text" {...field} />
+                                    <Input type="text" {...field} placeholder="Enter batch number (optional)" />
                                   </FormControl>
-                                  <FormMessage />
+                                  <FormMessage className="absolute left-0" />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          {/* Barcode Number */}
+                          <div className="col-span-1">
+                            <FormField
+                              control={form.control}
+                              name={`receivedItems.${itemIdx}.batches.${batchIdx}.barcodeNumber`}
+                              render={({ field }) => (
+                                <FormItem className="mb-0 relative pb-5">
+                                  <FormControl>
+                                    <Input type="text" {...field} placeholder="Enter barcode" />
+                                  </FormControl>
+                                  <FormMessage className="absolute left-0" />
                                 </FormItem>
                               )}
                             />
@@ -308,26 +324,30 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                               control={form.control}
                               name={`receivedItems.${itemIdx}.batches.${batchIdx}.expiryDate`}
                               render={({ field }) => (
-                                <FormItem className="mb-0">
+                                <FormItem className="mb-0 relative pb-5">
                                   <FormControl>
                                     <DatePicker
-                                      value={field.value ? new Date(field.value) : null}
-                                      onChange={(date) => {
+                                      selected={field.value ? new Date(parseInt(field.value.split('/')[2]), parseInt(field.value.split('/')[1]) - 1, parseInt(field.value.split('/')[0])) : null}
+                                      onChange={(date: Date | null) => {
                                         if (date) {
-                                          // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
-                                          const year = date.getFullYear();
-                                          const month = String(date.getMonth() + 1).padStart(2, '0');
                                           const day = String(date.getDate()).padStart(2, '0');
-                                          field.onChange(`${year}-${month}-${day}`);
+                                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                                          const year = date.getFullYear();
+                                          field.onChange(`${day}/${month}/${year}`);
                                         } else {
                                           field.onChange('');
                                         }
                                       }}
-                                      placeholder="Select expiry date"
+                                      placeholderText="dd/mm/yyyy"
                                       minDate={new Date()}
+                                      dateFormat="dd/MM/yyyy"
+                                      showYearDropdown
+                                      showMonthDropdown
+                                      dropdownMode="select"
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                   </FormControl>
-                                  <FormMessage />
+                                  <FormMessage className="absolute left-0" />
                                 </FormItem>
                               )}
                             />
@@ -339,26 +359,30 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                               control={form.control}
                               name={`receivedItems.${itemIdx}.batches.${batchIdx}.dateOfManufacture`}
                               render={({ field }) => (
-                                <FormItem className="mb-0">
+                                <FormItem className="mb-0 relative pb-5">
                                   <FormControl>
                                     <DatePicker
-                                      value={field.value ? new Date(field.value) : null}
-                                      onChange={(date) => {
+                                      selected={field.value ? new Date(parseInt(field.value.split('/')[2]), parseInt(field.value.split('/')[1]) - 1, parseInt(field.value.split('/')[0])) : null}
+                                      onChange={(date: Date | null) => {
                                         if (date) {
-                                          // Format date as YYYY-MM-DD in local timezone to avoid timezone issues
-                                          const year = date.getFullYear();
-                                          const month = String(date.getMonth() + 1).padStart(2, '0');
                                           const day = String(date.getDate()).padStart(2, '0');
-                                          field.onChange(`${year}-${month}-${day}`);
+                                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                                          const year = date.getFullYear();
+                                          field.onChange(`${day}/${month}/${year}`);
                                         } else {
                                           field.onChange('');
                                         }
                                       }}
-                                      placeholder="Select mfg date"
+                                      placeholderText="dd/mm/yyyy"
                                       maxDate={new Date()}
+                                      dateFormat="dd/MM/yyyy"
+                                      showYearDropdown
+                                      showMonthDropdown
+                                      dropdownMode="select"
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
                                   </FormControl>
-                                  <FormMessage />
+                                  <FormMessage className="absolute left-0" />
                                 </FormItem>
                               )}
                             />
@@ -370,11 +394,11 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                               control={form.control}
                               name={`receivedItems.${itemIdx}.batches.${batchIdx}.notes`}
                               render={({ field }) => (
-                                <FormItem className="mb-0">
+                                <FormItem className="mb-0 relative pb-5">
                                   <FormControl>
                                     <Input type="text" {...field} />
                                   </FormControl>
-                                  <FormMessage />
+                                  <FormMessage className="absolute left-0" />
                                 </FormItem>
                               )}
                             />
@@ -393,6 +417,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                   const newBatch = {
                                     quantityReceived: 0,
                                     batchNumber: "",
+                                    barcodeNumber: "",
                                     expiryDate: "",
                                     dateOfManufacture: "",
                                     notes: "",
@@ -414,6 +439,14 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                                   if (currentBatches.length > 1) {
                                     const newBatches = currentBatches.filter((_, idx) => idx !== batchIdx);
                                     form.setValue(`receivedItems.${itemIdx}.batches`, newBatches);
+                                    // Clear validation errors for the deleted batch
+                                    form.clearErrors([
+                                      `receivedItems.${itemIdx}.batches.${batchIdx}`,
+                                      `receivedItems.${itemIdx}.batches.${batchIdx}.quantityReceived`,
+                                      `receivedItems.${itemIdx}.batches.${batchIdx}.batchNumber`,
+                                      `receivedItems.${itemIdx}.batches.${batchIdx}.expiryDate`,
+                                      `receivedItems.${itemIdx}.batches.${batchIdx}.dateOfManufacture`
+                                    ]);
                                   }
                                 }}
                                 className="text-red-600 hover:text-red-700"
@@ -438,6 +471,7 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                         <thead>
                           <tr className="bg-slate-100">
                             <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Batch #</th>
+                            <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>BarcodeNumber</th>
                             <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Product</th>
                             <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Qty Received</th>
                             <th className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>Expiry Date</th>
@@ -451,13 +485,14 @@ export function PurchaseOrderReceivingSheet({ isOpen, onClose, purchaseOrderId }
                           {order.receivedItems.map((item) => (
                             <tr key={item.id}>
                               <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.batchNumber}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.barcodeNumber}</td>
                               <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.productName}</td>
                               <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.quantityReceived}</td>
-                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : ""}</td>
-                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.dateOfManufacture ? new Date(item.dateOfManufacture).toLocaleDateString() : ""}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('en-GB') : ""}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.dateOfManufacture ? new Date(item.dateOfManufacture).toLocaleDateString('en-GB') : ""}</td>
                               <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.notes}</td>
                               <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.receivedByName}</td>
-                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.receivedDate ? new Date(item.receivedDate).toLocaleDateString() : ""}</td>
+                              <td className="px-2 py-1 border text-center align-middle" style={{textAlign:'center', verticalAlign:'middle'}}>{item.receivedDate ? new Date(item.receivedDate).toLocaleDateString('en-GB') : ""}</td>
                             </tr>
                           ))}
                         </tbody>

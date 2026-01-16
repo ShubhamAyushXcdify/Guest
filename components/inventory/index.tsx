@@ -22,22 +22,21 @@ export default function Inventory() {
 
   return (
     <>
-      <div className="p-6">
-        <div className="flex items-center mb-2">
-          <Link href="/dashboard">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
-
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">Inventory Dashboard</h1>
+      <div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-4 mb-4 md:mb-0">
+            <Link href="/dashboard">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Inventory Dashboard</h1>
+          </div>
           <div className="flex flex-wrap gap-3">
             {/* <Button variant="destructive" className="bg-red-500 hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-800">
               <AlertTriangle className="mr-2 h-4 w-4" /> Low Stock
@@ -53,7 +52,9 @@ export default function Inventory() {
             </Button>
           </div>
         </div>
+      </div>
 
+      <div className="p-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useGetIntakeByVisitId } from "@/queries/intake/get-intake-by-visit-id"
@@ -12,7 +11,8 @@ import { useCreateIntakeDetail } from "@/queries/intake/create-intake-detail"
 import { useUpdateIntakeDetail } from "@/queries/intake/update-intake-detail"
 import { useDeleteIntakeImage } from "@/queries/intake/delete-intake-image"
 import { useDeleteIntakeFile } from "@/queries/intake/delete-intake-file"
-import { Plus, Trash, Upload, Image, X, ZoomIn, ZoomOut, RotateCw } from "lucide-react"
+import { Plus, Trash, Upload, Image, X, ZoomIn, ZoomOut, RotateCw, TrendingUp } from "lucide-react"
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import { Mic } from "lucide-react"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import WeightGraph from "@/components/appointments/WeightGraph"
 
 interface IntakeTabProps {
   patientId: string
@@ -50,7 +51,6 @@ interface LocalImage {
 type ImageItem = StoredImage | LocalImage;
 
 export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTabProps) {
-  const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
   
@@ -88,6 +88,9 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   // Delete confirmation modal state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [indexToDelete, setIndexToDelete] = useState<number | null>(null)
+  
+  // Weight graph modal state
+  const [weightGraphOpen, setWeightGraphOpen] = useState(false)
   
   // Use mutateAsync pattern for better control flow
   const { mutateAsync: createIntakeDetail, isPending: isCreating } = useCreateIntakeDetail({})
@@ -219,11 +222,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
 
   const handleSaveIntake = async () => {
     if (!visitData?.id) {
-      toast({
-        title: "Error",
-        description: "No visit data found for this appointment",
-        variant: "destructive",
-      })
+      toast.error("No visit data found for this appointment")
       return
     }
     
@@ -240,10 +239,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
           isCompleted: true
         })
         
-        toast({
-          title: "Success",
-          description: "Intake detail updated successfully",
-        })
+        toast.success("Intake detail updated successfully")
       } else {
         // Create new intake
         await createIntakeDetail({
@@ -255,10 +251,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
           isCompleted: true
         })
         
-        toast({
-          title: "Success",
-          description: "Intake detail saved successfully",
-        })
+        toast.success("Intake detail saved successfully")
         setHasIntake(true);
       }
       
@@ -272,11 +265,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       }
     } catch (error) {
       console.error('Error saving intake details:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save intake detail",
-        variant: "destructive",
-      })
+      toast.error(error instanceof Error ? error.message : "Failed to save intake detail")
     }
   }
 
@@ -353,10 +342,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
           });
         }
         
-        toast({
-          title: "Success",
-          description: "Image deleted successfully",
-        });
+        toast.success("Image deleted successfully");
       } else {
         // For local image, release the blob URL
         if (imagePaths[index].startsWith('blob:')) {
@@ -389,11 +375,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       
     } catch (error) {
       console.error('Error deleting image:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete image",
-        variant: "destructive",
-      });
+      toast.error(error instanceof Error ? error.message : "Failed to delete image");
     }
   }
   
@@ -459,7 +441,8 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   return (
     <>
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-0">
+          <div className="h-[calc(100vh-23rem)] overflow-y-auto p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold">Intake Information</h2>
           </div>
@@ -469,15 +452,31 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
               <label htmlFor="weightKg" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Weight (kg)
               </label>
-              <Input
-                id="weightKg"
-                type="number"
-                step="0.01"
-                value={weightKg || ""}
-                onChange={(e) => setWeightKg(parseFloat(e.target.value))}
-                className="w-full max-w-xs"
-                disabled={isReadOnly}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="weightKg"
+                  type="number"
+                  step="0.01"
+                  value={weightKg || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setWeightKg(value === "" ? undefined : parseFloat(value));
+                    }
+                  }}
+                  className="w-full max-w-xs"
+                  disabled={isReadOnly}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setWeightGraphOpen(true)}
+                  title="View weight history graph"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div>
@@ -576,7 +575,10 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
               }}
             />
 
-            <div className="mt-6 flex justify-end">
+           
+          </div>
+          </div>
+          <div className="mt-6 flex justify-end mb-4 mx-4">
               <Button
                 onClick={handleSaveIntake}
                 disabled={
@@ -592,7 +594,6 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                   : (intakeData && intakeData.isCompleted) ? "Update & Next" : "Save & Next"}
               </Button>
             </div>
-          </div>
         </CardContent>
       </Card>
       
@@ -612,11 +613,6 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                 <Button variant="outline" size="icon" onClick={rotateImage}>
                   <RotateCw className="h-4 w-4" />
                 </Button>
-                <DialogClose asChild>
-                  <Button variant="outline" size="icon">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </DialogClose>
               </div>
             </DialogTitle>
           </DialogHeader>
@@ -662,6 +658,23 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
               {isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Weight Graph Modal */}
+      <Dialog open={weightGraphOpen} onOpenChange={setWeightGraphOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Weight History</DialogTitle>
+            <DialogDescription>
+              View the patient's weight history over time
+            </DialogDescription>
+          </DialogHeader>
+          <WeightGraph 
+            patientId={patientId} 
+            isOpen={weightGraphOpen} 
+            onClose={() => setWeightGraphOpen(false)} 
+          />
         </DialogContent>
       </Dialog>
     </>

@@ -6,7 +6,7 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 // GET endpoint to fetch purchase order receiving history by product ID and clinic ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { productId: string; clinicId: string } }
+  { params }: { params: Promise<{ productId: string; clinicId: string }> }
 ) {
   try {
     const token = getJwtToken(request);
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const { productId, clinicId } = params;
+    const { productId, clinicId } = await params;
 
     // Call the API
     const response = await fetch(`${apiUrl}/api/PurchaseOrderReceivingHistory/product/${productId}/clinic/${clinicId}`, {

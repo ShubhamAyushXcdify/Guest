@@ -1,8 +1,9 @@
-// Generic AI formatting service using Groq or Gemini
+// Generic AI formatting service using Groq, Gemini, or Local LLM (Ollama)
 // Usage: set your API key in the environment (e.g., process.env.GROQ_API_KEY or process.env.GEMINI_API_KEY)
-// provider: 'groq' | 'gemini'
+// For local LLM (Ollama): set LOCAL_LLM_ENDPOINT (default: http://localhost:11434) and optionally LOCAL_LLM_MODEL (default: llama3.2:latest)
+// provider: 'groq' | 'gemini' | 'local'
 
-export type AIProvider = 'groq' | 'gemini';
+export type AIProvider = 'groq' | 'gemini' | 'local';
 
 interface AIFormattingOptions {
   provider: AIProvider;
@@ -72,6 +73,36 @@ export async function aiFormat({ provider, systemPrompt, userPrompt, model }: AI
     const data = await response.json();
     // Gemini's response structure may vary; adjust as needed
     return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  } else if (provider === 'local') {
+    // Local LLM using Ollama native API format
+    const endpoint = process.env.LOCAL_LLM_ENDPOINT || 'http://localhost:11434';
+    if (!endpoint) throw new Error('Missing LOCAL_LLM_ENDPOINT in environment');
+    // Default model for local LLM (can be overridden)
+    const localModel = model || process.env.LOCAL_LLM_MODEL || 'llama3.2:latest';
+    const url = endpoint.endsWith('/api/generate') 
+      ? endpoint 
+      : `${endpoint}/api/generate`;
+    
+    // Combine system and user prompts for Ollama format
+    const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: localModel,
+        prompt: combinedPrompt,
+        stream: false,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Local LLM API error: ${error}`);
+    }
+    const data = await response.json();
+    return data.response?.trim() || '';
   } else {
     throw new Error('Unsupported AI provider');
   }

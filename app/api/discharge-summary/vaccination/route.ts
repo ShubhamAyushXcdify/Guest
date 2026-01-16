@@ -6,11 +6,11 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 
 // GET API Route for discharge summary
 export async function GET(
-    request: NextRequest,
-    { params }: { params: { visitId: string } }
+    request: NextRequest
 ) {
     try {
-        const { visitId } = params;
+        const { searchParams } = new URL(request.url);
+        const visitId = searchParams.get('visitId');
         
         if (!visitId) {
             return NextResponse.json(

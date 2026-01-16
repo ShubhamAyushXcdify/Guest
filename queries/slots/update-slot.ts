@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Slot } from "./get-slot-by-roomId";
+import { Slot } from "@/components/appointments/appointment-details";
 
 type UpdateSlotInput = {
   id: string;

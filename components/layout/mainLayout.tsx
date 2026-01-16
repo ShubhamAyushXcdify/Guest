@@ -12,9 +12,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
             <AuthProvider>
                 <SidebarProvider>
                     <Sidebar />
-                    <div className="flex-1">
+                    <div className="flex-1 md:overflow-hidden">
                         <Header />
-                        <main className=" overflow-y-auto p-4 max-h-[calc(100vh-6rem)]">
+                        <main className="overflow-y-auto p-4 max-h-[calc(100vh-3rem)] h-full">
                             {children}
                         </main>
                     </div>

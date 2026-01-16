@@ -1,24 +1,46 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Plus, PackageCheck, Clock, Check, AlertCircle, Eye, Printer, Download } from "lucide-react"
+import { Plus, PackageCheck, Clock, Check, AlertCircle, Eye, Printer, Download, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { useGetPurchaseOrders } from "@/queries/purchaseOrder/get-purchaseOrder"
 import { getPurchaseOrderById } from "@/queries/purchaseOrder/get-purchaseOrder-by-id"
-import PurchaseOrderFilterDialog, { PurchaseOrderFilters } from "./PurchaseOrderFilterDialog"
 import type { PurchaseOrderData } from "@/queries/purchaseOrder/create-purchaseOrder"
 import PurchaseOrderDetailsSheet from "./purhchase-order-details-sheet"
 import { formatDate } from "@/lib/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { Input } from "../ui/input"
+import { Label } from "../ui/label"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useGetSupplier } from "@/queries/suppliers"
+import * as XLSX from 'xlsx'
+import { toast } from "../ui/use-toast"
+import Loader from "@/components/ui/loader"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+
+type PurchaseOrderFilters = {
+  orderNumber?: string
+  supplierName?: string
+  status?: string
+  dateFrom?: string
+  dateTo?: string
+}
 
 interface PurchaseOrdersTabProps {
   clinicId: string
   onNewOrder: () => void
 }
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "ordered", label: "Ordered" },
+  { value: "partial", label: "Partial" },
+  { value: "received", label: "Received" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
-// Function to determine status badge color
 const getStatusBadge = (status: string) => {
   switch (status?.toLowerCase()) {
     case 'ordered':
@@ -52,79 +74,196 @@ const getStatusBadge = (status: string) => {
 // Format currency
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined) return "-"
-  return new Intl.NumberFormat('en-IN', { 
-    style: 'currency', 
-    currency: 'INR', 
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(value)
 }
 
+
 export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrdersTabProps) {
   // Filters state
   const [filters, setFilters] = useState<PurchaseOrderFilters>({})
-  const [openFilter, setOpenFilter] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-  const [isLoaded, setIsLoaded] = useState(false)
-  // Add pagination and search state
-  const [searchQuery, setSearchQuery] = useState<string>("")
-  const [page, setPage] = useState<number>(1)
-  const [pageSize, setPageSize] = useState<number>(10)
-  
-  // PDF print state
   const [selectedOrderForPrint, setSelectedOrderForPrint] = useState<PurchaseOrderData | null>(null)
   const [isPrintSheetOpen, setIsPrintSheetOpen] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
-  // Always include clinicId in filters
-  const apiFilters = useMemo(() => ({ 
-    ...filters, 
-    clinicId,
-    page,
-    pageSize
-  }), [filters, clinicId, page, pageSize])
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
+  const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier({
+    pageNumber: 1,
+    pageSize: 100,
+    filters: { clinicId },
+    enabled: Boolean(clinicId),
+  })
 
-  // Fetch purchase orders
-  const { 
-    data: purchaseOrders = [], 
-    isLoading, 
-    isError,
-    error,
-    refetch 
-  } = useGetPurchaseOrders(apiFilters, !!clinicId)
+  const suppliers = suppliersData?.items || []
+  const apiFilters = useMemo(() => {
+    let supplierId: string | undefined = undefined;
 
+    if (filters.supplierName) {
+      const supplier = suppliers.find(
+        s => s.name.toLowerCase() === filters.supplierName!.toLowerCase()
+      );
+      if (supplier) {
+        supplierId = supplier.id;
+      } else {
+        // No matching supplier, ignore filter or show message
+        supplierId = undefined;
+      }
+    }
 
+    return {
+      ...filters,
+      supplierId, // backend filter
+      clinicId,
+      page,
+      pageSize
+    };
+  }, [filters, clinicId, page, pageSize, suppliers]);
 
-  // Refetch when clinicId or filters change
+  const { data: poResponse, refetch } = useGetPurchaseOrders(apiFilters, !!clinicId)
+  const purchaseOrders = poResponse?.data ?? []
+  const totalPages = poResponse?.meta?.totalPages ?? 1
+
   useEffect(() => {
     if (clinicId) {
       refetch().then(() => setIsLoaded(true))
     }
   }, [clinicId, filters, refetch])
 
-  // Count active filters (excluding clinicId)
-  const activeFilterCount = Object.entries(filters).filter(([k, v]) => v && k !== 'clinicId').length
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
 
-  const handleSearch = (searchTerm: string) => {
-    setSearchQuery(searchTerm)
-    setPage(1)
+  // Build export filters using resolved supplierId
+  const buildExportFilters = () => {
+    const { supplierName, dateFrom, dateTo, status, orderNumber } = filters
+    let supplierId: string | undefined = undefined
+    if (supplierName) {
+      const supplier = suppliers.find(
+        s => s.name.toLowerCase() === supplierName.toLowerCase()
+      )
+      if (supplier) supplierId = supplier.id
+    }
+    return { clinicId, dateFrom, dateTo, status, orderNumber, supplierId }
   }
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage)
+  // Fetch all purchase orders across pages for export
+  const fetchAllPurchaseOrders = async (): Promise<PurchaseOrderData[]> => {
+    const { getPurchaseOrders } = await import("@/queries/purchaseOrder/get-purchaseOrder")
+    let all: PurchaseOrderData[] = []
+    let pageNumber = 1
+    const perPage = 100
+    const baseFilters = buildExportFilters()
+    // Safety cap
+    const MAX_PAGES = 200
+
+    while (true) {
+      const response = await getPurchaseOrders({ ...baseFilters, page: pageNumber, pageSize: perPage })
+      const items = Array.isArray(response) ? response : response.data
+      all = all.concat(items || [])
+      if (!Array.isArray(response)) {
+        const totalPages = response.meta?.totalPages ?? 1
+        if (pageNumber >= totalPages) break
+      } else {
+        // If API returns a flat array, assume single page
+        break
+      }
+      pageNumber++
+      if (pageNumber > MAX_PAGES) {
+        console.warn('Reached maximum page limit during export')
+        break
+      }
+    }
+    return all
   }
 
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize)
-    setPage(1)
+  // Export to Excel
+  const handleExportToExcel = async () => {
+    if (!clinicId) {
+      toast({
+        title: "Error",
+        description: "Clinic ID not found. Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      const allOrders = await fetchAllPurchaseOrders()
+
+      if (!allOrders || allOrders.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No purchase orders found to export.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const excelData = allOrders.map((po) => ({
+        'Order #': po.orderNumber || '',
+        'Supplier': po.supplier?.name || '',
+        'Order Date': po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '',
+        'Expected Delivery': po.expectedDeliveryDate ? new Date(po.expectedDeliveryDate).toLocaleDateString() : '',
+        'Actual Delivery': po.actualDeliveryDate ? new Date(po.actualDeliveryDate).toLocaleDateString() : '',
+        'Status': po.status || '',
+        'Total Amount (INR)': po.totalAmount ?? 0,
+        'Discount %': po.discountPercentage ?? 0,
+        'Discount Amount': po.discountedAmount ?? 0,
+        'Extended Amount': po.extendedAmount ?? 0,
+        'Notes': po.notes || ''
+      }))
+
+      const workbook = XLSX.utils.book_new()
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      worksheet['!cols'] = [
+        { wch: 14 }, // Order #
+        { wch: 28 }, // Supplier
+        { wch: 14 }, // Order Date
+        { wch: 18 }, // Expected Delivery
+        { wch: 16 }, // Actual Delivery
+        { wch: 12 }, // Status
+        { wch: 18 }, // Total Amount
+        { wch: 12 }, // Discount %
+        { wch: 18 }, // Discount Amount
+        { wch: 18 }, // Extended Amount
+        { wch: 40 }, // Notes
+      ]
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Orders')
+
+      const currentDate = new Date().toISOString().split('T')[0]
+      const filename = `purchase_orders_export_${currentDate}.xlsx`
+      XLSX.writeFile(workbook, filename)
+
+      toast({
+        title: "Success",
+        description: `Successfully exported ${allOrders.length} purchase orders to Excel.`,
+      })
+    } catch (error) {
+      console.error('Export error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to export purchase orders to Excel. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const handlePrintOrder = async (order: PurchaseOrderData) => {
     try {
       // Fetch the full order data including PDF
       const fullOrder = await getPurchaseOrderById(order.id!)
-      
+
       if (fullOrder.pdfBase64) {
         try {
           const blob = await fetch(`data:application/pdf;base64,${fullOrder.pdfBase64}`).then(res => res.blob());
@@ -168,28 +307,28 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
   }
 
   const columns: ColumnDef<PurchaseOrderData>[] = [
-    { 
-      accessorKey: "orderNumber", 
+    {
+      accessorKey: "orderNumber",
       header: "Order #",
       cell: ({ getValue }) => (
         <div className="font-medium">{getValue() as string}</div>
       )
     },
-    { 
-      accessorKey: "supplier.name", 
+    {
+      accessorKey: "supplier.name",
       header: "Supplier",
       cell: ({ row }) => row.original.supplier?.name || "-"
     },
-    { 
-      accessorKey: "orderDate", 
+    {
+      accessorKey: "orderDate",
       header: "Date",
       cell: ({ getValue }) => {
         const date = getValue() as string
         return date ? new Date(date).toLocaleDateString() : "-"
       }
     },
-    { 
-      accessorKey: "status", 
+    {
+      accessorKey: "status",
       header: "Status",
       cell: ({ getValue }) => {
         const status = getValue() as string;
@@ -202,12 +341,12 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
         );
       }
     },
-    { 
-      accessorKey: "totalAmount", 
+    {
+      accessorKey: "totalAmount",
       header: "Total",
       cell: ({ getValue }) => {
         const amount = getValue() as number
-        return amount ? `₹${amount.toLocaleString(undefined, {minimumFractionDigits:2})}` : "-"
+        return amount ? `₹${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : "-"
       }
     },
     {
@@ -239,38 +378,45 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
       meta: { className: "text-center" },
     },
   ]
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Purchase Orders</h3>
-        <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-2 px-3 py-2 border rounded text-sm"
-            onClick={() => setOpenFilter(true)}
+        <h3 className="text-lg font-semibold">Purchase Orders</h3>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
           >
-            <span>Filter</span>
-            {activeFilterCount > 0 && (
-              <span className="ml-1 h-5 w-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">{activeFilterCount}</span>
+            <Filter className="h-4 w-4" />
+            Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExportToExcel}
+            disabled={isExporting || !clinicId}
+            className="flex items-center gap-2"
+          >
+            {isExporting ? (
+              <Loader size="sm" />
+            ) : (
+              <Download className="h-4 w-4" />
             )}
-          </button>
-          <Button 
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={onNewOrder}
-          >
+            {isExporting ? 'Exporting...' : 'Export to Excel'}
+          </Button>
+          <Button className="theme-button text-white" onClick={onNewOrder}>
             <Plus className="mr-2 h-4 w-4" /> New Order
           </Button>
         </div>
       </div>
-      
-      {/* Active Filters Badges */}
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
           {filters.orderNumber && (
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Order #: {filters.orderNumber}</span>
           )}
-          {filters.supplierId && (
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Supplier: {filters.supplierId}</span>
+          {filters.supplierName && (
+            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Supplier: {filters.supplierName}</span>
           )}
           {filters.status && (
             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">Status: {filters.status}</span>
@@ -281,7 +427,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
           {filters.dateTo && (
             <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">To: {formatDate(filters.dateTo)}</span>
           )}
-          <button 
+          <button
             className="text-xs text-gray-500 underline"
             onClick={() => setFilters({})}
           >
@@ -289,30 +435,123 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
           </button>
         </div>
       )}
+      {/* Filters Section */}
+      {showFilters && (
+        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Filters</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilters({})} // Clear Filters
+            >
+              Clear Filters
+            </Button>
+          </div>
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="order-number">Order #</Label>
+              <Input
+                id="order-number"
+                placeholder="Search by order number..."
+                value={filters.orderNumber || ""}
+                onChange={(e) => setFilters(f => ({ ...f, orderNumber: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="supplier-id">Supplier ID</Label>
+              <Input
+                id="supplier-id"
+                placeholder="Supplier ID..."
+                value={filters.supplierName || ""}
+                onChange={(e) => setFilters(f => ({ ...f, supplierName: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={filters.status || ""}
+                onValueChange={(val) => setFilters(f => ({ ...f, status: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="flex-1 space-y-2 relative z-50">
+                <Label htmlFor="date-from">Date From</Label>
+                <DatePicker
+                  selected={filters.dateFrom ? new Date(filters.dateFrom) : null}
+                  onChange={(date) => {
+                    const dateString = date ? date.toISOString().split('T')[0] : ''
+                    setFilters(f => ({ ...f, dateFrom: dateString }))
+                  }}
+                  minDate={new Date("1900-01-01")}
+                  maxDate={new Date()}
+                  placeholderText="dd/mm/yyyy"
+                  dateFormat="dd/MM/yyyy"
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  popperPlacement="bottom-start"
+                  popperClassName="z-[100]"
+                  className="w-full z-[100] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex-1 space-y-2 relative z-50">
+                <Label htmlFor="date-to">Date To</Label>
+                <DatePicker
+                  selected={filters.dateTo ? new Date(filters.dateTo) : null}
+                  onChange={(date) => {
+                    const dateString = date ? date.toISOString().split('T')[0] : ''
+                    setFilters(f => ({ ...f, dateTo: dateString }))
+                  }}
+                  minDate={filters.dateFrom ? new Date(filters.dateFrom) : new Date("1900-01-01")}
+                  maxDate={new Date()}
+                  placeholderText="dd/mm/yyyy"
+                  dateFormat="dd/MM/yyyy"
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  popperPlacement="bottom-start"
+                  popperClassName="z-[100]"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+      }
 
 
+      {/* Table */}
       <DataTable
         columns={columns}
         data={purchaseOrders}
         searchColumn="orderNumber"
         searchPlaceholder="Search orders..."
-        onSearch={handleSearch}
         page={page}
         pageSize={pageSize}
-        totalPages={1} // This will be updated when API returns proper pagination
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
       />
 
-      {/* Filter Dialog */}
-      <PurchaseOrderFilterDialog
-        isOpen={openFilter}
-        onOpenChange={setOpenFilter}
-        filters={filters}
-        setFilters={setFilters}
-      />
-
-      {/* Sheet for details */}
       <PurchaseOrderDetailsSheet
         orderId={selectedOrderId}
         open={isSheetOpen}
@@ -321,8 +560,6 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
           if (!open) setSelectedOrderId(null);
         }}
       />
-
-      {/* Print PDF Sheet */}
       <Sheet open={isPrintSheetOpen} onOpenChange={setIsPrintSheetOpen}>
         <SheetContent className="w-[800px] sm:max-w-[800px]">
           <SheetHeader>
@@ -339,35 +576,35 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
               )}
             </SheetTitle>
           </SheetHeader>
-                     <div className="mt-4 h-full">
-             {selectedOrderForPrint?.pdfBase64 ? (
-               <div className="h-full">
-                 <div className="mb-2 text-sm text-gray-600">
-                   PDF Data Length: {selectedOrderForPrint.pdfBase64.length} characters
-                 </div>
-                                   <object
-                    data={`data:application/pdf;base64,${selectedOrderForPrint.pdfBase64}`}
-                    type="application/pdf"
-                    className="w-full h-[calc(100%-40px)] border border-gray-300 rounded"
-                  >
-                   <p>Your browser does not support PDF display. 
-                     <button 
-                       onClick={handleDownloadPDF}
-                       className="ml-2 text-blue-600 underline"
-                     >
-                       Click here to download the PDF
-                     </button>
-                   </p>
-                 </object>
-               </div>
-             ) : (
-               <div className="flex items-center justify-center h-full text-gray-500">
-                 No PDF available for this order
-               </div>
-             )}
-           </div>
+          <div className="mt-4 h-full">
+            {selectedOrderForPrint?.pdfBase64 ? (
+              <div className="h-full">
+                <div className="mb-2 text-sm text-gray-600">
+                  PDF Data Length: {selectedOrderForPrint.pdfBase64.length} characters
+                </div>
+                <object
+                  data={`data:application/pdf;base64,${selectedOrderForPrint.pdfBase64}`}
+                  type="application/pdf"
+                  className="w-full h-[calc(100%-40px)] border border-gray-300 rounded"
+                >
+                  <p>Your browser does not support PDF display.
+                    <button
+                      onClick={handleDownloadPDF}
+                      className="ml-2 text-blue-600 underline"
+                    >
+                      Click here to download the PDF
+                    </button>
+                  </p>
+                </object>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                No PDF available for this order
+              </div>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
-    </div>
+    </div >
   )
 }

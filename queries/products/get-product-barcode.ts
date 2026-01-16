@@ -4,7 +4,6 @@ interface BarcodeData {
   Sku: string;
   ProductName: string;
   Category: string;
-  ProductType: string;
 }
 
 const fetchProductBarcode = async (productId: string): Promise<BarcodeData> => {

@@ -2,9 +2,8 @@
 
 import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Stethoscope, Package, Truck, Building2, Calendar, CheckCircle, XCircle, Clock } from "lucide-react"
-import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range"
-import type { DateRange } from "react-day-picker"
+import { Users, Stethoscope, Package, Truck, Building2, Calendar, CheckCircle, XCircle, Clock, UserPlus, CalendarPlus } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useRootContext } from "@/context/RootContext"
 import { useGetClinicAdminDashboard } from "@/queries/dashboard/get-clinic-admin-dashboard"
@@ -13,6 +12,10 @@ import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { Badge } from "@/components/ui/badge"
 import { DashboardWelcomeHeader } from "../../shared/dashboard-welcome-header"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { Skeleton } from "@/components/ui/skeleton"
+import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range"
+import { DateRange } from "react-day-picker"
+import { WeeklyProfitCard } from "../../shared/weekly-profit-card"
 
 // Define appointment interface
 interface Appointment {
@@ -31,7 +34,8 @@ interface Appointment {
     species?: string
   } | string;
   veterinarian?: {
-    name?: string;
+    firstName?: string;
+    lastName?: string;
   };
 }
 
@@ -47,7 +51,7 @@ export const ClinicAdminDashboard = ({
 
   const startOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
   const endOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
-  
+
   // For weekly stats, get the first day of the current week (Sunday)
   const startOfWeekLocal = new Date(today);
   startOfWeekLocal.setDate(today.getDate() - today.getDay());
@@ -56,12 +60,8 @@ export const ClinicAdminDashboard = ({
   // Convert local time to UTC ISO string
   const startOfDay = new Date(startOfDayLocal.getTime() - startOfDayLocal.getTimezoneOffset() * 60000);
   const endOfDay = new Date(endOfDayLocal.getTime() - endOfDayLocal.getTimezoneOffset() * 60000);
-  
-  // Date range for the dashboard summary
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfWeekLocal,
-    to: today
-  });
+
+
 
   // Search parameters for today's appointments
   const todaySearchParams = useMemo(() => ({
@@ -71,30 +71,59 @@ export const ClinicAdminDashboard = ({
     dateFrom: startOfDay.toISOString(),
     dateTo: endOfDay.toISOString(),
     clinicId: clinic?.id ?? null,
+    companyId: clinic?.companyId ?? null,
     patientId: null,
     clientId: null,
     veterinarianId: null,
     roomId: null,
     pageNumber: 1,
+    appointmentId: null,
+    tab: "clinic-admin-dashboard",
     pageSize: 20,
     isRegistered: false
   }), [startOfDay, endOfDay, clinic?.id]);
 
   // Clinic admin dashboard parameters
-  const dashboardParams = useMemo(() => ({
-    clinicId: clinic?.id ?? '',
-    fromDate: dateRange?.from ? dateRange.from.toISOString().split('T')[0] : startOfWeekLocal.toISOString().split('T')[0],
-    toDate: dateRange?.to ? dateRange.to.toISOString().split('T')[0] : today.toISOString().split('T')[0]
-  }), [clinic?.id, dateRange, startOfWeekLocal, today]);
+  // const dashboardParams = useMemo(() => ({
+  //   clinicId: clinic?.id ?? '',
+  //   fromDate: startOfWeekLocal.toISOString().split('T')[0],
+  //   toDate: today.toISOString().split('T')[0]
+  // }), [clinic?.id, startOfWeekLocal, today]);
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: today,  // This will set the default "from" date to today
+    to: today     // This will set the default "to" date to today
+  });
+
+  const dashboardParams = useMemo(() => {
+    if (!clinic?.id) return null;  // Return null if no clinicId
+
+    const formatDate = (date: Date | undefined, fallback: Date) => {
+      const d = date || fallback;
+      return d.toISOString().split('T')[0];
+    };
+
+    return {
+      clinicId: clinic?.id ?? '',
+      fromDate: formatDate(dateRange?.from, startOfDay),
+      toDate: formatDate(dateRange?.to, endOfDay),
+    };
+  }, [clinic?.id, dateRange, startOfDay, endOfDay]);
 
   // Fetch data
   const { data: todayAppointmentsData } = useGetAppointments(todaySearchParams);
-  const { data: clinicDashboardData, isLoading, error } = useGetClinicAdminDashboard(dashboardParams);
+  // const { data: clinicDashboardData, isLoading, error } = useGetClinicAdminDashboard(dashboardParams);
+
+  const { data: clinicDashboardData, isLoading, error } =
+    useGetClinicAdminDashboard(dashboardParams!, {
+      enabled: !!dashboardParams,   // 👈 Prevents call until params exist
+    });
+
 
   // Create pie data for appointment distribution
   const pieData = useMemo(() => {
     if (!clinicDashboardData?.appointmentCompletionRatios) return [];
-    
+
     const metrics = clinicDashboardData.appointmentCompletionRatios;
     return [
       { name: "Completed", value: metrics.completedAppointments || 0, color: "#10b981" },
@@ -106,19 +135,20 @@ export const ClinicAdminDashboard = ({
   // Process appointments data
   const todayAppointments = (todayAppointmentsData?.items || []) as Appointment[];
 
+
   // Format time helper function
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return '';
-    
+
     try {
       let hour, minute;
-      
+
       if (timeStr.includes(':')) {
         [hour, minute] = timeStr.split(":");
       } else {
         return timeStr;
       }
-      
+
       const date = new Date();
       date.setHours(Number(hour), Number(minute));
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -128,7 +158,7 @@ export const ClinicAdminDashboard = ({
     }
   };
 
-  if (isLoading) return <div className="p-6">Loading clinic dashboard...</div>;
+  if (isLoading) return <ClinicAdminDashboardSkeleton />;
   if (error) return <div className="p-6 text-red-500">Error loading clinic dashboard</div>;
   if (!clinicDashboardData) return <div className="p-6">No data available</div>;
 
@@ -136,7 +166,7 @@ export const ClinicAdminDashboard = ({
 
   // Extract clinic details
   const clinicName = clinicDashboardData?.clinicName || "Clinic";
-  
+
   // Check for both clinicDetail and clinicDetails using type assertion
   // This handles API inconsistency between interface and actual response
   const responseAny = clinicDashboardData as any;
@@ -144,122 +174,127 @@ export const ClinicAdminDashboard = ({
   const completionMetrics = clinicDashboardData?.appointmentCompletionRatios || {};
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="px-0 space-y-8">
       {/* Page Header & Date Picker */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700 -m-4 mb-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight theme-text-primary">{clinicName} Dashboard</h1>
-          <p className="text-muted-foreground">Clinic performance and daily operations overview</p>
+          <h1 className="text-2xl font-bold tracking-tight theme-text-primary">{clinicName} Dashboard</h1>
+          <p className="text-muted-foreground text-sm">Clinic performance and daily operations overview</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <DatePickerWithRangeV2
-            date={dateRange}
-            setDate={setDateRange}
-            showYear={true}
-            className="w-[280px]"
-          />
-          <div className="flex gap-2">
-            <Button className="theme-button text-white" onClick={onNewPatient}>
-              New Patient
-            </Button>
-            <Button className="theme-button text-white" onClick={onNewAppointment}>
-              New Appointment
-            </Button>
+        <div className="flex gap-2">
+          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2" onClick={onNewPatient}>
+            <UserPlus className="h-4 w-4" />
+            <span>New Patient</span>
+          </Button>
+          <Button className="theme-button text-white flex items-center gap-2" onClick={onNewAppointment}>
+            <CalendarPlus className="h-4 w-4" />
+            <span>New Appointment</span>
+          </Button>
+
+          <div>
+            <DatePickerWithRangeV2
+              date={dateRange}
+              setDate={setDateRange}
+              showYear={true}
+            // className="w-[350px]"
+            />
           </div>
         </div>
       </div>
 
       {/* Stats Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50">
+        <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                <Calendar className="h-6 w-6 text-[#1E3D3D]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Appointments</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{completionMetrics?.totalAppointments || 0}</p>
+                <div>
+                  <div className="text-md font-medium text-muted-foreground">Total Appointments</div>
+                  <div className="text-2xl font-bold theme-text-primary">{completionMetrics?.totalAppointments || 0}</div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+        <Card className="border border-green-200 bg-gradient-to-br from-green-100 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/50">
-                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div className="p-3 rounded-full bg-green-200 dark:bg-green-900/50">
+                <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{completionMetrics?.completedAppointments || 0}</p>
+                <p className="text-md font-medium text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-100">{completionMetrics?.completedAppointments || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50">
+        <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/50">
-                <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                <XCircle className="h-6 w-6 text-[#1E3D3D]" />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Canceled</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{completionMetrics?.canceledAppointments || 0}</p>
+                <p className="text-md font-medium text-muted-foreground">Canceled</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{completionMetrics?.canceledAppointments || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Clinic Statistics Card */}
-        <Card className="border-0 shadow-lg">
+        <Card className="border shadow-lg">
           <CardHeader>
             <CardTitle>Clinic Statistics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border rounded-md overflow-hidden divide-y-2 md:divide-y-0 md:divide-x-2 divide-slate-200">
+              <div className="space-y-2 p-3 min-w-0 text-center">
+                <div className="flex items-center justify-center space-x-2">
                   <Stethoscope className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Veterinarians</span>
                 </div>
                 <p className="text-2xl font-bold theme-text-primary">{clinicDetail?.numberOfVeterinarians || 0}</p>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
+              <div className="space-y-2 p-3 min-w-0 text-center">
+                <div className="flex items-center justify-center space-x-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Patients</span>
                 </div>
                 <p className="text-2xl font-bold theme-text-secondary">{clinicDetail?.numberOfPatients || 0}</p>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
+              <div className="space-y-2 p-3 min-w-0 text-center">
+                <div className="flex items-center justify-center space-x-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Clients</span>
                 </div>
                 <p className="text-2xl font-bold theme-text-accent">{clinicDetail?.numberOfClients || 0}</p>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
+              <div className="space-y-2 p-3 min-w-0 text-center">
+                <div className="flex items-center justify-center space-x-2">
                   <Package className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Products</span>
                 </div>
                 <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{clinicDetail?.numberOfProducts || 0}</p>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
+              <div className="space-y-2 p-3 min-w-0 text-center">
+                <div className="flex items-center justify-center space-x-2">
                   <Truck className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-muted-foreground">Suppliers</span>
                 </div>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{clinicDetail?.numberOfSuppliers || 0}</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{clinicDetail?.numberOfSuppliers || 0}</p>
               </div>
             </div>
 
@@ -269,11 +304,30 @@ export const ClinicAdminDashboard = ({
                 <span className="text-lg font-bold text-green-600 dark:text-green-400">{completionMetrics?.percentageOfCompleting || "0%"}</span>
               </div>
             </div>
+            {/* NEW: Average Rating */}
+            <div className=" mt-4 p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center justify-between">
+                <span className="text-md font-medium text-yellow-700 dark:text-yellow-300">Average Rating</span>
+                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{clinicDashboardData.averageRating ?? 0}</span>
+              </div>
+            </div>
+            <div className=" mt-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between">
+                <span className="text-md font-medium text-blue-700 dark:text-blue-300">Profit By Products</span>
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{clinicDashboardData.productProfit ?? 0}</span>
+              </div>
+            </div>
+            <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center justify-between">
+                <span className="text-md font-medium text-purple-700 dark:text-purple-300">Profit By Services</span>
+                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">{clinicDashboardData.serviceProfit ?? 0}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Appointment Distribution */}
-        <Card className="border-0 shadow-lg">
+        <Card className="border shadow-lg">
           <CardHeader>
             <CardTitle>Appointment Distribution</CardTitle>
           </CardHeader>
@@ -300,12 +354,12 @@ export const ClinicAdminDashboard = ({
               </ResponsiveContainer>
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-              <div>
+            <div className="mt-4 grid grid-cols-3 gap-4 text-center border p-2 rounded-md">
+              <div className="border-r">
                 <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-xl font-bold theme-text-primary">{completionMetrics?.totalAppointments || 0}</p>
               </div>
-              <div>
+              <div className="border-r">
                 <p className="text-sm text-muted-foreground">Completed</p>
                 <p className="text-xl font-bold text-green-600">{completionMetrics?.completedAppointments || 0}</p>
               </div>
@@ -316,10 +370,17 @@ export const ClinicAdminDashboard = ({
             </div>
           </CardContent>
         </Card>
+
+        <WeeklyProfitCard
+          className="border shadow-lg"
+          clinicId={clinic?.id || ""}
+          fromDate={dashboardParams?.fromDate}
+          toDate={dashboardParams?.toDate}
+        />
       </div>
 
       {/* Today's Schedule */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border shadow-lg">
         <CardHeader>
           <CardTitle>Today's Schedule</CardTitle>
         </CardHeader>
@@ -363,7 +424,9 @@ export const ClinicAdminDashboard = ({
                           : `${appointment.patient?.name || ''}${appointment.patient?.species ? ` (${appointment.patient.species})` : ''}`}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                        {appointment.veterinarian?.name || "Unassigned"}
+                        {appointment.veterinarian ?
+                          `${appointment.veterinarian.firstName} ${appointment.veterinarian.lastName}` :
+                          "Unassigned"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                         {appointment.reason || ''}
@@ -374,12 +437,12 @@ export const ClinicAdminDashboard = ({
                             appointment.status === "completed"
                               ? "theme-badge-success"
                               : appointment.status === "in_room"
-                              ? "theme-badge-warning"
-                              : appointment.status === "scheduled"
-                              ? "theme-badge-neutral"
-                              : appointment.status === "cancelled"
-                              ? "theme-badge-destructive"
-                              : "theme-badge-neutral"
+                                ? "theme-badge-warning"
+                                : appointment.status === "scheduled"
+                                  ? "theme-badge-neutral"
+                                  : appointment.status === "cancelled"
+                                    ? "theme-badge-destructive"
+                                    : "theme-badge-neutral"
                           }
                         >
                           {appointment.status ? appointment.status.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : ''}
@@ -399,4 +462,36 @@ export const ClinicAdminDashboard = ({
       </Card>
     </div>
   );
-} 
+}
+
+const ClinicAdminDashboardSkeleton = () => (
+  <div className="px-0 space-y-8">
+    {/* Header Skeleton */}
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-5 w-96 mt-2" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-10 w-32" />
+        <Skeleton className="h-10 w-40" />
+      </div>
+    </div>
+
+    {/* Stats Cards Skeleton */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(3)].map((_, i) => (
+        <Skeleton key={i} className="h-32 w-full" />
+      ))}
+    </div>
+
+    {/* Main Content Skeleton */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Skeleton className="h-96 w-full" />
+      <Skeleton className="h-96 w-full" />
+    </div>
+
+    {/* Schedule Table Skeleton */}
+    <Skeleton className="h-64 w-full" />
+  </div>
+);

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { useGetProviderStats, ProviderStats } from "@/queries/providers/get-provider-stats"
+import { useGetProviderStats, ProviderStats, GetProviderStatsParams } from "@/queries/providers/get-provider-stats"
 import { AppointmentSearchParamsType } from "@/components/appointments/hooks/useAppointmentFilter"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
@@ -28,15 +28,19 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
   const fromDate = format(dateRange.from, 'yyyy-MM-dd');
   const toDate = format(dateRange.to, 'yyyy-MM-dd');
   
-  // Get clinic context
-  const { clinic } = useRootContext();
+  // Get user context
+  const { clinic, userType, user } = useRootContext();
   
-  // Fetch providers with date range params
-  const { data: providers = [], isLoading: isLoadingProviders } = useGetProviderStats({
-    fromDate,
-    toDate,
-    clinicId: clinic?.id || undefined
-  });
+  // Determine filter params based on user role
+  const filterParams: GetProviderStatsParams = {
+  fromDate,
+  toDate,
+  ...(userType?.isClinicAdmin || userType?.isVeterinarian ? { clinicId: clinic.id ?? undefined } : {}),
+  ...(userType?.isAdmin && user?.companyId ? { companyId: user.companyId } : {})
+};
+
+  // Fetch providers with appropriate filters
+  const { data: providers = [], isLoading: isLoadingProviders } = useGetProviderStats(filterParams);
   
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [viewType, setViewType] = useState<"list" | "calendar">("list");
@@ -251,12 +255,13 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700">
                     {appointments.map((appointment: any) => {
                       const datePart = appointment.appointmentDate?.split('T')[0];
-                      const timePart = appointment.roomSlot?.startTime || appointment.startTime;
-                      const dateTimeString = datePart && timePart ? `${datePart}T${timePart}` : null;
+                      const [timeFrom, timeTo] = `${appointment.appointmentTimeFrom} - ${appointment.appointmentTimeTo}`.split(' - ');
+                      const formattedTimeFrom = timeFrom.slice(0, 5);
+                      const formattedTimeTo = timeTo.slice(0, 5);
                       return (
                         <tr key={appointment.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
-                            {dateTimeString ? new Date(dateTimeString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                           {formattedTimeFrom} - {formattedTimeTo}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
                             {appointment.patient?.name}

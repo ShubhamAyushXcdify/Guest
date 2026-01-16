@@ -6,7 +6,7 @@ import { SidebarTrigger } from "../ui/sidebar";
 export function Header() {
   const { user } = useRootContext();
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-accent px-4 sm:px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-accent px-2 shadow-sm">
       <div className="flex items-center gap-4">
         <SidebarTrigger />
 

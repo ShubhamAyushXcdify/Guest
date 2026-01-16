@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { DataTable } from "@/components/ui/data-table"
@@ -18,7 +18,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import LocationFilterDialog, { LocationFilters } from "./location-filter-dialog"
 import { useUpdateInventoryLocation } from "@/queries/inventory/update-inventory-location"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { useGetReceivedPurchaseOrders } from "@/queries/purchaseOrderReceiving/get-received-purchase-orders"
@@ -26,7 +25,11 @@ import { useUpdateReceivingHistory } from "@/queries/purchaseOrderReceiving/upda
 import { useUpdatePurchaseOrderReceivingHistory } from "@/queries/purchaseOrderRecevingHiistory/update-purchase-order-receiving-history"
 import { useGetPurchaseOrderReceivingHistory } from "@/queries/purchaseOrderRecevingHiistory/get-purchase-order-receiving-history"
 import { PurchaseOrderData, PurchaseOrderItem } from "@/queries/purchaseOrder/create-purchaseOrder"
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { LocationData } from "../map/hooks/useMapAdvanced"
+import * as XLSX from 'xlsx';
+import { Download } from "lucide-react"
 
 interface LocationsTabProps {
   clinicId: string
@@ -68,29 +71,139 @@ interface BatchData {
   bin?: string | null
 }
 
+
+
+export interface LocationFilters {
+  search?: string
+  shelf?: string
+  bin?: string
+  batchNumber?: string
+  hasLocation?: boolean
+}
+
+
 export default function LocationsTab({ clinicId }: LocationsTabProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<LocationFilters>({})
   const [openFilter, setOpenFilter] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   const [locationDialogOpen, setLocationDialogOpen] = useState(false)
   const [selectedBatch, setSelectedBatch] = useState<BatchData | null>(null)
   const [activeTab, setActiveTab] = useState<"located" | "unlocated">("unlocated")
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
-  const { data } = useGetInventoryInfinite(
-    {
+  // Function to export batches to Excel
+  const handleExportToExcel = () => {
+    setIsExporting(true);
+    
+    try {
+      // Get all batches that are currently loaded and have a location
+      const locatedBatches = batches.filter(batch => 
+        batch.location || (batch.shelf && batch.bin)
+      );
+      
+      if (locatedBatches.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No located batches found to export.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Prepare data for Excel export
+      const excelData = locatedBatches.map((batch) => ({
+        'Product Name': batch.productName || 'N/A',
+        'Batch Number': batch.batchNumber || 'N/A',
+        'Quantity': batch.totalQuantity || 0,
+        'Location': batch.location || 'N/A',
+        'Shelf': batch.shelf || 'N/A',
+        'Bin': batch.bin || 'N/A',
+        'Expiration Date': batch.expirationDate ? new Date(batch.expirationDate).toLocaleDateString() : 'N/A',
+        'Received Date': batch.receivedDate ? new Date(batch.receivedDate).toLocaleDateString() : 'N/A',
+        'Reorder Threshold': batch.reorderThreshold || 0,
+        'Order Number': batch.orderNumber || 'N/A',
+        'Supplier': batch.supplierName || 'N/A',
+        'Unit Cost': batch.unitCost ? `$${Number(batch.unitCost).toFixed(2)}` : 'N/A',
+        'Total Value': batch.unitCost && batch.totalQuantity 
+          ? `$${(Number(batch.unitCost) * Number(batch.totalQuantity)).toFixed(2)}` 
+          : 'N/A'
+      }));
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Set column widths
+      const columnWidths = [
+        { wch: 30 }, // Product Name
+        { wch: 15 }, // Batch Number
+        { wch: 10 }, // Quantity
+        { wch: 20 }, // Location
+        { wch: 10 }, // Shelf
+        { wch: 10 }, // Bin
+        { wch: 15 }, // Expiration Date
+        { wch: 15 }, // Received Date
+        { wch: 15 }, // Reorder Threshold
+        { wch: 15 }, // Order Number
+        { wch: 25 }, // Supplier
+        { wch: 15 }, // Unit Cost
+        { wch: 15 }  // Total Value
+      ];
+      worksheet['!cols'] = columnWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Located Batches');
+
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `located_batches_export_${currentDate}.xlsx`;
+
+      // Save the file
+      XLSX.writeFile(workbook, filename);
+
+      toast({
+        title: "Success",
+        description: `Exported ${locatedBatches.length} located batches to Excel.`,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export located batches to Excel. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const apiFilters = useMemo(() => {
+    return {
       clinicId,
       pageSize,
-      search: searchQuery,
-      ...filters,
-    },
-    !!clinicId
-  )
+      search: filters.search || searchQuery, // unify search
+      shelf: filters.shelf,
+      bin: filters.bin,
+      batchNumber: filters.batchNumber,
+      hasLocation: filters.hasLocation,
+    }
+  }, [clinicId, pageSize, searchQuery, filters])
+
+
+  const { data } = useGetInventoryInfinite(apiFilters, !!clinicId)
+
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
+
+
 
   // Fetch purchase orders with received and partial status
-  const { data: purchaseOrders = [] } = useGetPurchaseOrders(
+  const { data: poResponseForBatches } = useGetPurchaseOrders(
     {
       clinicId,
       status: "received,partial",
@@ -98,8 +211,9 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     },
     !!clinicId
   )
+  const purchaseOrders = poResponseForBatches?.data ?? []
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length
+
 
   // Mutation for updating inventory location
   const updateLocationMutation = useUpdateInventoryLocation()
@@ -119,8 +233,8 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     },
     !!clinicId
   )
-  
-  
+
+
   // Mutation for updating receiving history
   const updateReceivingHistoryMutation = useUpdateReceivingHistory()
 
@@ -128,7 +242,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
   const updatePurchaseOrderReceivingHistoryMutation = useUpdatePurchaseOrderReceivingHistory()
 
   console.log('Update receiving history mutation:', updateReceivingHistoryMutation)
-  
+
 
 
   // Form for location assignment
@@ -149,7 +263,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     // Process inventory items
     allItems.forEach(item => {
       const batchKey = `${item.productId}-${item.batchNumber}`
-      
+
       if (!batchMap.has(batchKey)) {
         batchMap.set(batchKey, {
           productId: item.productId,
@@ -169,7 +283,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       const batch = batchMap.get(batchKey)!
       batch.totalQuantity += item.quantityOnHand
       batch.items.push(item)
-      
+
       // Use the first location found for the batch
       if (!batch.location && item.location) {
         batch.location = item.location
@@ -181,7 +295,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       purchaseOrder.items?.forEach((item: PurchaseOrderItem) => {
         if (item.batchNumber) {
           const batchKey = `${item.productId}-${item.batchNumber}`
-          
+
           if (!batchMap.has(batchKey)) {
             // Create new batch for purchase order item
             batchMap.set(batchKey, {
@@ -338,25 +452,51 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       })
     }
 
-    // Sort by received date (most recent first), then by batch number
-    return filtered.sort((a, b) => {
-      // First sort by received date (most recent first)
-      if (a.receivedDate && b.receivedDate) {
-        const dateA = new Date(a.receivedDate).getTime();
-        const dateB = new Date(b.receivedDate).getTime();
-        if (dateA !== dateB) {
-          return dateB - dateA; // Most recent first
-        }
-      } else if (a.receivedDate && !b.receivedDate) {
-        return -1; // Items with received date come first
-      } else if (!a.receivedDate && b.receivedDate) {
-        return 1; // Items with received date come first
-      }
+    // 🔹 Apply filters from state
+    if (filters.search) {
+      const query = filters.search.toLowerCase();
+      filtered = filtered.filter(batch =>
+        batch.productName.toLowerCase().includes(query) ||
+        batch.batchNumber.toLowerCase().includes(query) ||
+        batch.supplierName?.toLowerCase().includes(query) ||
+        batch.orderNumber?.toLowerCase().includes(query)
+      );
+    }
 
-      // Then sort by batch number for consistent ordering
+    if (filters.shelf) {
+      filtered = filtered.filter(batch => batch.shelf?.toLowerCase() === filters.shelf!.toLowerCase());
+    }
+
+    if (filters.bin) {
+      filtered = filtered.filter(batch => batch.bin?.toLowerCase() === filters.bin!.toLowerCase());
+    }
+
+    if (filters.batchNumber) {
+      filtered = filtered.filter(batch =>
+        batch.batchNumber.toLowerCase().includes(filters.batchNumber!.toLowerCase())
+      );
+    }
+
+
+    if (filters.hasLocation !== undefined) {
+      filtered = filtered.filter(batch => {
+        const hasLocation = batch.location || (batch.shelf && batch.bin);
+        return filters.hasLocation ? !!hasLocation : !hasLocation;
+      });
+    }
+
+    // Sort by received date, then batch
+    return filtered.sort((a, b) => {
+      if (a.receivedDate && b.receivedDate) {
+        return new Date(b.receivedDate).getTime() - new Date(a.receivedDate).getTime();
+      } else if (a.receivedDate) {
+        return -1;
+      } else if (b.receivedDate) {
+        return 1;
+      }
       return a.batchNumber.localeCompare(b.batchNumber);
     });
-  }, [batches, activeTab])
+  }, [batches, activeTab, filters]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
@@ -556,7 +696,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       })
     }
   }
-  
+
 
 
   const getLocationDisplay = (batch: BatchData) => {
@@ -597,8 +737,8 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
 
   const getColumns = (activeTab: "located" | "unlocated"): ColumnDef<BatchData>[] => {
     const baseColumns: ColumnDef<BatchData>[] = [
-      { 
-        accessorKey: "orderNumber", 
+      {
+        accessorKey: "orderNumber",
         header: "Order Number",
         cell: ({ row }) => (
           <div className="text-sm">
@@ -615,22 +755,22 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           </div>
         )
       },
-      { 
-        accessorKey: "productName", 
+      {
+        accessorKey: "productName",
         header: "Product Name",
         cell: ({ row }) => (
           <div className="font-medium">{row.original.productName}</div>
         )
       },
-      { 
-        accessorKey: "batchNumber", 
+      {
+        accessorKey: "batchNumber",
         header: "Batch Number",
         cell: ({ row }) => (
           <div className="font-mono text-sm">{row.original.batchNumber}</div>
         )
       },
-      { 
-        accessorKey: "supplierName", 
+      {
+        accessorKey: "supplierName",
         header: "Supplier",
         cell: ({ row }) => (
           <div className="text-sm">
@@ -638,8 +778,8 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           </div>
         )
       },
-      { 
-        accessorKey: "expirationDate", 
+      {
+        accessorKey: "expirationDate",
         header: "Expiry Date",
         cell: ({ row }) => (
           <div className="text-sm">
@@ -647,8 +787,8 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           </div>
         )
       },
-      { 
-        accessorKey: "receivedDate", 
+      {
+        accessorKey: "receivedDate",
         header: "Received Date",
         cell: ({ row }) => (
           <div className="text-sm">
@@ -702,6 +842,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
 
 
 
+
   const totalPages = data?.pages[0]?.totalPages || 1
 
   return (
@@ -709,54 +850,145 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Location Management</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Assign and update shelf/bin locations for inventory and received items.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-2 px-3 py-2 border rounded text-sm"
-            onClick={() => setOpenFilter(true)}
+          <Button
+            variant="outline"
+            onClick={handleExportToExcel}
+            disabled={isExporting || activeTab === 'unlocated'}
+            className="flex items-center gap-2"
+            title={activeTab === 'unlocated' ? 'Only available for located batches' : 'Export to Excel'}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Export to Excel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
           >
             <Filter className="h-4 w-4" />
-            Filter
-            {activeFilterCount > 0 && (
-              <span className="ml-1 h-5 w-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+            Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
+          </Button>
         </div>
       </div>
 
       {/* Active filter badges */}
       {activeFilterCount > 0 && (
-         <div className="flex flex-wrap gap-2 mb-2 items-center">
-           {filters.search && (
-             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-               Search: {filters.search}
-             </span>
-           )}
-           {filters.shelf && (
-             <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-               Shelf: {filters.shelf}
-             </span>
-           )}
-           {filters.bin && (
-             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-               Bin: {filters.bin}
-             </span>
-           )}
-           {filters.batchNumber && (
-             <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
-               Batch: {filters.batchNumber}
-             </span>
-           )}
-           <button 
-             className="text-xs text-gray-500 underline"
-             onClick={() => setFilters({})}
-           >
-             Clear all
-           </button>
-         </div>
+        <div className="flex flex-wrap gap-2 mb-2 items-center">
+          {filters.search && (
+            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+              Search: {filters.search}
+            </span>
+          )}
+          {filters.shelf && (
+            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+              Shelf: {filters.shelf}
+            </span>
+          )}
+          {filters.bin && (
+            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+              Bin: {filters.bin}
+            </span>
+          )}
+          {filters.batchNumber && (
+            <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+              Batch: {filters.batchNumber}
+            </span>
+          )}
+          <button
+            className="text-xs text-gray-500 underline"
+            onClick={() => setFilters({})}
+          >
+            Clear all
+          </button>
+        </div>
       )}
+
+      {/* Filters Section */}
+      {showFilters && (
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+          {/* Header */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Filters</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFilters({})} // Clear all filters
+            >
+              Clear Filters
+            </Button>
+          </div>
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {/* Search */}
+            <div className="space-y-2">
+              <Label htmlFor="search">Search</Label>
+              <Input
+                id="search"
+                placeholder="Search by product name, batch number..."
+                value={filters.search || ""}
+                onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
+              />
+            </div>
+
+            {/* Shelf */}
+            <div className="space-y-2">
+              <Label htmlFor="shelf">Shelf</Label>
+              <Input
+                id="shelf"
+                placeholder="e.g., A, B, 1, 2"
+                value={filters.shelf || ""}
+                onChange={(e) => setFilters(f => ({ ...f, shelf: e.target.value }))}
+              />
+            </div>
+
+            {/* Bin */}
+            <div className="space-y-2">
+              <Label htmlFor="bin">Bin</Label>
+              <Input
+                id="bin"
+                placeholder="e.g., 01, 02, 15"
+                value={filters.bin || ""}
+                onChange={(e) => setFilters(f => ({ ...f, bin: e.target.value }))}
+              />
+            </div>
+
+            {/* Batch Number */}
+            <div className="space-y-2">
+              <Label htmlFor="batchNumber">Batch Number</Label>
+              <Input
+                id="batchNumber"
+                placeholder="Enter batch number"
+                value={filters.batchNumber || ""}
+                onChange={(e) => setFilters(f => ({ ...f, batchNumber: e.target.value }))}
+              />
+            </div>
+
+            {/* Product Type */}
+
+
+            {/* Has Location */}
+            <div className="flex items-center space-x-2 mt-6">
+              <Checkbox
+                id="hasLocation"
+                checked={filters.hasLocation === true}
+                onCheckedChange={(checked) =>
+                  setFilters(f => ({ ...f, hasLocation: checked ? true : undefined }))
+                }
+              />
+              <Label htmlFor="hasLocation">Only show batches with assigned locations</Label>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Tabs for Located and Unlocated Batches */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "located" | "unlocated")}>
@@ -778,7 +1010,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         </TabsList>
 
         <TabsContent value="unlocated" className="space-y-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-600" />
               <div>
@@ -789,22 +1021,24 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
               </div>
             </div>
           </div>
-          
-          <DataTable
-            columns={getColumns(activeTab)}
-            data={filteredBatches}
-            searchPlaceholder="Search by product name or batch number..."
-            onSearch={handleSearch}
-            page={page}
-            pageSize={pageSize}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
+
+          <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
+            <DataTable
+              columns={getColumns(activeTab)}
+              data={filteredBatches}
+              searchPlaceholder="Search by product name or batch number..."
+              onSearch={handleSearch}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="located" className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-green-600" />
               <div>
@@ -815,77 +1049,77 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
               </div>
             </div>
           </div>
-          
-          <DataTable
-            columns={getColumns(activeTab)}
-            data={filteredBatches}
-            searchPlaceholder="Search by product name, batch number, or location..."
-            onSearch={handleSearch}
-            page={page}
-            pageSize={pageSize}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
+
+          <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
+            <DataTable
+              columns={getColumns(activeTab)}
+              data={filteredBatches}
+              searchPlaceholder="Search by product name, batch number, or location..."
+              onSearch={handleSearch}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </div>
         </TabsContent>
 
 
       </Tabs>
 
-      {/* Filter Dialog */}
-      <LocationFilterDialog
-        isOpen={openFilter}
-        onOpenChange={setOpenFilter}
-        filters={filters}
-        setFilters={setFilters}
-      />
-
       {/* Location Assignment Sheet */}
       <Sheet open={locationDialogOpen} onOpenChange={setLocationDialogOpen}>
         <SheetContent className="sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>
+            <SheetTitle className="relative top-[-10px]">
               {selectedBatch?.location ? 'Update Location' : 'Assign Location'}
-              {selectedBatch?.isReceivedItem ? ' (Received Item)' : 
-               selectedBatch?.isPurchaseOrderItem ? ' (Purchase Order Item)' : ' (Inventory Batch)'}
+              {selectedBatch?.isReceivedItem ? ' (Received Item)' :
+                selectedBatch?.isPurchaseOrderItem ? ' (Purchase Order Item)' : ' (Inventory Batch)'}
             </SheetTitle>
           </SheetHeader>
           <Form {...locationForm}>
-            <form onSubmit={locationForm.handleSubmit(handleSaveLocation)} className="space-y-4">
+            <form onSubmit={locationForm.handleSubmit(handleSaveLocation)} className="space-y-4 border p-4 rounded-md h-full overflow-y-auto">
               {selectedBatch && (
-                <div className="bg-gray-50 p-3 rounded-md">
-                  <p className="text-sm font-medium">{selectedBatch.productName}</p>
-                  <p className="text-xs text-gray-600">Batch: {selectedBatch.batchNumber}</p>
-                  {selectedBatch.isReceivedItem ? (
-                    <>
-                      <p className="text-xs text-gray-600">Order: {selectedBatch.orderNumber}</p>
-                      <p className="text-xs text-gray-600">Supplier: {selectedBatch.supplierName}</p>
-                      <p className="text-xs text-gray-600">Quantity Received: {selectedBatch.quantityReceived}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        <strong>Note:</strong> This location will apply to this received purchase order item
-                      </p>
-                    </>
-                  ) : selectedBatch.isPurchaseOrderItem ? (
-                    <>
-                      <p className="text-xs text-gray-600">Order: {selectedBatch.orderNumber}</p>
-                      <p className="text-xs text-gray-600">Supplier: {selectedBatch.supplierName}</p>
-                      <p className="text-xs text-gray-600">Quantity Ordered: {selectedBatch.quantityOrdered}</p>
-                      <p className="text-xs text-gray-600">Quantity Received: {selectedBatch.quantityReceived}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        <strong>Note:</strong> This location will apply to this purchase order item
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-gray-600">Total Stock: {selectedBatch.totalQuantity}</p>
-                      <p className="text-xs text-gray-600 mt-1">
-                        <strong>Note:</strong> This location will apply to all items in this batch
-                      </p>
-                    </>
-                  )}
+                <div className="rounded-md border border-gray-200 bg-gray-100 dark:bg-gray-900/40 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">{selectedBatch.productName}</p>
+                    <div className="text-[10px]">
+                      {selectedBatch.isReceivedItem ? (
+                        <Badge variant="secondary">Received Item</Badge>
+                      ) : selectedBatch.isPurchaseOrderItem ? (
+                        <Badge variant="secondary">Purchase Order Item</Badge>
+                      ) : (
+                        <Badge variant="outline">Inventory Batch</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                    <div className="text-gray-600"><span className="text-gray-500">Batch:</span> <span className="font-medium">{selectedBatch.batchNumber}</span></div>
+                    {selectedBatch.isReceivedItem || selectedBatch.isPurchaseOrderItem ? (
+                      <>
+                        <div className="text-gray-600"><span className="text-gray-500">Order:</span> <span className="font-medium">{selectedBatch.orderNumber || 'N/A'}</span></div>
+                        <div className="text-gray-600"><span className="text-gray-500">Supplier:</span> <span className="font-medium">{selectedBatch.supplierName || 'N/A'}</span></div>
+                        {selectedBatch.isPurchaseOrderItem && (
+                          <div className="text-gray-600"><span className="text-gray-500">Qty Ordered:</span> <span className="font-medium">{selectedBatch.quantityOrdered}</span></div>
+                        )}
+                        <div className="text-gray-600"><span className="text-gray-500">Qty Received:</span> <span className="font-medium">{selectedBatch.quantityReceived}</span></div>
+                      </>
+                    ) : (
+                      <div className="text-gray-600"><span className="text-gray-500">Total Stock:</span> <span className="font-medium">{selectedBatch.totalQuantity}</span></div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-2">
+                    <strong>Note:</strong>{' '}
+                    {selectedBatch.isReceivedItem
+                      ? 'This location will apply to this received purchase order item'
+                      : selectedBatch.isPurchaseOrderItem
+                        ? 'This location will apply to this purchase order item'
+                        : 'This location will apply to all items in this batch'}
+                  </p>
                 </div>
               )}
-              
+
               <FormField
                 control={locationForm.control}
                 name="shelf"
@@ -899,7 +1133,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={locationForm.control}
                 name="bin"
@@ -913,7 +1147,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={locationForm.control}
                 name="notes"
@@ -927,7 +1161,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
                   </FormItem>
                 )}
               />
-              
+
               <div className="flex justify-end gap-2 pt-4">
                 <Button
                   type="button"
@@ -936,8 +1170,8 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={updateLocationMutation.isPending || updateReceivingHistoryMutation.isPending}
                 >
                   <Save className="w-4 h-4 mr-2" />

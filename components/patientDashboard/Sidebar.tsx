@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, PawPrint, Heart, Calendar, LogOut, MapPin } from "lucide-react";
+import { CalendarDays, PawPrint, Heart, Calendar, LogOut, MapPin, Syringe } from "lucide-react";
 import { useContext } from "react";
 import { PatientDashboardContext } from "./PatientDashboardProvider";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/patientdashboard/appointments", label: "Appointments", icon: Calendar },
   { href: "/patientdashboard/mypets", label: "My Pets", icon: PawPrint },
   { href: "/patientdashboard/records", label: "Medical Records", icon: Heart },
+  { href: "/patientdashboard/vaccination", label: "Vaccination", icon: Syringe },
   { href: "/patientdashboard/findclinic", label: "Find Clinic", icon: MapPin },
 ];
 
@@ -19,9 +20,9 @@ export default function Sidebar() {
   const { handleLogout } = useContext(PatientDashboardContext);
 
   return (
-    <aside className="w-64 min-h-screen flex flex-col bg-gradient-to-b from-blue-50 via-white to-blue-50 border-r border-blue-200 shadow-sm">
+    <aside className="w-64 min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-[#D2EFEC]/30 dark:from-slate-900 dark:to-[#1E3D3D]/20 border-r border-[#1E3D3D]/30 dark:border-[#1E3D3D]/30 shadow-sm">
       {/* Logo Area */}
-      <div className="h-16 flex items-center justify-center bg-white border-b border-blue-100 py-2">
+      <div className="h-16 flex items-center justify-center bg-white dark:bg-slate-900 border-b border-[#1E3D3D]/30 dark:border-[#1E3D3D]/30 py-2">
         <img src="/images/logoPawTrack.png" alt="PawTrack Logo" className="h-full w-fit" />
       </div>
       {/* Navigation */}
@@ -35,11 +36,11 @@ export default function Sidebar() {
                   <a
                     className={`flex items-center gap-3 px-5 py-2.5 rounded-lg font-medium transition-all duration-200
                       ${isActive
-                        ? "bg-blue-100 text-blue-800 border-l-4 border-blue-500 shadow-sm"
-                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600 hover:border-l-4 hover:border-blue-300"}
+                        ? "bg-[#D2EFEC]/50 dark:bg-[#1E3D3D]/30 text-[#1E3D3D] dark:text-[#D2EFEC] border-l-4 border-[#1E3D3D] dark:border-[#D2EFEC] shadow-sm"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-[#D2EFEC]/30 dark:hover:bg-[#1E3D3D]/20 hover:text-[#1E3D3D] dark:hover:text-[#D2EFEC] hover:border-l-4 hover:border-[#1E3D3D]/50 dark:hover:border-[#D2EFEC]/50"}
                     `}
                   >
-                    <Icon className={`h-5 w-5 ${isActive ? "text-blue-600" : "text-blue-400"}`} />
+                    <Icon className={`h-5 w-5 ${isActive ? "text-[#1E3D3D] dark:text-[#D2EFEC]" : "text-[#1E3D3D]/60 dark:text-[#D2EFEC]/60"}`} />
                     <span className="truncate text-base">{label}</span>
                   </a>
                 </Link>
@@ -49,19 +50,19 @@ export default function Sidebar() {
         </ul>
       </nav>
       {/* Footer with Logout for Mobile */}
-      <div className="mt-auto py-5 px-6 border-t border-blue-100 bg-white">
+      <div className="mt-auto py-5 px-6 border-t border-[#1E3D3D]/30 dark:border-[#1E3D3D]/30 bg-white dark:bg-slate-900">
         {/* Mobile Logout Button */}
         <div className="md:hidden mb-4">
           <Button
             variant="outline"
             onClick={handleLogout}
-            className="w-full bg-white text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 rounded-lg py-2.5 transition-all duration-200"
+            className="w-full bg-white dark:bg-slate-800 text-[#1E3D3D] dark:text-[#D2EFEC] border-[#1E3D3D]/30 dark:border-[#1E3D3D]/30 hover:bg-[#1E3D3D] hover:text-white dark:hover:bg-[#D2EFEC] dark:hover:text-[#1E3D3D] rounded-lg py-2.5 transition-all duration-200"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Logout
           </Button>
         </div>
-        <div className="text-xs text-gray-500 text-center">
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
           &copy; {new Date().getFullYear()} PawTrack<br />All rights reserved.
         </div>
       </div>

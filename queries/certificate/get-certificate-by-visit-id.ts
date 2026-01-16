@@ -1,16 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { CertificateDetails } from "./get-certificate-by-id";
 
-const getCertificateByVisitId = async (visitId?: string): Promise<CertificateDetails | null> => {
+const getCertificateByVisitId = async (visitId?: string): Promise<CertificateDetails[]> => {
   try {
     if (!visitId) {
-      throw new Error("Visit ID is required");
+      return []; // Return empty array if visitId is not provided
     }
 
     const response = await fetch(`/api/certificate/visit/${visitId}`);
 
     if (response.status === 404) {
-      return null; // No certificate found
+      return []; // No certificate found, return empty array
     }
 
     if (!response.ok) {
@@ -19,17 +19,18 @@ const getCertificateByVisitId = async (visitId?: string): Promise<CertificateDet
     }
     const data = await response.json();
 
+    // Ensure data is always an array
     if (Array.isArray(data)) {
-        return data[data.length - 1] ?? null;
+        return data;
     }
-    return data;
+    return [data]; // Wrap single object in an array
   } catch (error) {
     console.error("Error fetching certificate by visit ID:", error);
-    throw error;
+    return []; // Return empty array on error
   }
 };
 export function useGetCertificateByVisitId(visitId?: string, enabled = true) {
-  return useQuery<CertificateDetails | null>({
+  return useQuery<CertificateDetails[]>({
     queryKey: ['certificate', 'visit', visitId],
     queryFn: () => getCertificateByVisitId(visitId),
     enabled: !!visitId && enabled,

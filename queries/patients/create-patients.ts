@@ -6,11 +6,13 @@ interface CreatePatientRequest {
   name: string;
   species: string;
   breed: string;
+  secondaryBreed?: string;
   color: string;
   gender: string;
   isNeutered: boolean;
   dateOfBirth: string;
-  weightKg: number;
+  // Optional to align with form where weight is not mandatory
+  weightKg?: number;
   microchipNumber?: string;
   registrationNumber?: string;
   insuranceProvider?: string;
@@ -19,6 +21,8 @@ interface CreatePatientRequest {
   medicalConditions?: string;
   behavioralNotes?: string;
   isActive: boolean;
+  // Included because the form sends companyId and backend expects tenant context
+  companyId: string;
 }
 
 const createPatient = async (data: CreatePatientRequest): Promise<Patient> => {

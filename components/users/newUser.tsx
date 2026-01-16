@@ -38,10 +38,11 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   const { user: currentUser, userType, clinic, loading } = useRootContext();
   const [showPassword, setShowPassword] = useState(false);
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const showClinicField = userType?.isAdmin || currentUser?.roleName === 'Administrator'; // Only show for Administrator users
+  const [showClinicField, setShowClinicField] = useState(false); // Only show for Veterinarian role
   const showCompanyField = userType?.isSuperAdmin;
   const showRoleField = !userType?.isSuperAdmin; // Hide role field for superadmin
   const isClinicAdmin = userType?.isClinicAdmin || currentUser?.roleName === 'Clinic Admin';
+  const [selectedRoleName, setSelectedRoleName] = useState<string | undefined>(undefined);
 
  const userSchema = z.object({
   firstName: z
@@ -56,6 +57,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
     .email("Invalid email address"),
   passwordHash: z
     .string()
+    .min(1, "Password is required")
     .min(6, "Password must be at least 6 characters"),
   role: showRoleField
   ? z.string().min(1, "Role is required")
@@ -67,7 +69,11 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   clinicId: z.string().optional(),
   isActive: z.boolean().optional(),
 }).superRefine((data, ctx) => {
-    if (showClinicField) {
+    const selectedRole = rolesData?.data?.find((role: Role) => role.value === data.role);
+    const roleName = selectedRole?.name;
+    const requiresClinicSelection = (roleName === 'Veterinarian' || roleName === 'Clinic Admin' || roleName === 'Receptionist');
+
+    if (requiresClinicSelection) {
       if ((!data.clinicId || data.clinicId.length === 0) &&
           (!data.clinicIds || data.clinicIds.length === 0)) {
         ctx.addIssue({
@@ -207,9 +213,11 @@ export default function NewUser({ onSuccess }: NewUserProps) {
       if (isClinicAdmin && clinicIdToUse) {
         // For Clinic Admin, always use their clinic ID (from cookies or user object)
         clinicIds = [clinicIdToUse];
-      } else if ((userType?.isAdmin || currentUser?.roleName === 'Administrator') && values.clinicIds && values.clinicIds.length > 0) {
-        // For Administrator users, use the selected clinics
-        clinicIds = values.clinicIds;
+      } else {
+        // For other users (including veterinarians), use the selected clinics
+        if (values.clinicIds && values.clinicIds.length > 0) {
+          clinicIds = values.clinicIds;
+        }
       }
 
       // Use consistent API structure for all user types
@@ -234,10 +242,11 @@ export default function NewUser({ onSuccess }: NewUserProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full max-w-md mx-auto">
+      <div className="h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md">
         <div className="grid grid-cols-1 gap-4">
           <FormField name="firstName" control={form.control} render={({ field }) => (
             <FormItem>
-              <FormLabel>First Name</FormLabel>
+              <FormLabel>First Name*</FormLabel>
               <FormControl><Input {...field} /></FormControl>
               <FormMessage />
             </FormItem>
@@ -245,7 +254,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           
           <FormField name="lastName" control={form.control} render={({ field }) => (
             <FormItem>
-              <FormLabel>Last Name</FormLabel>
+              <FormLabel>Last Name*</FormLabel>
               <FormControl><Input {...field} /></FormControl>
               <FormMessage />
             </FormItem>
@@ -253,7 +262,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           
           <FormField name="email" control={form.control} render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Email*</FormLabel>
               <FormControl><Input {...field} type="email" /></FormControl>
               <FormMessage />
             </FormItem>
@@ -261,7 +270,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           
           <FormField name="passwordHash" control={form.control} render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Password*</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input 
@@ -289,16 +298,29 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           {showRoleField && (
             <FormField name="role" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>Role*</FormLabel>
                 <FormControl>
                   <Combobox
                     options={roleOptions}
                     value={field.value || ""}
                     onValueChange={(value) => {
                       field.onChange(value);
-                      // Only reset clinic IDs if not a clinicAdmin
-                      if (!userType.isClinicAdmin) {
+                      const selectedRole = rolesData?.data?.find((role: Role) => role.value === value);
+                      const roleName = selectedRole?.name;
+                      setSelectedRoleName(roleName);
+
+                      // Determine if clinic field should be shown
+                      if (roleName === 'Veterinarian' || roleName === 'Clinic Admin' || roleName === 'Receptionist') {
+                        setShowClinicField(true);
+                      } else {
+                        setShowClinicField(false);
+                        // Hide clinic field and clear values for other roles
+                        form.setValue("clinicIds", []);
                         form.setValue("clinicId", "");
+                      }
+                      
+                      // If the selected role is not veterinarian, clear clinicIds to ensure single select behaviour
+                      if (roleName !== 'Veterinarian') {
                         form.setValue("clinicIds", []);
                       }
                     }}
@@ -315,10 +337,10 @@ export default function NewUser({ onSuccess }: NewUserProps) {
           {showCompanyField && (
             <FormField name="companyId" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Company</FormLabel>
+                <FormLabel>Company*</FormLabel>
                 <FormControl>
                   <Combobox
-                    options={companiesData?.map((company: any) => ({
+                    options={companiesData?.items?.map((company: any) => ({
                       value: company.id,
                       label: company.name
                     })) || []}
@@ -334,31 +356,59 @@ export default function NewUser({ onSuccess }: NewUserProps) {
             )} />
           )}
 
-          {showClinicField && !isClinicAdmin && (
-            <FormField name="clinicIds" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Clinics</FormLabel>
-                <FormControl>
-                  <MultiSelect
-                    options={clinicOptions}
-                    defaultValue={field.value || []}
-                    onValueChange={field.onChange}
-                    placeholder="Select clinics"
-                    maxCount={3}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
+          {showClinicField && (selectedRoleName === 'Veterinarian' || selectedRoleName === 'Clinic Admin' || selectedRoleName === 'Receptionist') && (
+            <FormField 
+              key={selectedRoleName}
+              name="clinicIds" 
+              control={form.control} 
+              render={({ field }) => {
+              const isVeterinarian = selectedRoleName === 'Veterinarian';
+
+              return (
+                <FormItem>
+                  <FormLabel>Clinics</FormLabel>
+                  <FormControl>
+                    {isVeterinarian ? (
+                      <MultiSelect
+                        key="multi-select-clinics"
+                        options={clinicOptions}
+                        defaultValue={field.value || []}
+                        onValueChange={(values) => {
+                          field.onChange(values);
+                          // Update clinicId with the first selected clinic
+                          form.setValue("clinicId", values[0] || "");
+                        }}
+                        placeholder="Select clinics"
+                        maxCount={3}
+                      />
+                    ) : (
+                      <Combobox
+                        key="single-select-clinics"
+                        options={clinicOptions}
+                        value={field.value?.[0] || ""}
+                        onValueChange={(value) => {
+                          field.onChange([value]); // Wrap single value in array for clinicIds
+                          form.setValue("clinicId", value);
+                        }}
+                        placeholder="Select clinic"
+                        searchPlaceholder="Search clinics..."
+                        emptyText="No clinics found"
+                      />
+                    )}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              );
+            }} />
           )}
         </div>
-        
-        <div className="flex justify-end mt-6">
-          <Button type="submit">
+        </div>
+        <div className="flex justify-end">
+          <Button type="submit" className="theme-button text-white">
             Create User
           </Button>
         </div>
       </form>
     </Form>
   );
-} 
+}

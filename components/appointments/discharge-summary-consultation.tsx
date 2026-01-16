@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Download, FileText, Loader2, AlertCircle } from "lucide-react"
+import { Download, FileText, Loader2, AlertCircle, Printer } from "lucide-react"
 import { useGetDischargeSummaryConsultation } from "@/queries/discharge-summary/get-discharge-summary-consultation"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { toast } from "@/components/ui/use-toast"
@@ -23,6 +23,7 @@ export default function DischargeSummarySheet({
   const [isDownloading, setIsDownloading] = useState(false)
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
 
   // PDF Styles
   const styles = StyleSheet.create({
@@ -464,6 +465,34 @@ export default function DischargeSummarySheet({
     onClose()
   }
 
+  const handlePrint = () => {
+    if (!pdfUrl) return
+
+    const iframeWindow = iframeRef.current?.contentWindow
+    if (iframeWindow) {
+      iframeWindow.focus()
+      iframeWindow.print()
+      return
+    }
+
+    const printWindow = window.open(pdfUrl)
+    if (printWindow) {
+      const onLoad = () => {
+        printWindow.focus()
+        printWindow.print()
+      }
+      try {
+        if (printWindow.document?.readyState === 'complete') {
+          onLoad()
+        } else {
+          printWindow.addEventListener('load', onLoad, { once: true })
+        }
+      } catch (_) {
+        // noop
+      }
+    }
+  }
+
   const isLoading = isLoadingVisit || isLoadingDischarge || isDownloading
 
   return (
@@ -514,6 +543,7 @@ export default function DischargeSummarySheet({
               {pdfUrl && (
                 <div className="border rounded-lg overflow-hidden">
                   <iframe
+                    ref={iframeRef}
                     src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                     className="w-full h-[600px]"
                     title="Discharge Summary Preview"
@@ -521,8 +551,8 @@ export default function DischargeSummarySheet({
                 </div>
               )}
 
-              {/* Download Button */}
-              <div className="flex justify-center">
+              {/* Actions */}
+              <div className="flex justify-center gap-3">
                 <Button
                   onClick={handleDownload}
                   disabled={!pdfBlob || isDownloading}
@@ -534,6 +564,15 @@ export default function DischargeSummarySheet({
                     <Download className="h-4 w-4" />
                   )}
                   Download Discharge Summary
+                </Button>
+                <Button
+                  onClick={handlePrint}
+                  disabled={!pdfBlob || isDownloading}
+                  variant="secondary"
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Discharge Summary
                 </Button>
               </div>
 

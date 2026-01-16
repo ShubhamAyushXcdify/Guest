@@ -7,15 +7,13 @@ import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCreateProduct } from "@/queries/products/create-products";
-import { Product } from ".";
+import { productSchema, ProductFormValues, defaultProductValues } from "@/components/schema/productSchema";
 import { Combobox } from "../ui/combobox";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import { getCompanyId } from "@/utils/clientCookie";
- 
-type ProductFormValues = Omit<Product, "id">;
- 
-const PRODUCT_TYPES = ["medication", "vaccine", "supply", "food", "supplement"];
+import { zodResolver } from "@hookform/resolvers/zod";  
+
 const UNIT_OF_MEASURE_OPTIONS = [
   { value: "STRIP", label: "Strip" },
   { value: "EA", label: "Each (EA)" },
@@ -27,11 +25,10 @@ const UNIT_OF_MEASURE_OPTIONS = [
 ];
 
 const PRODUCT_CATEGORIES = [
-  { value: "antibiotics", label: "Antibiotics" },
-  { value: "pain_management", label: "Pain Management" },
-  { value: "vaccines", label: "Vaccines" },
-  { value: "supplements", label: "Supplements" },
-  { value: "medical_supplies", label: "Medical Supplies" },
+  { value: "medication", label: "Medication" },
+  { value: "vaccine", label: "Vaccine" },
+  { value: "supplement", label: "Supplement" },
+  { value: "medical_supply", label: "Medical Supply" },
   { value: "equipment", label: "Equipment" },
   { value: "food", label: "Food" },
   { value: "other", label: "Other" }
@@ -39,9 +36,12 @@ const PRODUCT_CATEGORIES = [
  
 interface NewProductProps {
   onSuccess?: () => void;
+  onCancel?: () => void;
 }
+
+
  
-export default function NewProduct({ onSuccess }: NewProductProps) {
+export default function NewProduct({ onSuccess, onCancel }: NewProductProps) {
    const { toast } = useToast();
 
   const createProduct = useCreateProduct({
@@ -51,7 +51,7 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
         description: "Product has been created successfully",
         variant: "success",
       });
-      // Automatically close the form after successful creation
+      // Close the sheet and refetch data after successful creation
       if (onSuccess) {
         onSuccess();
       }
@@ -65,28 +65,10 @@ export default function NewProduct({ onSuccess }: NewProductProps) {
     },
   });
  
+  // Update useForm configuration
   const form = useForm<ProductFormValues>({
-    defaultValues: {
-      companyId: "",
-      productNumber: "",
-      name: "",
-      brandName: "", // <-- Added brandName default
-      genericName: "",
-      category: "",
-      productType: "",
-      manufacturer: "",
-      ndcNumber: "",
-      strength: "",
-      dosageForm: "",
-      unitOfMeasure: "EA",
-      requiresPrescription: false,
-      controlledSubstanceSchedule: "",
-      storageRequirements: "",
-      reorderThreshold: null,
-      price: 0,
-      sellingPrice: 0,
-      isActive: true,
-    },
+    resolver: zodResolver(productSchema),
+    defaultValues: defaultProductValues
   });
 useEffect(() => {
   const userStr = localStorage.getItem("user");
@@ -103,28 +85,30 @@ useEffect(() => {
 }, [form]);
 
   const handleSubmit = (values: ProductFormValues) => {
-  const userStr = localStorage.getItem("user");
-  if (userStr) {
-    const user = JSON.parse(userStr);
-    if (!values.companyId && user?.companyId) {
-      values.companyId = user.companyId;
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (!values.companyId && user?.companyId) {
+        values.companyId = user.companyId;
+      }
     }
-  }
-  createProduct.mutate(values);
-};
+    
+    // Start the mutation (this will refetch the data automatically via query invalidation)
+    createProduct.mutate(values);
+  };
 
  
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full ">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col w-full h-full">
-        <div className="flex-1 overflow-y-auto pb-4">
-          <div className="grid grid-cols-2 gap-8">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col">
+        <div className=" h-[calc(100vh-10rem)] overflow-y-auto border p-4 rounded-md">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
             
             
             <FormField name="productNumber" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Product Number</FormLabel>
+                <FormLabel>Product Number*</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
@@ -132,7 +116,7 @@ useEffect(() => {
            
             <FormField name="name" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Name*</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
@@ -156,7 +140,7 @@ useEffect(() => {
            
             <FormField name="category" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Category*</FormLabel>
                 <FormControl>
                   <Combobox
                     options={PRODUCT_CATEGORIES}
@@ -170,29 +154,6 @@ useEffect(() => {
               </FormItem>
             )} />
            
-            <FormField name="productType" control={form.control} render={({ field }) => (
-              <FormItem>
-                <FormLabel>Product Type</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select product type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {PRODUCT_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )} />
            
             {/* <FormField name="manufacturer" control={form.control} render={({ field }) => (
               <FormItem>
@@ -228,7 +189,7 @@ useEffect(() => {
            
             <FormField name="unitOfMeasure" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Unit of Measure</FormLabel>
+                <FormLabel>Unit of Measure*</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value || "EA"}
@@ -260,7 +221,7 @@ useEffect(() => {
             
             <FormField name="price" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Cost Price</FormLabel>
+                <FormLabel>Cost Price*</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -278,7 +239,7 @@ useEffect(() => {
             
             <FormField name="sellingPrice" control={form.control} render={({ field }) => (
               <FormItem>
-                <FormLabel>Selling Price</FormLabel>
+                <FormLabel>Selling Price*</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -320,7 +281,7 @@ useEffect(() => {
             )} />
           </div>
          
-          <div className="grid grid-cols-2 gap-6 mt-12">
+          <div className="grid grid-cols-2 gap-6 mt-12 p-2">
             <FormField name="requiresPrescription" control={form.control} render={({ field }) => (
               <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                 <div className="space-y-0.5">
@@ -350,14 +311,25 @@ useEffect(() => {
                 <FormMessage />
               </FormItem>
             )} />
+            
           </div>
+         
+          
         </div>
-       
-        <div className="flex justify-end border-t pt-4 mt-2 sticky bottom-0 bg-white">
-          <Button type="submit">
-            Create Product
+        <div className="flex justify-end my-4 bottom-0 bg-white gap-4">
+        <Button type="button" variant="outline" onClick={() => {
+            if (onCancel) {
+              onCancel();
+            } else {
+              form.reset();
+            }
+          }}>
+            Cancel
           </Button>
-        </div>
+            <Button type="submit">
+              Create Product
+            </Button>
+          </div>
       </form>
     </Form>
 

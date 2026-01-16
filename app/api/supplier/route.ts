@@ -14,11 +14,38 @@ export async function GET(request: NextRequest) {
         let token = getJwtToken(request);
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
-        const search = searchParams.get('search') || '';
+        const name = searchParams.get('name') || '';
         const clinicId = searchParams.get('clinicId') || '';
+        const companyId = searchParams.get('companyId') || '';
+        const clinicName = searchParams.get('clinicName') || '';
+        const contactPerson = searchParams.get('contactPerson') || '';
+        const email = searchParams.get('email') || '';
+        const city = searchParams.get('city') || '';
+        const state = searchParams.get('state') || '';
+        const country = searchParams.get('country') || '';
+         const phone = searchParams.get('phone') || '';
+
+        // Build query parameters
+        const params = new URLSearchParams({
+            pageNumber,
+            pageSize,
+            ...(name && { name }),
+            ...(clinicId && { clinicId }),
+            ...(companyId && { companyId }),
+            ...(clinicName && { clinicName }),
+            ...(contactPerson && { contactPerson }),
+            ...(email && { email }),
+            ...(city && { city }),
+            ...(state && { state }),
+            ...(country && { country }),
+            ...(phone && { phone })
+        });
+
+        const queryString = params.toString();
+        console.log(queryString);
 
         const response = await fetch(
-            `${apiUrl}/api/Supplier?pageNumber=${pageNumber}&pageSize=${pageSize}&search=${search}&clinicId=${clinicId}`,
+            `${apiUrl}/api/Supplier?${queryString}`,
             {
                 headers: {
                     'Content-Type': 'application/json',

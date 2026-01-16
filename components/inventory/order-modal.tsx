@@ -115,8 +115,10 @@ function OrderModal({ isOpen, onClose, purchaseOrderId }: OrderModalProps) {
     },
   })
 
-  const { data: clinicsData, isLoading: isLoadingClinics } = useGetClinic()
-  const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier()
+  const { data: clinicsData, isLoading: isLoadingClinics } = useGetClinic(1, 10, null)
+  // const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier()
+  const { data: suppliersData, isLoading: isLoadingSuppliers } = useGetSupplier({ })
+  
 
   const clinicOptions = clinicsData?.items?.map(clinic => ({
     value: clinic.id,
@@ -128,7 +130,8 @@ function OrderModal({ isOpen, onClose, purchaseOrderId }: OrderModalProps) {
     label: supplier.name
   })) || []
 
-  const productOptions = useGetProducts().data?.items?.map(product => ({
+  const { data: productsData } = useGetProducts(1, 50, {} as any)
+  const productOptions = productsData?.items?.map(product => ({
     value: product.id,
     label: product.name
   })) || []

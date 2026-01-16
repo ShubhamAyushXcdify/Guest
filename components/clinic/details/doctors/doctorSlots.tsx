@@ -4,20 +4,19 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast"
 import { useGetDoctorSlots } from "@/queries/doctorSlots/get-doctorSlots";
-import { updateDoctorSlots } from "@/queries/doctorSlots/update-doctorSlots";
-import { createDoctorSlots } from "@/queries/doctorSlots/create-doctorSlots";
 import { useGetUserById } from "@/queries/users/get-user-by-id";
 import { User } from "@/queries/users/get-users";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { DoctorSlot } from "@/queries/doctorSlots/get-doctorSlots";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { useUpdateUserSlots } from "@/queries/users/update-user-slots";
+import { useGetAvailableSlotsByUserId } from "@/queries/users/get-availabelSlots-by-userId";
+import { toast } from "sonner";
 
 interface DoctorSlotsProps {
   doctorId: string;
+  clinicId?: string;
 }
 
 interface UserDoctorSlot {
@@ -48,8 +47,9 @@ const daysOfWeek = [
   { id: "sunday", label: "Sunday" }
 ];
 
-export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
+export default function DoctorSlotsManager({ doctorId, clinicId }: DoctorSlotsProps) {
   const [activeTab, setActiveTab] = useState("monday");
+ 
   const [slotsByDay, setSlotsByDay] = useState<Record<string, DoctorSlot[]>>({
     monday: [],
     tuesday: [],
@@ -61,40 +61,43 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
   });
   const [selectedSlotIds, setSelectedSlotIds] = useState<string[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isAddingSlot, setIsAddingSlot] = useState(false);
-  const [newSlot, setNewSlot] = useState({ startTime: "09:00", endTime: "10:00" });
+  const [disabledSlotIds, setDisabledSlotIds] = useState<Set<string>>(new Set<string>());
   
   // Fetch all slots and user data
-  const { data: slots, isLoading: isSlotsLoading, refetch: refetchSlots } = useGetDoctorSlots();
+  const { data: slots, isLoading: isSlotsLoading } = useGetDoctorSlots();
   const { data: userData, isLoading: isUserLoading, refetch: refetchUser } = useGetUserById(doctorId);
+  const { data: availableSlots, isLoading: isAvailableSlotsLoading, refetch: refetchAvailableSlots } = useGetAvailableSlotsByUserId(doctorId, clinicId || '', undefined, !!doctorId && !!clinicId);
 
   // Process user doctor slots when data changes
   useEffect(() => {
-    if (userData) {
-      // Extract slot IDs from doctor slots (which could be either array of IDs or array of objects)
-      if (userData.doctorSlots) {
-        if (Array.isArray(userData.doctorSlots)) {
-          if (userData.doctorSlots.length > 0) {
-            // Check if doctorSlots is array of objects or array of IDs
-            if (typeof userData.doctorSlots[0] === 'string') {
-              // It's already an array of IDs
-              setSelectedSlotIds(userData.doctorSlots);
-            } else if (typeof userData.doctorSlots[0] === 'object') {
-              // It's an array of slot objects
-              const slotIds = userData.doctorSlots.map((slot: any) => slot.id);
-              setSelectedSlotIds(slotIds);
-            }
-          } else {
-            setSelectedSlotIds([]);
-          }
-        } else {
-          setSelectedSlotIds([]);
-        }
-      } else {
-        setSelectedSlotIds([]);
-      }
+    if (availableSlots) {
+      const slotIds = availableSlots.map((slot: any) => slot.id);
+      setSelectedSlotIds(slotIds);
     }
-  }, [userData]);
+  }, [availableSlots]);
+
+  useEffect(() => {
+    const loadAllAssignments = async () => {
+      try {
+        if (!doctorId) return;
+        const res = await fetch(`/api/user/${doctorId}/available-slots`);
+        if (!res.ok) {
+          setDisabledSlotIds(new Set<string>());
+          return;
+        }
+        const allAssigned: Array<{ id: string; clinicId?: string }> = await res.json();
+        const otherClinicAssignedIds = new Set<string>(
+          (allAssigned || [])
+            .filter((s) => s?.clinicId && clinicId && s.clinicId !== clinicId)
+            .map((s) => s.id)
+        );
+        setDisabledSlotIds(otherClinicAssignedIds);
+      } catch (e) {
+        setDisabledSlotIds(new Set<string>());
+      }
+    };
+    loadAllAssignments();
+  }, [doctorId, clinicId, availableSlots]);
 
   // Process slots on data load
   useEffect(() => {
@@ -141,36 +144,7 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
     return time || '';
   };
 
-  const handleAddSlot = () => {
-    setIsAddingSlot(true);
-  };
 
-  const handleCreateSlot = async () => {
-    try {
-      await createDoctorSlots({
-        day: activeTab.charAt(0).toUpperCase() + activeTab.slice(1),
-        startTime: newSlot.startTime + ':00',
-        endTime: newSlot.endTime + ':00',
-      });
-      
-      setIsAddingSlot(false);
-      // Refresh both slots and user data
-      await refetchSlots();
-      await refetchUser();
-      
-      toast({
-        title: "Success",
-        description: "New time slot added successfully",
-      });
-    } catch (error) {
-      console.error("Error adding time slot:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add time slot",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSlotClick = (slot: DoctorSlot) => {
     setSelectedSlotIds(prev => {
@@ -193,24 +167,19 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
       // Update user slots using the dedicated endpoint
       await updateSlots.mutateAsync({
         userId: doctorId,
+        clinicId: clinicId || '',
         slotIds: selectedSlotIds
       });
       
-      toast({
-        title: "Success",
-        description: "Doctor schedule updated successfully",
-      });
+      toast("Doctor schedule has been updated successfully");
       
       // Refresh user data to get updated slots
       await refetchUser();
+      await refetchAvailableSlots();
       
     } catch (error) {
       console.error("Error updating doctor schedule:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update doctor schedule",
-        variant: "destructive",
-      });
+      toast("Failed to update doctor schedule");
     } finally {
       setIsUpdating(false);
     }
@@ -220,7 +189,7 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
     return selectedSlotIds.includes(slotId);
   };
 
-  if (isSlotsLoading || isUserLoading) {
+  if (isSlotsLoading || isUserLoading || isAvailableSlotsLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -247,23 +216,17 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
 
           {daysOfWeek.map(day => (
             <TabsContent key={day.id} value={day.id} className="pt-4">
-              <div className="flex justify-between items-center mb-4">
+              <div className="mb-4">
                 <h3 className="text-lg font-medium">{day.label} Slots</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleAddSlot}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Time Slot
-                </Button>
               </div>
               
               {slotsByDay[day.id].length === 0 ? (
-                <p className="text-sm text-muted-foreground">No time slots scheduled for {day.label}. Add your first slot.</p>
+                <p className="text-sm text-muted-foreground">No time slots available for {day.label}.</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {slotsByDay[day.id].map((slot) => {
                     const isSelected = isSlotSelected(slot.id);
+                    const isDisabled = disabledSlotIds.has(slot.id);
                     
                     return (
                       <Button
@@ -271,6 +234,8 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
                         variant={isSelected ? "default" : "outline"}
                         onClick={() => handleSlotClick(slot)}
                         className="text-sm h-10"
+                        disabled={isDisabled}
+                        title={isDisabled ? "This slot is assigned in another clinic" : undefined}
                       >
                         {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
                       </Button>
@@ -293,41 +258,7 @@ export default function DoctorSlotsManager({ doctorId }: DoctorSlotsProps) {
           </Button>
         </div>
 
-        <Dialog open={isAddingSlot} onOpenChange={setIsAddingSlot}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Time Slot</DialogTitle>
-              <DialogDescription>
-                Add a new time slot for {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Start Time</label>
-                <Input
-                  type="time"
-                  value={newSlot.startTime}
-                  onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">End Time</label>
-                <Input
-                  type="time"
-                  value={newSlot.endTime}
-                  onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
-                />
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddingSlot(false)}>Cancel</Button>
-              <Button onClick={handleCreateSlot}>Add Slot</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+
       </CardContent>
     </Card>
   );

@@ -5,7 +5,6 @@ interface QrCodeData {
   ProductNumber: string;
   Name: string;
   Category: string;
-  ProductType: string;
   Price: number;
   RequiresPrescription: boolean;
   Timestamp: string;

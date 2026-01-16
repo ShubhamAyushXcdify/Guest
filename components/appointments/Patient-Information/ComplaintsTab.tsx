@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useGetSymptoms } from "@/queries/symptoms/get-symptoms"
 import { useCreateSymptom } from "@/queries/symptoms/create-symptom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, Mic, Search } from "lucide-react"
+import { PlusCircle, X, Mic, Search, Sparkles, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useCreateComplaintDetail } from "@/queries/complaint/create-complaint-detail"
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
@@ -18,6 +18,17 @@ import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { Combobox } from "@/components/ui/combobox"
+import { complaintsAnalysis } from "@/app/actions/reasonformatting"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { SelectedFilesProvider } from "@/components/ai-assistant/contexts/selectFiles"
+// Add these imports to your existing imports
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
+import { Bot, User, Send } from "lucide-react"
+
+
 
 interface ComplaintsTabProps {
   patientId: string
@@ -30,6 +41,13 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   const [rightSideSearchQuery, setRightSideSearchQuery] = useState("")
   const [notes, setNotes] = useState("")
   const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
+
+  // AI Analysis state
+  const [analysisResult, setAnalysisResult] = useState<string>("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  // Add these state variables with your other state declarations
+  const [isChatMode, setIsChatMode] = useState(false)
+  const [chatInput, setChatInput] = useState("")  
 
   // Track original values to detect changes
   const [originalValues, setOriginalValues] = useState({
@@ -81,6 +99,27 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
 
   // Get common symptoms
   const commonSymptoms = symptoms.filter(symptom => symptom.isComman)
+  
+    // Add this with your other useRef declarations
+  const complaintsContextRef = useRef<string>("")
+  
+  // Add this function
+  const buildComplaintsContext = useCallback(() => {
+    if (!patientData?.species) return ""
+    
+    const symptomNames = selectedSymptoms
+      .map(id => symptoms.find(s => s.id === id)?.name)
+      .filter((name): name is string => !!name)
+    
+    const symptomsInfo = symptomNames.join(', ')
+    
+    return `Current Symptoms:\n${symptomsInfo}\n${notes ? 'Notes: ' + notes : ''}`.trim()
+  }, [selectedSymptoms, symptoms, notes, patientData?.species])
+  
+  // Add this useEffect to update context
+  useEffect(() => {
+    complaintsContextRef.current = buildComplaintsContext()
+  }, [buildComplaintsContext])
 
   const createSymptomMutation = useCreateSymptom({
     onSuccess: () => {
@@ -90,6 +129,25 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     onError: (error) => {
       toast.error(`Failed to add symptom: ${error.message}`)
     }
+  })
+
+  // Chat hook with complaints context
+  const { messages, sendMessage, status, setMessages } = useChat({
+    id: `complaints-${patientId}-${appointmentId}`,
+    transport: new DefaultChatTransport({
+      prepareSendMessagesRequest: ({ id, messages }) => {
+        const complaintsContext = complaintsContextRef.current
+
+        return {
+          body: {
+            id,
+            messages,
+            patientId: patientId ?? null,
+            complaintsContext: complaintsContext || undefined,
+          },
+        }
+      },
+    }),
   })
 
   const createComplaintMutation = useCreateComplaintDetail({
@@ -166,6 +224,56 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     }
   }
 
+    const handleAnalyze = async () => {
+    if (!patientData?.species) {
+      toast.error("Patient species information is required for analysis")
+      return
+    }
+
+    // Check if there are any symptoms selected
+    if (selectedSymptoms.length === 0) {
+      toast.error("Please select at least one symptom before analyzing")
+      return
+    }
+
+    setIsAnalyzing(true)
+    try {
+      // Get symptom names from selected symptom IDs
+      const symptomNames = selectedSymptoms
+        .map(id => symptoms.find(s => s.id === id)?.name)
+        .filter((name): name is string => !!name)
+
+      const analysis = await complaintsAnalysis(patientData.species, {
+        symptoms: symptomNames,
+        notes
+      })
+      setAnalysisResult(analysis)
+
+      // Initialize chat mode with the analysis result
+      setIsChatMode(true)
+      setMessages([
+        {
+          id: 'initial-analysis',
+          role: 'assistant',
+          parts: [{ type: 'text', text: analysis }]
+        }
+      ])
+
+      toast.success("Complaints analysis completed")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to analyze complaints")
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+  const handleChatSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chatInput.trim()) return
+
+    await sendMessage({ text: chatInput })
+    setChatInput("")
+  }
+
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const transcriber = useTranscriber()
 
@@ -213,10 +321,12 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
   }
 
   return (
+    <SelectedFilesProvider>
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="p-0">
+      <div className="h-[calc(100vh-23rem)] overflow-y-auto p-6">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold">Chief Complaint & History of Present Illness</h2>
+          <h2 className="text-lg font-semibold">Chief Complaint</h2>
         </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -354,7 +464,135 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
           />
         </div>
 
-        <div className="mt-6 flex justify-end">
+        {/* AI Analysis Section */}
+        <div className="mt-6 border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-md font-semibold">AI Symptoms Analysis</h3>
+            {!isChatMode && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAnalyze}
+                disabled={isAnalyzing || isReadOnly || selectedSymptoms.length === 0}
+                className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze Symptoms"
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {isChatMode ? (
+            <div className="border border-purple-200/50 dark:border-purple-800/50 rounded-lg bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20 shadow-sm">
+              <div className="flex-shrink-0 border-b border-purple-200/30 dark:border-purple-800/30 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-900/20 dark:to-pink-900/20 rounded-t-lg">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-pink-500">
+                    <Bot className="h-3 w-3 text-white" />
+                  </div>
+                  <h4 className="text-sm text-purple-700 dark:text-purple-300 font-semibold">AI Symptoms Assistant</h4>
+                </div>
+              </div>
+              <div className="flex flex-col h-[400px]">
+                <ScrollArea className="flex-1 p-3">
+                  <div className="space-y-3">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          "flex gap-2",
+                          message.role === "user" ? "justify-end" : "justify-start"
+                        )}
+                      >
+                        {message.role === "assistant" && (
+                          <Avatar className="h-6 w-6 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                              <Bot className="h-3 w-3" />
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div
+                          className={cn(
+                            "rounded-lg px-3 py-2 max-w-[80%]",
+                            message.role === "user"
+                              ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-sm"
+                              : "bg-gradient-to-r from-slate-100 to-blue-50 dark:from-slate-800 dark:to-blue-950/30 border border-slate-200 dark:border-slate-700"
+                          )}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">
+                            {message.parts?.map((part, index) => {
+                              if (part.type === 'text') {
+                                return part.text;
+                              }
+                              return '';
+                            }).join('') || ''}
+                          </p>
+                        </div>
+                        {message.role === "user" && (
+                          <Avatar className="h-6 w-6 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                              <User className="h-3 w-3" />
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                      </div>
+                    ))}
+                    {status === 'submitted' && (
+                      <div className="flex gap-2 justify-start">
+                        <Avatar className="h-6 w-6 flex-shrink-0">
+                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                            <Bot className="h-3 w-3" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="bg-muted rounded-lg px-3 py-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="flex-shrink-0 border-t p-2">
+                  <form onSubmit={handleChatSend} className="flex gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask about the symptoms analysis..."
+                      className="flex-1 h-9 text-sm"
+                      disabled={status === 'submitted' || isReadOnly}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={!chatInput.trim() || status === 'submitted' || isReadOnly} 
+                      size="icon" 
+                      className="h-9 w-9 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-sm"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Send message</span>
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {!analysisResult && !isAnalyzing && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-center text-gray-500 dark:text-gray-400 text-sm">
+                  {selectedSymptoms.length === 0 
+                    ? "Select symptoms to enable AI analysis" 
+                    : "Click 'Analyze Symptoms' to get AI-powered symptom pattern insights"}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end mb-4 mx-4">
           <Button 
             onClick={handleSave}
             disabled={
@@ -371,7 +609,9 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
               : existingComplaint ? "Update & Next" : "Save & Next"}
           </Button>
         </div>
+      </div>
       </CardContent>
     </Card>
+    </SelectedFilesProvider>
   )
 }

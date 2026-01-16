@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { PatientsTable } from "@/components/patients/patients-table"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, Download } from "lucide-react"
 import { 
   Sheet, 
   SheetContent, 
@@ -16,6 +16,9 @@ import { useGetPatients } from "@/queries/patients/get-patients"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useRootContext } from "@/context/RootContext"
 import { getCompanyId } from "@/utils/clientCookie"
+import Loader from "@/components/ui/loader"
+import * as XLSX from 'xlsx'
+import { toast } from "@/components/ui/use-toast"
 
 export const PatientsScreen = () => {
   const [openNew, setOpenNew] = useState(false)
@@ -23,90 +26,265 @@ export const PatientsScreen = () => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const { userType, clinic, user } = useRootContext()
-  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [isExporting, setIsExporting] = useState(false)
   
-  const debouncedSearchQuery = useDebounce(handleSearch, 300)  
-  
-  // Resolve companyId from local storage or user context (same as newClinic.tsx)
-  if (typeof window !== 'undefined' && companyId === undefined) {
-    const stored = getCompanyId()
-    if (stored) {
-      setCompanyId(stored)
-    } else if (user?.companyId) {
-      setCompanyId(user.companyId)
-    } else {
-      setCompanyId('')
+  // Memoize companyId resolution
+  const companyId = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const stored = getCompanyId()
+      return stored || user?.companyId || ''
     }
-  }
+    return user?.companyId || ''
+  }, [user?.companyId])
+
+  // Initialize search from URL params on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const urlSearch = params.get('search')
+      if (urlSearch) {
+        setSearchQuery(urlSearch)
+      }
+    }
+  }, [])
   
-  const { data: patientsData, isLoading, isError } = useGetPatients(
+  // State for debounced search term
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+
+  // Update debounced search term when searchQuery changes
+  useEffect(() => {
+    if (isInitialLoad) {
+      // Skip debounce on initial load
+      setDebouncedSearchTerm(searchQuery)
+      setIsInitialLoad(false)
+      return
+    }
+
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchQuery)
+      
+      // Update URL with search parameter
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        if (searchQuery) {
+          url.searchParams.set('search', searchQuery)
+        } else {
+          url.searchParams.delete('search')
+        }
+        window.history.replaceState({}, '', url.toString())
+      }
+      
+      // Reset to first page on new search
+      setPage(1)
+    }, 300)
+    
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [searchQuery, isInitialLoad])
+  
+  // Memoize the query params to prevent unnecessary re-renders
+  const queryParams = useMemo(() => ({
     page,
     pageSize,
-    searchQuery,
-    '', // clientId
+    search: debouncedSearchTerm,
     companyId
+  }), [page, pageSize, debouncedSearchTerm, companyId])
+  
+// Only make API call when query params change
+  const { data: patientsData, isLoading, isError } = useGetPatients(
+    queryParams.page,
+    queryParams.pageSize,
+    queryParams.search,
+    '', // clientId
+    companyId // Pass companyId for filtering
   )
   
   // Extract patients from the data source
   const patients = patientsData?.items || []
   const totalPages = patientsData?.totalPages || 1
 
-  function handleSearch(searchTerm: string) {
+  // Optimized search handler with URL sync
+  const handleSearch = useCallback((searchTerm: string) => {
     setSearchQuery(searchTerm)
     setPage(1) // Reset to first page on new search
     
-    // Update URL with search parameter but don't expose specific fields
-    const url = new URL(window.location.href);
-    url.searchParams.set('search', encodeURIComponent(searchTerm));
-    
-    // Update the URL without page reload
-    window.history.pushState({}, '', url.toString());
-  }
+    // Update URL with search parameter
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      if (searchTerm) {
+        url.searchParams.set('search', searchTerm)
+      } else {
+        url.searchParams.delete('search')
+      }
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage)
-  }
+  }, [])
 
-  const handlePageSizeChange = (newSize: number) => {
+  const handlePageSizeChange = useCallback((newSize: number) => {
     setPageSize(newSize)
     setPage(1) // Reset to first page when changing page size
-  }
+  }, [])
+
+  const fetchAllPatients = useCallback(async () => {
+    const params = new URLSearchParams()
+    if (companyId) params.append('companyId', companyId)
+
+    const url = `/api/patients${params.toString() ? `?${params.toString()}` : ''}`
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || 'Failed to fetch patients data')
+    }
+    
+    const data = await response.json()
+    return data.items || data || []
+  }, [companyId])
+
+  const handleExportToExcel = useCallback(async () => {
+    if (!companyId) {
+      toast({
+        title: "Error",
+        description: "Company ID not found. Please try again.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      const allPatients = await fetchAllPatients()
+      
+      if (allPatients.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No patients found to export.",
+          variant: "destructive",
+        })
+        return
+      }
+      
+      // Prepare data for Excel export
+      const excelData = allPatients.map((patient: any) => ({
+        'Patient Name': patient.name,
+        'Species': patient.species,
+        'Breed': patient.breed,
+        'Secondary Breed': patient.secondaryBreed || '',
+        'Color': patient.color,
+        'Gender': patient.gender,
+        'Neutered': patient.isNeutered ? 'Yes' : 'No',
+        'Date of Birth': patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : '',
+        'Weight (Kg)': patient.weightKg || '',
+        'Microchip Number': patient.microchipNumber || '',
+        'Registration Number': patient.registrationNumber || '',
+        'Insurance Provider': patient.insuranceProvider || '',
+        'Insurance Policy Number': patient.insurancePolicyNumber || '',
+        'Allergies': patient.allergies || '',
+        'Medical Conditions': patient.medicalConditions || '',
+        'Behavioral Notes': patient.behavioralNotes || '',
+        'Client First Name': patient.clientFirstName,
+        'Client Last Name': patient.clientLastName,
+        'Client Email': patient.clientEmail,
+        'Client Phone': patient.clientPhonePrimary,
+        'Client Address': `${patient.clientAddressLine1}, ${patient.clientCity}, ${patient.clientState} ${patient.clientPostalCode}`,
+        'Active': patient.isActive ? 'Yes' : 'No',
+        'Created At': patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : '',
+        'Updated At': patient.updatedAt ? new Date(patient.updatedAt).toLocaleDateString() : ''
+      }))
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new()
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      
+      // Set column widths
+      const columnWidths = [
+        { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+        { wch: 8 }, { wch: 8 }, { wch: 12 }, { wch: 10 }, { wch: 15 },
+        { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 30 },
+        { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 15 },
+        { wch: 40 }, { wch: 8 }, { wch: 12 }, { wch: 12 }
+      ]
+      worksheet['!cols'] = columnWidths
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Patients')
+
+      const currentDate = new Date().toISOString().split('T')[0]
+      const filename = `patients_export_${currentDate}.xlsx`
+
+      XLSX.writeFile(workbook, filename)
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${allPatients.length} patients to ${filename}`,
+        variant: "success",
+      })
+    } catch (error) {
+      console.error('Export error:', error)
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to export patients data",
+        variant: "destructive",
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [companyId, fetchAllPatients])
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">
+    <div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-6 bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4 md:mb-0">
           Patients
         </h1>
-        <Sheet open={openNew} onOpenChange={setOpenNew}>
-          <SheetTrigger asChild>
-            <Button className={`theme-button text-white`}>
-              <Plus className="mr-2 h-4 w-4" /> Add Patient
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[62%] overflow-auto">
-            <SheetHeader>
-              <SheetTitle>New Patient</SheetTitle>
-            </SheetHeader>
-            <NewPatientForm onSuccess={() => setOpenNew(false)} />
-          </SheetContent>
-        </Sheet>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportToExcel}
+            disabled={isExporting}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export to Excel"}
+          </Button>
+          <Sheet open={openNew} onOpenChange={setOpenNew}>
+            <SheetTrigger asChild>
+              <Button className={`theme-button text-white`}>
+                <Plus className="mr-2 h-4 w-4" /> Add Patient
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-full md:!max-w-[50%] lg:!max-w-[62%]">
+              <SheetHeader>
+                <SheetTitle className="relative top-[-10px]">New Patient</SheetTitle>
+              </SheetHeader>
+              <NewPatientForm onSuccess={() => setOpenNew(false)} />
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">Loading patients...</p>
+          <div className="min-h-[calc(100vh-20rem)] flex items-center justify-center p-6">
+            <div className="flex flex-col items-center gap-4 text-center">
+              <Loader size="lg" label="Loading patients..." />
+            </div>
           </div>
         ) : isError ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-destructive">Error loading patients. Please try again.</p>
-          </div>
-        ) : patients.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">
-              No patients found. Add a patient to get started.
-            </p>
           </div>
         ) : (
           <PatientsTable
@@ -116,11 +294,11 @@ export const PatientsScreen = () => {
             pageSize={pageSize}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
-            onSearch={debouncedSearchQuery}
+            onSearch={handleSearch}
             showClinicColumn={!user?.clinicId}
           />
         )}
       </div>
     </div>
   )
-} 
+}

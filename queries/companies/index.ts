@@ -19,3 +19,9 @@ export {
 export { 
   useDeleteCompany 
 } from './delete-comapny';
+
+
+export {
+  useGetCompanyBySubdomain,
+  getCompanyBySubdomain
+} from './get-company-by-subdomain';

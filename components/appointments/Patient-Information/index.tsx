@@ -1,89 +1,159 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new"
 import { Button } from "@/components/ui/button"
-import IntakeTab from "./IntakeTab"
-import ComplaintsTab from "./ComplaintsTab"
 import MedicalHistoryTab from "../MedicalHistoryTab"
-import VitalsTab from "./VitalsTab"
-import ProcedureTab from "./ProcedureTab"
-import AssessmentTab from "./PrescriptionTab"
-import PlanTab from "./PlanTab"
-import { ArrowRight, CheckCircle, History } from "lucide-react"
+import { ArrowRight, CheckCircle, History, Receipt, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
+import AppointmentHistoryNavigation from "../AppointmentHistoryNavigation"
 import NewAppointment from "../newAppointment"
 import { TabCompletionProvider, useTabCompletion, TabId } from "@/context/TabCompletionContext"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
-import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useGetVisitById } from "@/queries/visit/get-visit-by-id"
+import { useGetPatientAppointmentHistory } from "@/queries/patients/get-patient-appointment-history"
+import InvoiceSheet from "../../invoice/InvoiceSheet"
 
-// Extended interface to include all completion fields from the API response
-interface ExtendedVisitDetail {
-  isIntakeCompleted: boolean;
-  isComplaintsCompleted: boolean;
-  isVitalsCompleted: boolean;
-  isProceduresCompleted: boolean;
-  isPrescriptionCompleted: boolean;
-  isPlanCompleted: boolean;
-}
+import VaccinationManagerComp from "../vaccination";
 
-interface PatientInformationProps {
-  patientId: string
-  appointmentId: string
-  onClose: () => void
-}
+// Import types from the new file
+import {
+  ExtendedVisitDetail,
+  PatientInformationProps,
+  TabConfig,
+  AppointmentTabConfigMap,
+} from "../appointmentConfig";
+
+import { appointmentTabConfigMap } from "../appointmentTabConfig";
+import SurgeryComponent from "../surgery"
+import DewormingComponent from "../deworming"
+import VaccinationPlanning from "../vaccination/VaccinationPlanning"
 
 // Create a wrapper for the component content
 function PatientInformationContent({ patientId, appointmentId, onClose }: PatientInformationProps) {
-  const [activeTab, setActiveTab] = useState("intake")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<TabId>("intake")
   const [showNewAppointment, setShowNewAppointment] = useState(false)
   const [showMedicalHistory, setShowMedicalHistory] = useState(false)
+  const [showInvoice, setShowInvoice] = useState(false)
+  const [currentAppointmentId, setCurrentAppointmentId] = useState(appointmentId)
 
   const { isTabCompleted } = useTabCompletion()
-  const { data: appointment } = useGetAppointmentById(appointmentId)
-  const { data: visitData } = useGetVisitByAppointmentId(appointmentId)
-  
+  const { data: history } = useGetPatientAppointmentHistory(patientId)
+
+  // Filter appointment history to exclude scheduled appointments
+  const filteredAppointmentHistory = useMemo(() => {
+    return history?.appointmentHistory.filter(appt => appt.status !== "scheduled") || [];
+  }, [history?.appointmentHistory]);
+
+  // Hide medical history button when appointment history navigation is visible
+  const hideMedicalHistoryButton = filteredAppointmentHistory.length > 0;
+
+  const selectedAppointment = useMemo(() => {
+    return history?.appointmentHistory.find(
+      (appt) => appt.appointmentId === currentAppointmentId
+    );
+  }, [history?.appointmentHistory, currentAppointmentId]);
+
+  const { data: appointment } = useGetAppointmentById(currentAppointmentId)
+
+  const { data: visitData } = useGetVisitById(
+    selectedAppointment?.visitId as string,
+    !!selectedAppointment?.visitId
+  )
+
+  // Get the current tab configuration based on appointment type
+  const currentTabConfig = useMemo(() => {
+    // Use selectedItem?.appointmentType or a default if not available
+    const type = appointment?.appointmentType?.name || "Consultation";
+    return appointmentTabConfigMap[type] || appointmentTabConfigMap.Consultation;
+  }, [appointment?.appointmentType?.name]);
+
+  const TabProvider = useMemo(() => {
+    const type = appointment?.appointmentType?.name || "Consultation";
+    switch (type) {
+      case "Consultation": // Consultation uses the global TabCompletionProvider
+        return TabCompletionProvider;
+      default:
+        return TabCompletionProvider; // Default to global
+    }
+  }, [appointment?.appointmentType?.name]);
+
+  // Keep currentAppointmentId in sync if parent prop changes
+  useEffect(() => {
+    setCurrentAppointmentId(appointmentId)
+  }, [appointmentId])
+
+  // Initialize tab from URL parameter or default to first tab
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab") as TabId | null;
+    if (tabFromUrl && currentTabConfig.some(tab => tab.value === tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    } else if (currentTabConfig.length > 0) {
+      const defaultTab = currentTabConfig[0].value;
+      setActiveTab(defaultTab);
+      // Update URL if no valid tab in URL
+      if (!tabFromUrl) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", defaultTab);
+        router.replace(`?${params.toString()}`, { scroll: false });
+      }
+    } else {
+      setActiveTab("intake"); // Fallback if no specific config found
+    }
+  }, [currentAppointmentId, currentTabConfig, searchParams, router]);
+
+  // Update URL when tab changes (only when Visit Summary is already open)
+  const handleTabChange = (value: string) => {
+    const newTab = value as TabId;
+    setActiveTab(newTab);
+    // Only update URL if Visit Summary is open (this component is rendered)
+    // This prevents tab parameter from being added when Visit Summary is not open
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", newTab);
+    params.set("appointmentId", appointmentId); // Ensure appointmentId is also in URL
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
   // Define tab navigation functions
   const navigateToNextTab = () => {
-    const tabOrder = ["intake", "vitals", "cc-hpi", "procedure", "assessment", "plan"];
+    const tabOrder = currentTabConfig.map((tab: TabConfig) => tab.value);
     const currentIndex = tabOrder.indexOf(activeTab);
-    
+
     if (currentIndex < tabOrder.length - 1) {
       setActiveTab(tabOrder[currentIndex + 1]);
     }
   };
 
   // Function to determine if a tab should appear completed/green based on visit data
-  const shouldShowTabAsCompleted = (tabId: TabId) => {
+  const shouldShowTabAsCompleted = (tabId: string) => {
     if (!visitData) return false;
-    
+
     // Use type assertion to access all properties
     const visit = visitData as unknown as ExtendedVisitDetail;
-    
-    switch(tabId) {
-      case "intake":
-        return visit.isIntakeCompleted || false;
-      case "cc-hpi":
-        return visit.isComplaintsCompleted || false;
-      case "vitals":
-        return visit.isVitalsCompleted || false;
-      case "procedure":
-        return visit.isProceduresCompleted || false;
-      case "assessment":
-        return visit.isPrescriptionCompleted || false;
-      case "plan":
-        return visit.isPlanCompleted || false;
-      default:
-        return false;
+
+    const tab = currentTabConfig.find((t: TabConfig) => t.value === tabId);
+    if (tab && visit[tab.isCompletedKey] !== undefined) {
+      return visit[tab.isCompletedKey];
     }
+    return false;
   };
 
-
+  // Determine if all required tabs for the current appointment type are completed
+  const allTabsCompleted = useMemo(() => {
+    const requiredTabs = currentTabConfig.filter(tab => {
+      // For now, consider all tabs as required. Adjust if specific tabs are optional.
+      return true;
+    });
+    return requiredTabs.every((tab: TabConfig) => shouldShowTabAsCompleted(tab.value));
+  }, [currentTabConfig, shouldShowTabAsCompleted]);
 
   return (
     <>
       <Sheet open={true} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%] overflow-x-hidden overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%]">
           <SheetHeader className="mb-6 mr-10">
             <div className="flex items-center justify-between">
               <SheetTitle>Visit Summary</SheetTitle>
@@ -99,94 +169,77 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
             </div>
           </SheetHeader>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full">
-              {/* Customize each TabsTrigger to show completion status */}
-              <TabsTrigger 
-                value="intake" 
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("intake") ? "text-green-600" : ""}`}
-              >
-                Intake
-                {shouldShowTabAsCompleted("intake") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="vitals"
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("vitals") ? "text-green-600" : ""}`}
-              >
-                Vitals
-                {shouldShowTabAsCompleted("vitals") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="cc-hpi"
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("cc-hpi") ? "text-green-600" : ""}`}
-              >
-                Complaints
-                {shouldShowTabAsCompleted("cc-hpi") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="procedure"
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("procedure") ? "text-green-600" : ""}`}
-              >
-                Procedure
-                {shouldShowTabAsCompleted("procedure") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="assessment"
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("assessment") ? "text-green-600" : ""}`}
-              >
-                Prescription
-                {shouldShowTabAsCompleted("assessment") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="plan"
-                className={`flex items-center gap-1 ${shouldShowTabAsCompleted("plan") ? "text-green-600" : ""}`}
-              >
-                Plan
-                {shouldShowTabAsCompleted("plan") && <CheckCircle className="h-3 w-3 text-green-600" />}
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Intake Tab */}
-            <TabsContent value="intake">
-              <IntakeTab 
-                patientId={patientId} 
-                appointmentId={appointmentId} 
-                onNext={navigateToNextTab} 
+          {/* Appointment History Toggle */}
+          <AppointmentHistoryNavigation
+            patientHistory={filteredAppointmentHistory}
+            currentAppointmentId={currentAppointmentId}
+                onAppointmentSelect={(newAppointmentId) => {
+                  setCurrentAppointmentId(newAppointmentId);
+                  // Reset to first tab when changing appointments, but preserve URL param if valid
+                  if (currentTabConfig.length > 0) {
+                    const tabFromUrl = searchParams.get("tab") as TabId | null;
+                    const validTab = tabFromUrl && currentTabConfig.some(tab => tab.value === tabFromUrl)
+                      ? tabFromUrl
+                      : currentTabConfig[0].value;
+                    setActiveTab(validTab);
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("tab", validTab);
+                    router.replace(`?${params.toString()}`, { scroll: false });
+                  }
+                }}
+                selectedAppointmentType={appointment?.appointmentType?.name}
               />
-            </TabsContent>
 
-            {/* CC & HPI Tab */}
-            <TabsContent value="cc-hpi">
-              <ComplaintsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-            </TabsContent>
+          {/* For Vaccination appointments with no tabs, render content directly */}
+          {appointment?.appointmentType?.name === "Vaccination" && currentTabConfig.length === 0 ? (
+            <VaccinationPlanning
+              patientId={patientId}
+              appointmentId={currentAppointmentId}
+              species={appointment?.patient?.species || "dog"}
+              onNext={() => { }}
+              onClose={onClose}
+              clinicId={appointment?.clinicId}
+              isReadOnly={appointment?.status === "completed"}
+              embedded={true}
+              hideMedicalHistoryButton={hideMedicalHistoryButton}
+            />
+          ) : (
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="w-full z-10">
+                {/* Customize each TabsTrigger to show completion status */}
+                {currentTabConfig.map((tab: TabConfig) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className={`flex items-center gap-1 text-lg font-bold ${shouldShowTabAsCompleted(tab.value) ? "text-green-600" : ""}`}
+                  >
+                    {tab.label}
+                    {shouldShowTabAsCompleted(tab.value) && <CheckCircle className="h-3 w-3 text-green-600" />}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
-            {/* Vitals Tab */}
-            <TabsContent value="vitals">
-              <VitalsTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-            </TabsContent>
+              {/* Render tabs based on currentTabConfig */}
+              {currentTabConfig.map((tab: TabConfig) => (
+                <TabsContent key={tab.value} value={tab.value}>
+                  <TabProvider >
+                    <tab.component
+                      patientId={patientId}
+                      appointmentId={currentAppointmentId}
+                      onNext={navigateToNextTab}
+                      onClose={onClose}
+                      visitData={visitData}
+                      allTabsCompleted={allTabsCompleted}
+                      appointment={appointment}
+                      species={appointment?.patient?.species || ""}
+                    />
+                  </TabProvider>
+                </TabsContent>
+              ))}
+            </Tabs>
+          )}
 
-            {/* Procedure Tab */}
-            <TabsContent value="procedure">
-              <ProcedureTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-            </TabsContent>
-
-            {/* Assessment Tab */}
-            <TabsContent value="assessment">
-              <AssessmentTab patientId={patientId} appointmentId={appointmentId} onNext={navigateToNextTab} />
-            </TabsContent>
-
-            {/* Plan Tab */}
-            <TabsContent value="plan">
-              <PlanTab 
-                patientId={patientId} 
-                appointmentId={appointmentId} 
-                onClose={onClose}
-              />
-            </TabsContent>
-          </Tabs>
-
-          {activeTab == "plan" && (
+          {activeTab === "plan" && (
             <div className="mt-6 flex justify-end space-x-4">
               <Button
                 onClick={() => setShowNewAppointment(true)}
@@ -194,13 +247,27 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
               >
                 Book Another Appointment
               </Button>
+              <Button
+                onClick={() => setShowInvoice(true)}
+                className="theme-button text-white"
+              >
+                <Receipt className="h-4 w-4 mr-2" />
+                Generate Invoice
+              </Button>
             </div>
           )}
-        </SheetContent> 
-        <NewAppointment 
-          isOpen={showNewAppointment} 
+        </SheetContent>
+        <NewAppointment
+          isOpen={showNewAppointment}
           onClose={() => setShowNewAppointment(false)}
           patientId={patientId}
+        />
+        <InvoiceSheet
+          isOpen={showInvoice}
+          onClose={() => setShowInvoice(false)}
+          patientId={patientId}
+          appointmentId={currentAppointmentId}
+          visitId={visitData?.id}
         />
       </Sheet>
 
@@ -210,10 +277,10 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
           <SheetHeader className="mb-6">
             <SheetTitle>Medical History</SheetTitle>
           </SheetHeader>
-          <MedicalHistoryTab 
-            patientId={patientId} 
-            appointmentId={appointmentId} 
-            onNext={() => setShowMedicalHistory(false)} 
+          <MedicalHistoryTab
+            patientId={patientId}
+            appointmentId={currentAppointmentId}
+            onNext={() => setShowMedicalHistory(false)}
           />
         </SheetContent>
       </Sheet>

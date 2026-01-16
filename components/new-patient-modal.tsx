@@ -13,11 +13,11 @@ interface NewPatientModalProps {
 export function NewPatientModal({ isOpen, onClose }: NewPatientModalProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-       <SheetContent className="w-[90%] sm:max-w-[800px] overflow-y-auto">
+       <SheetContent className="w-[90%] sm:max-w-[800px]">
         <SheetHeader>
-          <SheetTitle className="text-2xl font-bold">Add New Patient</SheetTitle>
+          <SheetTitle className="text-lg font-bold relative top-[-14px]">Add New Patient</SheetTitle>
         </SheetHeader>
-        <div className="mt-6">
+        <div className="">
           <NewPatientForm onSuccess={onClose} />
         </div>
       </SheetContent>

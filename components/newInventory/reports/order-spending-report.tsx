@@ -170,7 +170,13 @@ export function OrderSpendingReport() {
   )
 }
 
-function SupplierRow({ supplier, spend, percentage }) {
+type SupplierRowProps = {
+  supplier: string;
+  spend: string;
+  percentage: string;
+}
+
+function SupplierRow({ supplier, spend, percentage }: SupplierRowProps) {
   return (
     <tr>
       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{supplier}</td>
@@ -200,7 +206,7 @@ function CategoryPieChart() {
         cy="50"
         r="40"
         fill="transparent"
-        stroke="#9333ea"
+        stroke="#1E3D3D"
         strokeWidth="20"
         strokeDasharray="90 270"
         strokeDashoffset="0"
@@ -260,7 +266,7 @@ function MonthlySpendingTrendChart() {
   const bottomPadding = 80 // Extra space at the bottom for labels
 
   // Function to scale values to fit in the chart
-  const scaleValue = (value) => {
+  const scaleValue = (value: number) => {
     return chartHeight - (value / maxValue) * chartHeight
   }
 
@@ -290,7 +296,7 @@ function MonthlySpendingTrendChart() {
 
       {/* Legend */}
       <g transform={`translate(${chartWidth - 160}, 20)`}>
-        <rect x="0" y="0" width="16" height="16" fill="#9333ea" rx="2" />
+        <rect x="0" y="0" width="16" height="16" fill="#1E3D3D" rx="2" />
         <text x="24" y="13" fontSize="14" fontWeight="bold" fill="#4b5563">
           Actual
         </text>
@@ -314,7 +320,7 @@ function MonthlySpendingTrendChart() {
               y={scaleValue(item.value)}
               width={barWidth}
               height={chartHeight - scaleValue(item.value)}
-              fill={isActual ? "#9333ea" : "#e5e7eb"}
+              fill={isActual ? "#1E3D3D" : "#e5e7eb"}
               rx="4"
             />
 

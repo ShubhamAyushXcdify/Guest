@@ -25,37 +25,37 @@ export default function SettingsPage() {
           <TabsList className="grid grid-cols-2 md:grid-cols-6 mb-8 bg-gray-100 dark:bg-slate-800">
             <TabsTrigger
               value="profile"
-              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-[#1E3D3D] data-[state=active]:text-white"
             >
               Profile
             </TabsTrigger>
             <TabsTrigger 
               value="account" 
-              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-[#1E3D3D] data-[state=active]:text-white"
             >
               Account
             </TabsTrigger>
             <TabsTrigger
               value="notifications"
-              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-[#1E3D3D] data-[state=active]:text-white"
             >
               Notifications
             </TabsTrigger>
             <TabsTrigger 
               value="appearance" 
-              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-[#1E3D3D] data-[state=active]:text-white"
             >
               Appearance
             </TabsTrigger>
             <TabsTrigger 
               value="clinic" 
-              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-[#1E3D3D] data-[state=active]:text-white"
             >
               Clinic
             </TabsTrigger>
             <TabsTrigger 
               value="system" 
-              className="data-[state=active]:bg-purple-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-[#1E3D3D] data-[state=active]:text-white"
             >
               System
             </TabsTrigger>
@@ -72,10 +72,10 @@ export default function SettingsPage() {
                 <CardContent className="flex flex-col items-center">
                   <Avatar className="w-32 h-32 mb-4">
                     <AvatarImage src="/images/vet-placeholder.jpg" alt="Profile picture" />
-                    <AvatarFallback className="bg-purple-100 text-purple-800 text-xl">DV</AvatarFallback>
+                    <AvatarFallback className="bg-[#D2EFEC] text-[#1E3D3D] text-xl">DV</AvatarFallback>
                   </Avatar>
                   <div className="flex gap-3">
-                    <Button variant="outline" className="border-purple-600 text-purple-600">Change</Button>
+                    <Button variant="outline" className="theme-button-outline">Change</Button>
                     <Button variant="outline" className="text-red-600 border-red-600">Remove</Button>
                   </div>
                 </CardContent>
@@ -124,7 +124,7 @@ export default function SettingsPage() {
                       ></textarea>
                     </div>
                   </div>
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-white mt-2">Save Changes</Button>
+                  <Button className="theme-button text-white mt-2">Save Changes</Button>
                 </CardContent>
               </Card>
             </div>
@@ -139,7 +139,7 @@ export default function SettingsPage() {
                     <CardTitle>Account Security</CardTitle>
                     <CardDescription>Manage your password and security settings</CardDescription>
                   </div>
-                  <Shield className="h-5 w-5 text-purple-600" />
+                  <Shield className="h-5 w-5 theme-text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4 mb-6">
@@ -156,7 +156,7 @@ export default function SettingsPage() {
                       <Input id="confirmPassword" type="password" className="mt-1" />
                     </div>
                   </div>
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-white">Change Password</Button>
+                  <Button className="theme-button text-white">Change Password</Button>
                 </CardContent>
               </Card>
 
@@ -166,7 +166,7 @@ export default function SettingsPage() {
                     <CardTitle>Two-Factor Authentication</CardTitle>
                     <CardDescription>Add an extra layer of security to your account</CardDescription>
                   </div>
-                  <Users className="h-5 w-5 text-purple-600" />
+                  <Users className="h-5 w-5 theme-text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between mb-4">
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                   <CardTitle>Notification Preferences</CardTitle>
                   <CardDescription>Configure how you want to receive notifications</CardDescription>
                 </div>
-                <Bell className="h-5 w-5 text-purple-600" />
+                <Bell className="h-5 w-5 theme-text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -286,7 +286,7 @@ export default function SettingsPage() {
                   <CardTitle>Theme Settings</CardTitle>
                   <CardDescription>Customize the look and feel of PawTrack</CardDescription>
                 </div>
-                <Palette className="h-5 w-5 text-purple-600" />
+                <Palette className="h-5 w-5 theme-text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -294,7 +294,7 @@ export default function SettingsPage() {
                     <Label htmlFor="theme-mode" className="block mb-2">Theme Mode</Label>
                     <div className="grid grid-cols-3 gap-4">
                       <div 
-                        className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${themeMode === 'light' ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700'}`}
+                        className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${themeMode === 'light' ? 'theme-border bg-[#D2EFEC] dark:bg-[#1E3D3D]/20' : 'border-gray-200 dark:border-gray-700'}`}
                         onClick={() => setThemeMode('light')}
                       >
                         <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center mb-2">
@@ -303,7 +303,7 @@ export default function SettingsPage() {
                         <span className="text-sm font-medium">Light</span>
                       </div>
                       <div 
-                        className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${themeMode === 'dark' ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700'}`}
+                        className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${themeMode === 'dark' ? 'theme-border bg-[#D2EFEC] dark:bg-[#1E3D3D]/20' : 'border-gray-200 dark:border-gray-700'}`}
                         onClick={() => setThemeMode('dark')}
                       >
                         <div className="w-12 h-12 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center mb-2">
@@ -312,7 +312,7 @@ export default function SettingsPage() {
                         <span className="text-sm font-medium">Dark</span>
                       </div>
                       <div 
-                        className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${themeMode === 'system' ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700'}`}
+                        className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${themeMode === 'system' ? 'theme-border bg-[#D2EFEC] dark:bg-[#1E3D3D]/20' : 'border-gray-200 dark:border-gray-700'}`}
                         onClick={() => setThemeMode('system')}
                       >
                         <div className="w-12 h-12 rounded-full bg-gradient-to-r from-white to-gray-900 border border-gray-200 flex items-center justify-center mb-2">
@@ -329,7 +329,7 @@ export default function SettingsPage() {
                       {['purple', 'blue', 'green', 'orange', 'pink'].map((color) => (
                         <div 
                           key={color}
-                          className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${accentColor === color ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700'}`}
+                          className={`flex flex-col items-center p-4 border rounded-lg cursor-pointer ${accentColor === color ? 'theme-button-outline bg-[#D2EFEC] dark:bg-[#1E3D3D]/20' : 'border-gray-200 dark:border-gray-700'}`}
                           onClick={() => setAccentColor(color)}
                         >
                           <div className={`w-8 h-8 rounded-full bg-${color}-600 mb-2`} />
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                     <Switch id="compact-mode" />
                   </div>
 
-                  <Button className="bg-purple-600 hover:bg-purple-700 text-white">Save Appearance Settings</Button>
+                  <Button className="theme-button text-white">Save Appearance Settings</Button>
                 </div>
               </CardContent>
             </Card>
@@ -361,7 +361,7 @@ export default function SettingsPage() {
                   <CardTitle>Clinic Settings</CardTitle>
                   <CardDescription>Manage your clinic information and preferences</CardDescription>
                 </div>
-                <Building className="h-5 w-5 text-purple-600" />
+                <Building className="h-5 w-5 theme-text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -420,7 +420,7 @@ export default function SettingsPage() {
                     </Select>
                   </div>
                 </div>
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white">Save Clinic Settings</Button>
+                <Button className="theme-button text-white">Save Clinic Settings</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -434,7 +434,7 @@ export default function SettingsPage() {
                     <CardTitle>System Preferences</CardTitle>
                     <CardDescription>Configure application behavior</CardDescription>
                   </div>
-                  <Globe className="h-5 w-5 text-purple-600" />
+                  <Globe className="h-5 w-5 theme-text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -496,7 +496,7 @@ export default function SettingsPage() {
                     <CardTitle>Privacy & Data</CardTitle>
                     <CardDescription>Manage your data and privacy preferences</CardDescription>
                   </div>
-                  <Shield className="h-5 w-5 text-purple-600" />
+                  <Shield className="h-5 w-5 theme-text-primary" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -512,7 +512,7 @@ export default function SettingsPage() {
                         <h3 className="font-medium">Cookie Preferences</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Manage cookies used on this application</p>
                       </div>
-                      <Button variant="outline" className="border-purple-600 text-purple-600">
+                      <Button variant="outline" className="theme-button-outline">
                         Manage Cookies
                       </Button>
                     </div>
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                         <h3 className="font-medium">Data Export</h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Download all your data</p>
                       </div>
-                      <Button variant="outline" className="border-purple-600 text-purple-600">
+                      <Button variant="outline" className="theme-button-outline">
                         Export Data
                       </Button>
                     </div>
@@ -553,7 +553,7 @@ export default function SettingsPage() {
                       <span className="text-green-500">Active</span>
                     </div>
                   </div>
-                  <Button className="mt-6 bg-purple-600 hover:bg-purple-700 text-white">Check for Updates</Button>
+                  <Button className="mt-6 theme-button text-white">Check for Updates</Button>
                 </CardContent>
               </Card>
             </div>

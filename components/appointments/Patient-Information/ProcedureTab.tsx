@@ -119,20 +119,20 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const [neuterModalOpen, setNeuterModalOpen] = useState(false)
   const [massLumpRemovalModalOpen, setMassLumpRemovalModalOpen] = useState(false)
   const [nailTrimmingModalOpen, setNailTrimmingModalOpen] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(true)
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const { markTabAsCompleted } = useTabCompletion()
-  
+
   // Add state for selected procedure ID
   const [selectedProcedureId, setSelectedProcedureId] = useState<string>("")
-  
+
   const transcriber = useTranscriber()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  
+
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
-  
+
   const { data: procedures = [], isLoading } = useGetProcedures()
   const { data: existingProcedureDetail, refetch: refetchProcedureDetail } = useGetProcedureDetailByVisitId(
     visitData?.id || ""
@@ -171,7 +171,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   }) // Remove the slice limit to show all procedures
 
   // Get selected procedures data
-  const selectedProceduresData = procedures.filter(procedure => 
+  const selectedProceduresData = procedures.filter(procedure =>
     selectedProcedures.includes(procedure.id)
   )
 
@@ -182,7 +182,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       if (existingProcedureDetail.procedures && Array.isArray(existingProcedureDetail.procedures)) {
         setSelectedProcedures(existingProcedureDetail.procedures.map(p => p.id));
       }
-      
+
       if (existingProcedureDetail.notes) {
         setNotes(existingProcedureDetail.notes);
       }
@@ -194,17 +194,17 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       });
 
       // Mark tab as completed if it was already completed or if it has procedures
-      if (existingProcedureDetail.isCompleted || 
-          (existingProcedureDetail.procedures && 
-           existingProcedureDetail.procedures.length > 0)) {
+      if (existingProcedureDetail.isCompleted ||
+        (existingProcedureDetail.procedures &&
+          existingProcedureDetail.procedures.length > 0)) {
         markTabAsCompleted("procedure");
       }
-      
+
       // Set hasCreatedDetail to true since we have an existing record
       setHasCreatedDetail(true);
     }
   }, [existingProcedureDetail, markTabAsCompleted])
-  
+
   // Handle transcription output
   useEffect(() => {
     const output = transcriber.output
@@ -214,19 +214,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     // eslint-disable-next-line
   }, [transcriber.output?.isBusy])
 
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false)
-        setFocusedIndex(-1)
-      }
-    }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-  
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
       setNewProcedureName("")
@@ -240,7 +228,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   // Use mutateAsync pattern like MedicalHistoryTab
   const { mutateAsync: createProcedureDetail, isPending: isCreating } = useCreateProcedureDetail()
   const { mutateAsync: updateProcedureDetail, isPending: isUpdating } = useUpdateProcedureDetail()
-  
+
   // Combined loading state
   const isPending = isCreating || isUpdating || isAdding || isRemoving
 
@@ -259,18 +247,23 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     )
   }
 
+  // Check if we have procedures to save (either new or existing)
+  const hasProceduresToSave = () => {
+    return selectedProcedures.length > 0
+  }
+
   const handleProcedureClick = async (id: string) => {
     if (!visitData?.id) {
       toast.error("No visit data found for this appointment")
       return
     }
-    
+
     try {
       // Add to local state first for immediate UI feedback
       setSelectedProcedures(prev => [...prev, id])
-      
+
       setIsAdding(true)
-      
+
       // Make API call
       if (existingProcedureDetail) {
         // If we already have a record, update it (PUT)
@@ -291,28 +284,28 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           procedureIds: [id]
         })
         toast.success("Procedure added successfully")
-        
+
         // Mark that we've created a procedure detail
         setHasCreatedDetail(true)
-        
+
         // After creating, immediately get the procedure detail
         const updatedProcedureDetail = await refetchProcedureDetail()
-        
+
         // If we got valid data back, use it immediately
         if (updatedProcedureDetail?.data) {
           // This will update the local state with the fetched data
           // No need to wait for a component re-render
         }
       }
-      
+
       // Mark the tab as completed since we have at least one procedure
       markTabAsCompleted("procedure")
-      
+
       // Clear search and close dropdown
       setSearchQuery("")
-      setShowDropdown(false)
+      //setShowDropdown(false)
       setFocusedIndex(-1)
-      
+
     } catch (error) {
       // If API call fails, revert UI change
       setSelectedProcedures(prev => prev.filter(procId => procId !== id))
@@ -327,13 +320,13 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
       toast.error("No saved procedure details found")
       return
     }
-    
+
     try {
       // Update UI first for immediate feedback
       setSelectedProcedures(prev => prev.filter(procId => procId !== id))
-      
+
       setIsRemoving(true)
-      
+
       // Make API call to update (remove the procedure)
       const updatedProcedures = selectedProcedures.filter(procId => procId !== id)
       await updateProcedureDetail({
@@ -342,14 +335,14 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         isCompleted: true,
         procedureIds: updatedProcedures
       })
-      
+
       toast.success("Procedure removed successfully")
-      
+
       // If we removed the last procedure, we might want to un-mark the tab as completed
       if (updatedProcedures.length === 0) {
         // This depends on your business logic - you might want to keep it marked as completed
       }
-      
+
     } catch (error) {
       // If API call fails, revert UI change
       setSelectedProcedures(prev => [...prev, id])
@@ -362,7 +355,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const handleDocumentClick = (id: string) => {
     // Set selected procedure ID
     setSelectedProcedureId(id);
-    
+
     // Refetch procedure details to ensure we have the latest data
     if (visitData?.id) {
       refetchProcedureDetail().then((result) => {
@@ -373,7 +366,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         }
       });
     }
-    
+
     // Continue with original function to open the appropriate modal
     const procedure = procedures.find(p => p.id === id)
     if (procedure?.procCode === "DIAURI002") {
@@ -497,7 +490,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
     if (procedure?.procCode === "DIAFEC003") {
       setFecalExamModalOpen(true)
-      return    
+      return
     }
     if (procedure?.procCode === "DIAXRA004") {
       setXrayModalOpen(true)
@@ -560,14 +553,14 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchQuery(value)
-    setShowDropdown(true) // Always show dropdown when typing
+    //setShowDropdown(true) // Always show dropdown when typing
     setFocusedIndex(-1)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setFocusedIndex(prev => 
+      setFocusedIndex(prev =>
         prev < filteredProcedures.length - 1 ? prev + 1 : prev
       )
     } else if (e.key === 'ArrowUp') {
@@ -579,7 +572,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
         handleProcedureClick(filteredProcedures[focusedIndex].id)
       }
     } else if (e.key === 'Escape') {
-      setShowDropdown(false)
+      //setShowDropdown(false)
       setFocusedIndex(-1)
       searchInputRef.current?.blur()
     }
@@ -591,7 +584,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   //     toast.error("No visit data found for this appointment")
   //     return
   //   }
-    
+
   //   try {
   //     if (existingProcedureDetail) {
   //       // Update notes and mark as completed
@@ -601,7 +594,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   //         isCompleted: true,
   //         procedureIds: selectedProcedures
   //       })
-        
+
   //       toast.success("Procedure details updated successfully")
   //     } else {
   //       // This case should rarely happen now since procedures are saved immediately
@@ -611,30 +604,30 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
   //         isCompleted: true,
   //         procedureIds: selectedProcedures
   //       })
-        
+
   //       toast.success("Procedure details saved successfully")
   //     }
-      
+
   //     // Mark the tab as completed
   //     markTabAsCompleted("procedure")
-      
+
   //     // After successful save, navigate to next tab
   //     if (onNext) {
   //       onNext()
   //     }
-      
+
   //   } catch (error) {
   //     console.error('Error saving procedure details:', error)
   //     toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
   //   }
   // }
   const handleSave = async () => {
-  markTabAsCompleted("procedure")
-  // After successful save, navigate to next tab
-  if (onNext) {
-    onNext()
+    markTabAsCompleted("procedure")
+    // After successful save, navigate to next tab
+    if (onNext) {
+      onNext()
+    }
   }
-}
 
   if (visitLoading || isLoading) {
     return (
@@ -658,188 +651,180 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
 
   return (
     <Card>
-      <CardContent className="p-6">
-        {/* Typeahead Search Section */}
-        <div className="mb-6">
-          <h3 className="text-lg font-medium mb-3">Add Procedures</h3>
-          
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              ref={searchInputRef}
-              placeholder="Search procedures by name, code, or type..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setShowDropdown(true)}
-              onClick={() => setShowDropdown(true)}
-              className="pl-10 pr-10"
-              disabled={isReadOnly}
-            />
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            
-            {/* Dropdown */}
-            {showDropdown && filteredProcedures.length > 0 && (
-              <div
-                ref={dropdownRef}
-                className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-y-auto"
-              >
-                {filteredProcedures.map((procedure, index) => (
-                  <div
-                    key={procedure.id}
-                    className={`px-4 py-3 cursor-pointer hover:bg-gray-50 ${
-                      index === focusedIndex ? 'bg-blue-50 border-l-2 border-blue-500' : ''
-                    }`}
-                    onClick={() => handleProcedureClick(procedure.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{procedure.name}</div>
-                        <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
-                          <span className="font-mono">{procedure.procCode || "-"}</span>
-                          <span>•</span>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {procedure.type || "General"}
-                          </span>
-                        </div>
-                        {procedure.notes && (
-                          <div className="text-xs text-gray-600 mt-1 truncate">
-                            {procedure.notes}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleProcedureClick(procedure.id)
-                        }}
-                        disabled={isReadOnly || isPending}
-                        className="ml-2"
-                      >
-                        {isAdding ? "Adding..." : "Add"}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {showDropdown && filteredProcedures.length === 0 && searchQuery.trim() && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-                <div className="px-4 py-3 text-sm text-gray-500">
-                  No procedures found matching "{searchQuery}"
-                </div>
-              </div>
-            )}
-
-            {showDropdown && filteredProcedures.length === 0 && !searchQuery.trim() && selectedProcedures.length === procedures.length && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-                <div className="px-4 py-3 text-sm text-gray-500">
-                  All procedures have been added
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Selected Procedures Table */}
-        {selectedProceduresData.length > 0 && (
+      <CardContent className="p-0">
+        <div className="h-[calc(100vh-23rem)] overflow-y-auto p-6">
+          {/* Typeahead Search Section */}
           <div className="mb-6">
-            <h3 className="text-lg font-medium mb-3">Selected Procedures</h3>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[120px]">Procedure Code</TableHead>
-                    <TableHead>Procedure Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="w-[150px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedProceduresData.map(procedure => (
-                    <TableRow key={procedure.id}>
-                      <TableCell className="font-mono text-sm">
-                        {procedure.procCode || "-"}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{procedure.name}</div>
+            <h3 className="text-lg font-medium mb-3">Add Procedures</h3>
+
+            {/* Search Input */}
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                ref={searchInputRef}
+                placeholder="Search procedures by name, code, or type..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onKeyDown={handleKeyDown}
+                className="pl-10"
+                disabled={isReadOnly}
+              />
+            </div>
+
+            {/* Permanent Procedures List */}
+            <div className="border rounded-lg bg-white shadow-sm max-h-96 overflow-y-auto">
+              {!searchQuery.trim() && (
+                <div className="px-4 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-200 sticky top-0">
+                  Common Procedures
+                </div>
+              )}
+
+              {filteredProcedures.length > 0 ? (
+                <div>
+                  {filteredProcedures.map((procedure, index) => (
+                    <div
+                      key={procedure.id}
+                      className={`px-4 py-3 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer ${index === focusedIndex ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
+                        }`}
+                      onClick={() => handleProcedureClick(procedure.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{procedure.name}</div>
+                          <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                            <span className="font-mono">{procedure.procCode || "-"}</span>
+                            <span>•</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {procedure.type || "General"}
+                            </span>
+                          </div>
                           {procedure.notes && (
-                            <div className="text-sm text-muted-foreground mt-1">
+                            <div className="text-xs text-gray-600 mt-1 truncate">
                               {procedure.notes}
                             </div>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {procedure.type || "General"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDocumentClick(procedure.id)}
-                            //disabled={isReadOnly}
-                            title="View/Edit Documents"
-                          >
-                            Document
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRemoveProcedure(procedure.id)}
-                            disabled={isReadOnly || isPending}
-                            title="Remove Procedure"
-                          >
-                            {isRemoving ? "..." : <X className="h-4 w-4" />}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleProcedureClick(procedure.id)
+                          }}
+                          disabled={isReadOnly || isPending}
+                          className="ml-2"
+                        >
+                          {isAdding ? "Adding..." : "Add"}
+                        </Button>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                <div className="px-4 py-8 text-center text-sm text-gray-500">
+                  {searchQuery.trim()
+                    ? `No procedures found matching "${searchQuery}"`
+                    : "All procedures have been added"}
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-sm font-medium">Additional Notes</h3>
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              onClick={() => setAudioModalOpen(true)}
-              title="Record voice note"
+          {/* Selected Procedures Table */}
+          {selectedProceduresData.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-3">Selected Procedures</h3>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">Procedure Code</TableHead>
+                      <TableHead>Procedure Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="w-[150px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedProceduresData.map(procedure => (
+                      <TableRow key={procedure.id}>
+                        <TableCell className="font-mono text-sm">
+                          {procedure.procCode || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{procedure.name}</div>
+                            {procedure.notes && (
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {procedure.notes}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {procedure.type || "General"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDocumentClick(procedure.id)}
+                              //disabled={isReadOnly}
+                              title="View/Edit Documents"
+                            >
+                              Document
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRemoveProcedure(procedure.id)}
+                              disabled={isReadOnly || isPending}
+                              title="Remove Procedure"
+                            >
+                              {isRemoving ? "..." : <X className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-sm font-medium">Additional Notes</h3>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setAudioModalOpen(true)}
+                title="Record voice note"
+                disabled={isReadOnly}
+              >
+                <Mic className="w-4 h-4" />
+              </Button>
+            </div>
+            <textarea
+              className="w-full border rounded-md p-2 min-h-[100px]"
+              placeholder="Add any additional details about the procedures..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               disabled={isReadOnly}
-            >
-              <Mic className="w-4 h-4" />
-            </Button>
+            />
           </div>
-          <textarea
-            className="w-full border rounded-md p-2 min-h-[100px]"
-            placeholder="Add any additional details about the procedures..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={isReadOnly}
-          />
         </div>
-
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex justify-end mb-4 mx-4">
           <Button
             onClick={handleSave}
             disabled={
               isPending ||
-              (!hasCreatedDetail && selectedProcedures.length === 0) ||
-              isReadOnly ||
-              (!!existingProcedureDetail && !hasChanges())
+              !hasProceduresToSave() ||
+              isReadOnly
             }
             className="ml-2"
           >
@@ -848,7 +833,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
               : existingProcedureDetail ? "Update & Next" : "Save & Next"}
           </Button>
         </div>
-        
+
         <AudioManager
           open={audioModalOpen}
           onClose={() => setAudioModalOpen(false)}
@@ -858,7 +843,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
             setAudioModalOpen(false)
           }}
         />
-        
+
         <UrinalysisModal
           open={urinalysisModalOpen}
           onClose={() => setUrinalysisModalOpen(false)}
@@ -866,7 +851,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
         />
-        
+
         <EyeSurgeryModal
           open={eyeSurgeryModalOpen}
           onClose={() => setEyeSurgeryModalOpen(false)}
@@ -874,7 +859,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
         />
-        
+
         <MicrochippingModal
           open={microchippingModalOpen}
           onClose={() => setMicrochippingModalOpen(false)}
@@ -882,7 +867,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
         />
-        
+
         <FleaTickControlModal
           open={fleaTickControlModalOpen}
           onClose={() => setFleaTickControlModalOpen(false)}
@@ -890,7 +875,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
         />
-        
+
         <BreedModal
           open={breedModalOpen}
           onClose={() => setBreedModalOpen(false)}
@@ -985,7 +970,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           patientId={patientId}
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
-          />
+        />
 
         <IVFluidTherapyModal
           open={ivFluidTherapyModalOpen}
@@ -1076,7 +1061,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           patientId={patientId}
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
-        />  
+        />
         <XRayModal
           open={xrayModalOpen}
           onClose={() => setXrayModalOpen(false)}
@@ -1090,7 +1075,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
           patientId={patientId}
           appointmentId={appointmentId}
           procedureId={selectedProcedureId}
-          />
+        />
         <AllergyTestingModal
           open={allergyTestingModalOpen}
           onClose={() => setAllergyTestingModalOpen(false)}

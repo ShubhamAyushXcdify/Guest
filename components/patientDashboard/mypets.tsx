@@ -55,16 +55,16 @@ export default function MyPetsPage() {
           ) : (
             pets.map((pet: any) => (
               <Card key={pet.id} className="bg-white shadow-lg border-0 overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                <CardHeader className="bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white">
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16 border-2 border-white">
-                      <AvatarFallback className="bg-white text-blue-600 text-lg font-bold">
+                      <AvatarFallback className="bg-white text-[#1E3D3D] text-lg font-bold">
                         {pet.name?.[0] || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <CardTitle className="text-white">{pet.name}</CardTitle>
-                      <CardDescription className="text-blue-100">{pet.breed}</CardDescription>
+                      <CardDescription className="text-[#D2EFEC]">{pet.breed}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -90,7 +90,7 @@ export default function MyPetsPage() {
         </div>
       )}
       <Sheet open={isNewPetFormOpen} onOpenChange={setIsNewPetFormOpen}>
-        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[70%] overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:w-full md:!max-w-[40%] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Register New Pet</SheetTitle>
           </SheetHeader>

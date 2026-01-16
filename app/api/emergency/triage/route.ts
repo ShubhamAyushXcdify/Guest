@@ -55,14 +55,18 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify(body),
             }
         );
+        const data = await response.json(); 
 
         if (!response.ok) {
-            throw new Error('Failed to create emergency visit');
+            // ✅ forward backend error message
+            return NextResponse.json(data, { status: response.status });
         }
 
-        const data = await response.json();
         return NextResponse.json(data, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ message: `Error creating emergency visit: ${error.message}` }, { status: 500 });
+            } catch (error: any) {
+        return NextResponse.json(
+            { message: `Error creating emergency visit: ${error.message}` },
+            { status: 500 }
+        );
     }
-} 
+}

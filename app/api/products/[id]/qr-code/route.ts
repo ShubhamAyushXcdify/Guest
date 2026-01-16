@@ -3,10 +3,10 @@ import { getJwtToken } from "@/utils/serverCookie";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     
     // Get the base URL from environment or use a default
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';

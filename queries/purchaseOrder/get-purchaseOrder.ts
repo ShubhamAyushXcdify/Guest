@@ -47,12 +47,12 @@ export const getPurchaseOrders = async (filters: {
 };
 
 export function useGetPurchaseOrders(filters = {}, enabled = true) {
-  return useQuery({
+  return useQuery<PaginatedResponse<PurchaseOrderData>>({
     queryKey: ['purchaseOrders', filters],
     queryFn: async () => {
       const result = await getPurchaseOrders(filters);
-      // Handle both paginated and direct array responses
-      return Array.isArray(result) ? result : result.data || [];
+      // Always return the backend paginated response { data, meta }
+      return result as PaginatedResponse<PurchaseOrderData>;
     },
     enabled,
     refetchOnWindowFocus: false,

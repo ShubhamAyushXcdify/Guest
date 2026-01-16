@@ -45,6 +45,7 @@ export async function PUT(
     request: NextRequest,
     ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
 
@@ -55,7 +56,7 @@ export async function PUT(
         const body = await request.json();
         
         // Send PUT request to /api/Client endpoint (without ID in URL)
-        const response = await fetch(`${apiUrl}/api/Client`,
+        const response = await fetch(`${apiUrl}/api/Client/${id}`,
             {
                 method: 'PUT',
                 headers: {

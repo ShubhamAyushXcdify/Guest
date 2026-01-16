@@ -3,6 +3,8 @@ import { EmergencyVisitProcedure, Medication } from "./get-emergency-procedures"
 
 interface UpdateEmergencyProcedureData extends Partial<Omit<EmergencyVisitProcedure, 'createdAt' | 'updatedAt'>> {
   id: string;
+  fluidsVolumeMl?: number | null;
+  fluidsRateMlHr?: number | null;
 }
 
 const updateEmergencyProcedure = async (data: UpdateEmergencyProcedureData): Promise<EmergencyVisitProcedure> => {

@@ -166,7 +166,7 @@ export function ProductDrawer({ open, onOpenChange, mode, productId }: ProductDr
               <h3 className="text-lg font-medium mb-4">Basic Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="col-span-1">
-                  <Label htmlFor="productName">Product Name:</Label>
+                  <Label htmlFor="productName">Product Name*:</Label>
                   <Input
                     id="productName"
                     value={productName}
@@ -176,7 +176,7 @@ export function ProductDrawer({ open, onOpenChange, mode, productId }: ProductDr
                   />
                 </div>
                 <div>
-                  <Label htmlFor="sku">SKU:</Label>
+                  <Label htmlFor="sku">SKU*:</Label>
                   <Input
                     id="sku"
                     value={sku}

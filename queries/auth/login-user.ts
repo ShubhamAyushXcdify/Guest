@@ -22,8 +22,17 @@ export const loginUser = async (data: UserFormData) => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to login user');
+    let message = 'Failed to login user';
+    try {
+      const errorData = await response.json();
+      message = errorData?.error || errorData?.message || message;
+    } catch {
+      // Ignore JSON parse errors and use fallback message
+    }
+
+    const error: any = new Error(message);
+    error.status = response.status;
+    throw error;
   }
 
   return response.json();
@@ -34,15 +43,23 @@ export const useLoginMutation = (config?: LoginMutationConfig) => {
   
   return useMutation({
     mutationFn: loginUser,
+    retry: false,
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries(); 
+      // Only invalidate specific queries that need to be refreshed after login
+      // Avoid invalidating all queries which causes massive refetch cascade
       if (data && typeof data === 'object' && 'user' in data) {
         queryClient.setQueryData(['user'], data.user);
       }
+      // Only invalidate permission-related queries, not everything
+      queryClient.invalidateQueries({ queryKey: ['permission'] });
+      // Clear any stale data that might be user-specific
+      queryClient.removeQueries({ queryKey: ['appointment'] });
+      queryClient.removeQueries({ queryKey: ['patient'] });
+      queryClient.removeQueries({ queryKey: ['client'] });
+      
       if (config?.onSuccess) {
         config.onSuccess(data);
       }
-      queryClient.invalidateQueries({ queryKey: ['permission'] });
     },
     onError: (error: any) => {
       if (config?.onError) {
@@ -51,5 +68,4 @@ export const useLoginMutation = (config?: LoginMutationConfig) => {
     }
   });
 };
-
 

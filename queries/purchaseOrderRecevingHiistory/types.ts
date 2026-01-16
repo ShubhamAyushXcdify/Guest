@@ -16,18 +16,36 @@ export interface PurchaseOrderReceivingHistoryItem {
   unitCost?: number;
   lotNumber?: string;
   supplierId?: string;
-  quantityOnHand?: number;
-  barcode?: string;
+  quantityInHand?: number;
+  barcodeNumber?: string;
   shelf?: string;
   bin?: string;
   createdAt?: string;
   updatedAt?: string;
-  // Extended fields from joins
   productName?: string;
   clinicName?: string;
   supplierName?: string;
   receivedByName?: string;
   orderNumber?: string;
+  productDetails?: {
+    id: string;
+    productNumber: string;
+    name: string;
+    genericName: string;
+    category: string;
+    manufacturer: string;
+    ndcNumber: string;
+    strength: string;
+    dosageForm: string;
+    unitOfMeasure: string;
+    requiresPrescription: boolean;
+    controlledSubstanceSchedule: string;
+    brandName: string;
+    storageRequirements: string;
+    isActive: boolean;
+    price: number;
+    sellingPrice: number;
+  }
 }
 
 export interface CreatePurchaseOrderReceivingHistoryData {
@@ -66,6 +84,8 @@ export interface PurchaseOrderReceivingHistoryFilters {
   purchaseOrderId?: string;
   purchaseOrderItemId?: string;
   lotNumber?: string;
+  productName?: string; // Add productName filter
+  companyId?:string; // Add companyId filter
   page?: number;
   pageSize?: number;
 }

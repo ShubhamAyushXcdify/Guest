@@ -6,6 +6,22 @@ export interface ProductMapping {
   dosage: string | null;
   frequency: string;
   numberOfDays: number;
+  purchaseOrderReceivingHistoryId?: string | null; // Add this field
+  product?: {
+    id: string;
+    name: string;
+    sellingPrice?: number;
+    [key: string]: any;
+  };
+  purchaseOrderReceivingHistory?: {
+    id: string;
+    batchNumber?: string;
+    expiryDate?: string;
+    quantityInHand?: number;
+    productDetails?: any;
+    [key: string]: any;
+  } | null; // Add this field
+  isChecked?: boolean;
 }
 
 export interface PrescriptionDetail {

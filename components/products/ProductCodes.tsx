@@ -321,8 +321,8 @@ export default function ProductCodes({ productId, productNumber, productName }: 
   if (qrError || barcodeError) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Product Codes</CardTitle>
+        <CardHeader className='border-b p-4'>
+          <CardTitle className="text-xl">Product Codes</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-red-500">
@@ -335,8 +335,8 @@ export default function ProductCodes({ productId, productNumber, productName }: 
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+      <CardHeader className='border-b p-4 mb-4'>
+        <CardTitle className="flex items-center justify-between text-lg">
           Product Codes
           {/* <div className="flex gap-2">
             <Button
@@ -381,7 +381,7 @@ export default function ProductCodes({ productId, productNumber, productName }: 
           </div>
 
           {/* Barcode Section */}
-          <div className="flex flex-col items-center space-y-4">
+          <div className="flex flex-col items-center space-y-4 border-l">
             <h3 className="text-lg font-semibold">Barcode</h3>
             <div className="bg-white p-4 rounded-lg border">
               <Barcode

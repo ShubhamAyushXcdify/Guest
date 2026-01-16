@@ -29,14 +29,14 @@ export const DashboardActionButtons = ({
   const isProvider = userType?.isProvider
 
   return (
-    <div className="flex justify-end gap-3 mb-6 flex-wrap">
-      <Button className="theme-button text-white" onClick={onNewPatient}>
+    <div className="flex justify-start gap-3 mb-1 flex-wrap bg-[#D2EFEC] p-4 rounded-md">
+      <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onNewPatient}>
         New Patient
       </Button>
-      <Button className="theme-button text-white" onClick={onNewAppointment}>
+      <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onNewAppointment}>
         New Appointment
       </Button>
-      {/* <Button className="theme-button text-white" onClick={onNewInvoice}>
+      {/* <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onNewInvoice}>
         New Invoice
       </Button> */}
       
@@ -44,22 +44,22 @@ export const DashboardActionButtons = ({
       {isProvider && (
         <>
           {onAddProduct && (
-            <Button className="theme-button text-white" onClick={onAddProduct}>
+            <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onAddProduct}>
               Add Product
             </Button>
           )}
           {onAddSupplier && (
-            <Button className="theme-button text-white" onClick={onAddSupplier}>
+            <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onAddSupplier}>
               Add Supplier
             </Button>
           )}
           {onAddClient && (
-            <Button className="theme-button text-white" onClick={onAddClient}>
+            <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onAddClient}>
               Add Client
             </Button>
           )}
           {onCreatePurchaseOrder && (
-            <Button className="theme-button text-white" onClick={onCreatePurchaseOrder}>
+            <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onCreatePurchaseOrder}>
               Create Purchase Order
             </Button>
           )}

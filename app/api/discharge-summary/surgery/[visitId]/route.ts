@@ -7,10 +7,10 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 // GET API Route for discharge summary
 export async function GET(
     request: NextRequest,
-    { params }: { params: { visitId: string } }
+    { params }: { params: Promise<{ visitId: string }> }
 ) {
     try {
-        const { visitId } = params;
+        const { visitId } = await params;
         
         if (!visitId) {
             return NextResponse.json(

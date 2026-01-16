@@ -9,13 +9,6 @@ export interface UpdateDewormingMedicationDto {
   administeredBy?: string;
   remarks?: string;
   isCompleted?: boolean;
-  prescriptions?: Array<{
-    medicationName: string;
-    dose: string;
-    frequency: string;
-    duration: string;
-    isCompleted: boolean;
-  }>;
 }
 
 const updateDewormingMedication = async (data: UpdateDewormingMedicationDto) => {

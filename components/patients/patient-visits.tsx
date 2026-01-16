@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { CalendarIcon, ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight, Clock, Plus, FileText, Eye } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
 import { useParams, useRouter } from "next/navigation"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import NewAppointment from "@/components/appointments/newAppointment"
 import AppointmentDetails from "@/components/appointments/appointment-details"
+import { toast } from "@/components/ui/use-toast"
+import DischargeSummarySheet from "@/components/appointments/discharge-summary-sheet"
 
 export default function PatientVisits() {
   const params = useParams();
@@ -23,9 +26,19 @@ export default function PatientVisits() {
   const [showNewAppointment, setShowNewAppointment] = useState(false);
   const [viewAppointmentId, setViewAppointmentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('upcoming');
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+  const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null);
+
+  const handleDischargeSummary = (appointment: any) => {
+    setSelectedAppointmentId(appointment.id.toString());
+    setSelectedAppointmentType(appointment.appointmentType?.name || appointment.appointmentType || 'consultation');
+    setDischargeSummaryOpen(true);
+  };
 
   // Fetch all appointments for this patient
-  const { data: appointments = [], isLoading, refetch: refetchAppointments } = useGetAppointmentByPatientId(patientId);
+  const { data: appointments = [], isLoading: isLoadingAppointments, refetch: refetchAppointments } = useGetAppointmentByPatientId(patientId);
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
       refetchAppointments(); // Refetch to update the lists
@@ -162,7 +175,7 @@ export default function PatientVisits() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-gray-200">
-                             {appointment?.roomSlot?.startTime?.slice(0,5)} - {appointment?.roomSlot?.endTime?.slice(0,5)}
+                            {appointment?.appointmentTimeFrom?.slice(0,5)} - {appointment?.appointmentTimeTo?.slice(0,5)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
@@ -255,7 +268,7 @@ export default function PatientVisits() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-gray-200">
-                             {appointment?.roomSlot?.startTime?.slice(0,5)} - {appointment?.roomSlot?.endTime?.slice(0,5)}
+                            {appointment?.appointmentTimeFrom?.slice(0,5)} - {appointment?.appointmentTimeTo?.slice(0,5)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
@@ -270,9 +283,23 @@ export default function PatientVisits() {
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Button variant="secondary" size="sm" onClick={() => setViewAppointmentId(appointment.id)}>
-                            View Details
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setViewAppointmentId(appointment.id)}>
+                              View Details
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex items-center gap-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDischargeSummary(appointment);
+                              }}
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span>Summary</span>
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -300,6 +327,20 @@ export default function PatientVisits() {
         <AppointmentDetails
           appointmentId={viewAppointmentId}
           onClose={() => setViewAppointmentId(null)}
+        />
+      )}
+
+      {/* Discharge Summary Sheet */}
+      {selectedAppointmentId && (
+        <DischargeSummarySheet
+          isOpen={dischargeSummaryOpen}
+          onClose={() => {
+            setDischargeSummaryOpen(false);
+            setSelectedAppointmentId(null);
+            setSelectedAppointmentType(null);
+          }}
+          appointmentId={selectedAppointmentId}
+          appointmentType={selectedAppointmentType || undefined}
         />
       )}
     </div>

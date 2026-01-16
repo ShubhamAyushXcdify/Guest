@@ -4,14 +4,26 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateRoom } from "@/queries/rooms/create-room";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Room } from "./index";
 import { Combobox } from "@/components/ui/combobox";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type NewRoomProps = {
   clinicId?: string;
   onSuccess?: () => void;
 };
+
+const RoomSchema = z.object({
+  name: z.string()
+    .min(3, "Name must be at least 3 characters")
+    .refine((val) => val.trim().length >= 3, "Name must be at least 3 characters and cannot be just spaces"),
+  clinicId: z.string().min(1, "Clinic ID is required"),
+  roomType: z.string().min(1, "Room type is required"),
+  isActive: z.boolean().optional(),
+});
+
 
 export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
   const router = useRouter();
@@ -19,8 +31,9 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
   const createRoom = useCreateRoom({
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Room created successfully",
+        title: "Room created",
+        description: `Room ${form.getValues().name} has been created successfully`,
+        variant: "success",
       });
       if (onSuccess) {
         onSuccess();
@@ -30,14 +43,15 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to create room",
+        title: "Room creation failed",
+        description: error.message || "Failed to create room",
         variant: "destructive",
       });
     },
   });
   
   const form = useForm<Omit<Room, "id" | "createdAt">>({
+    resolver: zodResolver(RoomSchema),
     defaultValues: {
       name: "",
       clinicId: clinicId || "",
@@ -57,6 +71,7 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
     try {
       await createRoom.mutateAsync({
         ...values,
+        name: values.name.trim(),
         isActive: true
       });
     } catch (error) {
@@ -66,7 +81,8 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
   
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-12 w-full">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 w-full">
+      <div className="h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md">
         <div className="grid grid-cols-1 gap-8">
           <FormField name="name" control={form.control} render={({ field }) => (
             <FormItem>
@@ -103,8 +119,8 @@ export default function NewRoom({ clinicId, onSuccess }: NewRoomProps) {
             </FormItem>
           )} />
         </div>
-        
-        <div className="flex justify-end mt-6">
+        </div>
+        <div className="flex justify-end">
           <Button type="submit">
             Create Room
           </Button>

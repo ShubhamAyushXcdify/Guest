@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -18,8 +18,11 @@ import { NearestClinicMap } from './index';
 import type { Clinic } from '../clinic';
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetAvailableSlotsByUserId, AvailableSlot } from "@/queries/users/get-availabelSlots-by-userId"
+import { useGetRole } from "@/queries/roles/get-role";
 import { Loader2 } from "lucide-react"
 import { useGetAppointmentType } from '@/queries/appointmentType/get-appointmentType';
+import { getSubdomain } from '@/utils/subdomain';
+import { useGetCompanyBySubdomain } from '@/queries/companies/get-company-by-subdomain';
 
 // Define the form schema
 const appointmentSchema = z.object({
@@ -46,14 +49,20 @@ interface PatientAppointmentFormProps {
   onClose: (wasSuccess?: boolean) => void
   clientId: string
   patients: any[]
+  initialClinicId?: string;
+  initialPatientId?: string;
+  initialDate?: Date;
+  initialAppointmentTypeId?: string;
 }
 
-export default function PatientAppointmentForm({ isOpen, onClose, clientId, patients }: PatientAppointmentFormProps) {
+export default function PatientAppointmentForm({ isOpen, onClose, clientId, patients, initialClinicId, initialPatientId, initialDate, initialAppointmentTypeId }: PatientAppointmentFormProps) {
   const { toast } = useToast()
   const [isClient, setIsClient] = useState(false)
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation()
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
-  
+  const [subdomain, setSubdomain] = useState<string | null>(null);
+  const [veterinarianRoleId, setVeterinarianRoleId] = useState<string | null>(null);
+
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
@@ -70,7 +79,61 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
 
   useEffect(() => {
     setIsClient(true)
+    setSubdomain(getSubdomain());
   }, [])
+
+  const { data: companyData } = useGetCompanyBySubdomain(
+    subdomain || ''
+  );
+  const companyId = companyData?.id;
+
+  // Fetch clinics
+  const { data: clinicsData } = useGetClinic(1, 100, companyId || null, Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude) && companyId));
+  const clinicOptions = (clinicsData?.items || []).map(clinic => ({
+    value: clinic.id,
+    label: clinic.name
+  }));
+
+  useEffect(() => {
+    if (!isOpen || !clinicOptions.length) return;
+    console.log('[ClinicPrefill] initialClinicId:', initialClinicId, 'clinicOptions:', clinicOptions, 'current:', form.getValues('clinicId'));
+    // Try explicit match
+    if (initialClinicId && clinicOptions.some(opt => opt.value === initialClinicId)) {
+      if (form.getValues('clinicId') !== initialClinicId) {
+        form.setValue('clinicId', initialClinicId);
+      }
+      return;
+    }
+    // If only one clinic in options, auto-select it if not set
+    if (!form.getValues('clinicId') && clinicOptions.length === 1) {
+      form.setValue('clinicId', clinicOptions[0].value);
+    }
+  }, [isOpen, initialClinicId, clinicOptions, form]);
+
+  useEffect(() => {
+    if (isOpen && initialPatientId) {
+      form.setValue('patientId', initialPatientId);
+    }
+    if (isOpen && initialDate) {
+      form.setValue('appointmentDate', initialDate);
+    }
+    if (isOpen && initialAppointmentTypeId) {
+      form.setValue('appointmentTypeId', initialAppointmentTypeId);
+    }
+  }, [isOpen, initialPatientId, initialDate, initialAppointmentTypeId, form]);
+
+  const { data: rolesData } = useGetRole();
+
+  useEffect(() => {
+    if (rolesData?.data) {
+      const vetRole = rolesData.data.find(
+        (role: any) => role.name.toLowerCase() === 'veterinarian'
+      );
+      if (vetRole) {
+        setVeterinarianRoleId(vetRole.id);
+      }
+    }
+  }, [rolesData]);
 
   useEffect(() => {
     if(isClient && !latitude && !longitude){
@@ -90,30 +153,41 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
     '';
 
   // Fetch available slots for the selected veterinarian
-  const { 
-    data: availableSlots = [], 
-    isLoading: isLoadingSlots 
+  const {
+    data: availableSlots = [],
+    isLoading: isLoadingSlots
   } = useGetAvailableSlotsByUserId(
-    selectedVeterinarianId || '', 
-    formattedDate || '', 
-    Boolean(isClient && selectedVeterinarianId && formattedDate && typeof selectedVeterinarianId === 'string' && selectedVeterinarianId.length > 0 && typeof formattedDate === 'string' && formattedDate.length > 0)
+    selectedVeterinarianId || '',
+    selectedClinicId || '',
+    formattedDate || undefined,
+    Boolean(isClient && selectedVeterinarianId && selectedClinicId && formattedDate && typeof selectedVeterinarianId === 'string' && selectedVeterinarianId.length > 0 && typeof selectedClinicId === 'string' && selectedClinicId.length > 0 && typeof formattedDate === 'string' && formattedDate.length > 0)
   );
 
-  // Fetch clinics
-  const { data: clinicsData } = useGetClinic(1, 100, "", Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude)))
-  const clinicOptions = (clinicsData?.items || []).map(clinic => ({
-    value: clinic.id,
-    label: clinic.name
-  }))
-
   // Fetch veterinarians for the selected clinic
-  const { data: usersResponse = { items: [] } } = useGetUsers(1, 100, '', selectedClinicId || '', Boolean(isClient && selectedClinicId && typeof selectedClinicId === 'string' && selectedClinicId.length > 0));
-  const veterinarianOptions = (usersResponse.items || [])
-    .filter(user => user.roleName === "Veterinarian" && (user as any).clinicId === selectedClinicId)
-    .map(vet => ({
-      value: vet.id,
-      label: `Dr. ${vet.firstName} ${vet.lastName}`
-    }));
+  const { data: usersResponse = { items: [] } } = useGetUsers(
+    1,
+    100,
+    '',
+    Boolean(isClient && selectedClinicId && veterinarianRoleId), // enabled
+    companyId || '', // companyId
+    selectedClinicId ? [selectedClinicId] : [], // clinicIds
+    veterinarianRoleId ? [veterinarianRoleId] : [] // roleIds
+  );
+  const veterinarianOptions = useMemo(() => {
+      const items = usersResponse.items ?? [];
+      return items
+        .filter(u => u.roleName === "Veterinarian")
+        .filter(u => {
+          const clinics = (u as any).clinics as { clinicId: string }[] | undefined;
+          const clinicIds = (u as any).clinicIds as string[] | undefined;
+          const ids = clinicIds ?? (clinics ? clinics.map((c: { clinicId: string }) => c.clinicId) : []);
+          return selectedClinicId ? ids.includes(selectedClinicId) : true;
+        })
+        .map(u => ({
+          value: u.id,
+          label: `Dr. ${u.firstName} ${u.lastName}`,
+        }));
+  }, [usersResponse.items, selectedClinicId]);
 
   // Fetch appointment types
   const { data: appointmentTypes = [], isLoading: isLoadingAppointmentTypes } = useGetAppointmentType(1, 100, '', Boolean(isClient));
@@ -487,7 +561,7 @@ export default function PatientAppointmentForm({ isOpen, onClose, clientId, pati
           {/* Right: Map */}
           <div className="md:w-[420px] w-full max-w-full">
             <div className="font-semibold text-base mb-2 text-gray-700">Clinics Near You</div>
-            <NearestClinicMap onClinicSelect={handleClinicSelect} />
+            <NearestClinicMap onClinicSelect={handleClinicSelect} companyId={companyId || undefined} />
           </div>
         </div>
       </SheetContent>

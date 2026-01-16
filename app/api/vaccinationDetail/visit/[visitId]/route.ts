@@ -6,7 +6,7 @@ const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 // GET endpoint to fetch vaccination details by visit ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { visitId: string } }
+  { params }: { params: Promise<{ visitId: string }> }
 ) {
   try {
     const token = getJwtToken(request);
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const { visitId } = params;
+    const { visitId } = await params;
 
     // Call the API
     const response = await fetch(`${apiUrl}/api/VaccinationDetail/visit/${visitId}`, {

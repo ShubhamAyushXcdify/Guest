@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, Mic } from "lucide-react"
+import { Loader2, Mic, Sparkles, X, Search } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Combobox } from "@/components/ui/combobox"
@@ -24,9 +24,15 @@ import { useGetClients, Client } from "@/queries/clients/get-client"
 import { getCompanyId } from "@/utils/clientCookie"
 import { useRootContext } from "@/context/RootContext"
 import { useGetUsers } from "@/queries/users/get-users"
+import { useGetRole } from "@/queries/roles/get-role";
 import { useGetRoom } from "@/queries/rooms/get-room"
 import { useGetAppointmentType } from "@/queries/appointmentType/get-appointmentType"
 import { useGetAvailableSlotsByUserId } from "@/queries/users/get-availabelSlots-by-userId"
+import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
+import { useDebounce } from "@/hooks/use-debounce"
+import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
+import { reasonFormatting, notesFormatting } from "@/app/actions/reasonformatting";
 
 // Schema mirrors appointment-details edit form
 const appointmentSchema = z.object({
@@ -41,8 +47,26 @@ const appointmentSchema = z.object({
   reason: z.string(),
   status: z.string(),
   notes: z.string().optional(),
-  createdBy: z.string().uuid().optional(),
+  createdBy: z.string().uuid().nullable().optional(),
 })
+
+interface SearchPatientResult {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+  patientId?: string;
+  species?: string;
+  clientId?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
+  clientPhonePrimary?: string;
+  client?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+  }
+}
 
 type AppointmentFormValues = z.infer<typeof appointmentSchema>
 
@@ -55,6 +79,12 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
   const { toast } = useToast()
   const { data: appointment, isLoading } = useGetAppointmentById(appointmentId)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+
+  // Patient search state
+  const [patientSearchQuery, setPatientSearchQuery] = useState("")
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
+  const [veterinarianRoleId, setVeterinarianRoleId] = useState<string | null>(null)
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
@@ -79,21 +109,53 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
   const selectedVeterinarianId = form.watch("veterinarianId")
   const selectedDate = form.watch("appointmentDate")
 
-  // Options data
-  const { data: clinicsResponse } = useGetClinic(1, 100, '', true)
-  const { data: patientsResponse } = useGetPatients(1, 100)
   const { user } = useRootContext()
-  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || ''
+  const companyId = (typeof window !== 'undefined' && getCompanyId()) || user?.companyId || '' // Moved declaration here
+  const { data: rolesData } = useGetRole();
+
+  useEffect(() => {
+    if (rolesData?.data) {
+      const vetRole = rolesData.data.find(
+        (role: any) => role.name.toLowerCase() === 'veterinarian'
+      );
+      if (vetRole) {
+        setVeterinarianRoleId(vetRole.id);
+      }
+    }
+  }, [rolesData]);
+
+  // Fetch patients by search query
+  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
+    patientSearchQuery,
+    "name", // Always search by name
+    companyId
+  )
+
+  // Cast the search results to our custom interface
+  const typedSearchResults = searchResults as SearchPatientResult[];
+
+  // Options data
+  const { data: clinicsResponse } = useGetClinic(1, 100, companyId, true)
+  const { data: patientsResponse } = useGetPatients(1, 100, '', '', companyId) // Fetch patients by companyId
   const { data: clientsResponse } = useGetClients(1, 100, '', 'first_name', companyId)
-  const { data: usersResponse } = useGetUsers(1, 100)
+  const { data: usersResponse } = useGetUsers(
+    1,
+    100,
+    '',
+    !!selectedClinicId && !!veterinarianRoleId, // enabled: Only fetch if clinicId and veterinarianRoleId are available
+    companyId, // companyId
+    selectedClinicId ? [selectedClinicId] : [], // clinicIds: Pass as an array
+    veterinarianRoleId ? [veterinarianRoleId] : [] // roleIds: Pass as an array
+  )
   const { data: roomsResponse } = useGetRoom(1, 100, '', selectedClinicId)
-  const { data: appointmentTypes = [] } = useGetAppointmentType(1, 100, '', true)
+  const { data: appointmentTypes = [] } = useGetAppointmentType(1, 100, selectedClinicId, true)
 
   // Slots for the chosen veterinarian/date
   const { data: availableSlots = [], isLoading: isLoadingSlots } = useGetAvailableSlotsByUserId(
     selectedVeterinarianId,
+    selectedClinicId,
     selectedDate,
-    !!selectedVeterinarianId && !!selectedDate
+    !!selectedVeterinarianId && !!selectedClinicId && !!selectedDate
   )
 
   // Merge available slots with the originally selected slot so it's always visible
@@ -150,13 +212,26 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
     }
   }, [availableSlots, appointment]);
 
-  // Map to combobox options
-  const clinicOptions = (clinicsResponse?.items || []).map(c => ({ value: c.id, label: c.name }))
-  const patientOptions = (patientsResponse?.items || []).map((p: any) => ({ value: p.id, label: p.name || p.patientId || `${p.firstName || ''} ${p.lastName || ''}`.trim() }))
-  const clientOptions = (clientsResponse?.items || []).filter(c => c.isActive).map((c: Client) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))
-  const veterinarianOptions = (usersResponse?.items || []).filter((u: any) => u.roleName === 'Veterinarian' && (u as any).clinicId === selectedClinicId).map((u: any) => ({ value: u.id, label: `Dr. ${u.firstName} ${u.lastName}` }))
-  const roomOptions = (roomsResponse?.items || []).filter((r: any) => r.isActive).map((r: any) => ({ value: r.id, label: r.name }))
-  const appointmentTypeOptions = (appointmentTypes || []).filter((t: any) => t.isActive).map((t: any) => ({ value: t.appointmentTypeId, label: t.name }))
+  // Options data (re-introduced for Comboboxes)
+  const clinicOptions = useMemo(() => {
+    return (clinicsResponse?.items || []).map(c => ({ value: c.id, label: c.name }))
+  }, [clinicsResponse?.items]);
+
+  const clientOptions = useMemo(() => {
+    return (clientsResponse?.items || []).filter(c => c.isActive).map((c: Client) => ({ value: c.id, label: `${c.firstName} ${c.lastName}` }))
+  }, [clientsResponse?.items]);
+
+  const veterinarianOptions = useMemo(() => {
+    return (usersResponse?.items || []).filter((u: any) => u.roleName === 'Veterinarian').map((u: any) => ({ value: u.id, label: `Dr. ${u.firstName} ${u.lastName}` }))
+  }, [usersResponse?.items]);
+
+  const roomOptions = useMemo(() => {
+    return (roomsResponse?.items || []).filter((r: any) => r.isActive).map((r: any) => ({ value: r.id, label: r.name }))
+  }, [roomsResponse?.items]);
+
+  const appointmentTypeOptions = useMemo(() => {
+    return (appointmentTypes || []).filter((t: any) => t.isActive).map((t: any) => ({ value: t.appointmentTypeId, label: t.name }))
+  }, [appointmentTypes]);
 
   // When appointment loads, prefill the form
   useEffect(() => {
@@ -171,6 +246,18 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
     } as any)
 
     setSelectedSlot(slotId)
+
+    // Set the selected patient based on the fetched appointment data
+    if (appointment.patient) {
+      setSelectedPatient({
+        id: appointment.patientId,
+        name: appointment.patient.name,
+        clientId: appointment.clientId // Ensure clientId is set from appointment
+      });
+      setPatientSearchQuery(appointment.patient.name);
+    }
+    // Also ensure clientId is set in the form directly from appointment
+    form.setValue("clientId", appointment.clientId || "");
   }, [appointment, form])
 
   // Approve submit
@@ -196,6 +283,23 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
     return `${parts[0]}:${parts[1]}`
   }
 
+  // Helper to create a local Date object from a YYYY-MM-DD string
+  const createLocalDateFromYYYYMMDD = (dateString: string | undefined): Date | undefined => {
+    if (!dateString) return undefined;
+    const [year, month, day] = dateString.split('-').map(Number);
+    // Month is 0-indexed in Date constructor
+    return new Date(year, month - 1, day);
+  };
+
+  // Helper to format a Date object to YYYY-MM-DD string
+  const formatDateToYYYYMMDD = (date: Date | null | undefined): string => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const onSubmit = (data: AppointmentFormValues) => {
     const chosenSlotId = data.SlotId || selectedSlot || ""
     let appointmentTimeFrom: string | undefined = (appointment as any)?.appointmentTimeFrom || (appointment as any)?.startTime
@@ -210,18 +314,148 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
     }
 
     const { SlotId, ...rest } = data as any
+
+    // Ensure all required fields are present and correctly formatted
+    const payload = {
+      id: appointmentId, // Ensure ID is present
+      clinicId: data.clinicId,
+      patientId: data.patientId,
+      clientId: data.clientId,
+      veterinarianId: data.veterinarianId,
+      roomId: data.roomId,
+      appointmentDate: new Date(data.appointmentDate).toISOString(), // Ensure ISO string format
+      appointmentTimeFrom: appointmentTimeFrom || "",
+      appointmentTimeTo: appointmentTimeTo || "",
+      appointmentTypeId: data.appointmentTypeId,
+      reason: data.reason,
+      status: "scheduled", // Always set to scheduled when approving
+      notes: data.notes || "",
+      isRegistered: false, // As per previous discussion
+      createdBy: data.createdBy && data.createdBy.length > 0 ? data.createdBy : undefined, // Send undefined if empty or null for mutation compatibility
+      sendEmail: true, // Explicitly send true for approval, or based on a toggle
+    };
+
     updateAppointmentMutation.mutate({
       id: appointmentId,
-      data: {
-        ...rest,
-        status: "scheduled",
-        isRegistered: false,
-        appointmentDate: new Date(data.appointmentDate).toISOString(),
-        appointmentTimeFrom,
-        appointmentTimeTo,
-      }
+      data: payload,
     })
   }
+
+  const handlePatientSelect = (patient: SearchPatientResult) => {
+    let patientName = '';
+
+    if (patient.name) {
+      patientName = patient.name;
+    }
+    else if (patient.patientId) {
+      patientName = patient.patientId;
+      if (patient.species) {
+        patientName += ` (${patient.species})`;
+      }
+    }
+    else if (patient.firstName || patient.lastName) {
+      patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+    }
+
+    if (!patientName) {
+      patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+    }
+
+    const clientId = patient.clientId || patient.client?.id;
+
+    setSelectedPatient({
+      id: patient.id,
+      name: patientName,
+      clientId: clientId
+    });
+
+    form.setValue("patientId", patient.id, { shouldValidate: true });
+    // Set the clientId in the form as well
+    form.setValue("clientId", clientId || "", { shouldValidate: true });
+
+    if ((form as any).clearErrors) {
+      (form as any).clearErrors("patientId");
+    }
+    if ((form as any).trigger) {
+      (form as any).trigger("patientId");
+    }
+    setPatientSearchQuery(""); // Clear the search input
+    setIsSearchDropdownOpen(false); // Close the dropdown
+  }
+
+  const clearSelectedPatient = () => {
+    setSelectedPatient(null);
+    form.setValue("patientId", "");
+    form.setValue("clientId", ""); // Clear clientId when patient is cleared
+    setPatientSearchQuery("");
+  }
+
+  const handlePatientSearch = (searchTerm: string) => {
+    setPatientSearchQuery(searchTerm)
+    // No need to update URL here, as it's a modal/drawer
+  }
+  const debouncedPatientQuery = useDebounce(handlePatientSearch, 300)
+
+  const [audioModalOpen, setAudioModalOpen] = useState<null | "reason" | "notes">(null);
+  const reasonTranscriber = useTranscriber();
+  const notesTranscriber = useTranscriber();
+  const [isReasonFormatting, setIsReasonFormatting] = useState(false);
+  const [isNotesFormatting, setIsNotesFormatting] = useState(false);
+
+  // Audio transcription effect for reason
+  useEffect(() => {
+    const output = reasonTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "reason",
+        (form.getValues("reason") ? form.getValues("reason") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+  }, [reasonTranscriber.output?.isBusy]);
+
+  // Audio transcription effect for notes
+  useEffect(() => {
+    const output = notesTranscriber.output;
+    if (output && !output.isBusy && output.text) {
+      form.setValue(
+        "notes",
+        (form.getValues("notes") ? form.getValues("notes") + "\n" : "") + output.text
+      );
+      setAudioModalOpen(null);
+    }
+  }, [notesTranscriber.output?.isBusy]);
+
+  // Handler for AI formatting of reason
+  const handleAIFormatReason = async () => {
+    const currentReason = form.getValues("reason");
+    if (!currentReason) return;
+    setIsReasonFormatting(true);
+    try {
+      const formatted = await reasonFormatting(currentReason);
+      form.setValue("reason", formatted);
+    } catch (e) {
+      // Optionally show error toast
+      toast({ title: "AI Formatting Error", description: "Failed to format reason.", variant: "destructive" });
+    } finally {
+      setIsReasonFormatting(false);
+    }
+  };
+
+  // Handler for AI formatting of notes
+  const handleAIFormatNotes = async () => {
+    const currentNotes = form.getValues("notes");
+    if (!currentNotes) return;
+    setIsNotesFormatting(true);
+    try {
+      const formatted = await notesFormatting(currentNotes);
+      form.setValue("notes", formatted);
+    } catch (e) {
+      toast({ title: "AI Formatting Error", description: "Failed to format notes.", variant: "destructive" });
+    } finally {
+      setIsNotesFormatting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -262,7 +496,99 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
                 <FormItem>
                   <FormLabel>Patient</FormLabel>
                   <FormControl>
-                    <Combobox options={patientOptions} value={field.value} onValueChange={field.onChange} placeholder="Select patient" />
+                    <div className="flex gap-2">
+                      <div className="relative flex-grow">
+                        {selectedPatient ? (
+                          <div className="flex items-center justify-between p-2 border rounded-md">
+                            <span>{selectedPatient.name}</span>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="p-1 h-auto"
+                              onClick={clearSelectedPatient}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="relative w-full">
+                              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+                              <Input
+                                placeholder="Search patients by name, client, or phone"
+                                className="pl-10"
+                                value={patientSearchQuery}
+                                onChange={(e) => {
+                                  handlePatientSearch(e.target.value);
+                                  setIsSearchDropdownOpen(true);
+                                }}
+                                onFocus={() => setIsSearchDropdownOpen(true)}
+                                onBlur={() => setTimeout(() => setIsSearchDropdownOpen(false), 100)}
+                              />
+                            </div>
+
+                            {/* Search results dropdown */}
+                            {isSearchDropdownOpen && patientSearchQuery && (
+                              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                                {isSearching ? (
+                                  <div className="p-2 text-center text-gray-500">Searching...</div>
+                                ) : typedSearchResults.length === 0 ? (
+                                  <div className="p-2 text-center text-gray-500">No patients found</div>
+                                ) : (
+                                  <ul>
+                                    {typedSearchResults.map((patient) => {
+                                      let clientName = '';
+                                      if (patient.client) {
+                                        clientName = `${patient.client.firstName || ''} ${patient.client.lastName || ''}`.trim();
+                                      } else if (patient.clientFirstName || patient.clientLastName) {
+                                        clientName = `${patient.clientFirstName || ''} ${patient.clientLastName || ''}`.trim();
+                                      }
+
+                                      let patientName = '';
+                                      if (patient.name) {
+                                        patientName = patient.name;
+                                      }
+                                      else if (patient.patientId) {
+                                        patientName = patient.patientId;
+                                        if (patient.species) {
+                                          patientName += ` (${patient.species})`;
+                                        }
+                                      }
+                                      else if (patient.firstName || patient.lastName) {
+                                        patientName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+                                      }
+
+                                      if (!patientName) {
+                                        patientName = `Patient (ID: ${patient.id.substring(0, 8)}...)`;
+                                      }
+
+                                      const phoneNumber = patient.clientPhonePrimary;
+                                      const displayName = clientName 
+                                        ? phoneNumber 
+                                          ? `${patientName}-${clientName} (${phoneNumber})`
+                                          : `${patientName}-${clientName}`
+                                        : patientName;
+
+                                      return (
+                                        <li
+                                          key={patient.id}
+                                          className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                          onMouseDown={() => handlePatientSelect(patient)}
+                                        >
+                                          <div className="font-medium">{displayName}</div>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <input type="hidden" {...field} />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -274,7 +600,7 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
               name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Client</FormLabel>
+                  <FormLabel>Owner</FormLabel>
                   <FormControl>
                     <Combobox options={clientOptions} value={field.value} onValueChange={field.onChange} placeholder="Select client" />
                   </FormControl>
@@ -333,8 +659,9 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
                   <FormLabel>Date</FormLabel>
                   <FormControl>
                     <DatePicker
-                      value={field.value ? new Date(field.value) : undefined}
-                      onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                      value={createLocalDateFromYYYYMMDD(field.value)}
+                      onChange={(date) => field.onChange(formatDateToYYYYMMDD(date))}
+                      minDate={(() => { const today = new Date(); today.setHours(0, 0, 0, 0); return today; })()}
                     />
                   </FormControl>
                   <FormMessage />
@@ -402,11 +729,43 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
               name="reason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reason</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="mb-0">Reason</FormLabel>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setAudioModalOpen("reason")}
+                      title="Record voice note"
+                      disabled={reasonTranscriber.output?.isBusy}
+                    >
+                      {reasonTranscriber.output?.isBusy ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAIFormatReason}
+                      disabled={isReasonFormatting}
+                      className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {isReasonFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea {...field} />
                   </FormControl>
                   <FormMessage />
+                  <AudioManager
+                    open={audioModalOpen === "reason"}
+                    onClose={() => setAudioModalOpen(null)}
+                    transcriber={reasonTranscriber}
+                    onTranscriptionComplete={() => setAudioModalOpen(null)}
+                  />
                 </FormItem>
               )}
             />
@@ -416,11 +775,43 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="mb-0">Notes</FormLabel>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setAudioModalOpen("notes")}
+                      title="Record voice note"
+                      disabled={notesTranscriber.output?.isBusy}
+                    >
+                      {notesTranscriber.output?.isBusy ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAIFormatNotes}
+                      disabled={isNotesFormatting}
+                      className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {isNotesFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea {...field} />
                   </FormControl>
                   <FormMessage />
+                  <AudioManager
+                    open={audioModalOpen === "notes"}
+                    onClose={() => setAudioModalOpen(null)}
+                    transcriber={notesTranscriber}
+                    onTranscriptionComplete={() => setAudioModalOpen(null)}
+                  />
                 </FormItem>
               )}
             />
@@ -428,8 +819,7 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
 
           <SheetFooter>
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" className="theme-button text-white" 
-              onClick={() => onSubmit(form.getValues())}
+            <Button type="submit" className="theme-button text-white"
               disabled={updateAppointmentMutation.isPending}>
               {updateAppointmentMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Approve

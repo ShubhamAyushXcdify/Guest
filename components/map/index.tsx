@@ -82,7 +82,7 @@ const Map: React.FC<MapProps> = ({
         </div>
 
         {/* Map */}
-        <div className="relative">
+        <div className="relative w-full h-[400px] overflow-hidden rounded-lg">
           <LeafletMap
             center={mapCenter}
             zoom={zoom}

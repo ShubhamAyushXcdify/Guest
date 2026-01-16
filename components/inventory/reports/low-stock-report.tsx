@@ -91,7 +91,15 @@ export function LowStockReport() {
   )
 }
 
-function LowStockItem({ product, category, current, reorderPoint, value }) {
+type LowStockItemProps = {
+  product: string;
+  category: string;
+  current: number;
+  reorderPoint: number;
+  value: string;
+}
+
+function LowStockItem({ product, category, current, reorderPoint, value }: LowStockItemProps) {
   return (
     <tr>
       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{product}</td>

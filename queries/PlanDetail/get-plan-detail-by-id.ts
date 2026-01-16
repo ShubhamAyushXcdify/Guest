@@ -5,6 +5,7 @@ export interface PlanDetail {
   visitId: string;
   notes: string;
   isCompleted: boolean;
+  followUpDate?: Date | null;
   createdAt: string;
   updatedAt: string;
   plans: {

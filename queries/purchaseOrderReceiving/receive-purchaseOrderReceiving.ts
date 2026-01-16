@@ -4,8 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 export interface BatchData {
   quantityReceived: number;
   batchNumber: string;
-  expiryDate?: string; // ISO format date string or empty
-  dateOfManufacture?: string; // ISO format date string or empty
+  expiryDate?: string | null; // ISO format date string or null
+  dateOfManufacture?: string | null; // ISO format date string or null
   notes?: string;
 }
 

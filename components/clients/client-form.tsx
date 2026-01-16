@@ -1,5 +1,4 @@
-import { useState,useEffect } from "react";
-import { z } from "zod";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -23,34 +22,18 @@ import { Mic, Loader2 } from "lucide-react";
 import { AudioManager } from "@/components/audioTranscriber/AudioManager";
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber";
 import { useToast } from "@/hooks/use-toast";
-
-const clientFormSchema = z.object({
-  id: z.string().optional(),
-  firstName: z.string().min(2, { message: "First name must be at least 2 characters." }),
-  lastName: z.string().min(2, { message: "Last name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  phonePrimary: z.string().min(5, { message: "Phone number is required." }),
-  phoneSecondary: z.string().optional(),
-  addressLine1: z.string().min(1, { message: "Address is required." }),
-  addressLine2: z.string().optional(),
-  city: z.string().min(1, { message: "City is required." }),
-  state: z.string().min(1, { message: "State is required." }),
-  postalCode: z.string().min(1, { message: "Postal code is required." }),
-  emergencyContactName: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
-  notes: z.string().optional(),
-  isActive: z.boolean().default(true),
-});
-
-type ClientFormValues = z.infer<typeof clientFormSchema>;
+import { ClientFormValues, clientFormSchema } from "@/components/schema/clientSchema";
 
 interface ClientFormProps {
   defaultValues?: Partial<ClientFormValues>;
   onSuccess?: (client: Client) => void;
   nestedForm?: boolean;
   isUpdate?: boolean;
+  onCancel?: () => void;
+  isClientContext?: boolean;
 }
 
+  
 export function ClientForm({
   defaultValues = {
     id: "",
@@ -72,15 +55,17 @@ export function ClientForm({
   onSuccess,
   nestedForm = false,
   isUpdate = false,
+  onCancel,
+  isClientContext = false,
 }: ClientFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [audioModalOpen, setAudioModalOpen] = useState(false);
   const createClientMutation = useCreateClient();
   const updateClientMutation = useUpdateClient();
-  const { clinic } = useRootContext();
+  const { clinic, user } = useRootContext();
   const notesTranscriber = useTranscriber();
   const { toast } = useToast();
-
+ 
   // Audio transcription effect for notes
   useEffect(() => {
     const output = notesTranscriber.output;
@@ -93,33 +78,40 @@ export function ClientForm({
     }
     // eslint-disable-next-line
   }, [notesTranscriber.output?.isBusy]);
-
+ 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: defaultValues,
   });
-
+  const isNewClient = !isUpdate && !nestedForm;
+ 
   const onSubmit = async (data: ClientFormValues) => {
     setIsSubmitting(true);
     try {
+      const companyId = clinic?.companyId || (user as any)?.companyId || undefined;
       const clientData = {
         ...data,
-        isActive: data.isActive !== undefined ? data.isActive : true
-      };
-      
+        phoneSecondary: data.phoneSecondary?.trim() === "" ? null : data.phoneSecondary,
+        emergencyContactName: data.emergencyContactName?.trim() === "" ? null : data.emergencyContactName,
+        emergencyContactPhone: data.emergencyContactPhone?.trim() === "" ? null : data.emergencyContactPhone,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        companyId
+      } as any;
+     
       console.log("Form submission - isUpdate:", isUpdate);
       console.log("Form submission - client ID:", data.id);
       console.log("Form submission data:", clientData);
-      
+     
       let updatedClient: Client;
-      
+     
       // Force update if isUpdate prop is true, regardless of ID
       if (isUpdate) {
         console.log("Using UPDATE mutation - ID:", data.id);
         updatedClient = await updateClientMutation.mutateAsync({
           id: (data.id || defaultValues.id || "") as string,  // Ensure we have the ID with string typecast
+          companyId: clientData.companyId,
           firstName: clientData.firstName,
-          lastName: clientData.lastName, 
+          lastName: clientData.lastName,
           email: clientData.email,
           phonePrimary: clientData.phonePrimary,
           phoneSecondary: clientData.phoneSecondary,
@@ -139,15 +131,16 @@ export function ClientForm({
           variant: "success",
         });
       } else {
-        // Otherwise use create mutation
-        updatedClient = await createClientMutation.mutateAsync(clientData);
+        // Otherwise use create mutation - exclude id from payload if present
+        const { id: _omitId, ...createPayload } = clientData as any;
+        updatedClient = await createClientMutation.mutateAsync(createPayload);
         toast({
           title: "Owner Created",
           description: "Owner has been created successfully",  
           variant: "success",
         });
       }
-      
+     
       if (onSuccess) {
         onSuccess(updatedClient);
       }
@@ -160,6 +153,12 @@ export function ClientForm({
     } finally {
       setIsSubmitting(false);
     }
+  };
+ 
+  // Handle phone number input changes
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    field.onChange(value);
   };
 
   // The form fields content
@@ -175,7 +174,7 @@ export function ClientForm({
           )}
         />
       )}
-
+<div className={`${isNewClient ? 'h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md' :isUpdate ? 'h-[calc(100vh-10rem)] overflow-y-auto p-4 border rounded-md' : ' '} !mt-0`}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
@@ -219,7 +218,7 @@ export function ClientForm({
         )}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         <FormField
           control={form.control}
           name="phonePrimary"
@@ -227,7 +226,14 @@ export function ClientForm({
             <FormItem>
               <FormLabel>Primary Phone*</FormLabel>
               <FormControl>
-                <Input placeholder="Primary phone" {...field} />
+                <Input 
+                  placeholder="Primary phone" 
+                  value={field.value}
+                  onChange={(e) => handlePhoneChange(e, field)}
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -240,7 +246,14 @@ export function ClientForm({
             <FormItem>
               <FormLabel>Secondary Phone</FormLabel>
               <FormControl>
-                <Input placeholder="Secondary phone" {...field} value={field.value || ""} />
+                <Input 
+                  placeholder="Secondary phone" 
+                  value={field.value}
+                  onChange={(e) => handlePhoneChange(e, field)}
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -252,7 +265,7 @@ export function ClientForm({
         control={form.control}
         name="addressLine1"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="pt-2">
             <FormLabel>Address Line 1*</FormLabel>
             <FormControl>
               <Input placeholder="Address line 1" {...field} />
@@ -261,12 +274,12 @@ export function ClientForm({
           </FormItem>
         )}
       />
-
+ 
       <FormField
         control={form.control}
         name="addressLine2"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="pt-2">
             <FormLabel>Address Line 2</FormLabel>
             <FormControl>
               <Input placeholder="Address line 2" {...field} value={field.value || ""} />
@@ -275,8 +288,8 @@ export function ClientForm({
           </FormItem>
         )}
       />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+ 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
         <FormField
           control={form.control}
           name="city"
@@ -317,8 +330,8 @@ export function ClientForm({
           )}
         />
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+ 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
         <FormField
           control={form.control}
           name="emergencyContactName"
@@ -339,14 +352,21 @@ export function ClientForm({
             <FormItem>
               <FormLabel>Emergency Contact Phone</FormLabel>
               <FormControl>
-                <Input placeholder="Emergency contact phone" {...field} value={field.value || ""} />
+                <Input 
+                  placeholder="Emergency contact phone" 
+                  value={field.value}
+                  onChange={(e) => handlePhoneChange(e, field)}
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
-      
+     
       {isUpdate && (
         <FormField
           control={form.control}
@@ -366,13 +386,13 @@ export function ClientForm({
           )}
         />
       )}
-
+ 
      <FormField
         control={form.control}
         name="notes"
         render={({ field }) => (
           <FormItem>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-2">
               <FormLabel>Notes</FormLabel>
               <Button
                 type="button"
@@ -407,10 +427,14 @@ export function ClientForm({
           </FormItem>
         )}
       />
-
+      </div>
+      <div className="flex justify-end space-x-4">
+          <Button type="button" variant="outline" onClick={() => { form.reset(defaultValues as any); onCancel && onCancel(); }}>
+            Cancel
+          </Button>
       <Button
         type="button"
-        className={isUpdate ? "bg-green-600 hover:bg-green-700 text-white w-full" : "theme-button text-white w-full"}
+        className={isUpdate ? "bg-green-600 hover:bg-green-700 text-white" : "theme-button text-white"}
         disabled={isSubmitting}
         onClick={(e) => {
           e.preventDefault();
@@ -418,14 +442,17 @@ export function ClientForm({
           form.handleSubmit(onSubmit)();
         }}
       >
-        {isSubmitting 
-          ? (isUpdate ? "Updating..." : "Saving...") 
-          : (isUpdate ? "Update Owner" : "Save Owner")
+        {isSubmitting
+          ? (isUpdate ? "Updating..." : "Saving...")
+          : isUpdate 
+            ? (isClientContext ? "Update Client" : "Update Owner")
+            : (isClientContext ? "Save Client" : "Save Owner")
         }
       </Button>
     </div>
+    </div>
   );
-
+ 
   // If this is a nested form, just return the form content without the outer Form and form tags
   if (nestedForm) {
     return (
@@ -434,7 +461,7 @@ export function ClientForm({
       </Form>
     );
   }
-
+ 
   // Otherwise, return the complete form with the form tag
   return (
     <Form {...form}>

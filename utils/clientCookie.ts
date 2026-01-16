@@ -6,7 +6,7 @@ const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefine
 
 export const setJwtToken = (token: string): void => {
   if (!isBrowser) return;
-  Cookies.set('jwtToken', token, { expires: 1 }); // Set cookie to expire in 1 day
+  Cookies.set('jwtToken', token, { expires: 30 }); // Set cookie to expire in 30 days
 };
 
 export const getJwtToken = (): string | undefined => {
@@ -21,12 +21,12 @@ export const removeJwtToken = (): void => {
 
 export const setUserId = (id: any): void => {
   if (!isBrowser) return;
-  Cookies.set('userId', id, { expires: 1 }); // Set cookie to expire in 1 day
+  Cookies.set('userId', id, { expires: 30 }); // Set cookie to expire in 30 days
 }
 
 export const setClientId = (id: string) => {
   if (!isBrowser) return;
-  Cookies.set('clientId', id, { expires: 1 }); 
+  Cookies.set('clientId', id, { expires: 30 }); 
 }
 
 export const getUserId = (): string | undefined => {

@@ -5,8 +5,11 @@ import { DashboardWelcomeHeader } from "../../shared/dashboard-welcome-header"
 import { DashboardActionButtons } from "../../shared/dashboard-action-buttons"
 import { DashboardStatsCards } from "../../shared/dashboard-stats-cards"
 import { DashboardScheduleTable } from "../../shared/dashboard-schedule-table"
+import { ExpiringProductsCard } from "../../shared/expiring-products-card"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from "@/context/RootContext"
+import { useExpiringProducts } from "@/queries/dashboard/get-expiring-products"
+import { WeeklyProfitCard } from "@/components/dashboard/shared/weekly-profit-card";
 
 export const ClinicStaffDashboard = ({
   onNewPatient,
@@ -48,12 +51,15 @@ export const ClinicStaffDashboard = ({
     dateFrom: startOfDay.toISOString(),
     dateTo: endOfDay.toISOString(),
     clinicId: clinic?.id ?? null,
+    companyId: clinic?.companyId || null,
     patientId: null,
     clientId: null,
     veterinarianId: null,
     roomId: null,
     pageNumber: 1,
     pageSize: 10,
+    appointmentId: null,
+    tab: "clinic-staff-dashboard",
     isRegistered: false
   };
 
@@ -71,9 +77,12 @@ export const ClinicStaffDashboard = ({
     clientId: null,
     veterinarianId: null,
     roomId: null,
+    companyId: clinic?.companyId || null,
     pageNumber: 1,
     pageSize: 5,
-    isRegistered: true
+    isRegistered: true,
+    tab: "clinic-staff-dashboard",
+    appointmentId: null
   };
 
   // Fetch appointment requests
@@ -108,6 +117,8 @@ export const ClinicStaffDashboard = ({
   
   // Get appointment requests
   const appointmentRequests = appointmentRequestsData?.items || [];
+  const { data: expiringProducts = [] } = useExpiringProducts(clinic?.id || "");
+  const hasExpiringProducts = expiringProducts.length > 0;
 
   return (
     <div className="p-6">
@@ -120,14 +131,25 @@ export const ClinicStaffDashboard = ({
         onAddClient={onAddClient}
         onCreatePurchaseOrder={onCreatePurchaseOrder}
       />
-      <DashboardStatsCards 
-        todayAppointmentsCount={todayAppointmentsCount}
-        todayCompletedCount={todayCompletedCount}
-      />
-      <DashboardScheduleTable 
-        appointments={todaysAppointments}
-        pendingRegistrations={appointmentRequests}
-      />
+    <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-3">
+          <DashboardStatsCards 
+            todayAppointmentsCount={todayAppointmentsCount}
+            todayCompletedCount={todayCompletedCount}
+          />
+        </div>
+        
+        {hasExpiringProducts && (
+          <div className="w-full">
+            <ExpiringProductsCard className="w-full" clinicId={clinic?.id || ""} products={expiringProducts} />
+          </div>
+        )}
+        
+        <DashboardScheduleTable 
+          appointments={todaysAppointments}
+          pendingRegistrations={appointmentRequests}
+        />
+      </div>
     </div>
   )
-} 
+}

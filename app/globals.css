@@ -17,6 +17,9 @@ body {
     rgb(var(--background-start-rgb));
     -webkit-overflow-scrolling: touch;
 }
+.react-datepicker-wrapper {
+  width: 100%;
+}
 
 @layer base {
   :root {
@@ -50,10 +53,10 @@ body {
 
     --radius: 0.5rem;
 
-    /* Theme colors - Purple (default) */
-    --theme-primary: #9333ea;
-    --theme-secondary: #4f46e5;
-    --theme-accent: #a855f7;
+    /* Theme colors - Green (default) */
+    --theme-primary: #1E3D3D;
+    --theme-secondary: #1E3D3D;
+    --theme-accent: #D2EFEC;
   }
 
   .dark {
@@ -98,9 +101,9 @@ body {
 
   /* Theme color variables */
   [data-color-theme="purple"] {
-    --theme-primary: #9333ea;
-    --theme-secondary: #4f46e5;
-    --theme-accent: #a855f7;
+    --theme-primary: #1E3D3D;
+    --theme-secondary: #1E3D3D;
+    --theme-accent: #D2EFEC;
   }
 
   [data-color-theme="teal"] {
@@ -214,7 +217,7 @@ body {
 }
 
 .theme-text-accent {
-  color: var(--theme-accent);
+  color: var(--theme-primary);
 }
 
 .theme-border {
@@ -230,10 +233,4 @@ body {
   background-color: var(--theme-primary);
 }
 
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
-}
-.scrollbar-hide::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
-}
+

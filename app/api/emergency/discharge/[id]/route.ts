@@ -6,15 +6,15 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
     request: NextRequest,
-    ctx: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
-    const { id } = ctx.params;
+    const { id } = await ctx.params;
     try {
         let token = getJwtToken(request);
         if (!token) {
             token = testToken;
         }
-        const response = await fetch(`${apiUrl}/api/EmergencyVisit/discharges-with-prescriptions/${id}`, {
+        const response = await fetch(`${apiUrl}/api/EmergencyVisit/discharges/${id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -40,9 +40,9 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    ctx: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
-    const { id } = ctx.params;
+    const { id } = await ctx.params;
     try {
         const token = getJwtToken(request);
         if (!token) {
@@ -52,7 +52,7 @@ export async function PUT(
             );
         }
         const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/EmergencyVisit/discharges-with-prescriptions/${id}`, {
+        const response = await fetch(`${apiUrl}/api/EmergencyVisit/discharges/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

@@ -1,344 +1,301 @@
-import React, { useState, createContext, useContext, useEffect } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs-new";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, History } from "lucide-react";
-import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
-import IntakeTab from "./IntakeTab";
-import MedicationTab from "./MedicationTab";
-import CheckoutTab from "./CheckoutTab";
-import NotesTab from "./NotesTab";
-import NewAppointment from "../newAppointment";
-import MedicalHistoryTab from "../MedicalHistoryTab";
-import { TabCompletionProvider } from "@/context/TabCompletionContext";
-import PrescriptionTab from "../Patient-Information/PrescriptionTab";
+"use client"
+import { useState, useEffect, useMemo } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new"
+import { Button } from "@/components/ui/button"
+import { CheckCircle, History } from "lucide-react"
+import { useTabCompletion, type TabId, TabCompletionProvider } from "@/context/TabCompletionContext"
+import { useGetPatientAppointmentHistory } from "@/queries/patients/get-patient-appointment-history"
+import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
+import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import { appointmentTabConfigMap } from "../appointmentTabConfig"
+import AppointmentHistoryNavigation from "../AppointmentHistoryNavigation"
+import MedicalHistoryTab from "../MedicalHistoryTab"
+import VaccinationPlanning from "../vaccination/VaccinationPlanning"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@radix-ui/react-dialog"
+import WeightGraph from "../WeightGraph"
+import { DialogHeader } from "@/components/ui/dialog"
+import CertificateManagementWrapper from "../certification"
 
 interface DewormingComponentProps {
-  patientId: string;
-  appointmentId: string;
-  onClose: () => void;
+  patientId: string
+  appointmentId: string
+  onClose: () => void
+  onAppointmentChange?: (newAppointmentId: string) => void
 }
 
-const tabOrder = [
-  { id: "intake", label: "Intake" },
-  { id: "medication", label: "Medication" },
-  { id: "notes", label: "Notes" },
- { id: "prescription", label: "Prescription" },
-  { id: "checkout", label: "Checkout" }
-];
+function DewormingContent({
+  patientId,
+  appointmentId: initialAppointmentId,
+  onClose,
+  onAppointmentChange,
+}: DewormingComponentProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<TabId>("deworming-intake")
+  const [showNewAppointment, setShowNewAppointment] = useState(false)
+  const [showMedicalHistory, setShowMedicalHistory] = useState(false)
+  const [currentAppointmentId, setCurrentAppointmentId] = useState(initialAppointmentId)
+  const [followUpDateFooter, setFollowUpDateFooter] = useState<string>("")
 
-// Context
-const DewormingTabCompletionContext = createContext<any>(null);
+  const { data: history } = useGetPatientAppointmentHistory(patientId)
+  const { data: appointment } = useGetAppointmentById(currentAppointmentId)
+  const { data: visitData, refetch: refetchVisitData } = useGetVisitByAppointmentId(currentAppointmentId)
+  const [weightGraphOpen, setWeightGraphOpen] = useState(false)
 
-function DewormingTabCompletionProvider({ children, patientId, appointmentId }: { children: React.ReactNode; patientId: string; appointmentId: string }) {
-  const STORAGE_KEY = `dewormingTabsCompleted-${patientId}-${appointmentId}`;
-  const [completedTabs, setCompletedTabs] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = window.localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-      } catch {
-        return [];
+  // Get tab completion state
+  const { isTabCompleted } = useTabCompletion()
+
+  // Get the current tab configuration based on appointment type
+  const currentTabConfig = useMemo(() => {
+    const type = appointment?.appointmentType?.name || "Deworming"
+    return appointmentTabConfigMap[type] || []
+  }, [appointment?.appointmentType?.name])
+
+  // Initialize tab from URL parameter or default to first tab
+  useEffect(() => {
+    const tabFromUrl = searchParams.get("tab") as TabId | null
+    if (tabFromUrl && currentTabConfig.some((tab) => tab.value === tabFromUrl)) {
+      setActiveTab(tabFromUrl)
+    } else if (currentTabConfig.length > 0 && appointment?.appointmentType?.name) {
+      const defaultTab = currentTabConfig[0].value
+      setActiveTab(defaultTab)
+      // Update URL if no valid tab in URL
+      if (!tabFromUrl) {
+        const params = new URLSearchParams(searchParams.toString())
+        params.set("tab", defaultTab)
+        router.replace(`?${params.toString()}`, { scroll: false })
       }
     }
-    return [];
-  });
+  }, [currentTabConfig, appointment?.appointmentType?.name, searchParams, router])
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(completedTabs));
-    }
-  }, [completedTabs, STORAGE_KEY]);
-
-  const markTabAsCompleted = (tabId: string) => {
-    setCompletedTabs(prev => (prev.includes(tabId) ? prev : [...prev, tabId]));
-  };
-
-  const isTabCompleted = (tabId: string) => completedTabs.includes(tabId);
-
-  return (
-    <DewormingTabCompletionContext.Provider value={{ markTabAsCompleted, isTabCompleted }}>
-      {children}
-    </DewormingTabCompletionContext.Provider>
-  );
-}
-
-function useDewormingTabCompletion() {
-  const ctx = useContext(DewormingTabCompletionContext);
-  if (!ctx) throw new Error("useDewormingTabCompletion must be used within DewormingTabCompletionProvider");
-  return ctx;
-}
-
-function DewormingTabs({
-  patientId,
-  appointmentId,
-  activeTab,
-  setActiveTab,
-  navigateToNextTab,
-  onClose
-}: {
-  patientId: string;
-  appointmentId: string;
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  navigateToNextTab: () => void;
-  onClose: () => void;
-}) {
-  const { isTabCompleted, markTabAsCompleted } = useDewormingTabCompletion();
-  const { data: visitData, refetch: refetchVisit } = useGetVisitByAppointmentId(appointmentId);
-  const [showNewAppointment, setShowNewAppointment] = useState(false);
-  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
-
-  // Get the actual visitId from visit data
-  const visitId = visitData?.id;
-
-  // Refetch data when tab becomes active
-  useEffect(() => {
-    refetchVisit();
-  }, [activeTab, refetchVisit]);
-
-  // Mark tabs as completed in local storage when backend says so
-  useEffect(() => {
-    if (!visitData) return;
-    if (visitData.isDewormingIntakeCompleted) markTabAsCompleted("intake");
-    if (visitData.isDewormingMedicationCompleted) markTabAsCompleted("medication");
-    if (visitData.isDewormingNotesCompleted) markTabAsCompleted("notes");
-    if (visitData.isPrescriptionCompleted) markTabAsCompleted("prescription");
-    if (visitData.isDewormingCheckoutCompleted) markTabAsCompleted("checkout");
-  }, [visitData, markTabAsCompleted]);
-
-  // Function to determine if a tab should appear completed/green based on visit data
-  function shouldShowTabAsCompleted(tabId: string) {
-    if (!visitData) {
-      return false;
-    }
-    
-    let result = false;
-    switch (tabId) {
-      case "intake":
-        result = visitData.isDewormingIntakeCompleted || false;
-        break;
-      case "medication":
-        result = visitData.isDewormingMedicationCompleted || false;
-        break;
-      case "notes":
-        result = visitData.isDewormingNotesCompleted || false;
-        break;
-      case "prescription":
-        result = visitData.isPrescriptionCompleted || false;
-        break;
-      case "checkout":
-        result = visitData.isDewormingCheckoutCompleted || false;
-        break;
-      default:
-        result = false;
-    }
-    
-    return result;
+  // Update URL when tab changes (only when Visit Summary is already open)
+  const handleTabChange = (value: string) => {
+    const newTab = value as TabId
+    setActiveTab(newTab)
+    // Only update URL if Visit Summary is open (this component is rendered)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set("tab", newTab)
+    params.set("appointmentId", currentAppointmentId) // Ensure appointmentId is also in URL
+    router.replace(`?${params.toString()}`, { scroll: false })
   }
 
-  // Check if all tabs are completed
-  const allTabsCompleted = !!(visitData && 
-    visitData.isDewormingIntakeCompleted && 
-    visitData.isDewormingMedicationCompleted && 
-    visitData.isDewormingNotesCompleted);
+  // Filter appointment history to exclude scheduled appointments
+  const filteredAppointmentHistory = useMemo(() => {
+    return history?.appointmentHistory.filter((appt) => appt.status !== "scheduled") || []
+  }, [history?.appointmentHistory])
 
-  return (
-    <>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full">
-          {/* Customize each TabsTrigger to show completion status */}
-          <TabsTrigger 
-            value="intake" 
-            className={`flex items-center gap-1 ${shouldShowTabAsCompleted("intake") ? "text-green-600" : ""}`}
-          >
-            Intake
-            {shouldShowTabAsCompleted("intake") && <CheckCircle className="h-3 w-3 text-green-600" />}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="medication"
-            className={`flex items-center gap-1 ${shouldShowTabAsCompleted("medication") ? "text-green-600" : ""}`}
-          >
-            Medication
-            {shouldShowTabAsCompleted("medication") && <CheckCircle className="h-3 w-3 text-green-600" />}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="notes"
-            className={`flex items-center gap-1 ${shouldShowTabAsCompleted("notes") ? "text-green-600" : ""}`}
-          >
-            Notes
-            {shouldShowTabAsCompleted("notes") && <CheckCircle className="h-3 w-3 text-green-600" />}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="prescription"
-            className={`flex items-center gap-1 ${shouldShowTabAsCompleted("prescription") ? "text-green-600" : ""}`} 
-          >
-            Prescription
-            {shouldShowTabAsCompleted("prescription") && <CheckCircle className="h-3 w-3 text-green-600" />}
-          </TabsTrigger>
-          <TabsTrigger 
-            value="checkout"
-            className={`flex items-center gap-1 ${shouldShowTabAsCompleted("checkout") ? "text-green-600" : ""}`}
-          >
-            Checkout
-            {shouldShowTabAsCompleted("checkout") && <CheckCircle className="h-3 w-3 text-green-600" />}
-          </TabsTrigger>
-        </TabsList>
+  // Keep currentAppointmentId in sync if parent prop changes
+  useEffect(() => {
+    setCurrentAppointmentId(initialAppointmentId)
+  }, [initialAppointmentId])
 
-        <TabsContent value="intake">
-          <IntakeTab 
-            patientId={patientId} 
-            appointmentId={appointmentId}
-            visitId={visitId}
-            onComplete={(completed) => {
-              if (completed) markTabAsCompleted("intake");
-            }}
-            onNext={navigateToNextTab}
-            isCompleted={shouldShowTabAsCompleted("intake")}
-          />
-        </TabsContent>
-        <TabsContent value="medication">
-          <MedicationTab 
-            patientId={patientId} 
-            appointmentId={appointmentId}
-            visitId={visitId}
-            onComplete={(completed) => {
-              if (completed) markTabAsCompleted("medication");
-            }}
-            onNext={navigateToNextTab}
-            isCompleted={shouldShowTabAsCompleted("medication")}
-          />
-        </TabsContent>
-        <TabsContent value="notes">
-          <NotesTab 
-            patientId={patientId} 
-            appointmentId={appointmentId}
-            visitId={visitId}
-            onComplete={(completed) => {
-              if (completed) markTabAsCompleted("notes");
-            }}
-            onNext={navigateToNextTab}
-            isCompleted={shouldShowTabAsCompleted("notes")}
-          />
-        </TabsContent>
-        <TabsContent value="prescription">
-          <TabCompletionProvider>
-            <PrescriptionTab 
-              patientId={patientId} 
-              appointmentId={appointmentId}
-              onNext={navigateToNextTab}
-            />
-          </TabCompletionProvider>
-        </TabsContent>
-        <TabsContent value="checkout">
-          <CheckoutTab 
-            patientId={patientId} 
-            appointmentId={appointmentId}
-            visitId={visitId}
-            onClose={onClose}
-            onComplete={(completed) => {
-              if (completed) markTabAsCompleted("checkout");
-            }}
-            allTabsCompleted={allTabsCompleted}
-            isCompleted={shouldShowTabAsCompleted("checkout")}
-          />
-        </TabsContent>
-      </Tabs>
+  // When currentAppointmentId changes, refetch visit data
+  useEffect(() => {
+    refetchVisitData()
+  }, [currentAppointmentId, refetchVisitData])
 
-      <div className="mt-6 flex justify-end space-x-4">
-        {activeTab !== "checkout" ? (
-          <Button onClick={navigateToNextTab}>Next</Button>
-        ) : (
-          <Button className="theme-button" onClick={() => setShowNewAppointment(true)}>
-            Book Another Appointment
-          </Button>
-        )}
-      </div>
+  const isDewormingTabCompleted = (tabValue: string): boolean => {
+    if (!visitData) return false
+    const visit = visitData as any
+    const tabConfig = currentTabConfig.find((tab) => tab.value === tabValue)
 
-      <NewAppointment
-        isOpen={showNewAppointment}
-        onClose={() => setShowNewAppointment(false)}
-        patientId={patientId}
-      />
-
-      {/* Medical History Sheet */}
-      <Sheet open={showMedicalHistory} onOpenChange={setShowMedicalHistory}>
-        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
-          <SheetHeader className="mb-6">
-            <SheetTitle>Medical History</SheetTitle>
-          </SheetHeader>
-          <TabCompletionProvider>
-            <MedicalHistoryTab
-              patientId={patientId}
-              appointmentId={appointmentId}
-              onNext={() => setShowMedicalHistory(false)}
-            />
-          </TabCompletionProvider>
-        </SheetContent>
-      </Sheet>
-    </>
-  );
-}
-
-export default function DewormingComponent({ patientId, appointmentId, onClose }: DewormingComponentProps) {
-  const [activeTab, setActiveTab] = useState(tabOrder[0].id);
-  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
+    if (!tabConfig || !tabConfig.isCompletedKey) {
+      return false
+    }
+    const isCompleted = Boolean(visit[tabConfig.isCompletedKey])
+    return isCompleted
+  }
 
   const navigateToNextTab = () => {
-    const currentIndex = tabOrder.findIndex(tab => tab.id === activeTab);
-    if (currentIndex < tabOrder.length - 1) {
-      setActiveTab(tabOrder[currentIndex + 1].id);
+    if (!currentTabConfig) return
+    const currentIndex = currentTabConfig.findIndex((tab) => tab.value === activeTab)
+    if (currentIndex < currentTabConfig.length - 1) {
+      setActiveTab(currentTabConfig[currentIndex + 1].value)
     }
-  };
+  }
+
+  const handleCloseAndClearUrl = () => {
+    const params = new URLSearchParams(searchParams.toString())
+
+    // remove tab & appointmentId
+    params.delete("tab")
+    params.delete("appointmentId")
+
+    router.replace(`?${params.toString()}`, { scroll: false })
+
+    onClose()
+  }
 
   return (
     <>
-      <Sheet open={true} onOpenChange={onClose}>
-        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%] overflow-x-hidden overflow-y-auto">
+      <Sheet open={true} onOpenChange={handleCloseAndClearUrl}>
+        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[70%] lg:!max-w-[70%]">
           <SheetHeader className="mb-6 mr-10">
             <div className="flex items-center justify-between">
               <SheetTitle>Deworming Visit</SheetTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMedicalHistory(true)}
-                className="flex items-center gap-2"
-              >
-                <History className="h-4 w-4" />
-                Medical History
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMedicalHistory(true)}
+                  className="flex items-center gap-2"
+                >
+                  <History className="h-4 w-4" />
+                  Medical History
+                </Button>
+              </div>
             </div>
           </SheetHeader>
-          <DewormingTabCompletionProvider patientId={patientId} appointmentId={appointmentId}>
-            <DewormingTabs
-              patientId={patientId}
-              appointmentId={appointmentId}
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              navigateToNextTab={navigateToNextTab}
-              onClose={onClose}
-            />
-          </DewormingTabCompletionProvider>
+
+          {/* Appointment History Navigation */}
+          {filteredAppointmentHistory.length > 0 && (
+            <div className="mb-4">
+              <AppointmentHistoryNavigation
+                patientHistory={filteredAppointmentHistory}
+                currentAppointmentId={currentAppointmentId}
+                onAppointmentSelect={(newAppointmentId) => {
+                  setCurrentAppointmentId(newAppointmentId)
+                  // Reset to first tab when changing appointments, but preserve URL param if valid
+                  if (currentTabConfig && currentTabConfig.length > 0) {
+                    const tabFromUrl = searchParams.get("tab") as TabId | null
+                    const validTab =
+                      tabFromUrl && currentTabConfig.some((tab) => tab.value === tabFromUrl)
+                        ? tabFromUrl
+                        : currentTabConfig[0].value
+                    setActiveTab(validTab)
+                    const params = new URLSearchParams(searchParams.toString())
+                    params.set("tab", validTab)
+                    router.replace(`?${params.toString()}`, { scroll: false })
+                  }
+                }}
+                selectedAppointmentType="Deworming"
+              />
+            </div>
+          )}
+
+          {/* Main Content */}
+          {(() => {
+            const appointmentType = appointment?.appointmentType?.name?.toLowerCase()
+
+            // Only show vaccination in embedded mode if explicitly set
+            if (appointmentType === "vaccination" && currentTabConfig.length === 0) {
+              return (
+                <div className="p-4">
+                  <VaccinationPlanning
+                    patientId={patientId}
+                    appointmentId={currentAppointmentId}
+                    species={appointment?.patient?.species || "dog"}
+                    onNext={() => {}}
+                    onClose={onClose}
+                    clinicId={appointment?.clinicId}
+                    isReadOnly={appointment?.status === "completed"}
+                    embedded={true}
+                    hideMedicalHistoryButton={true}
+                  />
+                </div>
+              )
+            }
+
+            // Handle certification appointments
+            if (appointmentType === "certification" || appointmentType === "certificate") {
+              return (
+                <div className="p-4">
+                  <CertificateManagementWrapper
+                    appointmentId={currentAppointmentId}
+                    patientId={patientId}
+                    onClose={handleCloseAndClearUrl}
+                    embedded={true}
+                  />
+                </div>
+              )
+            }
+
+            // For deworming or any other type, show the tabs
+
+            // Default case - show tabs
+            return (
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+                <TabsList className="w-full">
+                  {currentTabConfig.map((tab) => (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className={`flex items-center gap-1 text-lg font-bold ${
+                        isDewormingTabCompleted(tab.value) ? "data-[state=active]:text-green-600" : ""
+                      }`}
+                    >
+                      <span className="flex items-center gap-1">
+                        {tab.label}
+                        {isDewormingTabCompleted(tab.value) && <CheckCircle className="h-4 w-4 text-green-600 ml-1" />}
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+
+                {currentTabConfig.map((tab: any) => {
+                  const TabComponent = tab.component
+                  return (
+                    <TabsContent key={tab.value} value={tab.value} className="mt-0">
+                      <TabCompletionProvider>
+                        <TabComponent
+                          patientId={patientId}
+                          appointmentId={currentAppointmentId}
+                          visitId={visitData?.id}
+                          onNext={navigateToNextTab}
+                          onClose={handleCloseAndClearUrl}
+                          externalFollowUpDate={followUpDateFooter}
+                          onExternalFollowUpDateChange={setFollowUpDateFooter}
+                          setWeightGraphOpen={tab.value === "deworming-intake" ? setWeightGraphOpen : undefined}
+                        />
+                      </TabCompletionProvider>
+                    </TabsContent>
+                  )
+                })}
+              </Tabs>
+            )
+          })()}
         </SheetContent>
       </Sheet>
 
       {/* Medical History Sheet */}
       <Sheet open={showMedicalHistory} onOpenChange={setShowMedicalHistory}>
-        <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto">
+        <SheetContent
+          side="right"
+          className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto"
+        >
           <SheetHeader className="mb-6">
             <SheetTitle>Medical History</SheetTitle>
           </SheetHeader>
           <TabCompletionProvider>
             <MedicalHistoryTab
               patientId={patientId}
-              appointmentId={appointmentId}
+              appointmentId={currentAppointmentId}
               onNext={() => setShowMedicalHistory(false)}
             />
           </TabCompletionProvider>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={weightGraphOpen} onOpenChange={setWeightGraphOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Weight History</DialogTitle>
+            <DialogDescription>View the patient's weight history over time</DialogDescription>
+          </DialogHeader>
+          <WeightGraph patientId={patientId} isOpen={weightGraphOpen} onClose={() => setWeightGraphOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
-  );
+  )
 }
 
-export { useDewormingTabCompletion };
+// Main export with TabCompletionProvider
+export default function DewormingComponent(props: DewormingComponentProps) {
+  return (
+    <TabCompletionProvider>
+      <DewormingContent {...props} />
+    </TabCompletionProvider>
+  )
+}

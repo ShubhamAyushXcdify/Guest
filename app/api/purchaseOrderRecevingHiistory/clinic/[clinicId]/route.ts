@@ -11,7 +11,7 @@ export async function GET(
 ) {
   const { clinicId } = await ctx.params;
   const { searchParams } = new URL(request.url);
-  const productName = searchParams.get('productName');
+  const queryParams = new URLSearchParams(searchParams);
 
   try {
     let token = getJwtToken(request);
@@ -20,11 +20,8 @@ export async function GET(
       token = testToken;
     }
 
-    // Build the API URL with optional productName query parameter
-    let apiEndpoint = `${apiUrl}/api/PurchaseOrderReceivingHistory/clinic/${clinicId}`;
-    if (productName) {
-      apiEndpoint += `?productName=${encodeURIComponent(productName)}`;
-    }
+    // Build the API URL with optional productName and companyId query parameters
+    let apiEndpoint = `${apiUrl}/api/PurchaseOrderReceivingHistory/clinic/${clinicId}?${queryParams.toString()}`;
 
     // Call the API
     const response = await fetch(apiEndpoint, {

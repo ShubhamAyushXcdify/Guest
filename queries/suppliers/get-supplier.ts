@@ -52,43 +52,63 @@ export interface PaginatedResponse<T> {
   hasNextPage: boolean;
 }
 
+export type SupplierFilters = {
+  name?: string
+  contactPerson?: string
+  email?: string
+  phone?: string
+  city?: string
+  state?: string
+  clinicName?: string
+  clinicId?: string | null
+  companyId?: string | null
+}
+
 const getSupplier = async (
   pageNumber = 1,
   pageSize = 10,
-  search = '',
-  clinicId: string | null = null,
-  companyId: string | null = null
+  filters: Partial<SupplierFilters> = {}
 ) => {
   const params = new URLSearchParams({
     pageNumber: String(pageNumber),
     pageSize: String(pageSize),
-    search: search || ''
-  });
+  })
 
-  if (clinicId) params.append('clinicId', clinicId);
-  if (companyId) params.append('companyId', companyId);
+  // Map the search parameter to name for the API
+  const apiFilters = { ...filters };
+
+  Object.entries(apiFilters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      params.append(key, String(value))
+    }
+  })
 
   const response = await fetch(`/api/supplier?${params.toString()}`);
 
   if (!response.ok) {
-    throw new Error('Failed to fetch supplier data');
+    throw new Error("Failed to fetch supplier data");
   }
 
   return response.json() as Promise<PaginatedResponse<Supplier>>;
-};
+}
 
-export const useGetSupplier = (
+// ✅ Flexible hook with object params
+export const useGetSupplier = ({
   pageNumber = 1,
   pageSize = 10,
-  search = '',
-  clinicId: string | null = null,
-  companyId: string | null = null,
-  enabled: boolean = true
-) => {
+  filters = {},
+  enabled = true,
+}: {
+  pageNumber?: number
+  pageSize?: number
+  filters?: Partial<SupplierFilters>
+  enabled?: boolean
+}) => {
   return useQuery<PaginatedResponse<Supplier>, Error>({
-    queryKey: ['supplier', pageNumber, pageSize, search, clinicId, companyId],
-    queryFn: () => getSupplier(pageNumber, pageSize, search, clinicId, companyId),
+    queryKey: ["supplier", pageNumber, pageSize, filters],
+    queryFn: () => getSupplier(pageNumber, pageSize, filters),
     refetchOnWindowFocus: false,
-    enabled: enabled,
+    placeholderData: keepPreviousData,
+    enabled,
   });
 };

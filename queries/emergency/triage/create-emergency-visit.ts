@@ -8,7 +8,7 @@ interface CreateEmergencyVisitData {
   allergies: string;
   immediateInterventionRequired: boolean;
   reasonForEmergency: string;
-  triageLevel: string;
+  triageLevel?: string | null;
   presentingComplaint: string;
   initialNotes: string;
   visitId: string;
@@ -17,27 +17,30 @@ interface CreateEmergencyVisitData {
 
 export const useCreateEmergencyVisit = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (visitData: CreateEmergencyVisitData) => {
-      const response = await fetch('/api/emergency/triage', {
-        method: 'POST',
+      const response = await fetch("/api/emergency/triage", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(visitData),
       });
-      
+
+      const data = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to create emergency visit');
+        throw {
+          response: { data },
+          message: data?.message || "Failed to create emergency visit",
+        };
       }
-      
-      return response.json();
+
+      return data;
     },
     onSuccess: () => {
-      // Invalidate relevant queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['emergencyVisits'] });
+      queryClient.invalidateQueries({ queryKey: ["emergencyVisits"] });
     },
   });
-}; 
+};

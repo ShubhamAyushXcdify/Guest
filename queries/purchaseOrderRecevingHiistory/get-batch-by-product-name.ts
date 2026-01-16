@@ -34,7 +34,6 @@ export interface BatchDataItem {
     name: string;
     genericName: string;
     category: string;
-    productType: string;
     manufacturer: string;
     ndcNumber: string;
     strength: string;

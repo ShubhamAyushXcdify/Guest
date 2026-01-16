@@ -26,6 +26,7 @@ export default function AudioRecorder(props: {
     const [recording, setRecording] = useState(false);
     const [duration, setDuration] = useState(0);
     const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const streamRef = useRef<MediaStream | null>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -36,14 +37,43 @@ export default function AudioRecorder(props: {
     const startRecording = async () => {
         // Reset recording (if any)
         setRecordedBlob(null);
+        setErrorMessage(null);
 
         let startTime = Date.now();
 
         try {
+            // Ensure environment supports media devices
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setErrorMessage("This browser doesn't support audio recording.");
+                return;
+            }
+
+            // Find a valid audio input device if available
+            const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+            const audioInputs = devices.filter((d) => d.kind === "audioinput");
+            // Some browsers report 0 devices until permission is granted; do not early-return here
+            const preferredDeviceId = audioInputs[0]?.deviceId;
+
             if (!streamRef.current) {
-                streamRef.current = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                });
+                // Try with a specific device first, then fall back to generic audio: true
+                try {
+                    streamRef.current = await navigator.mediaDevices.getUserMedia({
+                        audio: preferredDeviceId ? { deviceId: { exact: preferredDeviceId } } : true,
+                    });
+                } catch (err: any) {
+                    // Retry with relaxed constraints (some browsers reject exact deviceId)
+                    try {
+                        streamRef.current = await navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                        });
+                    } catch (fallbackErr: any) {
+                        if (audioInputs.length === 0 && (fallbackErr?.name === "NotFoundError" || fallbackErr?.name === "DevicesNotFoundError")) {
+                            setErrorMessage("No microphone found. Please connect a microphone and try again.");
+                            return;
+                        }
+                        throw fallbackErr;
+                    }
+                }
             }
 
             const mimeType = getMimeType();
@@ -75,8 +105,19 @@ export default function AudioRecorder(props: {
             });
             mediaRecorder.start();
             setRecording(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error accessing microphone:", error);
+            let message = "Unable to access microphone.";
+            if (error?.name === "NotFoundError" || error?.name === "DevicesNotFoundError") {
+                message = "Requested device not found. Please choose a valid microphone in your OS settings.";
+            } else if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
+                message = "Microphone permission denied. Please allow access and try again.";
+            } else if (error?.name === "NotReadableError") {
+                message = "Microphone is in use by another application. Close it and try again.";
+            } else if (window && window.isSecureContext === false) {
+                message = "Microphone requires a secure context (HTTPS or localhost).";
+            }
+            setErrorMessage(message);
         }
     };
 
@@ -138,6 +179,10 @@ export default function AudioRecorder(props: {
                     ? `Listening... (${formatAudioTimestamp(duration)})`
                     : "Click to start recording"}
             </p>
+
+            {errorMessage && (
+                <p className="text-center text-sm text-red-600">{errorMessage}</p>
+            )}
 
             {recordedBlob && (
                 <audio className='w-full' ref={audioRef} controls>

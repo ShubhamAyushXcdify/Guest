@@ -89,16 +89,35 @@ FormItem.displayName = "FormItem"
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField()
+>(({ className, children, ...props }, ref) => {
+  const { formItemId } = useFormField()
+
+  // Function to make asterisks red while keeping the rest of the text normal
+  const formatLabel = (label: React.ReactNode) => {
+    if (typeof label === 'string') {
+      // Split by asterisk and wrap asterisks in red spans
+      const parts = label.split('*');
+      if (parts.length === 1) return label;
+      
+      return parts.map((part, index) => (
+        <React.Fragment key={index}>
+          {part}
+          {index < parts.length - 1 && <span className="text-red-500">*</span>}
+        </React.Fragment>
+      ));
+    }
+    return label;
+  };
 
   return (
     <Label
       ref={ref}
-      className={cn(error && "text-destructive", className)}
+      className={className}
       htmlFor={formItemId}
       {...props}
-    />
+    >
+      {formatLabel(children)}
+    </Label>
   )
 })
 FormLabel.displayName = "FormLabel"
@@ -191,7 +210,7 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-sm font-medium text-destructive", className)}
+      className={cn("text-[.6rem] font-medium text-destructive", className)}
       {...props}
     >
       {body}

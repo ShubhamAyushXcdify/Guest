@@ -24,6 +24,7 @@ import { useRootContext } from "@/context/RootContext";
 import { useRouter } from "next/navigation";
 import { ClientForm } from "./client-form";
 import { toast } from "@/components/ui/use-toast";
+import z from "zod";
 
 interface ClientDetailsProps {
   clientId: string;
@@ -80,7 +81,7 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 border rounded-md">
       <Button
         variant="outline"
         onClick={() => router.push("/clients")}
@@ -90,8 +91,8 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
       </Button>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Owner Information</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between border-b mb-4 py-4 px-6">
+          <CardTitle className="text-xl">Owner Information</CardTitle>
           <Button 
             variant="outline" 
             size="sm" 
@@ -143,11 +144,11 @@ export default function ClientDetails({ clientId }: ClientDetailsProps) {
         </CardContent>
       </Card>
 
-      <Separator />
+      {/* <Separator /> */}
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle>Patients</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b mb-4 py-4 px-6">
+          <CardTitle className="text-xl">Patients</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoadingPatientsList ? (

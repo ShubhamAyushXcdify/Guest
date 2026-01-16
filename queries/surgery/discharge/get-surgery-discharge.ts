@@ -8,6 +8,7 @@ export interface SurgeryDischarge {
   homeCareInstructions: string;
   medicationsToGoHome: string;
   followUpInstructions: string;
+  followupDate?: string;
   isCompleted?: boolean;
   createdAt?: string;
   updatedAt?: string;

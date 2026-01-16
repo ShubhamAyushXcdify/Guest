@@ -17,6 +17,7 @@ export type RootContextType = {
         id: string | null
         name: string | null
         companyId?: string | null
+        setClinic?: (clinic: {id: string | null, name: string | null, companyId?: string | null}) => void
     }
     collapsed: boolean
     setCollapsed: any
@@ -37,7 +38,10 @@ const RootPageContext: React.FC<RootContextTypeProps> = ({ children }) => {
     const contextValue = useMemo(() => ({
         user: contentLayout.user,
         roles: contentLayout.roles,
-        clinic: contentLayout.clinic,
+        clinic: {
+            ...contentLayout.clinic,
+            setClinic: contentLayout.setClinic
+        },
         IsAdmin: contentLayout.IsAdmin,
         authorized: contentLayout.authorized,
         collapsed: contentLayout.collapsed,
@@ -57,6 +61,7 @@ const RootPageContext: React.FC<RootContextTypeProps> = ({ children }) => {
         contentLayout.authorized,
         contentLayout.collapsed,
         contentLayout.loading,
+        contentLayout.clinic,
     ]);
 
     return (

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,11 +15,11 @@ import { ColumnDef } from "@tanstack/react-table"
 import { DateRange } from 'react-day-picker'
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
 
-interface RegisteredAppointmentProps {}
+interface RegisteredAppointmentProps { }
 
 const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
   const { toast } = useToast()
-  const { user, clinic } = useRootContext()
+  const { user, clinic, IsAdmin, userType } = useRootContext()
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchQuery, setSearchQuery] = useState("")
@@ -32,42 +32,63 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
     return { from, to };
   });
 
-  // Date range handling like dashboard
-  // If no range chosen, default to today (local)
+  const formatDateOnly = (date: Date) => date.toISOString().split("T")[0];
+
   const today = new Date();
   const startOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
   const endOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
   const startIso = dateRange?.from
-    ? new Date(dateRange.from.getTime() - dateRange.from.getTimezoneOffset() * 60000).toISOString()
-    : new Date(startOfDayLocal.getTime() - startOfDayLocal.getTimezoneOffset() * 60000).toISOString();
+    ? formatDateOnly(dateRange.from)
+    : formatDateOnly(startOfDayLocal);
+
   const endIso = dateRange?.to
-    ? new Date(dateRange.to.getTime() - dateRange.to.getTimezoneOffset() * 60000).toISOString()
-    : new Date(endOfDayLocal.getTime() - endOfDayLocal.getTimezoneOffset() * 60000).toISOString();
+    ? formatDateOnly(dateRange.to)
+    : formatDateOnly(endOfDayLocal);
 
   // Fetch all appointments and filter for registered/pending ones
-  const { data: appointmentsData, isLoading } = useGetAppointments({
-    search: null,
-    status: null,
-    provider: null,
-    dateFrom: startIso,
-    dateTo: endIso,
-    clinicId: clinic?.id || '',
-    patientId: null,
-    clientId: null,
-    veterinarianId: null,
-    roomId: null,
-    pageNumber: currentPage,
-    pageSize: pageSize,
-    isRegistered: true,
-  })
+  const { data: appointmentsData, isLoading } = useGetAppointments(
+    {
+      search: null,
+      status: null,
+      provider: null,
+      dateFrom: startIso,
+      dateTo: endIso,
+      clinicId:
+        userType.isClinicAdmin && user?.clinicId
+          ? user.clinicId
+          : clinic?.id && clinic.id !== "undefined"
+            ? clinic.id
+            : null,
+
+      companyId: null,
+      patientId: null,
+      clientId: null,
+      veterinarianId: null,
+      roomId: null,
+
+      // ✅ MANDATORY FIELDS (always send)
+      appointmentId: null,
+      tab: "registered",
+
+      pageNumber: currentPage,
+      pageSize: pageSize,
+      isRegistered: true,
+    },
+    {
+      enabled:
+        !!(userType.isClinicAdmin && user?.clinicId) ||
+        !!(clinic?.id && clinic.id !== "undefined"),
+    }
+  )
+
 
   // Filter appointments to show only those that need assignment (no veterinarian assigned)
   const filteredAppointments = useMemo(() => {
     if (!appointmentsData || typeof appointmentsData !== 'object') return []
     const items = appointmentsData.items || []
-    
+
     // Filter for appointments that don't have a veterinarian assigned or are in a "pending" state
-    return items.filter((appointment: any) => 
+    return items.filter((appointment: any) =>
       !appointment.veterinarianId ||
       appointment.isRegistered === true ||
       appointment.status === "pending" ||
@@ -125,8 +146,8 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
       header: "Type",
       cell: ({ row }) => {
         const appointmentType = row.original.appointmentType
-        return typeof appointmentType === 'object' && appointmentType?.name 
-          ? appointmentType.name 
+        return typeof appointmentType === 'object' && appointmentType?.name
+          ? appointmentType.name
           : appointmentType || 'N/A'
       },
     },
@@ -174,8 +195,8 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Registered Appointments Queue</h1>
-          <p className="text-gray-600">Manage pending appointment registrations</p>
+          <h1 className="text-lg font-bold text-gray-900">Registered Appointments Queue</h1>
+          <p className="text-gray-600 text-sm">Manage pending appointment registrations</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -231,14 +252,15 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
       </div>
 
       {/* Data Table */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between w-full">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <User className="h-5 w-5" />
               Registered Appointments
             </CardTitle>
-            <div className="flex-shrink-0">
+            <div className="flex items-center gap-4">
+              {/* Date Range Picker */}
               <DatePickerWithRangeV2
                 date={dateRange}
                 setDate={setDateRange}
@@ -263,17 +285,17 @@ const RegisteredAppointment: React.FC<RegisteredAppointmentProps> = () => {
           />
         </CardContent>
       </Card>
-      
+
       {/* New Appointment Drawer - Similar to dashboard-screen.tsx */}
       {/* <NewAppointmentDrawer 
-        isOpen={showNewAppointmentDrawer} 
-        onClose={() => {
-          setShowNewAppointmentDrawer(false);
-          setEditAppointmentId(null);
-        }} 
-        appointmentId={null}
-        sendEmail={false}
-      /> */}
+          isOpen={showNewAppointmentDrawer} 
+          onClose={() => {
+            setShowNewAppointmentDrawer(false);
+            setEditAppointmentId(null);
+          }} 
+          appointmentId={null}
+          sendEmail={false}
+        /> */}
 
       <ApproveAppointmentDrawer
         isOpen={showNewAppointmentDrawer}

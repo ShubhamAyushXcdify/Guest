@@ -11,8 +11,12 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { LoginForm } from "@/components/auth/login/loginform"
+import { getCompanySubdomain } from "@/utils/subdomain";
+import { useGetCompanyBySubdomain } from "@/queries/companies";
 
 export default function LoginPage() {
+  const subdomain = getCompanySubdomain();
+  const { data: company, isLoading: companyLoading } = useGetCompanyBySubdomain(subdomain);
 
   return (
     <div
@@ -38,12 +42,20 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center p-4 md:p-8 text-white">
         <div className="max-w-md w-full space-y-6 md:space-y-8">
           <div className="flex flex-col items-center">
-            <div className="relative w-24 h-24 md:w-40 md:h-40 mb-4 md:mb-6">
-              <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
+            <div className="w-80 relative h-20">
+              {company?.logoUrl ? (
+                <Image 
+                  src={company.logoUrl} 
+                  alt={`${company.name} Logo`} 
+                  fill 
+                  className="object-contain" 
+                />
+              ) : (
+                <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className="object-contain" />
+              )}
             </div>
-            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
-            <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p>
           </div>
+          
 
           {/* Mobile Features Preview */}
           <div className="md:hidden">
@@ -123,7 +135,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-4 bg-white">
         <div className="bg-white dark:bg-slate-800 rounded-xl md:rounded-2xl shadow-xl max-w-md w-full p-4 md:p-8  max-h-full md:max-h-[calc(100vh-3rem)] overflow-y-auto border">
           <div className="text-center mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to PawTrack</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Welcome to {company?.name || "PawTrack"}</h2>
             <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-2">Sign in to access your pet's health portal</p>
           </div>
           

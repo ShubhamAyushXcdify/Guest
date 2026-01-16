@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Slot } from "./get-slot-by-roomId";
+ 
 
 interface MutationOptions {
   onSuccess?: () => void;

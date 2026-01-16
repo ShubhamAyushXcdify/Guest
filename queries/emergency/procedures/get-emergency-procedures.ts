@@ -23,10 +23,9 @@ export interface EmergencyVisitProcedure {
   otherProcedure: boolean;
   otherProcedurePerformed: string;
   performedBy: string;
-  medications: Medication[];
   fluidsType: string;
-  fluidsVolumeMl: number;
-  fluidsRateMlHr: number;
+  fluidsVolumeMl: number | null;
+  fluidsRateMlHr: number | null;
   responseToTreatment: string;
   notes: string;
   isCompleted: boolean;

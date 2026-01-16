@@ -42,46 +42,6 @@ export async function GET(
     }
 }
 
-export async function PUT(
-    request: NextRequest,
-    ctx: { params: Promise<{ id: string }> }
-) {
-    const { id } = await ctx.params;
-    try {
-        const token = getJwtToken(request);
-        if (!token) {
-            return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-        }
-
-        const body = await request.json();
-        const response = await fetch(`${apiUrl}/api/Certificate/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify(body),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            return NextResponse.json(
-                { message: errorData.message || 'Failed to update certificate' },
-                { status: response.status }
-            );
-        }
-
-        const data = await response.json();
-        return NextResponse.json(data, { status: 200 });
-    } catch (error) {
-        console.error('Error updating certificate:', error);
-        return NextResponse.json(
-            { message: 'Error updating certificate' },
-            { status: 500 }
-        );
-    }
-}
-
 export async function DELETE(
     request: NextRequest,
     ctx: { params: Promise<{ id: string }> }

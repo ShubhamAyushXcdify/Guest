@@ -62,10 +62,10 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
   };
 
   return (
-    <Card className={`w-full ${className}`}>
-      <CardContent className="space-y-4 p-2">
+    <Card className={`w-full flex flex-col ${className}`}>
+      <CardContent className="flex flex-col space-y-4 p-2 flex-1 min-h-0 overflow-hidden">
         {/* Search Bar and Location Button */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <SearchBar
             searchQuery={searchQuery}
             searchSuggestions={searchSuggestions}
@@ -125,7 +125,7 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
         </div>
 
         {/* Map */}
-        <div className="relative">
+        <div className="relative w-full flex-1 min-h-0 overflow-hidden rounded-lg">
           <LeafletMap
             center={mapCenter}
             zoom={zoom}
@@ -138,7 +138,7 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
 
         {/* Current Location Info */}
         {currentLocation && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex-shrink-0">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-blue-900">Current Location</p>
@@ -153,7 +153,7 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
 
         {/* Selected Location Info */}
         {selectedLocation && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="p-3 bg-green-50 border border-green-200 rounded-md flex-shrink-0">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-green-900">Selected Location</p>
@@ -176,7 +176,7 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
 
         {/* Instructions */}
         {!selectedLocation && (
-          <div className="text-sm text-gray-600 text-center py-4">
+          <div className="text-sm text-gray-600 text-center py-4 flex-shrink-0">
             <p>Click on the map or search for a location to select it</p>
             <p className="text-xs text-gray-500 mt-1">
               Powered by OpenStreetMap Nominatim - Real address lookup

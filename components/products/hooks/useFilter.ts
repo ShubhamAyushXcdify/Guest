@@ -4,14 +4,12 @@ import { useCallback } from "react";
 
 export const defaultFilter = {
     searchByname: null,
-    category: null,
-    productType: null
+    category: null
 }
 
 export const productSearchParams = {
     searchByname: parseAsString,
-    category: parseAsString,
-    productType: parseAsString
+    category: parseAsString
 }
 
 export const proudctSearchParser = createSerializer(productSearchParams);
@@ -30,5 +28,12 @@ export const useFilter = () => {
         debouncedSetSearchParam(key, value);
     }, [debouncedSetSearchParam]);
 
-    return { searchParam, setSearchParam, handleSearch };
+    const handleClearFilters = useCallback(() => {
+        setSearchParam({
+            searchByname: null,
+            category: null,
+        });
+    }, [setSearchParam]);
+
+    return { searchParam, setSearchParam, handleSearch, handleClearFilters };
 }

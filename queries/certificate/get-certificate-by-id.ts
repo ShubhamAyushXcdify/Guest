@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 export interface CertificateDetails {
   id: string;
   visitId: string;
+  certificateTypeId: string;
   certificateJson: string;
   createdAt: string;
   updatedAt: string;

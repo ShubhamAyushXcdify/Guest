@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText, Printer, Eye, X, AlertTriangle } from "lucide-react"
+import { ChevronDown, Search, Trash2, Pencil, XIcon, FileText, Printer, X, AlertTriangle } from "lucide-react"
 import { DataTable } from "@/components/ui/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { Combobox } from "@/components/ui/combobox"
@@ -22,9 +22,11 @@ import { User } from "@/hooks/useContentLayout"
 import { useGetAppointmentByPatientId } from "@/queries/appointment/get-appointment-by-patient-id"
 import { useGetUsers, User as ApiUser } from "@/queries/users/get-users"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { usePathname, useSearchParams } from "next/navigation"
 import DischargeSummarySheet from "./discharge-summary-sheet"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Extended API user type with clinicId
 interface ExtendedUser extends ApiUser {
@@ -48,12 +50,12 @@ interface Appointment {
   appointmentType?: string;
 }
 
-export default function AppointmentList({ 
+export default function AppointmentList({
   onAppointmentClick,
   selectedPatientId
-}: { 
+}: {
   onAppointmentClick: (id: string) => void,
-  selectedPatientId?: string 
+  selectedPatientId?: string
 }) {
   const pathname = usePathname();
 
@@ -66,6 +68,7 @@ export default function AppointmentList({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [veterinarianRoleId, setVeterinarianRoleId] = useState<string | null>(null);
   const [dischargeSummaryOpen, setDischargeSummaryOpen] = useState(false)
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
   const [selectedAppointmentType, setSelectedAppointmentType] = useState<string | null>(null)
@@ -74,65 +77,163 @@ export default function AppointmentList({
   const { searchParams, handleSearch, handleStatus, handleProvider, handleClinic, handleDate, removeAllFilters } = useAppointmentFilter();
 
   const datesInitializedRef = useRef(false);
-  
-const { data: clinicsData } = useGetClinic(1, 100, clinic?.companyId ?? null);
-const clinics = clinicsData?.items ?? [];
 
-const [localClinicId, setLocalClinicId] = useState<string | null>(null);
-
-useEffect(() => {
-  const userData = localStorage.getItem("user");
-  if (userData) {
-    const user = JSON.parse(userData);
-
-    if (user.roleName === "Clinic Admin") {
-      if (user.clinics && user.clinics.length > 0) {
-        setLocalClinicId(user.clinics[0].clinicId);
+  const { data: rolesData } = useGetRole();
+  useEffect(() => {
+    if (rolesData?.data) {
+      const vetRole = rolesData.data.find(
+        (role: any) => role.name.toLowerCase() === 'veterinarian'
+      );
+      if (vetRole) {
+        setVeterinarianRoleId(vetRole.id);
       }
     }
-  }
-}, []);
+  }, [rolesData]);
 
-const effectiveClinicId =
-  userType.isAdmin
-    ? searchParams.clinicId || clinics[0]?.id || ""
-    : (userType.isClinicAdmin)
-      ? localClinicId || ""
-      : "";
+  const { data: clinicsData } = useGetClinic(1, 100, clinic?.companyId ?? null);
+  const clinics = clinicsData?.items ?? [];
 
-const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '');
-  
+  const [localClinicId, setLocalClinicId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+
+      if (user.roleName === "Clinic Admin") {
+        if (user.clinics && user.clinics.length > 0) {
+          setLocalClinicId(user.clinics[0].clinicId);
+        }
+      }
+    }
+  }, []);
+
+
+  const effectiveClinicId = useMemo(() => {
+    if (userType.isAdmin) {
+      return clinic?.id || "";
+    } else if (userType.isClinicAdmin) {
+      return localClinicId || "";
+    } else if (userType.isVeterinarian) {
+      // For veterinarians, always use the clinic context ID (which updates when they switch clinics)
+      return clinic?.id || "";
+    }
+    return "";
+  }, [userType.isAdmin, userType.isClinicAdmin, userType.isVeterinarian, clinic?.id, localClinicId]);
+
+  const { data: usersData } = useGetUsers(
+    1,
+    100,
+    '',
+    true, // enabled
+    clinic?.companyId || '', // companyId
+    effectiveClinicId ? [effectiveClinicId] : [], // Pass clinicId as an array
+    veterinarianRoleId ? [veterinarianRoleId] : [] // Pass veterinarianRoleId as an array
+  );
+
   // Filter users to get only veterinarians
   const veterinarians = useMemo(() => {
     if (!usersData?.items) return [];
-    
+
     const vets = usersData.items.filter(user => user.roleName === "Veterinarian") as ExtendedUser[];
-    
+
     // If not admin, we don't need to filter further since we already filtered by clinicId in the API call
     return vets;
   }, [usersData]);
 
   // Fetch appointments by patient ID if selectedPatientId is provided
   const { data: patientAppointments = [], isLoading: isLoadingPatientAppointments } = useGetAppointmentByPatientId(
-    selectedPatientId || "" 
+    selectedPatientId || ""
   );
 
   // Fetch all appointments when no patient is selected
-  const { data: allAppointments = [], isLoading: isLoadingAllAppointments } = useGetAppointments({
-    dateFrom: searchParams.dateFrom,
-    dateTo: searchParams.dateTo,
-    search: searchParams.search,
-    status: searchParams.status,
-    provider: searchParams.provider,
-    clinicId: effectiveClinicId,
-    patientId: searchParams.patientId,
-    clientId: searchParams.clientId,
-    veterinarianId: userType.isProvider ? user?.id : searchParams.veterinarianId,
-    roomId: searchParams.roomId,
+  // Fetch all appointments when no patient is selected
+  // Use useMemo to create a stable reference for query params
+  const appointmentQueryParams = useMemo(() => ({
+    dateFrom: searchParams.dateFrom ?? null,
+    dateTo: searchParams.dateTo ?? null,
+    search: searchParams.search ?? null,
+    status: searchParams.status ?? null,
+    provider: searchParams.provider ?? null,
+
+    clinicId: effectiveClinicId || null, // ✅ FIX
+    patientId: searchParams.patientId ?? null,
+    clientId: searchParams.clientId ?? null,
+    veterinarianId: userType.isProvider
+      ? user?.id ?? null
+      : searchParams.veterinarianId ?? null,
+    roomId: searchParams.roomId ?? null,
+
+    appointmentId: null,        
+    tab: activeTab ?? null,      
+
     pageNumber: currentPage,
     pageSize: pageSize,
-    isRegistered: false // Ensure we don't show appointment requests
+    isRegistered: false,
+    companyId: userType.isAdmin ? user?.companyId ?? null : null,
+  }), [
+    searchParams.dateFrom,
+    searchParams.dateTo,
+    searchParams.search,
+    searchParams.status,
+    searchParams.provider,
+    effectiveClinicId,
+    searchParams.patientId,
+    searchParams.clientId,
+    userType.isProvider,
+    user?.id,
+    searchParams.veterinarianId,
+    searchParams.roomId,
+    currentPage,
+    pageSize,
+    userType.isAdmin,
+    user?.companyId,
+    activeTab
+  ]);
+
+
+  // In your AppointmentList component, update the useGetAppointments call:
+  const {
+    data: allAppointments = [],
+    isLoading: isLoadingAllAppointments,
+    refetch: refetchAppointments,
+    isFetching: isFetchingAppointments
+  } = useGetAppointments(appointmentQueryParams, {
+    enabled: Boolean(effectiveClinicId) // Add this enabled condition
   });
+
+  // Refresh appointments when a new appointment is created/updated elsewhere
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (refetchAppointments) {
+        refetchAppointments();
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('appointments:refresh', handleRefresh);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('appointments:refresh', handleRefresh);
+      }
+    };
+  }, [refetchAppointments]);
+
+  useEffect(() => {
+
+    // Reset to first page when clinic changes
+    setCurrentPage(1);
+
+    // Clear any search queries that might be clinic-specific
+    setSearchQuery("");
+
+    // Reset active tab
+    setActiveTab("all");
+
+    // Reset provider selection
+    setSelectedProvider("");
+
+  }, [effectiveClinicId]);
 
   // Use patient-specific appointments when selectedPatientId is provided, otherwise use all appointments
   const appointments = selectedPatientId ? patientAppointments : allAppointments;
@@ -160,17 +261,17 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
     if (selectedPatientId) {
       return patientAppointments;
     }
-    
+
     // Check if allAppointments has items property
     if (allAppointments && allAppointments.items && Array.isArray(allAppointments.items)) {
       return allAppointments.items;
     }
-    
+
     // Fallback if allAppointments itself is an array
     if (Array.isArray(allAppointments)) {
       return allAppointments;
     }
-    
+
     // Default empty array if no data
     return [];
   }, [allAppointments, patientAppointments, selectedPatientId]);
@@ -208,6 +309,15 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
     }
   })
 
+  // Helper function to check if appointment date is in the future
+  const isFutureAppointment = (appointmentDateString: string) => {
+    const appointmentDate = new Date(appointmentDateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    appointmentDate.setHours(0, 0, 0, 0);
+    return appointmentDate > today;
+  };
+
   // // Add create visit mutation
   // const createVisitMutation = useCreateVisit()
 
@@ -237,14 +347,14 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
   // Use the enriched appointments directly and filter in the frontend
   const filteredAppointments = useMemo(() => {
     // Debug: Log appointment types for completed appointments
-    const completedAppointments = enrichedAppointments.filter(a => a.status === "completed");
-    if (completedAppointments.length > 0) {
-      console.log('Completed appointments with types:', completedAppointments.map(a => ({
-        id: a.id,
-        appointmentType: a.appointmentType,
-        appointmentTypeName: a.appointmentType?.name
-      })));
-    }
+    // const completedAppointments = enrichedAppointments.filter(a => a.status === "completed");
+    // if (completedAppointments.length > 0) {
+    //   console.log('Completed appointments with types:', completedAppointments.map(a => ({
+    //     id: a.id,
+    //     appointmentType: a.appointmentType,
+    //     appointmentTypeName: a.appointmentType?.name
+    //   })));
+    // }
 
     // First filter out any appointments with status "requested"
     let filtered = enrichedAppointments.filter(a => a.status !== "requested");
@@ -273,7 +383,7 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
         appointment.appointmentType?.toLowerCase().includes(query)
       );
     }
-    
+
     // Note: Provider filtering is now handled by the API using veterinarianId parameter
     // We don't need to filter by provider name client-side anymore
 
@@ -319,18 +429,18 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
   // Handle provider selection
   const handleProviderSelection = (providerId: string) => {
     setSelectedProvider(providerId);
-    
+
     // Update search parameters to include veterinarianId
-    const params: any = { 
+    const params: any = {
       veterinarianId: providerId || null,
       pageNumber: 1 // Reset to page 1 when changing provider
     };
-    
+
     // Remove the provider parameter as we're using veterinarianId instead
     if (searchParams.provider) {
       params.provider = null;
     }
-    
+
     handleProvider(providerId);
   };
 
@@ -346,7 +456,7 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
   const initializeTodayDateFilter = () => {
     // Only set the date filter if it's not already set and we haven't initialized it yet
     //console.log("function call" , !searchParams.dateFrom , !searchParams.dateTo , !datesInitializedRef.current)
-    if ((!searchParams.dateFrom || !searchParams.dateTo) ) {
+    if ((!searchParams.dateFrom || !searchParams.dateTo)) {
       const today = new Date().toISOString().split('T')[0] // Format as YYYY-MM-DD
       handleDate(today, today);
       datesInitializedRef.current = true;
@@ -361,7 +471,7 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
   useEffect(() => {
     //console.log("pathname", pathname , searchParams);
     initializeTodayDateFilter();
-  }, [pathname , searchParams.dateTo , searchParams.dateFrom]);
+  }, [pathname, searchParams.dateTo, searchParams.dateFrom]);
 
   // Status options
   // You might want to dynamically generate these options based on the fetched appointments.
@@ -402,7 +512,7 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
         if (appointment.appointmentDate) {
           // Format date as MM/DD/YYYY
           const date = new Date(appointment.appointmentDate);
-          return date.toLocaleDateString();
+          return date.toLocaleDateString('en-GB');
         }
         return 'N/A';
       },
@@ -412,7 +522,7 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
       header: "Time",
       cell: ({ row }) => {
         const appointment = row.original;
-        
+
         // First try to use appointmentTimeFrom and appointmentTimeTo (new API format)
         if (appointment.appointmentTimeFrom && appointment.appointmentTimeTo) {
           const formatTime = (timeString: string) => {
@@ -423,29 +533,29 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
             }
             return timeString;
           };
-          
+
           return `${formatTime(appointment.appointmentTimeFrom)} - ${formatTime(appointment.appointmentTimeTo)}`;
         }
-        
+
         // Check if roomSlot and startTime exist (legacy format)
         if (appointment.roomSlot && appointment.roomSlot.startTime) {
           // Format time to HH:MM
           const timeValue = appointment.roomSlot.startTime;
-          
+
           // Handle HH:MM:SS format
           if (timeValue.includes(':')) {
             const timeParts = timeValue.split(':');
             return `${timeParts[0]}:${timeParts[1]}`;
           }
-          
+
           return timeValue;
         }
-        
+
         // Fallback to direct startTime if exists
         if (appointment.startTime) {
           return appointment.startTime;
         }
-        
+
         return 'N/A';
       },
     },
@@ -463,8 +573,8 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
       cell: ({ row }) => {
         const appointmentType = row.original.appointmentType;
         // Handle case when appointmentType is an object with name property
-        return typeof appointmentType === 'object' && appointmentType?.name 
-          ? appointmentType.name 
+        return typeof appointmentType === 'object' && appointmentType?.name
+          ? appointmentType.name
           : appointmentType || 'N/A';
       },
     },
@@ -485,63 +595,81 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          {/* View button - always show */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onAppointmentClick(row.original.id.toString())}
-            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-            title="View appointment details"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
 
           {/* For scheduled or confirmed: show Check In and Cancel */}
           {(row.original.status === "scheduled" || row.original.status === "confirmed") && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="theme-button-outline"
-                onClick={() => {
-                  // Update appointment status
-                  updateAppointmentMutation.mutate({
-                    id: row.original.id.toString(),
-                    data: {
-                      id: row.original.id,
-                      clinicId: row.original.clinicId,
-                      patientId: row.original.patientId,
-                      clientId: row.original.clientId,
-                      veterinarianId: row.original.veterinarianId,
-                      roomId: row.original.roomId,
-                      appointmentDate: row.original.appointmentDate,
-                      startTime: row.original.startTime,
-                      endTime: row.original.endTime,
-                      appointmentTypeId: row.original.appointmentTypeId,
-                      reason: row.original.reason,
-                      status: "in_progress",
-                      notes: row.original.notes,
-                      createdBy: row.original.createdBy,
-                    }
-                  });
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-block">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`theme-button-outline ${isFutureAppointment(row.original.appointmentDate)
+                          ? "opacity-50 cursor-not-allowed"
+                          : ""
+                          }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isFutureAppointment(row.original.appointmentDate)) {
+                            toast({
+                              title: "Error",
+                              description: "Cannot check in a future appointment.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
 
-                  // Also create a visit with intake flags set to false
-                  // createVisitMutation.mutate({
-                  //   appointmentId: row.original.id.toString(),
-                  //   patientId: row.original.patientId,
-                  //   isIntakeCompleted: false,
-                  //   isComplaintsCompleted: false,
-                  // });
-                }}
-                disabled={updateAppointmentMutation.isPending}
-              >
-                Check In
-              </Button>
+                          updateAppointmentMutation.mutate({
+                            id: row.original.id.toString(),
+                            data: {
+                              id: row.original.id,
+                              clinicId: row.original.clinicId,
+                              patientId: row.original.patientId,
+                              clientId: row.original.clientId,
+                              veterinarianId: row.original.veterinarianId,
+                              roomId: row.original.roomId,
+                              appointmentDate: row.original.appointmentDate,
+                              appointmentTimeFrom: row.original.appointmentTimeFrom,
+                              appointmentTimeTo: row.original.appointmentTimeTo,
+                              startTime: row.original.startTime,
+                              endTime: row.original.endTime,
+                              appointmentTypeId: row.original.appointmentTypeId,
+                              reason: row.original.reason,
+                              status: "in_progress",
+                              notes: row.original.notes,
+                              createdBy: row.original.createdBy,
+                            }
+                          });
+                        }}
+                        disabled={
+                          updateAppointmentMutation.isPending ||
+                          isFutureAppointment(row.original.appointmentDate)
+                        }
+                      >
+                        Check In
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+
+                  {isFutureAppointment(row.original.appointmentDate) && (
+                    <TooltipContent>
+                      <p>Cannot check in a future date</p>
+                    </TooltipContent>
+
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => handleCancelClick(row.original)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancelClick(row.original);
+                }}
 
                 disabled={updateAppointmentMutation.isPending}
                 className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
@@ -580,34 +708,35 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
           {row.original.status === "completed" && (
             <>
               {/* Show discharge summary for consultation, surgery, emergency, deworming appointments or if appointment type is not available */}
-              {(row.original.appointmentType?.name?.toLowerCase().includes('consultation') || 
+              {(row.original.appointmentType?.name?.toLowerCase().includes('consultation') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('surgery') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('emergency') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('deworming') ||
                 row.original.appointmentType?.name?.toLowerCase().includes('vaccination') ||
-                (typeof row.original.appointmentType === 'string' && 
+                (typeof row.original.appointmentType === 'string' &&
                   (row.original.appointmentType.toLowerCase().includes('consultation') ||
-                   row.original.appointmentType.toLowerCase().includes('surgery') ||
-                   row.original.appointmentType.toLowerCase().includes('emergency') ||
-                   row.original.appointmentType.toLowerCase().includes('deworming') ||
-                   row.original.appointmentType.toLowerCase().includes('vaccination')
+                    row.original.appointmentType.toLowerCase().includes('surgery') ||
+                    row.original.appointmentType.toLowerCase().includes('emergency') ||
+                    row.original.appointmentType.toLowerCase().includes('deworming') ||
+                    row.original.appointmentType.toLowerCase().includes('vaccination')
                   )
                 ) ||
                 !row.original.appointmentType) && (
-                                 <Button 
-                   variant="outline" 
-                   size="sm" 
-                   className="theme-button-outline"
-                   onClick={() => {
-                     setSelectedAppointmentId(row.original.id.toString())
-                     setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
-                     setDischargeSummaryOpen(true)
-                   }}
-                 >
-                   <Printer className="h-4 w-4 mr-1" />
-                   Print
-                 </Button>
-              )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="theme-button-outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAppointmentId(row.original.id.toString())
+                      setSelectedAppointmentType(row.original.appointmentType?.name || row.original.appointmentType || 'consultation')
+                      setDischargeSummaryOpen(true)
+                    }}
+                  >
+                    <Printer className="h-4 w-4 mr-1" />
+                    Print
+                  </Button>
+                )}
             </>
           )}
         </div>
@@ -653,6 +782,8 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
           veterinarianId: appointmentToCancel.veterinarianId,
           roomId: appointmentToCancel.roomId,
           appointmentDate: appointmentToCancel.appointmentDate,
+          appointmentTimeFrom: appointmentToCancel.appointmentTimeFrom,
+          appointmentTimeTo: appointmentToCancel.appointmentTimeTo,
           startTime: appointmentToCancel.startTime,
           endTime: appointmentToCancel.endTime,
           appointmentTypeId: appointmentToCancel.appointmentTypeId,
@@ -709,72 +840,81 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
       <div className="bg-gray-100 dark:bg-slate-800 rounded-lg p-3 mb-6">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex flex-wrap gap-3">
-          <DatePickerWithRangeV2
-            date={{
-              from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : new Date(),
-              to: searchParams.dateTo ? new Date(searchParams.dateTo) : new Date()
-            }}
-            setDate={async (date) => {
-              try {
-                if (date?.from && date?.to) {
-                  // Create copies to avoid mutating the original objects
-                  const fromDate = new Date(date.from);
-                  const toDate = new Date(date.to);
-                  
-                  // Set proper time components - start of day for from date, end of day for to date
-                  fromDate.setHours(0, 0, 0, 0);
-                  toDate.setHours(23, 59, 59, 999);
-                  
-                  // Pass ISO strings to preserve time components
-                  setCurrentPage(1);
-                  handleDate(fromDate.toISOString(), toDate.toISOString());
-                } else {
-                  // If date is cleared, reset date filters
-                  setCurrentPage(1);
-                  handleDate(null, null);
+            <DatePickerWithRangeV2
+              date={{
+                from: searchParams.dateFrom ? new Date(searchParams.dateFrom) : new Date(),
+                to: searchParams.dateTo ? new Date(searchParams.dateTo) : new Date()
+              }}
+              setDate={async (date) => {
+                try {
+                  if (date?.from && date?.to) {
+                    // Create copies to avoid mutating the original objects
+                    const fromDate = new Date(date.from);
+                    const toDate = new Date(date.to);
+                    const today = new Date();
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+
+                    // Always set toDate to end of day to avoid timezone issues
+                    toDate.setHours(23, 59, 59, 999);
+
+                    // Format dates as YYYY-MM-DD for comparison
+                    const formatDateOnly = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    const fromDateStr = formatDateOnly(fromDate);
+                    const toDateStr = formatDateOnly(toDate);
+                    const todayStr = formatDateOnly(today);
+                    const yesterdayStr = formatDateOnly(yesterday);
+
+                    setCurrentPage(1);
+
+                    // If both dates are the same and it's today, use "today" preset
+                    if (fromDateStr === toDateStr && fromDateStr === todayStr) {
+                      handleDate("today", null);
+                    }
+                    // If both dates are the same and it's yesterday, use "yesterday" preset
+                    else if (fromDateStr === toDateStr && fromDateStr === yesterdayStr) {
+                      handleDate("yesterday", null);
+                    }
+                    // If the selected range is the current month, force the first and last day of the month
+                    else if (
+                      fromDate.getDate() === 1 &&
+                      toDate.getMonth() === fromDate.getMonth() &&
+                      toDate.getFullYear() === fromDate.getFullYear() &&
+                      (toDate.getDate() === new Date(toDate.getFullYear(), toDate.getMonth() + 1, 0).getDate())
+                    ) {
+                      // This is a full month selection, so force the correct range
+                      const firstDay = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+                      const lastDay = new Date(fromDate.getFullYear(), fromDate.getMonth() + 1, 0);
+                      lastDay.setHours(23, 59, 59, 999); // Set to end of day to avoid timezone issues
+                      handleDate(formatDateOnly(firstDay), formatDateOnly(lastDay));
+                    }
+                    // Otherwise, use the date strings directly
+                    else {
+                      handleDate(fromDateStr, toDateStr);
+                    }
+                  } else {
+                    // If date is cleared, reset date filters
+                    setCurrentPage(1);
+                    handleDate(null, null);
+                  }
+                } catch (error) {
+                  console.error('Error updating date range:', error);
                 }
-              } catch (error) {
-                console.error('Error updating date range:', error);
-              }
-            }}
-            className="h-full"
-          />
-           {IsAdmin && (
-            <div>
-              <Select 
-                value={searchParams.clinicId ?? clinics[0]?.id ?? ''} 
-                onValueChange={(value) => {
-                  handleClinic(value);
-                  setSelectedProvider("");
-                }}
-              >
-                <SelectTrigger className="w-64">
-                  <SelectValue placeholder="Select clinic" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clinics?.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              }}
+              className="h-full md:w-[400px]"
+            />
+            {!userType.isProvider && (
+              <div className="md:w-[400px]">
+                <Combobox
+                  options={providerOptions}
+                  value={selectedProvider}
+                  onValueChange={handleProviderSelection}
+                  placeholder="Select Provider"
+                  searchPlaceholder="Search veterinarians..."
+                  emptyText="No veterinarians found."
+                />
+              </div>
             )}
-
-
-           {!userType.isProvider && (
-            <div className="md:w-[400px]">
-              <Combobox
-                options={providerOptions}
-                value={selectedProvider}
-                onValueChange={handleProviderSelection}
-                placeholder="Select Provider"
-                searchPlaceholder="Search veterinarians..."
-                emptyText="No veterinarians found."
-              />
-            </div>
-          )}
           </div>
           <Button
             variant="outline"
@@ -851,6 +991,7 @@ const { data: usersData } = useGetUsers(1, 100, '', effectiveClinicId, true, '')
         totalPages={paginationInfo.totalPages}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
+        onRowClick={(appointment) => onAppointmentClick(appointment.id.toString())}
       />
 
       {/* Discharge Summary Sheet */}

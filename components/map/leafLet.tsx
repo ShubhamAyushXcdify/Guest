@@ -87,7 +87,7 @@ const LeafletMap: React.FC<MapComponentProps> = ({
   onMapRef
 }) => {
   return (
-    <div className="w-full h-full min-h-[30rem] w-[30rem]">
+    <div className="w-full h-full rounded-lg overflow-hidden">
       <MapContainer
         center={center}
         zoom={zoom}
@@ -98,8 +98,8 @@ const LeafletMap: React.FC<MapComponentProps> = ({
         keyboard={false}
         zoomControl={false}
         attributionControl={false}
-        style={{ minHeight: '30rem', minWidth: '30rem' , height: '100%', width: '100%' }}
-        className="rounded-lg z-10"
+        style={{ height: '100%', width: '100%' }}
+        className="rounded-lg"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

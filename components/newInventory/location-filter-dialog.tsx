@@ -13,7 +13,6 @@ export interface LocationFilters {
   shelf?: string
   bin?: string
   batchNumber?: string
-  productType?: string
   hasLocation?: boolean
 }
 
@@ -100,26 +99,6 @@ export default function LocationFilterDialog({
             />
           </div>
 
-          {/* Product Type */}
-          <div className="space-y-2">
-            <Label htmlFor="productType">Product Type</Label>
-            <Select
-              value={localFilters.productType || ""}
-              onValueChange={(value) => setLocalFilters({ ...localFilters, productType: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select product type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="medication">Medication</SelectItem>
-                <SelectItem value="vaccine">Vaccine</SelectItem>
-                <SelectItem value="supply">Supply</SelectItem>
-                <SelectItem value="equipment">Equipment</SelectItem>
-                <SelectItem value="food">Food</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* Has Location */}
           <div className="flex items-center space-x-2">

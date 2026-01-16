@@ -6,18 +6,30 @@ import { useGetPlans } from "@/queries/Plan/get-plans"
 import { useCreatePlan } from "@/queries/Plan/create-plan"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, CheckCircle, Mic } from "lucide-react"
+import { PlusCircle, X, CheckCircle, Mic, Sparkles, Loader2 } from "lucide-react"
+import { ChatInterface } from "@/components/ai-assistant/chat-interface"
+import { SelectedFilesProvider } from "@/components/ai-assistant/contexts/selectFiles"
+import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
+import { planAnalysis } from "@/app/actions/reasonformatting"
 import { toast } from "sonner"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
 import { useGetPlanDetailByVisitId } from "@/queries/PlanDetail/get-plan-detail-by-visit-id"
 import { useUpdatePlanDetail } from "@/queries/PlanDetail/update-plan-detail"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
 
 import { useTabCompletion } from "@/context/TabCompletionContext"
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber"
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
+import { Bot, User, Send } from "lucide-react"
 
 
 // Interface for extended visit data
@@ -38,10 +50,95 @@ interface PlanTabProps {
 }
 
 export default function PlanTab({ patientId, appointmentId, onNext, onClose }: PlanTabProps) {
+  // State declarations
   const [selectedPlans, setSelectedPlans] = useState<string[]>([])
+  const [analysisResult, setAnalysisResult] = useState<string>("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [notes, setNotes] = useState("")
+  const [followUpDate, setFollowUpDate] = useState<Date | null>(null)
+  // Patient data for species
+  const { data: patientData } = useGetPatientById(patientId)
+  // AI Chat mode state
+  const [isChatMode, setIsChatMode] = useState(false)
+  const [chatInput, setChatInput] = useState("")
+  const planContextRef = useRef<string>("")
+  
+  // Fetch plans data
+  const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
+
+    // Chat hook for plan analysis
+    const { messages, sendMessage, status, setMessages } = useChat({
+      id: `plan-${patientId}-${appointmentId}`,
+      transport: new DefaultChatTransport({
+        prepareSendMessagesRequest: ({ id, messages }) => {
+          const planContext = planContextRef.current;
+          return {
+            body: {
+              id,
+              messages,
+              patientId: patientId ?? null,
+              planContext: planContext || undefined,
+            }
+          }
+        },
+      }),
+    })
+
+    // Build context for plan analysis
+    const buildPlanContext = useCallback(() => {
+      const plansList = selectedPlans.map(id => plans.find(p => p.id === id)?.name || 'Plan')
+      return `Current Plans:\n- ${plansList.join('\n- ')}\n${notes ? 'Notes: ' + notes : ''}\nFollow-up: ${followUpDate ? followUpDate.toLocaleDateString() : 'None'}`.trim()
+    }, [selectedPlans, plans, notes, followUpDate])
+
+    useEffect(() => {
+      planContextRef.current = buildPlanContext()
+    }, [selectedPlans, notes, followUpDate, plans])
+
+  const handleChatSend = async (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!chatInput.trim()) return
+  
+  await sendMessage({ text: chatInput })
+  setChatInput("")
+  }
+    const handleAnalyzePlan = async () => {
+    if (!patientData?.species) {
+      toast.error("Patient species information is required for analysis")
+      return
+    }
+    if (selectedPlans.length === 0) {
+      toast.error("Select at least one plan to analyze")
+      return
+    }
+    setIsAnalyzing(true)
+    try {
+      const plansList = selectedPlans.map(id => {
+        const plan = plans.find(p => p.id === id)
+        return { name: plan?.name || "Plan" }
+      })
+      const analysis = await planAnalysis(patientData.species, {
+        plans: plansList,
+        notes,
+        followUpDate: followUpDate ? followUpDate.toISOString().split('T')[0] : null
+      })
+      setAnalysisResult(analysis)
+      setIsChatMode(true)
+      setMessages([
+        {
+          id: 'initial-analysis',
+          role: 'assistant',
+          parts: [{ type: 'text', text: analysis }]
+        }
+      ])
+      toast.success("Plan analysis completed")
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to analyze plan")
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
   const [isAddingPlan, setIsAddingPlan] = useState(false)
   const [newPlanName, setNewPlanName] = useState("")
-  const [notes, setNotes] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
   
   const { markTabAsCompleted, allTabsCompleted, completedTabs } = useTabCompletion()
@@ -60,7 +157,6 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
   
 
   
-  const { data: plans = [], isLoading, refetch: refetchPlans } = useGetPlans()
   const { data: existingPlanDetail, refetch: refetchPlanDetail } = useGetPlanDetailByVisitId(
     visitData?.id || ""
   )
@@ -79,6 +175,11 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       if (existingPlanDetail.notes) {
         setNotes(existingPlanDetail.notes)
       }
+      if (existingPlanDetail.followUpDate) {
+        setFollowUpDate(new Date(existingPlanDetail.followUpDate))
+      }
+
+
       
       // Mark plan tab as completed if it was already completed
       if (existingPlanDetail.isCompleted) {
@@ -197,6 +298,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           id: existingPlanDetail.id,
           planIds: selectedPlans,
           notes,
+          followUpDate: followUpDate ? followUpDate : null,
           isCompleted: true
         })
       } else {
@@ -204,6 +306,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
           visitId: visitData.id,
           planIds: selectedPlans,
           notes,
+          followUpDate: followUpDate ? followUpDate : null,
           isCompleted: true
         })
       }
@@ -302,23 +405,25 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
 
   
   return (
+    <SelectedFilesProvider>
     <Card>
-      <CardContent className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Treatment Plan</h2>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center gap-1"
-            onClick={() => setIsAddingPlan(!isAddingPlan)}
-            disabled={isReadOnly}
-          >
-            <PlusCircle className="h-4 w-4" /> 
-            Add Plan
-          </Button>
-        </div>
-
-        {isAddingPlan && (
+      <CardContent className="p-0">
+      <div className="h-[calc(100vh-26rem)] overflow-y-auto p-6">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Treatment Plan</h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => setIsAddingPlan(!isAddingPlan)}
+                disabled={isReadOnly}
+              >
+                <PlusCircle className="h-4 w-4" /> 
+                Add Plan
+              </Button>
+            </div>
+          </div>        {isAddingPlan && (
           <div className="mb-4 flex gap-2">
             <Input
               placeholder="Enter new plan name"
@@ -429,26 +534,179 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
               />
             </div>
 
-            <div className="mt-6 flex justify-end gap-2">
-              <Button
-                onClick={handleSave}
-                disabled={isPending || selectedPlans.length === 0 || isReadOnly}
-                className="ml-2"
+            <div className="mt-6 border-t pt-4">
+              <div className="flex justify-between items-center">
+                <div className="w-48">
+                  <label className="block text-sm font-medium mb-1">Follow-up Date</label>
+                  <DatePicker
+                    selected={followUpDate}
+                    onChange={(d: Date | null) => setFollowUpDate(d)}
+                    minDate={new Date()}
+                    placeholderText="dd/mm/yyyy"
+                    dateFormat="dd/MM/yyyy"
+                    showYearDropdown
+                    showMonthDropdown
+                    dropdownMode="select"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isReadOnly}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* AI Plan Analysis Section */}
+            <div className="mt-8 border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-md font-semibold">AI Plan Analysis</h3>
+                {!isChatMode && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAnalyzePlan}
+                    disabled={
+                      isAnalyzing ||
+                      isReadOnly ||
+                      selectedPlans.length === 0
+                    }
+                    className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      "Analyze Plan"
+                    )}
+                  </Button>
+                )}
+              </div>
+              
+              {isChatMode ? (
+  <div className="border border-purple-200/50 dark:border-purple-800/50 rounded-lg bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20 shadow-sm">
+    <div className="flex-shrink-0 border-b border-purple-200/30 dark:border-purple-800/30 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-900/20 dark:to-pink-900/20 rounded-t-lg">
+      <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-pink-500">
+          <Bot className="h-3 w-3 text-white" />
+        </div>
+        <h4 className="text-sm text-purple-700 dark:text-purple-300 font-semibold">AI Plan Assistant</h4>
+      </div>
+    </div>
+    <div className="flex flex-col h-[400px]">
+      <ScrollArea className="flex-1 p-3">
+        <div className="space-y-3">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "flex gap-2",
+                message.role === "user" ? "justify-end" : "justify-start"
+              )}
+            >
+              {message.role === "assistant" && (
+                <Avatar className="h-6 w-6 flex-shrink-0">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                    <Bot className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <div
+                className={cn(
+                  "rounded-lg px-3 py-2 max-w-[80%]",
+                  message.role === "user"
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-sm"
+                    : "bg-gradient-to-r from-slate-100 to-blue-50 dark:from-slate-800 dark:to-blue-950/30 border border-slate-200 dark:border-slate-700"
+                )}
               >
-                {isPending ? "Saving..." : existingPlanDetail ? "Update" : "Save"}
-              </Button>
-              <Button
-                onClick={handleCheckout}
-                disabled={false}
-                className="ml-2 bg-green-600 hover:bg-green-700 text-white"
-              >
-                Checkout
-              </Button>
+                <p className="text-sm whitespace-pre-wrap">
+                  {message.parts?.map((part, index) => {
+                    if (part.type === 'text') {
+                      return part.text;
+                    }
+                    return '';
+                  }).join('') || ''}
+                </p>
+              </div>
+              {message.role === "user" && (
+                <Avatar className="h-6 w-6 flex-shrink-0">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                    <User className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          ))}
+          {status === 'submitted' && (
+            <div className="flex gap-2 justify-start">
+              <Avatar className="h-6 w-6 flex-shrink-0">
+                <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                  <Bot className="h-3 w-3" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="bg-muted rounded-lg px-3 py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+      <div className="flex-shrink-0 border-t p-2">
+        <form onSubmit={handleChatSend} className="flex gap-2">
+          <Input
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            placeholder="Ask about the plan analysis..."
+            className="flex-1 h-9 text-sm"
+            disabled={status === 'submitted' || isReadOnly}
+          />
+          <Button 
+            type="submit" 
+            disabled={!chatInput.trim() || status === 'submitted' || isReadOnly} 
+            size="icon" 
+            className="h-9 w-9 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-sm"
+          >
+            <Send className="h-4 w-4" />
+            <span className="sr-only">Send message</span>
+          </Button>
+        </form>
+      </div>
+    </div>
+  </div>
+)  : (
+                <>
+                  {!analysisResult && !isAnalyzing && (
+                    <div className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-center text-gray-500 dark:text-gray-400 text-sm">
+                      {selectedPlans.length === 0
+                        ? "Select treatment plans to enable AI analysis"
+                        : "Click 'Analyze Plan' to get AI-powered insights"}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </>
         )}
+        </div>
+         <div className="flex justify-end my-4 mx-4 gap-2">
+                  <Button
+                    onClick={handleSave}
+                    disabled={isPending || selectedPlans.length === 0 || isReadOnly}
+                    className="ml-2"
+                  >
+                    {isPending ? "Saving..." : existingPlanDetail ? "Update" : "Save"}
+                  </Button>
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={false}
+                    className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Checkout
+                  </Button>
+                </div>
       </CardContent>
     </Card>
+    </SelectedFilesProvider>
   )
 }
 

@@ -6,7 +6,7 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     let token = getJwtToken(request);
@@ -15,7 +15,8 @@ export async function PUT(
       token = testToken;
     }
 
-    const id = params.id;
+    const { id } = await params;
+
     const body = await request.json();
 
     const response = await fetch(
@@ -51,7 +52,7 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     let token = getJwtToken(request);
@@ -60,7 +61,7 @@ export async function GET(
       token = testToken;
     }
 
-    const id = params.id;
+    const { id } = await params;
 
     const response = await fetch(
       `${apiUrl}/api/Inventory/${id}`,

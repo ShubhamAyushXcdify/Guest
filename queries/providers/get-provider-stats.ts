@@ -12,10 +12,11 @@ export interface ProviderStats {
   appointments: any[]; // or a more specific type if you have one
 }
 
-interface GetProviderStatsParams {
+export interface GetProviderStatsParams {
   fromDate?: string;
   toDate?: string;
   clinicId?: string;
+  companyId?: string;
 }
 
 async function getProviderStats(params: GetProviderStatsParams = {}): Promise<ProviderStats[]> {
@@ -24,6 +25,7 @@ async function getProviderStats(params: GetProviderStatsParams = {}): Promise<Pr
   if (params.fromDate) queryParams.append('fromDate', params.fromDate);
   if (params.toDate) queryParams.append('toDate', params.toDate);
   if (params.clinicId) queryParams.append('clinicId', params.clinicId);
+  if (params.companyId) queryParams.append('companyId', params.companyId);
   
   // Construct the URL with query parameters
   const url = `/api/providers/stats${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;

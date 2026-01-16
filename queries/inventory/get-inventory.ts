@@ -7,7 +7,6 @@ export interface Product {
   name: string;
   genericName: string;
   category: string;
-  productType: string;
   ndcNumber: string;
   dosageForm: string;
   unitOfMeasure: string;
@@ -67,7 +66,6 @@ export const getInventory = async (filters: {
   productId?: string;
   clinicId?: string;
   search?: string;
-  productType?: string;
   lotNumber?: string;
   quantityOnHand?: number;
   quantityReserved?: number;

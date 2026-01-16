@@ -6,9 +6,9 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function POST(
     request: NextRequest,
-    ctx: { params: Promise<{ intakeDetailId: string }> }
+    ctx: { params: Promise<{ id: string }> }
 ) {
-    const { intakeDetailId } = await ctx.params;
+    const { id: intakeDetailId } = await ctx.params;
     try {
         let token = getJwtToken(request);
 

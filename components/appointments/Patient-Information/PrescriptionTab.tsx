@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PlusCircle, X, Trash2, Pencil, Search, Printer, AlertTriangle } from "lucide-react"
+import { PlusCircle, X, Trash2, Pencil, Search, Printer, AlertTriangle, Receipt, Sparkles, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
 import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id"
@@ -23,7 +23,17 @@ import { useGetProducts } from "@/queries/products/get-products"
 import type { Product as ComponentProduct } from "@/components/products"
 import { ProductMapping as BaseProductMapping } from "@/queries/PrescriptionDetail/get-prescription-detail-by-id"
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
-import { useGetBatchByProductName, type BatchDataItem } from "@/queries/purchaseOrderRecevingHiistory/get-batch-by-product-name";
+import { useGetBatchByProductName, type BatchDataItem } from "@/queries/purchaseOrderRecevingHiistory/get-batch-by-product-name"
+import { ChatInterface } from "@/components/ai-assistant/chat-interface"
+import { SelectedFilesProvider } from "@/components/ai-assistant/contexts/selectFiles"
+import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
+import { prescriptionAnalysis } from "@/app/actions/reasonformatting"
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
+import { Bot, User, Send } from "lucide-react"
 
 
 interface PrescriptionTabProps {
@@ -41,7 +51,6 @@ interface ExtendedProductMapping extends BaseProductMapping {
     genericName?: string
     productNumber?: string
     category?: string
-    productType?: string
     manufacturer?: string
     ndcNumber?: string
     strength?: string
@@ -96,6 +105,58 @@ interface ExtendedProductMapping extends BaseProductMapping {
 }
 
 export default function PrescriptionTab({ patientId, appointmentId, onNext }: PrescriptionTabProps) {
+  // AI Analysis state
+  const [analysisResult, setAnalysisResult] = useState<string>("")
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  // Add this with your other state declarations at the top
+  const [isChatMode, setIsChatMode] = useState(false)
+  const [chatInput, setChatInput] = useState("")
+
+  // Patient data for species
+  const { data: patientData } = useGetPatientById(patientId)
+  // AI Prescription Analysis Handler
+  const handleAnalyzePrescription = async () => {
+    if (!patientData?.species) {
+      toast.error("Patient species information is required for analysis")
+      return
+    }
+    if (!productMappings.length) {
+      toast.error("Add at least one medicine to analyze prescription")
+      return
+    }
+    setIsAnalyzing(true)
+    try {
+      const analysis = await prescriptionAnalysis(patientData.species, {
+        medicines: productMappings.map(pm => ({
+          name: pm.productName || pm.product?.name || "Medicine",
+          dosage: pm.dosage ?? undefined,
+          frequency: pm.frequency,
+          numberOfDays: pm.numberOfDays,
+          directions: pm.directions,
+          category: pm.product?.category,
+          unitOfMeasure: pm.product?.unitOfMeasure,
+          quantity: pm.quantity,
+          batchNo: pm.batchNo,
+          expDate: pm.expDate
+        })),
+        notes: ""
+      })
+      setAnalysisResult(analysis)
+      setIsChatMode(true)
+      setMessages([
+        {
+          id: 'initial-analysis',
+          role: 'assistant',
+          parts: [{ type: 'text', text: analysis }]
+        }
+      ])
+      toast.success("Prescription analysis completed")
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to analyze prescription")
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
 
   const [productMappings, setProductMappings] = useState<ExtendedProductMapping[]>([])
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false)
@@ -167,6 +228,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const { data: existingPrescriptionDetail, refetch: refetchPrescriptionDetail } = 
     useGetPrescriptionDetailByVisitId(visitData?.id || "")
   
+  
 
   
   // Click outside to close dropdown
@@ -180,6 +242,50 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  const prescriptionContextRef = useRef<string>("")
+
+  // Add this function
+  const buildPrescriptionContext = useCallback(() => {
+    if (!patientData?.species) return ""
+
+    const medicinesInfo = productMappings.map(pm => 
+      `- ${pm.productName || pm.product?.name || "Medicine"}: ${pm.dosage || ""} ${pm.frequency || ""} for ${pm.numberOfDays || 0} days`
+    ).join('\n')
+
+    return `Current Prescription:\n${medicinesInfo}`.trim()
+  }, [productMappings, patientData?.species])
+
+  // Add this useEffect to update context
+  useEffect(() => {
+    prescriptionContextRef.current = buildPrescriptionContext()
+  }, [productMappings, patientData?.species, buildPrescriptionContext])
+
+  // Chat hook with prescription context
+  const { messages, sendMessage, status, setMessages } = useChat({
+    id: `prescription-${patientId}-${appointmentId}`,
+    transport: new DefaultChatTransport({
+      prepareSendMessagesRequest: ({ id, messages }) => {
+        const prescriptionContext = prescriptionContextRef.current
+
+        return {
+          body: {
+            id,
+            messages,
+            patientId: patientId ?? null,
+            prescriptionContext: prescriptionContext || undefined,
+          },
+        }
+      },
+    }),
+  })
+  const handleChatSend = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!chatInput.trim()) return
+
+    await sendMessage({ text: chatInput })
+    setChatInput("")
+  }
   
   // Initialize from existing data
   useEffect(() => {
@@ -188,16 +294,25 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       if (existingPrescriptionDetail.productMappings?.length) {
         setProductMappings(existingPrescriptionDetail.productMappings.map(pm => {
           const extendedPm = pm as any;
+          
+          const isMedicationCategory = extendedPm.product?.category?.toLowerCase() === "medication";
+          const isVaccineCategory = extendedPm.product?.category?.toLowerCase() === "vaccine";
+          const isSupplementCategory = extendedPm.product?.category?.toLowerCase() === "supplement";
+          const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
+          const unitOfMeasure = extendedPm.product?.unitOfMeasure || "EA";
+          const isBottle = unitOfMeasure === "BOTTLE";
+
           return {
             id: extendedPm.id,
             productId: extendedPm.productId,
             productName: extendedPm.product?.name || extendedPm.productName,
-            dosage: extendedPm.dosage,
-            frequency: extendedPm.frequency,
-            numberOfDays: extendedPm.numberOfDays,
-            directions: extendedPm.directions || "",
+            dosage: (isBottle && isMedicineType) ? extendedPm.dosage : "",
+            frequency: isMedicineType ? extendedPm.frequency : "",
+            numberOfDays: isMedicineType ? extendedPm.numberOfDays : 0,
+            directions: isMedicineType ? extendedPm.directions || "" : "",
             product: extendedPm.product,
-            quantity: extendedPm.quantity,
+            quantity: extendedPm.quantity ?? 0, // Always retain quantity, default to 0 if not present
             quantityAvailable: extendedPm.purchaseOrderReceivingHistory?.quantityInHand || extendedPm.quantityAvailable,
             batchNo: extendedPm.purchaseOrderReceivingHistory?.batchNumber || extendedPm.batchNo,
             expDate: extendedPm.purchaseOrderReceivingHistory?.expiryDate || extendedPm.expDate,
@@ -214,7 +329,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       // Mark tab as completed if it was already completed or if it has products
       if (existingPrescriptionDetail.productMappings &&
            existingPrescriptionDetail.productMappings.length > 0) {
-        markTabAsCompleted("assessment")
+        markTabAsCompleted("prescription")
       }
     }
   }, [existingPrescriptionDetail, markTabAsCompleted])
@@ -225,7 +340,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const createPrescriptionDetailMutation = useCreatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details saved successfully")
-      markTabAsCompleted("assessment")
+      markTabAsCompleted("prescription")
       refetchPrescriptionDetail()
     },
     onError: (error) => {
@@ -236,7 +351,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const updatePrescriptionDetailMutation = useUpdatePrescriptionDetail({
     onSuccess: () => {
       toast.success("Prescription details updated successfully")
-      markTabAsCompleted("assessment")
+      markTabAsCompleted("prescription")
       refetchPrescriptionDetail()
     },
     onError: (error: any) => {
@@ -246,7 +361,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   // Auto-calculate quantity when currentMapping frequency or numberOfDays changes
   useEffect(() => {
-    if (currentMapping.frequency && currentMapping.numberOfDays) {
+    const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+    const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+    const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+    const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
+    if (isMedicineType && currentMapping.frequency && currentMapping.numberOfDays) {
       const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
       const availableQuantity = currentMapping.quantityAvailable || 0;
 
@@ -260,7 +380,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         }));
       }
     }
-  }, [currentMapping.frequency, currentMapping.numberOfDays, currentMapping.quantityAvailable]);
+  }, [currentMapping.frequency, currentMapping.numberOfDays, currentMapping.quantityAvailable, currentMapping.product?.category]);
 
   const openAddSheet = () => {
     setCurrentMapping({
@@ -277,7 +397,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       batchNo: undefined,
       expDate: undefined,
       checked: undefined,
-      purchaseOrderReceivingHistoryId: undefined
+      purchaseOrderReceivingHistoryId: "" // Initialize as empty string
     } as ExtendedProductMapping)
     setEditingIndex(null)
     setSelectedMedicine(null)
@@ -290,7 +410,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const openEditSheet = (index: number) => {
     const mapping = productMappings[index]
     // Ensure quantity is calculated when editing
-    const calculatedQuantity = calculateQuantity(mapping.frequency || "", mapping.numberOfDays || 0)
+    const isProductMedicationType = mapping.product?.category?.toLowerCase() === "medication" ||
+                                  mapping.product?.category?.toLowerCase() === "vaccine" ||
+                                  mapping.product?.category?.toLowerCase() === "supplement";
+
+    const calculatedQuantity = isProductMedicationType ? calculateQuantity(mapping.frequency || "", mapping.numberOfDays || 0) : mapping.quantity || 0;
     const mappingWithQuantity = { ...mapping, quantity: calculatedQuantity }
     setCurrentMapping(mappingWithQuantity)
     setEditingIndex(index)
@@ -377,25 +501,40 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   const handleSaveMapping = async () => {
     const unitOfMeasure = currentMapping.product?.unitOfMeasure || "EA"
-    const shouldShowDosage = unitOfMeasure === "BOTTLE"
+    const isBottle = unitOfMeasure === "BOTTLE"
+    const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+    const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+    const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+    const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
 
-    // Validate required fields based on unit of measure
-    if (!currentMapping.productId || !currentMapping.frequency || !currentMapping.numberOfDays || currentMapping.numberOfDays <= 0) {
-      toast.error("Please fill in all required fields including number of days")
+    // Validate required fields based on unit of measure and category
+    if (isMedicineType) {
+      if (!currentMapping.productId || !currentMapping.frequency || !currentMapping.numberOfDays || currentMapping.numberOfDays <= 0 || !currentMapping.purchaseOrderReceivingHistoryId) {
+        toast.error("Please fill in all required fields including medicine, batch details, number of days, and frequency.")
+        return
+      }
+    } else { // For Food, Equipment, Other, Medical Supply categories, only productId and quantity are required
+      if (!currentMapping.productId || !currentMapping.quantity || currentMapping.quantity <= 0) {
+        toast.error("Please select a product and enter a valid quantity.")
+        return
+      }
+      // For non-medicine types, ensure purchaseOrderReceivingHistoryId is explicitly set to an empty string if not available
+      if (!currentMapping.purchaseOrderReceivingHistoryId) {
+        setCurrentMapping(prev => ({ ...prev, purchaseOrderReceivingHistoryId: "" }));
+      }
+    }
+
+    // Only validate dosage if the product is a bottle and it's a medicine type
+    if (isBottle && isMedicineType && !currentMapping.dosage) {
+      toast.error("Please fill in the dosage field.")
       return
     }
 
-    // Only validate dosage if the product is a bottle
-    if (shouldShowDosage && !currentMapping.dosage) {
-      toast.error("Please fill in all fields")
-      return
-    }
-
-    // Validate that quantity doesn't exceed available stock
-    if (hasInsufficientStock()) {
-      const calculatedQuantity = calculateQuantity(currentMapping.frequency, currentMapping.numberOfDays);
+    // Validate that quantity doesn't exceed available stock only for medicine type
+    if (isMedicineType && hasInsufficientStock()) {
+      const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", currentMapping.numberOfDays || 0);
       const availableQuantity = currentMapping.quantityAvailable || 0;
-      const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
+      const maxDays = calculateMaxDays(currentMapping.frequency || "", availableQuantity);
       toast.error(
         `Cannot save: Insufficient stock! Required: ${calculatedQuantity} ${unitOfMeasure}, ` +
         `Available: ${availableQuantity} ${unitOfMeasure}. ` +
@@ -472,19 +611,24 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       name: medicine.name || "Unknown Medicine"
     });
     setSelectedMedicineDetails(batchItem);
-    // Check if the product unit of measure is EA or BOX, then set dosage to null
+    
     const unitOfMeasure = medicine.unitOfMeasure || "EA";
-    const shouldShowDosage = unitOfMeasure === "BOTTLE";
+    const isBottle = unitOfMeasure === "BOTTLE";
+    const isMedicationCategory = medicine.category?.toLowerCase() === "medication";
+    const isVaccineCategory = medicine.category?.toLowerCase() === "vaccine";
+    const isSupplementCategory = medicine.category?.toLowerCase() === "supplement";
+    const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
     const mappingWithProduct: ExtendedProductMapping = {
       id: currentMapping.id || "",
       productId: medicine.id,
-      dosage: shouldShowDosage ? currentMapping.dosage : "",
-      frequency: currentMapping.frequency,
-      numberOfDays: currentMapping.numberOfDays,
-      directions: currentMapping.directions || "",
+      dosage: (isBottle && isMedicineType) ? currentMapping.dosage : "", 
+      frequency: isMedicineType ? currentMapping.frequency : "", 
+      numberOfDays: isMedicineType ? currentMapping.numberOfDays : 0, 
+      directions: isMedicineType ? currentMapping.directions : "", 
       productName: medicine.name || "Unknown Medicine",
       product: medicine as unknown as ComponentProduct,
-      quantity: currentMapping.quantity,
+      quantity: currentMapping.quantity ?? 0, // Always retain quantity, default to 0 if not present
       quantityAvailable: batchItem.quantityInHand ?? 0,
       batchNo: batchItem.batchNumber,
       expDate: batchItem.expiryDate,
@@ -510,7 +654,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
       batchNo: undefined,
       expDate: undefined,
       checked: undefined,
-      purchaseOrderReceivingHistoryId: undefined
+      purchaseOrderReceivingHistoryId: "", 
+      frequency: "", 
+      numberOfDays: 0, 
+      dosage: "", 
+      directions: "" 
     };
     setCurrentMapping(clearedMapping);
   }
@@ -523,13 +671,30 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
   const hasEditChanges = (): boolean => {
     if (!originalEditValues || editingIndex === null) return false
 
-    return (
-      currentMapping.dosage !== originalEditValues.dosage ||
-      currentMapping.frequency !== originalEditValues.frequency ||
-      currentMapping.numberOfDays !== originalEditValues.numberOfDays ||
-      currentMapping.directions !== originalEditValues.directions ||
-      currentMapping.productId !== originalEditValues.productId
-    )
+    const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+    const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+    const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+    const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
+    let changesDetected = false;
+
+    if (isMedicineType) {
+      changesDetected = (
+        currentMapping.dosage !== originalEditValues.dosage ||
+        currentMapping.frequency !== originalEditValues.frequency ||
+        currentMapping.numberOfDays !== originalEditValues.numberOfDays ||
+        currentMapping.directions !== originalEditValues.directions ||
+        currentMapping.productId !== originalEditValues.productId
+      );
+    } else {
+      changesDetected = (
+        currentMapping.quantity !== originalEditValues.quantity ||
+        currentMapping.directions !== originalEditValues.directions ||
+        currentMapping.productId !== originalEditValues.productId
+      );
+    }
+
+    return changesDetected;
   }
 
   // Handle print prescription
@@ -627,6 +792,13 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   // Function to check if current mapping has sufficient stock
   const hasInsufficientStock = (): boolean => {
+    const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+    const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+    const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+    const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
+    if (!isMedicineType) return false; // Only validate stock for medicine type
+
     if (!currentMapping.frequency || !currentMapping.numberOfDays || currentMapping.numberOfDays <= 0 || !currentMapping.quantityAvailable) {
       return false; // No validation needed if required fields are missing
     }
@@ -639,7 +811,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
   // Function to get validation error message for insufficient stock
   const getStockValidationMessage = (): string => {
-    if (!hasInsufficientStock()) return "";
+    const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+    const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+    const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+    const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
+    if (!isMedicineType || !hasInsufficientStock()) return "";
     
     const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", currentMapping.numberOfDays || 0);
     const availableQuantity = currentMapping.quantityAvailable || 0;
@@ -648,10 +825,6 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     
     return `Insufficient stock! Required: ${calculatedQuantity} ${unitOfMeasure}, Available: ${availableQuantity} ${unitOfMeasure}. Maximum ${maxDays} days can be prescribed with this frequency.`;
   };
-
-
-
-
 
   if (visitLoading) {
     return (
@@ -715,7 +888,13 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     }
   }
 
+  const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+  const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+  const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+  const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
+
   return (
+    <SelectedFilesProvider>
     <>
       {/* Show symptoms at the top if available */}
       {complaintData?.symptoms && complaintData.symptoms.length > 0 && (
@@ -731,10 +910,21 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         </div>
       )}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-0">
+      <div className="h-[calc(100vh-23rem)] overflow-y-auto p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Prescription</h2>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={handlePrintPrescription}
+                disabled={isReadOnly || productMappings.length === 0}
+              >
+                <Printer className="h-4 w-4" /> 
+                Print Prescription
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -769,8 +959,14 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                  </TableRow>
                </TableHeader>
               <TableBody>
-                {productMappings.map((mapping, index) => (
-                                     <TableRow key={index}>
+                {productMappings.map((mapping, index) => {
+                  const rowIsMedicationCategory = mapping.product?.category?.toLowerCase() === "medication";
+                  const rowIsVaccineCategory = mapping.product?.category?.toLowerCase() === "vaccine";
+                  const rowIsSupplementCategory = mapping.product?.category?.toLowerCase() === "supplement";
+                  const rowIsMedicineType = rowIsMedicationCategory || rowIsVaccineCategory || rowIsSupplementCategory;
+
+                  return (
+                    <TableRow key={index}>
                      <TableCell>
                        <input
                          type="checkbox"
@@ -815,8 +1011,8 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                        />
                      </TableCell>
                      <TableCell>{getProductName(mapping.productId)}</TableCell>
-                     <TableCell>{mapping.frequency}</TableCell>
-                     <TableCell>{mapping.numberOfDays}</TableCell>
+                     <TableCell>{mapping.frequency || "-"}</TableCell>
+                     <TableCell>{(mapping.numberOfDays === 0 || mapping.numberOfDays === undefined) ? "-" : mapping.numberOfDays}</TableCell>
                      <TableCell>{mapping.quantity ?? "-"}</TableCell>
                      <TableCell className="max-w-[200px] truncate" title={mapping.directions || "-"}>
                        {mapping.directions || "-"}
@@ -846,25 +1042,146 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                        </div>
                      </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         )}
 
-
-
-        <div className="mt-6 flex justify-end gap-2">
-          {productMappings.length > 0 && (
-            <Button
-              variant="outline"
-              onClick={handlePrintPrescription}
-              className="flex items-center gap-2"
-            >
-              <Printer className="h-4 w-4" />
-              Print Prescription
-            </Button>
+        {/* AI Prescription Analysis Section */}
+        <div className="mt-8 border-t pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-md font-semibold">AI Prescription Analysis</h3>
+            {!isChatMode && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAnalyzePrescription}
+                disabled={
+                  isAnalyzing ||
+                  isReadOnly ||
+                  productMappings.length === 0
+                }
+                className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze Prescription"
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {isChatMode ? (
+            <div className="border border-purple-200/50 dark:border-purple-800/50 rounded-lg bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20 shadow-sm">
+              <div className="flex-shrink-0 border-b border-purple-200/30 dark:border-purple-800/30 p-2 bg-gradient-to-r from-purple-500/10 to-pink-500/10 dark:from-purple-900/20 dark:to-pink-900/20 rounded-t-lg">
+                <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-purple-500 to-pink-500">
+                    <Bot className="h-3 w-3 text-white" />
+                  </div>
+                  <h4 className="text-sm text-purple-700 dark:text-purple-300 font-semibold">AI Prescription Assistant</h4>
+                </div>
+              </div>
+              <div className="flex flex-col h-[400px]">
+                <ScrollArea className="flex-1 p-3">
+                  <div className="space-y-3">
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={cn(
+                          "flex gap-2",
+                          message.role === "user" ? "justify-end" : "justify-start"
+                        )}
+                      >
+                        {message.role === "assistant" && (
+                          <Avatar className="h-6 w-6 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                              <Bot className="h-3 w-3" />
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div
+                          className={cn(
+                            "rounded-lg px-3 py-2 max-w-[80%]",
+                            message.role === "user"
+                              ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-sm"
+                              : "bg-gradient-to-r from-slate-100 to-blue-50 dark:from-slate-800 dark:to-blue-950/30 border border-slate-200 dark:border-slate-700"
+                          )}
+                        >
+                          <p className="text-sm whitespace-pre-wrap">
+                            {message.parts?.map((part, index) => {
+                              if (part.type === 'text') {
+                                return part.text;
+                              }
+                              return '';
+                            }).join('') || ''}
+                          </p>
+                        </div>
+                        {message.role === "user" && (
+                          <Avatar className="h-6 w-6 flex-shrink-0">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+                              <User className="h-3 w-3" />
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                      </div>
+                    ))}
+                    {status === 'submitted' && (
+                      <div className="flex gap-2 justify-start">
+                        <Avatar className="h-6 w-6 flex-shrink-0">
+                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                            <Bot className="h-3 w-3" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="bg-muted rounded-lg px-3 py-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="flex-shrink-0 border-t p-2">
+                  <form onSubmit={handleChatSend} className="flex gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask about the prescription analysis..."
+                      className="flex-1 h-9 text-sm"
+                      disabled={status === 'submitted' || isReadOnly}
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={!chatInput.trim() || status === 'submitted' || isReadOnly} 
+                      size="icon" 
+                      className="h-9 w-9 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-sm"
+                    >
+                      <Send className="h-4 w-4" />
+                      <span className="sr-only">Send message</span>
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {!analysisResult && !isAnalyzing && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-center text-gray-500 dark:text-gray-400 text-sm">
+                  {productMappings.length === 0
+                    ? "Add medicines to enable AI analysis"
+                    : "Click 'Analyze Prescription' to get AI-powered insights"}
+                </div>
+              )}
+            </>
           )}
+        </div>
+
+      <div className="mt-6 flex justify-end mb-4 mx-4">
           <Button
             onClick={() => {
               if (onNext) {
@@ -877,6 +1194,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               ? "Saving..."
               : "Next"}
           </Button>
+        </div>
         </div>
       </CardContent>
 
@@ -925,7 +1243,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                         value={medicineSearchQuery}
                         onChange={(e) => {
                           setMedicineSearchQuery(e.target.value)
-                          if (e.target.value.length >= 2) {
+                          if (e.target.value.length >= 1) {
                             setIsSearchDropdownOpen(true)
                           } else {
                             setIsSearchDropdownOpen(false)
@@ -1015,9 +1333,13 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             
             {(() => {
               const unitOfMeasure = currentMapping.product?.unitOfMeasure || "EA"
-              const shouldShowDosage = unitOfMeasure === "BOTTLE"
+              const isBottle = unitOfMeasure === "BOTTLE"
+              const isMedicationCategory = currentMapping.product?.category?.toLowerCase() === "medication";
+              const isVaccineCategory = currentMapping.product?.category?.toLowerCase() === "vaccine";
+              const isSupplementCategory = currentMapping.product?.category?.toLowerCase() === "supplement";
+              const isMedicineType = isMedicationCategory || isVaccineCategory || isSupplementCategory;
               
-              if (!shouldShowDosage) return null
+              if (!isMedicationCategory || !isBottle) return null
               
               return (
                 <div className="space-y-3">
@@ -1033,135 +1355,139 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               )
             })()}
             
-                         <div className="space-y-3">
-               <Label htmlFor="frequency">Frequency</Label>
-               <Input
-                 id="frequency"
-                 placeholder="e.g., Twice daily"
-                 value={currentMapping.frequency}
-                 onChange={(e) => {
-                   if (isReadOnly) return;
-                   const newFrequency = e.target.value;
-                   const calculatedQuantity = calculateQuantity(newFrequency, currentMapping.numberOfDays || 0);
-                   const availableQuantity = currentMapping.quantityAvailable || 0;
+            {isMedicineType && (
+              <div className="space-y-3">
+                <Label htmlFor="frequency">Frequency</Label>
+                <Input
+                  id="frequency"
+                  placeholder="e.g., Twice daily"
+                  value={currentMapping.frequency}
+                  onChange={(e) => {
+                    if (isReadOnly) return;
+                    const newFrequency = e.target.value;
+                    const calculatedQuantity = calculateQuantity(newFrequency, currentMapping.numberOfDays || 0);
+                    const availableQuantity = currentMapping.quantityAvailable || 0;
 
-                   // Cap the quantity to available stock
-                   const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+                    // Cap the quantity to available stock
+                    const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
 
-                   // Show warning if calculated quantity exceeds available stock
-                   if (calculatedQuantity > availableQuantity && availableQuantity > 0 && newFrequency && currentMapping.numberOfDays) {
-                     const maxDays = calculateMaxDays(newFrequency, availableQuantity);
-                     toast.error(
-                       `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                       `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
-                     );
-                   }
+                    // Show warning if calculated quantity exceeds available stock
+                    if (calculatedQuantity > availableQuantity && availableQuantity > 0 && newFrequency && currentMapping.numberOfDays) {
+                      const maxDays = calculateMaxDays(newFrequency, availableQuantity);
+                      toast.error(
+                        `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                        `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
+                      );
+                    }
 
-                   setCurrentMapping({
-                     ...currentMapping,
-                     frequency: newFrequency,
-                     quantity: finalQuantity
-                   });
-                 }}
-                 disabled={isReadOnly}
-               />
-               <div className="flex gap-2 mt-2 flex-wrap">
-                 {[
-                   "1-0-1",
-                   "1-0-0",
-                   "0-0-1",
-                   "1-1-1",
-                   "0.5-0-0.5",
-                   "0.5-0-0",
-                   "0-0-0.5",
-                   "0.5-0.5-0.5"
-                 ].map(value => (
-                   <button
-                     key={value}
-                     type="button"
-                     className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
-                     onClick={() => {
-                       if (isReadOnly) return;
-                       const calculatedQuantity = calculateQuantity(value, currentMapping.numberOfDays || 0);
-                       const availableQuantity = currentMapping.quantityAvailable || 0;
+                    setCurrentMapping({
+                      ...currentMapping,
+                      frequency: newFrequency,
+                      quantity: finalQuantity
+                    });
+                  }}
+                  disabled={isReadOnly}
+                />
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  {[
+                    "1-0-1",
+                    "1-0-0",
+                    "0-0-1",
+                    "1-1-1",
+                    "0.5-0-0.5",
+                    "0.5-0-0",
+                    "0-0-0.5",
+                    "0.5-0.5-0.5"
+                  ].map(value => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`px-2 py-1 rounded border text-sm ${currentMapping.frequency === value ? "bg-blue-100 border-blue-400" : "bg-gray-100 border-gray-300"}`}
+                      onClick={() => {
+                        if (isReadOnly) return;
+                        const calculatedQuantity = calculateQuantity(value, currentMapping.numberOfDays || 0);
+                        const availableQuantity = currentMapping.quantityAvailable || 0;
 
-                       // Cap the quantity to available stock
-                       const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+                        // Cap the quantity to available stock
+                        const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
 
-                       // Show warning if calculated quantity exceeds available stock
-                       if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.numberOfDays) {
-                         const maxDays = calculateMaxDays(value, availableQuantity);
-                         toast.error(
-                           `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                           `With frequency "${value}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
-                         );
-                       }
+                        // Show warning if calculated quantity exceeds available stock
+                        if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.numberOfDays) {
+                          const maxDays = calculateMaxDays(value, availableQuantity);
+                          toast.error(
+                            `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                            `With frequency "${value}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
+                          );
+                        }
 
-                       setCurrentMapping({
-                         ...currentMapping,
-                         frequency: value,
-                         quantity: finalQuantity
-                       });
-                     }}
-                     disabled={isReadOnly}
-                   >
-                     {value}
-                   </button>
-                 ))}
-               </div>
-             </div>
-             
-             <div className="space-y-3">
-               <Label htmlFor="numberOfDays">Number of Days</Label>
-               <Input
-                 id="numberOfDays"
-                 type="number"
-                 min="0"
-                 placeholder="e.g., 7"
-                 value={currentMapping.numberOfDays || ""}
-                 onChange={(e) => {
-                   if (isReadOnly) return;
-                   const newNumberOfDays = parseInt(e.target.value) || 0;
-                   const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", newNumberOfDays);
-                   const availableQuantity = currentMapping.quantityAvailable || 0;
+                        setCurrentMapping({
+                          ...currentMapping,
+                          frequency: value,
+                          quantity: finalQuantity
+                        });
+                      }}
+                      disabled={isReadOnly}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {isMedicineType && (
+              <div className="space-y-3">
+                <Label htmlFor="numberOfDays">Number of Days</Label>
+                <Input
+                  id="numberOfDays"
+                  type="number"
+                  min="0"
+                  placeholder="e.g., 7"
+                  value={currentMapping.numberOfDays || ""}
+                  onChange={(e) => {
+                    if (isReadOnly) return;
+                    const newNumberOfDays = parseInt(e.target.value) || 0;
+                    const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", newNumberOfDays);
+                    const availableQuantity = currentMapping.quantityAvailable || 0;
 
-                   // Cap the quantity to available stock
-                   const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
+                    // Cap the quantity to available stock
+                    const finalQuantity = availableQuantity > 0 ? Math.min(calculatedQuantity, availableQuantity) : calculatedQuantity;
 
-                   // Show warning if calculated quantity exceeds available stock
-                   if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.frequency) {
-                     const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
-                     toast.error(
-                       `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                       `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
-                     );
-                   }
+                    // Show warning if calculated quantity exceeds available stock
+                    if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.frequency) {
+                      const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
+                      toast.error(
+                        `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                        `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
+                      );
+                    }
 
-                   setCurrentMapping({
-                     ...currentMapping,
-                     numberOfDays: newNumberOfDays,
-                     quantity: finalQuantity
-                   });
-                 }}
-                 disabled={isReadOnly}
-                 className={hasInsufficientStock() ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
-               />
-               {hasInsufficientStock() && (
-                 <div className="flex items-start space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
-                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                   <div className="text-sm text-red-700">
-                     <div className="font-medium">Warning: Insufficient Stock</div>
-                     <div className="mt-1">{getStockValidationMessage()}</div>
-                   </div>
-                 </div>
-               )}
-             </div>
-             <div className="space-y-3">
+                    setCurrentMapping({
+                      ...currentMapping,
+                      numberOfDays: newNumberOfDays,
+                      quantity: finalQuantity
+                    });
+                  }}
+                  disabled={isReadOnly}
+                  className={hasInsufficientStock() ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+                />
+                {hasInsufficientStock() && (
+                  <div className="flex items-start space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-red-700">
+                      <div className="font-medium">Warning: Insufficient Stock</div>
+                      <div className="mt-1">{getStockValidationMessage()}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="space-y-3">
               <Label htmlFor="quantity">Quantity</Label>
               <Input
                 id="quantity"
                 type="number"
-                placeholder="Auto calculated based on frequency and number of days"
+                placeholder={isMedicineType ? "Auto calculated based on frequency and number of days" : "Enter quantity"}
                 value={currentMapping.quantity && currentMapping.quantity > 0 ? currentMapping.quantity : ""}
                 onChange={(e) => {
                   if (isReadOnly) return;
@@ -1181,7 +1507,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
                     quantity: newQuantity
                   });
                 }}
-                disabled={isReadOnly}
+                disabled={isReadOnly || !!(isMedicineType && currentMapping.frequency && currentMapping.numberOfDays && currentMapping.numberOfDays > 0)} // Disable quantity for medicine type if auto-calculated
                 className={isReadOnly ? "bg-gray-50 cursor-not-allowed" : ""}
               />
               {currentMapping.quantityAvailable !== undefined && (
@@ -1192,17 +1518,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
             </div>
 
             {/* Directions Field */}
-            <div className="space-y-3">
-              <Label htmlFor="directions">Directions</Label>
-              <textarea
-                id="directions"
-                placeholder="Enter directions for use..."
-                value={currentMapping.directions || ""}
-                onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, directions: e.target.value})}
-                disabled={isReadOnly}
-                className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 resize-vertical"
-              />
-            </div>
+            {isMedicineType && (
+              <div className="space-y-3">
+                <Label htmlFor="directions">Directions</Label>
+                <textarea
+                  id="directions"
+                  placeholder="Enter directions for use..."
+                  value={currentMapping.directions || ""}
+                  onChange={(e) => isReadOnly ? undefined : setCurrentMapping({...currentMapping, directions: e.target.value})}
+                  disabled={isReadOnly}
+                  className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 resize-vertical"
+                />
+              </div>
+            )}
           </div>
 
           <SheetFooter className="pt-4">
@@ -1211,7 +1539,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
               onClick={handleSaveMapping}
               disabled={
                 isReadOnly ||
-                hasInsufficientStock() ||
+                (isMedicineType && hasInsufficientStock()) || // Only check insufficient stock for medicine type
                 (editingIndex !== null && !hasEditChanges())
               }
             >
@@ -1238,9 +1566,10 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
         onConfirm={handleDeleteProduct}
         title="Remove Medicine"
         itemName={productToDelete?.name}
-        isDeleting={isDeleting}
+        isDeleting={Boolean(isDeleting)}
       />
     </Card>
     </>
+    </SelectedFilesProvider>
   )
 }

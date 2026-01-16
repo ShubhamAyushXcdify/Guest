@@ -7,6 +7,7 @@ import { useGetRoleById } from "@/queries/roles/get-role-by-id";
 
 import {
     getUserId,
+    getJwtToken,
     removeUserId,
     removeJwtToken,
     removeProjectName,
@@ -15,8 +16,10 @@ import {
     setUserId,
     setClinicId,
     setClinicName,
-    removeClinicName
+    removeClinicName,
+    setCompanyId
 } from "../utils/clientCookie";
+import { isTokenExpired, getTokenExpiration } from "../utils/jwtToken";
 
 
 export type User = {
@@ -45,6 +48,7 @@ export type UserType = {
     isPatient: boolean;
     isClient: boolean;
     isProvider: boolean;
+    isVeterinarian: boolean;
 }
 
 const userRolesObject: UserType = {
@@ -55,6 +59,7 @@ const userRolesObject: UserType = {
     isPatient: false,
     isClient: false,
     isProvider: false,
+    isVeterinarian: false,
 }
 
 type workspace = {
@@ -80,24 +85,145 @@ export const useContentLayout = () => {
     const [, setUserToLocal] = useStoreLocalStorage<any>('user', '');
     const queryClient = useQueryClient();
 
-    // Initial user fetch
+    // Custom setClinic function to also update cookies and local storage user object
+    const updateClinicAndCookies = (newClinic: { id: string | null, name: string | null, companyId?: string | null }) => {
+        setClinic(newClinic);
+        if (newClinic.id) {
+            setClinicId(newClinic.id);
+        } else {
+            removeClinicId();
+        }
+        if (newClinic.name) {
+            setClinicName(newClinic.name);
+        } else {
+            removeClinicName();
+        }
+
+        // Update the user object in local storage as well
+        if (typeof window !== 'undefined') {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const userData = JSON.parse(userStr);
+                userData.clinicId = newClinic.id;
+                userData.clinicName = newClinic.name;
+                localStorage.setItem('user', JSON.stringify(userData));
+                setUser(userData); // Update the user state as well
+            }
+        }
+    };
+
+    // Check token expiration periodically and on mount
     useEffect(() => {
+        const checkTokenExpiration = () => {
+            const token = getJwtToken();
+            if (token && isTokenExpired(token)) {
+                console.warn('Token expired, logging out...');
+                handleLogout();
+                return;
+            }
+        };
+
+        // Check immediately
+        checkTokenExpiration();
+
+        // Check token expiration every minute
+        const interval = setInterval(checkTokenExpiration, 60000);
+
+        // Also check based on token expiration time
+        const token = getJwtToken();
+        if (token) {
+            const expirationTime = getTokenExpiration(token);
+            if (expirationTime) {
+                const timeUntilExpiration = expirationTime - Date.now();
+                if (timeUntilExpiration > 0) {
+                    // Set a timeout to check right before expiration
+                    const timeout = setTimeout(() => {
+                        checkTokenExpiration();
+                    }, Math.max(0, timeUntilExpiration - 5000)); // Check 5 seconds before expiration
+
+                    return () => {
+                        clearInterval(interval);
+                        clearTimeout(timeout);
+                    };
+                }
+            }
+        }
+
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, pathname]); // handleLogout is stable and doesn't need to be in deps
+
+    // Initial user fetch - only if user is not already set (e.g., from login)
+    useEffect(() => {
+        // Check token expiration before fetching user
+        const token = getJwtToken();
+        if (token && isTokenExpired(token)) {
+            console.warn('Token expired on mount, logging out...');
+            handleLogout();
+            return;
+        }
+
         if (!user) {
             fetchUser();
         }
     }, []);
-
+    
+    // Check for clinic ID in cookies on component mount
+    
     const fetchUser = async (data?: any, role?: any) => {
-        if (role === "Client") {
-            setUser(data?.user);
+        // Check token expiration before proceeding
+        const token = getJwtToken();
+        if (token && isTokenExpired(token)) {
+            console.warn('Token expired during fetchUser, logging out...');
+            handleLogout();
             return;
         }
-        setLoading(true);
+
+        if (role === "Client") {
+            setUser(data?.user);
+            setAuthorized(true);
+            setLoading(false);
+            return;
+        }
+        
+        // If we have login data, use it immediately to avoid blocking UI
+        // Then fetch full profile in background
+        if (data?.user) {
+            const loginUser = data.user;
+            // Set initial user data from login response to unblock UI
+            setUser(loginUser);
+            setAuthorized(true);
+            setLoading(false); // Allow UI to render immediately
+            
+            // Extract clinic info from login data if available
+            // Set company ID from login response if available
+            if (loginUser.companyId) {
+                setCompanyId(loginUser.companyId);
+            }
+            
+            if (loginUser.clinicId || loginUser.clinicName) {
+                setClinicId(loginUser.clinicId);
+                setClinicName(loginUser.clinicName);
+                setClinic({
+                    id: loginUser.clinicId,
+                    name: loginUser.clinicName,
+                    companyId: loginUser.companyId || null
+                });
+            }
+            
+            // Register user with login data
+            registerUser(loginUser);
+        }
+        
         let userid = getUserId() || data?.user?.id;
         if (!userid && data?.user?.id) {
             userid = data.user.id;
         }
-        if (!userid && (pathname !== '/login' && pathname !== '/register' && pathname !== '/login/internal')) {
+        // Guard against bad cookie values like "undefined"/"null"
+        if (userid === "undefined" || userid === "null") {
+            userid = undefined as any;
+        }
+        if (!userid && (pathname !== '/login' && pathname !== '/register' && pathname !== '/login/internal' && pathname !== '/')) {
             setLoading(false);
             handleLogout();
             return;
@@ -106,38 +232,58 @@ export const useContentLayout = () => {
             return;
         }
 
-
+        // Only fetch full user profile if we don't have complete data or need clinic info
+        // This fetch happens in background and updates the user state when complete
         try {
             const response = await fetch(`/api/user/${userid}`);
-            const userData = await response.json();
+            
+            // Check for 401 Unauthorized response
+            if (response.status === 401) {
+                console.warn('Received 401 Unauthorized, token may be expired');
+                handleLogout();
+                return;
+            }
 
+            const userData = await response.json();
 
             if (!userData || userData.status === 400) {
                 console.error("userData not found");
-                setLoading(false);
-                setAuthorized(false);
+                // Don't set loading to false here if we already have login data
+                if (!data?.user) {
+                    setLoading(false);
+                    setAuthorized(false);
+                }
                 return;
             }
             setUserId(userData.id)
-            setUser(userData);
+            let effectiveClinicId = userData.clinicId || (userData as any)?.clinics?.[0]?.clinicId || (userData as any)?.clinics?.[0]?.id;
+            let effectiveClinicName = userData.clinicName || (userData as any)?.clinics?.[0]?.clinicName || (userData as any)?.clinics?.[0]?.name;
+            let effectiveCompanyId = (userData as any)?.companyId ?? (userData as any)?.clinicCompanyId ?? null;
 
-            // Set clinic ID and name - try direct properties first, then from clinics array
-            const clinicId = userData.clinicId || (userData as any)?.clinics?.[0]?.clinicId || (userData as any)?.clinics?.[0]?.id;
-            const clinicName = userData.clinicName || (userData as any)?.clinics?.[0]?.clinicName || (userData as any)?.clinics?.[0]?.name;
+            // Set company ID in cookies if available
+            if (effectiveCompanyId) {
+                setCompanyId(effectiveCompanyId);
+            }
 
-            setClinicId(clinicId)
-            setClinicName(clinicName)
+            // Update user with complete data
+            setUser({ ...userData, clinicId: effectiveClinicId, clinicName: effectiveClinicName });
+
+            setClinicId(effectiveClinicId);
+            setClinicName(effectiveClinicName);
             setClinic({
-                id: clinicId,
-                name: clinicName,
-                companyId: (userData as any)?.companyId ?? (userData as any)?.clinicCompanyId ?? null
+                id: effectiveClinicId,
+                name: effectiveClinicName,
+                companyId: effectiveCompanyId
             });
             setAuthorized(true);
             registerUser(userData);
         } catch (error) {
             console.error("Error fetching user:", error);
-            setAuthorized(false);
-            setLoading(false);
+            // Only set loading/authorized to false if we don't have login data
+            if (!data?.user) {
+                setAuthorized(false);
+                setLoading(false);
+            }
         }
     };
 
@@ -169,7 +315,7 @@ export const useContentLayout = () => {
 
     const handleLogout = async () => {
         // Clear local storage
-        router.push("/");
+        router.push("/login");
 
         setRoles(null)
         setUser(null);
@@ -208,7 +354,8 @@ export const useContentLayout = () => {
         handleLogout,
         fetchUser,
         IsAdmin,
-        userType
+        userType,
+        setClinic: updateClinicAndCookies // Use the custom update function here
     };
 };
 
