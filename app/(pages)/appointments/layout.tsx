@@ -52,9 +52,15 @@ export default function AppointmentsLayout({ children }: { children: React.React
     }, [qp.clinicId, clinic?.id, clinics, userType?.isClinicAdmin, user?.clinicId, setQp]);
 
     // Show dropdown only for company admins (not for clinic admins or vets)
-    const isCompanyAdmin = !!(!userType?.isClinicAdmin && !userType?.isVeterinarian);
-    const canChangeClinic = isCompanyAdmin;
-    const showClinicSelect = isCompanyAdmin; // Only show for company admins
+    // Show dropdown only for company admins; hide for receptionist
+    const isCompanyAdmin = !!(
+        !userType?.isClinicAdmin &&
+        !userType?.isVeterinarian &&
+        !userType?.isReceptionist
+    );
+    const isReceptionist = !!userType?.isReceptionist;
+    const canChangeClinic = isCompanyAdmin; // functionality unchanged
+    const showClinicSelect = !isReceptionist && isCompanyAdmin; // only hide for receptionist
 
     return (
         <div className="w-full">

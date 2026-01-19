@@ -12,9 +12,13 @@ export async function GET(request: NextRequest) {
         }
         const { searchParams } = new URL(request.url);
         const clinicId = searchParams.get("clinicId") ?? "";
-        const roleId = searchParams.get("roleId") ?? "";
+        const roleId = searchParams.get("roleId");
 
-        const url = `${apiUrl}/api/Screen/access?clinicId=${encodeURIComponent(clinicId)}&roleId=${encodeURIComponent(roleId)}`;
+        // Build upstream URL, include roleId only when provided
+        let url = `${apiUrl}/api/Screen/access?clinicId=${encodeURIComponent(clinicId)}`;
+        if (roleId) {
+            url += `&roleId=${encodeURIComponent(roleId)}`;
+        }
         const response = await fetch(url, {
             headers: {
                 "Content-Type": "application/json",

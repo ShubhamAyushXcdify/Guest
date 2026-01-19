@@ -114,12 +114,20 @@ export default function AppointmentList({
       return clinic?.id || "";
     } else if (userType.isClinicAdmin) {
       return localClinicId || "";
-    } else if (userType.isVeterinarian) {
-      // For veterinarians, always use the clinic context ID (which updates when they switch clinics)
+    } else if (userType.isVeterinarian || userType.isReceptionist || userType.isProvider) {
+      // Vet + Receptionist + Provider use the selected clinic from context
       return clinic?.id || "";
     }
     return "";
-  }, [userType.isAdmin, userType.isClinicAdmin, userType.isVeterinarian, clinic?.id, localClinicId]);
+  }, [
+    userType.isAdmin,
+    userType.isClinicAdmin,
+    userType.isVeterinarian,
+    userType.isReceptionist,
+    userType.isProvider,
+    clinic?.id,
+    localClinicId
+  ]);
 
   const { data: usersData } = useGetUsers(
     1,

@@ -36,21 +36,19 @@ const getScreenAccess = async (clinicId: string | null, roleId?: string | null) 
 export const useGetScreenAccess = (
   clinicId: string | null,
   roleId?: string | null,
-  enabled = true
+  enabled = true,
+  skipForAdmin = true
 ) => {
   const { userType } = useRootContext();
   
   return useQuery({
     queryKey: ["screen-access", clinicId, roleId],
     queryFn: async () => {
-      // Skip API call for admin users
-      if (userType?.isAdmin) {
-        return [];
-      }
       return getScreenAccess(clinicId, roleId ?? undefined);
     },
-    // Only enable the query if we have a clinicId, not an admin, and explicitly enabled
-    enabled: !!clinicId && !userType?.isAdmin && enabled,
+    // Only enable the query if we have a clinicId and explicitly enabled.
+    // Optionally skip for admin users depending on caller needs.
+    enabled: !!clinicId && (skipForAdmin ? !userType?.isAdmin : true) && enabled,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     staleTime: 0,

@@ -97,7 +97,12 @@ export default function RBACScreen() {
   const screens = screensData?.data ?? [];
 
   // Access matrix
-  const { data: accessData, refetch: refetchAccess } = useGetScreenAccess(ctxClinic?.id, undefined, !!ctxClinic?.id);
+  const { data: accessData, refetch: refetchAccess } = useGetScreenAccess(
+    ctxClinic?.id,
+    undefined,
+    !!ctxClinic?.id,
+    false // do NOT skip for admins in RBAC UI
+  );
 
   // Use a Set for quick access checks
   const [grantedSet, setGrantedSet] = React.useState<Set<AccessKey>>(new Set());

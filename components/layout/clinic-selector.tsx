@@ -12,35 +12,41 @@ export function ClinicSelector() {
   const { user, userType, clinic } = useRootContext()
   const queryClient = useQueryClient()
   const [qp, setQp] = useQueryStates({ clinicId: parseAsString })
-  
-  // Only fetch clinics for veterinarian users
+
+  // Vet + Receptionist ke liye enable
+  const isVetOrReceptionist =
+    Boolean((userType?.isVeterinarian || userType?.isReceptionist) && user?.companyId)
+
+  const userIdForQuery =
+    (userType?.isVeterinarian || userType?.isReceptionist) ? user?.id : null
+
   const { data: clinicsData } = useGetClinic(
     1,
     100,
     user?.companyId || null,
-    Boolean(userType?.isVeterinarian && user?.companyId),
-    userType?.isVeterinarian ? user?.id : null // Pass userId for veterinarian
+    isVetOrReceptionist,
+    userIdForQuery
   )
   const clinics = clinicsData?.items || []
-  
-  // Sync URL clinicId -> context when available; otherwise reflect context into URL
+
+  // URL ↔ context sync (Receptionist ko bhi include)
   useEffect(() => {
-    if (!userType?.isVeterinarian) return
+    if (!(userType?.isVeterinarian || userType?.isReceptionist)) return
     if (clinics.length === 0) return
-    // If URL has clinicId and differs from context, update context from URL
+
     if (qp.clinicId && qp.clinicId !== clinic?.id) {
       const selected = clinics.find(c => String(c.id) === String(qp.clinicId))
       if (selected) {
         clinic?.setClinic?.({ id: String(selected.id), name: selected.name, companyId: selected.companyId })
+        setClinicId(String(selected.id))
+        setClinicName(selected.name)
       }
       return
     }
-    // If URL missing but context has id, reflect context into URL
     if (!qp.clinicId && clinic?.id) {
       setQp({ clinicId: clinic.id })
       return
     }
-    // If neither present, default to first clinic
     if (!qp.clinicId && !clinic?.id && clinics[0]?.id) {
       setQp({ clinicId: String(clinics[0].id) })
       clinic?.setClinic?.({ id: String(clinics[0].id), name: clinics[0].name, companyId: clinics[0].companyId })
@@ -68,7 +74,6 @@ export function ClinicSelector() {
       queryClient.refetchQueries({ queryKey: ['inventory'] });
     }
   }, [clinic?.id]);
-  
   const handleClinicChange = (clinicId: string) => {
   if (clinic?.id === clinicId) return // Compare with context clinic.id now
 
@@ -84,11 +89,11 @@ export function ClinicSelector() {
   })
   }
   
-  // Only show for veterinarian users
-  if (!userType?.isVeterinarian || clinics.length === 0 || clinics.length === 1) {
+  // Ab Vet ya Receptionist ke liye hamesha render hoga
+  if (!userType?.isVeterinarian) {
     return null
   }
-  
+
   const effectiveClinicId = qp.clinicId || clinic?.id || ""
 
   return (
@@ -98,6 +103,7 @@ export function ClinicSelector() {
         <Select
           value={effectiveClinicId}
           onValueChange={handleClinicChange}
+          disabled={clinics.length <= 1}  // single clinic ho to dropdown disabled rahega (selection shown)
         >
           <SelectTrigger className=" border border-[#1E3D3D] text-black">
             <SelectValue placeholder="Select a clinic" />

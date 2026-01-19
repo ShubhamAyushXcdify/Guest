@@ -48,7 +48,7 @@ export const navGroups = [
     {
         title: "Products & Services",
         icon: FlaskConical,
-        allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+        allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian","Receptionist"],
         items: [
 
             // {
@@ -70,35 +70,35 @@ export const navGroups = [
                 label: "Inventory",
                 icon: Package,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian","Receptionist"],
             },
             {
                 href: "/products",
                 label: "Products",
                 icon: Package,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian","Receptionist"],
             },
             {
                 href: "/supplier",
                 label: "Suppliers",
                 icon: Users,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian","Receptionist"],
             },
             {
                 href: "/expense-tracker",
                 label: "Expense Tracker",
                 icon: DollarSign,
                 color: "text-purple-2000",
-                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian"],
+                allowedRoles: ["Administrator", "Clinic Admin", "Veterinarian","Receptionist"],
             }
         ],
     },
     {
         title: "Administration",
         icon: Settings2,
-        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian"],
+        allowedRoles: ["Administrator", "Super Admin", "Clinic Admin", "Veterinarian","Receptionist"],
         items: [
             
 //add companies
