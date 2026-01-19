@@ -41,6 +41,19 @@ export const getJwtToken = (req?: NextRequest): string | null => {
   return cookies.jwtToken || null;
 };
 
+export const getJwtTokenBrowser = (): string | null => {
+  if (typeof document === 'undefined') return null;
+
+  const cookies = document.cookie.split(';').reduce<Record<string, string>>((acc, cookie) => {
+    const [name, value] = cookie.trim().split('=');
+    if (name && value) acc[name] = decodeURIComponent(value);
+    return acc;
+  }, {});
+
+  return cookies.jwtToken || null;
+};
+
+
 export const getWorkspaceId = (req?: NextRequest): string | null => {
   const cookies = parseCookies(req);
   return cookies.workspaceId || null;

@@ -15,6 +15,8 @@ import { useGetPendingClientRegistrations } from "@/queries/clientRegistration/g
 import { toast } from "@/hooks/use-toast"
 import ApproveAppointment from "@/components/appointments/approve-appointment"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
+import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
+import { notificationService } from "@/services/Notification/notificationService";
 import { useRootContext } from "@/context/RootContext"
 import { Label } from "@/components/ui/label"
 import { format } from "date-fns"
@@ -53,6 +55,22 @@ export const DashboardScheduleTable = ({
 
   // Mutations and queries
   const approveMutation = useApproveClientRegistration();
+  const updateAppointmentMutation = useUpdateAppointment({
+    onSuccess: () => {
+      toast({
+        title: "Appointment Rejected",
+        description: "The appointment has been rejected successfully",
+        variant: "success",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to reject appointment",
+        variant: "error",
+      });
+    },
+  });
   const { data: drawerData, isLoading: isDrawerLoading } = useGetClientRegistrationById(drawerId || "");
   const { data: pendingRegsHook, refetch, isLoading: isPendingRegsLoading } = useGetPendingClientRegistrations();
 
@@ -165,32 +183,87 @@ export const DashboardScheduleTable = ({
   }
 
   const handleReject = async () => {
-    if (!selectedRegistrationId) return
-
+  if (!selectedRegistrationId) return;
+  const isAppointment = registeredItems.some((item: any) => item.id === selectedRegistrationId);
+  if (isAppointment) {
     try {
-      await approveMutation.mutateAsync({
-        registrationId: selectedRegistrationId,
-        isApproved: false,
-        rejectionReason
-      })
-      setIsRejectDialogOpen(false)
-      setRejectionReason("")
-      if (isSidebarOpen) {
-        setIsSidebarOpen(false)
+      const appointment = registeredItems.find((item: any) => item.id === selectedRegistrationId);
+      
+      await updateAppointmentMutation.mutateAsync({
+        id: selectedRegistrationId,
+        data: {
+          id: selectedRegistrationId,
+          clinicId: appointment?.clinicId,
+          patientId: appointment?.patientId,
+          clientId: appointment?.clientId,
+          veterinarianId: appointment?.veterinarianId,
+          roomId: appointment?.roomId,
+          appointmentDate: appointment?.appointmentDate,
+          appointmentTimeFrom: appointment?.appointmentTimeFrom,
+          appointmentTimeTo: appointment?.appointmentTimeTo,
+          appointmentTypeId: appointment?.appointmentTypeId,
+          reason: appointment?.reason,
+          status: 'cancelled',
+          notes: rejectionReason || 'Rejected by provider',
+          isRegistered: false,
+          createdBy: appointment?.createdBy,
+          sendEmail: true
+        }
+      });
+      // Send notification
+      try {
+        await fetch('/api/notifications/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: appointment?.clientId, // The client who made the appointment
+            title: 'Appointment cancelled',
+            message: `Your appointment for ${appointment?.appointmentDate} has been cancelled.`,
+            type: 'appointment_cancelled',
+            data: {
+              appointmentId: appointment?.id,
+              reason: rejectionReason || 'No reason provided'
+            }
+          })
+        });
+      } catch (notificationError) {
+        console.error('Failed to send notification:', notificationError);
+        // Don't fail the whole operation if notification fails
       }
-      toast({
-        title: "Registration Rejected",
-        description: "Client registration has been rejected successfully",
-        variant: "success",
-      })
-
-      refetch()
+      setIsRejectDialogOpen(false);
+      setRejectionReason('');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to reject registration",
-        variant: "error",
-      })
+      console.error('Error rejecting appointment:', error);
+      // Error toast is handled by the mutation's onError
+    }
+    } else {
+      // Handle client registration rejection
+      try {
+        await approveMutation.mutateAsync({
+          registrationId: selectedRegistrationId,
+          isApproved: false,
+          rejectionReason
+        });
+        setIsRejectDialogOpen(false);
+        setRejectionReason('');
+        if (isSidebarOpen) {
+          setIsSidebarOpen(false);
+        }
+        toast({
+          title: "Registration Rejected",
+          description: "Client registration has been rejected successfully",
+          variant: "success",
+        });
+        refetch();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to reject registration",
+          variant: "error",
+        });
+      }
     }
   }
   return (
@@ -308,7 +381,19 @@ export const DashboardScheduleTable = ({
                         <span className="font-medium">{a.patientName || a.patient?.name || '-'}</span>
                         <span className="ml-2 text-muted-foreground">{a.reason || '-'}</span>
                       </div>
-                      {
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenRejectDialog(a.id);
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -319,9 +404,10 @@ export const DashboardScheduleTable = ({
                             onApproveAppointment?.(a.id);
                           }}
                         >
+                          <Check className="h-4 w-4 mr-1" />
                           Accept
                         </Button>
-                      }
+                      </div>
                     </div>
                   ))}
                 </div>

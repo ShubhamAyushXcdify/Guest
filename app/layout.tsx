@@ -7,6 +7,8 @@ import { Toaster } from "sonner";
 import AuthProvider from "@/provider/AuthProvider";
 import PWAInstallPrompt from "@/components/pwa-install-prompt";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { NotificationInitializer } from "@/components/notification-bell/NotificationInitializer";
+import { NotificationListener } from "@/components/notification-bell/NotificationListener";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -50,6 +52,8 @@ export default function RootLayout({
             </QueryWrapper>
           </NuqsAdapter>
         </AuthProvider>
+        <NotificationInitializer />
+        <NotificationListener />
       </body>
     </html>
   )

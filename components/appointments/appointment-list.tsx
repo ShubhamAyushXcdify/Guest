@@ -800,12 +800,58 @@ export default function AppointmentList({
           notes: appointmentToCancel.notes,
           createdBy: appointmentToCancel.createdBy,
         }
-      })
+      });
 
+      // Format the appointment date and time
+      const formatDate = (dateString: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+      };
+
+      const formatTime = (timeString: string) => {
+        if (!timeString) return '';
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
+      };
+
+      const appointmentDate = formatDate(appointmentToCancel.appointmentDate);
+      const appointmentTime = formatTime(appointmentToCancel.appointmentTimeFrom);
+      const timeSlot = appointmentTime ? ` at ${appointmentTime}` : '';
+      const patientName = appointmentToCancel.patient?.name || 'the patient';
+
+      const notification = {
+        id: `cancel-${Date.now()}`,
+        type: 'appointment_cancelled',
+        title: 'Appointment Cancelled',
+        message: `Appointment for ${patientName} on ${appointmentDate}${timeSlot} has been cancelled`,
+        timestamp: new Date().toISOString(),
+        data: {
+          appointmentId: appointmentToCancel.id,
+          patientId: appointmentToCancel.patientId,
+          clientId: appointmentToCancel.clientId,
+          appointmentDate: appointmentToCancel.appointmentDate,
+          appointmentTime: appointmentToCancel.appointmentTimeFrom
+        }
+      };
+
+      // Dispatch the notification event (for the notification bell)
+      const event = new CustomEvent('new-notification', { detail: notification });
+      document.dispatchEvent(event);
+      
+      // Show toast with the cancellation details
       toast({
-        title: "Success",
-        description: "Appointment cancelled successfully",
-      })
+        title: notification.title,
+        description: notification.message,
+        variant: 'default',
+      });
     } catch (error) {
       toast({
         title: "Error",

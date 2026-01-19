@@ -1,7 +1,8 @@
 "use client"
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav"
 import { useRootContext } from "@/context/RootContext"
-import { SidebarTrigger } from "../ui/sidebar";
+import { SidebarTrigger } from "../ui/sidebar"
+import { NotificationBell } from "@/components/notification-bell/NotificationBell" // Add this import
 
 export function Header() {
   const { user } = useRootContext();
@@ -16,6 +17,7 @@ export function Header() {
 
 
       <div className="flex items-center gap-4">
+        <NotificationBell /> {/* Add the NotificationBell here */}
         <div className="flex items-center gap-2 text-sm">
           <span className="text-muted-foreground">Welcome,</span>
           <span className="font-medium">{user?.firstName} {user?.lastName}</span>

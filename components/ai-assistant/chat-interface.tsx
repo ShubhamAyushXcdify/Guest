@@ -139,7 +139,6 @@ export function ChatInterface({ patientId, patientName, screenContext }: ChatInt
 
     loadChatHistory()
   }, [patientId])
-
   // Fetch content for selected files
   useEffect(() => {
     const loadFileContents = async () => {
