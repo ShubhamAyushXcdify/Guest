@@ -29,7 +29,7 @@ export const DashboardActionButtons = ({
   const isProvider = userType?.isProvider
 
   return (
-    <div className="flex justify-start gap-3 mb-1 flex-wrap bg-[#D2EFEC] p-4 rounded-md">
+    <div className="flex justify-start gap-3 mb-1 flex-wrap bg-gradient-to-r from-slate-50 to-[#D2EFEC] dark:from-slate-900 dark:to-slate-800 p-4 rounded-md border-b border-slate-200 dark:border-slate-700 -m-4 mb-4">
       <Button className="flex items-center gap-2 bg-white border border-[#1E3D3D] text-[#1E3D3D] hover:bg-[#1E3D3D]/10 hover:text-[#1E3D3D]" onClick={onNewPatient}>
         New Patient
       </Button>

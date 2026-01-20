@@ -1025,7 +1025,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                     className={`rounded-full px-3 py-1 text-sm border transition-colors ${
                                       selectedSlot === slot.id
                                           ? 'bg-green-100 border-green-300 text-green-800'
-                                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                          : 'bg-gray-50 border-gray-200 hover:bg-gray-800 hover:text-white'
                                         }`}
                                       title={`${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`}
                                     >
@@ -1070,7 +1070,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                               variant="outline"
                               onClick={handleAIFormatReason}
                               disabled={isReasonFormatting}
-                              className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                              className="ml-2 flex items-center gap-1 font-semibold bg-[#1E3D3D] text-white shadow-lg hover:bg-[#152B2B] hover:text-white hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
                             >
                               <Sparkles className="w-3 h-3" />
                               {isReasonFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
@@ -1121,7 +1121,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                               variant="outline"
                               onClick={handleAIFormatNotes}
                               disabled={isNotesFormatting}
-                              className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                              className="ml-2 flex items-center gap-1 font-semibold bg-[#1E3D3D] text-white shadow-lg hover:bg-[#152B2B] hover:text-white hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
                             >
                               <Sparkles className="w-3 h-3" />
                               {isNotesFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}

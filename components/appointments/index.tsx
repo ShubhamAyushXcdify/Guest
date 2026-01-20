@@ -158,7 +158,7 @@ export default function AppointmentsPage() {
             onClick={() => handleViewChange("list")}
             className={`py-4 px-6 text-center border-b-2 font-medium text-md transition-all duration-200 ${
               activeView === "list"
-                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                ? "border-[#1E3D3D] text-[#1E3D3D] dark:border-[#1E3D3D] dark:text-[#1E3D3D] bg-[#D2EFEC] dark:bg-[#1E3D3D]/20"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
             }`}
           >
@@ -178,7 +178,7 @@ export default function AppointmentsPage() {
             onClick={() => handleViewChange("provider")}
             className={`py-4 px-6 text-center border-b-2 font-medium text-md transition-all duration-200 ${
               activeView === "provider"
-                ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
+                ? "border-[#1E3D3D] text-[#1E3D3D] dark:border-[#1E3D3D] dark:text-[#1E3D3D] bg-[#D2EFEC] dark:bg-[#1E3D3D]/20"
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300 dark:hover:border-slate-600"
             }`}
           >

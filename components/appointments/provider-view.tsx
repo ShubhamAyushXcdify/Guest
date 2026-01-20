@@ -142,7 +142,7 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
               <Card
                 className={`cursor-pointer hover:shadow-md transition-shadow dark:bg-slate-800 dark:border-slate-700 ${
                   selectedProvider === provider.id
-                    ? "ring-2 ring-theme-primary ring-offset-2 dark:ring-offset-slate-900"
+                    ? "ring-2 ring-[#1E3D3D] ring-offset-2 dark:ring-offset-slate-900"
                     : ""
                 }`}
                 onClick={() => setSelectedProvider(provider.id)}
@@ -161,13 +161,13 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{provider.total}</div>
-                      <div className="text-sm text-blue-600 dark:text-blue-400">Total</div>
+                    <div className="bg-[#D2EFEC] dark:bg-[#1E3D3D]/20 p-2 rounded">
+                      <div className="text-2xl font-bold text-[#1E3D3D] dark:text-[#1E3D3D]">{provider.total}</div>
+                      <div className="text-sm text-[#1E3D3D] dark:text-[#1E3D3D]">Total</div>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">{provider.done}</div>
-                      <div className="text-sm text-green-600 dark:text-green-400">Done</div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                      <div className="text-2xl font-bold text-green-700 dark:text-green-400">{provider.done}</div>
+                      <div className="text-sm text-green-600 dark:text-green-500">Done</div>
                     </div>
                     <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
                       <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{provider.pending}</div>
