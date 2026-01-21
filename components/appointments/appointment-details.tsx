@@ -522,7 +522,7 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const getStatusBadgeClass = (status: string) => {
     switch (status.toLowerCase()) {
       case "scheduled":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+        return "bg-[#D2EFEC] text-[#1E3D3D] dark:bg-[#1E3D3D] dark:text-[#D2EFEC]"
       case "confirmed":
         return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300"
       case "in_progress":

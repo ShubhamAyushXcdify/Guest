@@ -692,7 +692,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
                   <Button
                     onClick={handleSave}
                     disabled={isPending || selectedPlans.length === 0 || isReadOnly}
-                    className="ml-2"
+                    className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
                   >
                     {isPending ? "Saving..." : existingPlanDetail ? "Update" : "Save"}
                   </Button>

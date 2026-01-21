@@ -587,7 +587,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                   isReadOnly ||
                   (!!intakeData && !!intakeData.isCompleted && !hasChanges())
                 }
-                className="ml-2"
+                className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
               >
                 {isPending
                   ? "Saving..."

@@ -1024,8 +1024,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                       onClick={() => handleSlotClick(slot.id)}
                                     className={`rounded-full px-3 py-1 text-sm border transition-colors ${
                                       selectedSlot === slot.id
-                                          ? 'bg-green-100 border-green-300 text-green-800'
-                                          : 'bg-gray-50 border-gray-200 hover:bg-gray-800 hover:text-white'
+                                          ? 'bg-[#D2EFEC] border-[#1E3D3D] text-[#1E3D3D]'
+                                          : 'bg-gray-50 border-gray-200'
                                         }`}
                                       title={`${formatTime(slot.startTime)} - ${formatTime(slot.endTime)}`}
                                     >

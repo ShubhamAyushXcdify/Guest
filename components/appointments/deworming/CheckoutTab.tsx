@@ -531,6 +531,7 @@ useEffect(() => {
         <div className="mt-6 flex justify-end gap-4 mb-4 mx-4">
           <Button
             onClick={handleSave}
+            className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
             disabled={isSaving || createCheckout.isPending || updateCheckout.isPending || isReadOnly || !summary.trim() || !nextDue || !instructions.trim()}
             variant="outline"
           >

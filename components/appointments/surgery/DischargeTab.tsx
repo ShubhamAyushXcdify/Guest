@@ -511,7 +511,7 @@ useEffect(() => {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || isProcessing || isReadOnly || !hasAnyFieldFilled}
-              className="bg-black text-white px-4 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
+              className="bg-[#1E3D3D] text-white px-4 py-2 rounded enabled:hover:bg-[#152B2B] disabled:opacity-50"
             >
               {isSubmitting
                 ? "Saving..."

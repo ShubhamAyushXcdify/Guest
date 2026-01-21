@@ -667,7 +667,7 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || visitLoading || !hasAnyInput() || isReadOnly}
-            className="ml-2"
+            className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
           >
             {isSubmitting ? "Saving..." : (isDischargeSaved ? "Update Discharge" : "Save Discharge")}
           </Button>

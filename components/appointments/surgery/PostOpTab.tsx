@@ -434,7 +434,7 @@ useEffect(() => {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || isReadOnly || !hasAnyFieldFilled}
-              className="ml-2"
+              className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]"
             >
               {isSubmitting
                 ? "Saving..."

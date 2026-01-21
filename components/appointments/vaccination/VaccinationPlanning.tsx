@@ -344,7 +344,7 @@ export default function VaccinationPlanning({
             <div className="flex gap-2">
               <Button
                 onClick={handleCheckout}
-                className="text-white px-5 bg-green-600 hover:bg-green-700"
+                className="text-white px-5 bg-[#1E3D3D] hover:bg-[#1E3D3D] hover:text-white"
                 disabled={isLoading || visitLoading || selectedVaccines.length === 0 || isProcessing || isReadOnly}
               >
                 {isProcessing ? "Processing..." : "Checkout"}

@@ -826,7 +826,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
               !hasProceduresToSave() ||
               isReadOnly
             }
-            className="ml-2"
+            className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
           >
             {isPending
               ? "Saving..."

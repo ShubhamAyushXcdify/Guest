@@ -602,7 +602,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
               isReadOnly ||
               (!!existingComplaint && !hasChanges())
             }
-            className="ml-2"
+            className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
           >
             {createComplaintMutation.isPending || updateComplaintMutation.isPending
               ? "Saving..."

@@ -337,7 +337,7 @@ export default function VaccinationDocumentationModal({
                 />
             </div>
           </div>
-          <Button type="submit" className="w-full bg-black text-white" disabled={isReadOnly}>
+          <Button type="submit" className="w-full bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white" disabled={isReadOnly}>
             Add Vaccination Record
           </Button>
         </form>

@@ -453,7 +453,7 @@ const handleChatSend = async (e: React.FormEvent) => {
         <div className="flex justify-end mb-4 mx-4">
             <Button
               type="button"
-              className="bg-black text-white px-6 py-2 rounded enabled:hover:bg-gray-800 disabled:opacity-50"
+              className="bg-[#1E3D3D] text-white px-6 py-2 rounded hover:bg-[#1E3D3D] hover:text-white disabled:opacity-50"
               onClick={handleSaveMedications}
               disabled={isSaving || !isMedicationFormComplete() || isReadOnly}
             >

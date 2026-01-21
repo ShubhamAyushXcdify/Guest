@@ -1183,6 +1183,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
 
       <div className="mt-6 flex justify-end mb-4 mx-4">
           <Button
+          className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]"
             onClick={() => {
               if (onNext) {
                 onNext()
@@ -1536,6 +1537,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
           <SheetFooter className="pt-4">
             <Button variant="outline" onClick={() => setIsAddSheetOpen(false)} disabled={isReadOnly}>Cancel</Button>
             <Button
+            className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]"
               onClick={handleSaveMapping}
               disabled={
                 isReadOnly ||

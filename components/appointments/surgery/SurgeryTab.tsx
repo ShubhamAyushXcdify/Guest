@@ -571,7 +571,7 @@ useEffect(() => {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting || isReadOnly || !hasAnyFieldFilled || (detailData && !hasChanges)}
-              className="ml-2"
+              className="ml-2 theme-button text-white"
             >
               {isSubmitting
                 ? "Saving..."

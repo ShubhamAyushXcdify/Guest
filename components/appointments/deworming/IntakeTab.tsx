@@ -267,7 +267,7 @@ export default function IntakeTab({
             <Button
               onClick={handleSave}
               disabled={isSubmitting || isReadOnly || !isIntakeCompleted()}
-              className="bg-black text-white"
+              className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
             >
               {hasExistingData ? "Update & Next" : "Save & Next"}
             </Button>

@@ -414,6 +414,7 @@ useEffect(() => {
         <div className="mt-6 flex justify-end mb-4 mx-4">
             <Button
               onClick={handleSave}
+              className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
               disabled={isSaving || createMutation.isPending || updateMutation.isPending || isReadOnly || !resolutionStatus}
             >
               {hasExistingData ? "Update & Next" : "Save & Next"}

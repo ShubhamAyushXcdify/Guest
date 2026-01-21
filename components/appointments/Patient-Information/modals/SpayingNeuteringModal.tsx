@@ -329,6 +329,7 @@ export default function SpayingNeuteringModal({ open, onClose, patientId, appoin
                 type="button" 
                 onClick={handleSaveClick} 
                 disabled={updateDocumentMutation.isPending}
+                className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
               >
                 {updateDocumentMutation.isPending 
                   ? "Saving..." 

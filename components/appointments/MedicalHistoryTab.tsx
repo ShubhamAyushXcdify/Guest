@@ -246,7 +246,7 @@ export default function MedicalHistoryTab({ patientId, appointmentId, onNext }: 
             <Button
               onClick={handleSave}
               disabled={isPending || isReadOnly || isRequiredFieldsEmpty()}
-              className="mt-4"
+              className="mt-4 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {!isPending && <Save className="mr-2 h-4 w-4" />}

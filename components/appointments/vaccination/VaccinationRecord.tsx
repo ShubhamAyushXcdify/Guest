@@ -12,9 +12,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useGetVaccinationMasters } from "@/queries/vaccinationMaster/get-vaccinationMaster"
 import { CalendarIcon, CheckCircle2, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
-import { 
-  VaccinationDetailRequest, 
-  useCreateVaccinationDetail 
+import {
+  VaccinationDetailRequest,
+  useCreateVaccinationDetail
 } from "@/queries/vaccinationDetail/create-vaccinationDetail"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useRootContext } from "@/context/RootContext"
@@ -73,33 +73,33 @@ const vaccinationRecordSchema = z.object({
 
 type VaccinationRecordFormValues = z.infer<typeof vaccinationRecordSchema>;
 
-export default function VaccinationRecord({ 
-  patientId, 
-  appointmentId, 
+export default function VaccinationRecord({
+  patientId,
+  appointmentId,
   species,
   selectedVaccines = [],
   onBack,
   onSubmit: onSubmitProp
 }: VaccinationRecordProps) {
-  
+
   // State to track current step (vaccine being recorded)
   const [currentStep, setCurrentStep] = useState(0);
   // State to store form values for each vaccine
   const [formValues, setFormValues] = useState<Record<string, VaccinationRecordFormValues>>({});
-  
+
   // Convert species to lowercase for API call
   const speciesLowerCase = species.toLowerCase();
-  
+
   // Get vaccinations for dropdown
   const { data: vaccinations = [], isLoading } = useGetVaccinationMasters({
     species: speciesLowerCase
   });
-  
+
   // Filter vaccinations to only show selected ones if any were selected in previous step
   const filteredVaccinations = selectedVaccines.length > 0
     ? vaccinations.filter((v: Vaccination) => selectedVaccines.includes(v.id))
     : vaccinations;
-  
+
   const vaccineMasters = filteredVaccinations.map((vaccine: Vaccination) => ({
     id: vaccine.id,
     name: vaccine.disease,
@@ -126,7 +126,7 @@ export default function VaccinationRecord({
       }
     }
   }, [rolesData]);
-  
+
   // Fetch veterinarians (users with role "Veterinarian")
   const { data: usersResponse = { items: [] } } = useGetUsers(
     1,
@@ -137,14 +137,14 @@ export default function VaccinationRecord({
     clinic?.id ? [clinic.id] : [], // clinicIds
     veterinarianRoleId ? [veterinarianRoleId] : [] // roleIds
   );
-  
+
   // Filter and format veterinarians for dropdown
   const veterinarianOptions = usersResponse.items
     .filter(user => user.roleName === "Veterinarian")
     .map(vet => ({
       value: vet.id,
       label: `Dr. ${vet.firstName} ${vet.lastName}`
-  }));
+    }));
 
   // Form
   const form = useForm<VaccinationRecordFormValues>({
@@ -192,7 +192,7 @@ export default function VaccinationRecord({
       // Restore previously saved values
       const prevVaccine = vaccineMasters[currentStep - 1];
       const prevValues = formValues[prevVaccine.id];
-      
+
       if (prevValues) {
         form.setValue("vaccineId", prevValues.vaccineId);
         form.setValue("dateGiven", prevValues.dateGiven);
@@ -211,10 +211,10 @@ export default function VaccinationRecord({
 
   // Fetch the visit associated with this appointment
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
-  
+
   // Add toast
   const { toast } = useToast();
-  
+
   // Add mutations
   const createVaccinationDetail = useCreateVaccinationDetail();
   const updateAppointment = useUpdateAppointment({
@@ -237,16 +237,16 @@ export default function VaccinationRecord({
       });
       return;
     }
-    
+
     // Save the last form data
     const allFormValues = {
       ...formValues,
       [currentVaccine.id]: data
     };
-    
+
     // Convert to array format for the API
     const allFormsArray: VaccinationRecordFormValues[] = Object.values(allFormValues);
-    
+
     // Prepare the data in the format expected by the API
     const batchSubmission: VaccinationDetailRequest = {
       visitId: visitData.id,
@@ -254,22 +254,22 @@ export default function VaccinationRecord({
       notes: allFormsArray.map(r => r.adverseReactions).filter(Boolean).join("; ") || "",
       isCompleted: true,
       vaccinationMasterIds: allFormsArray.map(record => record.vaccineId),
-      
+
       // Convert DD/MM/YYYY strings to ISO strings for API
       dateGiven: allFormsArray[0].dateGiven ? new Date(
-        parseInt(allFormsArray[0].dateGiven.split('/')[2]), 
-        parseInt(allFormsArray[0].dateGiven.split('/')[1]) - 1, 
+        parseInt(allFormsArray[0].dateGiven.split('/')[2]),
+        parseInt(allFormsArray[0].dateGiven.split('/')[1]) - 1,
         parseInt(allFormsArray[0].dateGiven.split('/')[0])
       ).toISOString() : "",
       nextDueDate: allFormsArray[0].nextDueDate ? new Date(
-        parseInt(allFormsArray[0].nextDueDate.split('/')[2]), 
-        parseInt(allFormsArray[0].nextDueDate.split('/')[1]) - 1, 
+        parseInt(allFormsArray[0].nextDueDate.split('/')[2]),
+        parseInt(allFormsArray[0].nextDueDate.split('/')[1]) - 1,
         parseInt(allFormsArray[0].nextDueDate.split('/')[0])
       ).toISOString() : "",
     };
-    
+
     console.log("Submitting vaccination records:", batchSubmission);
-    
+
     // Call the mutation directly
     createVaccinationDetail.mutate(batchSubmission, {
       onSuccess: () => {
@@ -281,7 +281,7 @@ export default function VaccinationRecord({
             status: "completed"
           }
         });
-        
+
         toast({
           title: "Success",
           description: "Vaccination records added successfully",
@@ -303,9 +303,9 @@ export default function VaccinationRecord({
   return (
     <div className="p-6">
       <div className="mb-6">
-          <h2 className="text-2xl font-bold">Vaccination Record</h2>
-          <p className="text-gray-600">Complete vaccination documentation</p>
-        </div>
+        <h2 className="text-2xl font-bold">Vaccination Record</h2>
+        <p className="text-gray-600">Complete vaccination documentation</p>
+      </div>
 
       {selectedVaccines.length === 0 ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center">
@@ -315,8 +315,8 @@ export default function VaccinationRecord({
             <p className="text-gray-600 max-w-md">
               Please go back and select at least one vaccination before proceeding to record keeping.
             </p>
-            <Button 
-            onClick={onBack}
+            <Button
+              onClick={onBack}
               className="mt-4"
               variant="outline"
             >
@@ -331,20 +331,19 @@ export default function VaccinationRecord({
           <div className="mb-6">
             <div className="flex items-center space-x-2 overflow-x-auto pb-2">
               {vaccineMasters.map((vaccine, index) => (
-                <div 
+                <div
                   key={vaccine.id}
-                  className={`flex-shrink-0 px-4 py-2 rounded-md cursor-pointer ${
-                    index === currentStep 
-                      ? "bg-black text-white" 
-                      : index < currentStep 
-                      ? "bg-gray-200 text-gray-700" 
-                      : "bg-gray-100 text-gray-500"
-                  }`}
+                  className={`flex-shrink-0 px-4 py-2 rounded-md cursor-pointer ${index === currentStep
+                      ? "bg-black text-white"
+                      : index < currentStep
+                        ? "bg-gray-200 text-gray-700"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
                   onClick={() => {
                     // Only allow navigation to steps that have been completed or current
                     if (index <= currentStep) {
                       setCurrentStep(index);
-                      
+
                       // Restore saved values if available
                       const savedValues = formValues[vaccine.id];
                       if (savedValues) {
@@ -367,8 +366,8 @@ export default function VaccinationRecord({
                   {vaccine.name}
                 </div>
               ))}
-                </div>
-              </div>
+            </div>
+          </div>
 
           {/* Current Vaccine Card */}
           <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -379,7 +378,7 @@ export default function VaccinationRecord({
               <p className="text-sm text-gray-500">
                 Step {currentStep + 1} of {vaccineMasters.length}
               </p>
-              </div>
+            </div>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(isLastStep ? handleFinalSubmit : goToNextStep)} className="space-y-6">
@@ -390,8 +389,8 @@ export default function VaccinationRecord({
                   render={({ field }) => (
                     <FormItem className="hidden">
                       <FormControl>
-                        <Input 
-                          type="hidden" 
+                        <Input
+                          type="hidden"
                           {...field}
                         />
                       </FormControl>
@@ -461,8 +460,8 @@ export default function VaccinationRecord({
                       <FormItem>
                         <FormLabel>Batch Number *</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Enter batch number" 
+                          <Input
+                            placeholder="Enter batch number"
                             {...field}
                           />
                         </FormControl>
@@ -497,9 +496,9 @@ export default function VaccinationRecord({
                       <FormItem className="md:col-span-2">
                         <FormLabel>Adverse Reactions (if any)</FormLabel>
                         <FormControl>
-                          <Textarea 
-                  placeholder="Note any adverse reactions or side effects" 
-                  rows={4}
+                          <Textarea
+                            placeholder="Note any adverse reactions or side effects"
+                            rows={4}
                             className="resize-none"
                             {...field}
                           />
@@ -508,7 +507,7 @@ export default function VaccinationRecord({
                       </FormItem>
                     )}
                   />
-            </div>
+                </div>
 
                 <div className="flex justify-between mt-6">
                   <Button
@@ -524,9 +523,9 @@ export default function VaccinationRecord({
                       </>
                     )}
                   </Button>
-                  
+
                   <Button
-              type="submit"
+                    type="submit"
                     className={isLastStep ? "bg-black hover:bg-gray-800 text-white px-5" : "bg-gray-500 hover:bg-gray-600 text-white px-5"}
                   >
                     {isLastStep ? "Add Vaccination Record and Checkout" : (
@@ -537,9 +536,9 @@ export default function VaccinationRecord({
                     )}
                   </Button>
                 </div>
-          </form>
-        </Form>
-      </div>
+              </form>
+            </Form>
+          </div>
         </>
       )}
     </div>

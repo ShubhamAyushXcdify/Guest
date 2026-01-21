@@ -591,7 +591,7 @@ const handleChatSend = async (e: React.FormEvent) => {
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || visitLoading || triageLoading || !hasAnyInput() || isReadOnly}
-              className="ml-2 bg-black hover:bg-gray-800 text-white"
+              className="ml-2 mt-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
           >
               {isSubmitting ? "Saving..." : (triageData && triageData.id ? "Update & Next" : "Save & Next")}
           </Button>

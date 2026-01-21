@@ -340,7 +340,7 @@ function CertificateManagement({ appointmentId, patientId, onClose, embedded = f
             <Button
               onClick={handleCheckout}
               disabled={!hasCertificateCreated || isCheckingOut}
-              className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium"
+              className="px-4 py-2 rounded-md bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white disabled:bg-gray-300 disabled:opacity-60 disabled:cursor-not-allowed font-medium"
             >
               {isCheckingOut ? "Processing..." : "Checkout"}
             </Button>
