@@ -165,7 +165,7 @@ const AdvancedMap: React.FC<AdvancedMapProps> = ({
               <Button
                 onClick={handleSave}
                 size="sm"
-                className="ml-2 flex-shrink-0"
+                className="ml-2 flex-shrink-0 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
               >
                 <Save className="h-4 w-4 mr-1" />
                 Save Location

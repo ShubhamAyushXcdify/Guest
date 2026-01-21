@@ -1,3 +1,5 @@
+'use client';
+
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
@@ -39,9 +41,10 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
     id: z.string(),
     companyId: z.string().min(1, "Company is required"),
     name: z.string().min(1, "Clinic name is required"),
-    addressLine1: z.string().optional(),
+    addressLine1: z.string().max(100, "Address Line 1 must be 100 characters or less").optional(),
+    addressLine2: z.string().optional(),
     city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
+    state: z.string().optional(),
     postalCode: z.string().min(1, "Postal Code is required"),
     country: z.string().min(1, "Country is required"),
     phone: z
@@ -50,7 +53,19 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
       .max(10, "Phone number must be 10 digits")
       .regex(/^\d{10}$/, "Phone number must be 10 digits"),
     email: z.string().email("Invalid email"),
-    website: z.string().optional(),
+    website: z
+      .string()
+      .url("Please enter a valid URL")
+      .optional()
+      .or(z.literal(""))
+      .or(z.null())
+      .transform((val) => {
+        if (!val || val === "") return null;
+        const value = val.trim();
+        return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+      }),
+
+
     taxId: z.string().optional(),
     licenseNumber: z.string().optional(),
     location: z.object({
@@ -127,14 +142,23 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
 
   // Handle location selection from map
   const handleLocationSelect = (location: LocationData) => {
-    form.setValue('location', {
+    const fullAddress = location.address.trim();
+
+    form.setValue("location", {
       lat: location.lat,
       lng: location.lng,
-      address: location.address
-    }, {
-      shouldValidate: true,
+      address: fullAddress,
     });
-    form.setValue('addressLine1', location.address);
+
+    // --- NEW LOGIC: Auto-split address ---
+    if (fullAddress.length > 100) {
+      form.setValue("addressLine1", fullAddress.slice(0, 100));
+      form.setValue("addressLine2", fullAddress.slice(100));
+    } else {
+      form.setValue("addressLine1", fullAddress);
+      form.setValue("addressLine2", "");
+    }
+
 
     // Parse the address with a more flexible approach for international formats
     const addressParts = location.address.split(', ');
@@ -236,32 +260,51 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
                   <FormLabel>Address Line 1</FormLabel>
                   <FormControl>
                     <Input {...field}
-                     disabled 
-                  placeholder={!field.value ? 'Select address from map' : undefined}  />
+                      disabled
+                      placeholder={!field.value ? 'Select address from map' : undefined}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.length <= 100) {
+                          field.onChange(value);
+                          form.setValue('addressLine2', '');
+                        } else {
+                          // Auto-split: first 100 chars to addressLine1, rest to addressLine2
+                          const line1 = value.substring(0, 100);
+                          const line2 = value.substring(100);
+                          field.onChange(line1);
+                          form.setValue('addressLine2', line2);
+                        }
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {field.value?.length || 0}/100 characters
+                  </div>
                 </FormItem>
               )} />
 
-              <FormField name="addressLine2" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address Line 2</FormLabel>
-                  <FormControl>
-                    <Input {...field} 
-                     disabled 
-                  placeholder={!field.value ? 'Select address from map' : undefined} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {form.watch('addressLine2') && (
+                <FormField name="addressLine2" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address Line 2</FormLabel>
+                    <FormControl>
+                      <Input {...field}
+                        disabled
+                        placeholder={!field.value ? 'Overflow from Address Line 1' : undefined} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
 
               <FormField name="city" control={form.control} render={({ field }) => (
                 <FormItem>
                   <FormLabel>City</FormLabel>
                   <FormControl>
-                    <Input {...field} 
-                     disabled 
-                  placeholder={!field.value ? 'Select address from map' : undefined} />
+                    <Input {...field}
+                      disabled
+                      placeholder={!field.value ? 'Select address from map' : undefined} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -271,9 +314,9 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
                 <FormItem>
                   <FormLabel>State</FormLabel>
                   <FormControl>
-                    <Input {...field} 
-                     disabled 
-                  placeholder={!field.value ? 'Select address from map' : undefined} />
+                    <Input {...field}
+                      disabled
+                      placeholder={!field.value ? 'Select address from map' : undefined} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -283,9 +326,9 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
                 <FormItem>
                   <FormLabel>Postal Code</FormLabel>
                   <FormControl>
-                    <Input {...field} 
-                     disabled 
-                  placeholder={!field.value ? 'Select address from map' : undefined} />
+                    <Input {...field}
+                      disabled
+                      placeholder={!field.value ? 'Select address from map' : undefined} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -296,22 +339,22 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
                   <FormLabel>Country</FormLabel>
                   <FormControl>
                     <Input {...field}
-                     disabled 
-                  placeholder={!field.value ? 'Select address from map' : undefined}  />
+                      disabled
+                      placeholder={!field.value ? 'Select address from map' : undefined} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
 
-              <FormField 
-                name="phone" 
-                control={form.control} 
+              <FormField
+                name="phone"
+                control={form.control}
                 render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>Phone <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input 
+                        <Input
                           {...field}
                           type="tel"
                           inputMode="numeric"
@@ -332,7 +375,7 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
                     </FormControl>
                     <FormMessage className="text-red-500 text-sm" />
                   </FormItem>
-                )} 
+                )}
               />
 
               <FormField name="email" control={form.control} render={({ field }) => (
@@ -345,15 +388,24 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
                 </FormItem>
               )} />
 
-              <FormField name="website" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Website</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="url"
+                        placeholder="https://example.com"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
 
               <FormField name="taxId" control={form.control} render={({ field }) => (
                 <FormItem>
@@ -376,27 +428,27 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
               )} />
 
               {/* <FormField name="subscriptionStatus" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subscription Status</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              
-              <FormField name="subscriptionExpiresAt" control={form.control} render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subscription Expires At</FormLabel>
-                  <FormControl>
-                    <DatePicker 
-                      value={field.value ? new Date(field.value) : null}
-                      onChange={(date) => field.onChange(date ? date.toISOString() : "")}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} /> */}
+                  <FormItem>
+                    <FormLabel>Subscription Status</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                
+                <FormField name="subscriptionExpiresAt" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subscription Expires At</FormLabel>
+                    <FormControl>
+                      <DatePicker 
+                        value={field.value ? new Date(field.value) : null}
+                        onChange={(date) => field.onChange(date ? date.toISOString() : "")}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} /> */}
             </div>
 
             {/* Location Selection Section */}
@@ -431,7 +483,7 @@ export default function ClinicDetails({ clinicId, onSuccess }: ClinicDetailsProp
             </div>
           </div>
           <div className="flex justify-end">
-            <Button type="submit">
+            <Button type="submit" className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white">
               Update Clinic
             </Button>
           </div>

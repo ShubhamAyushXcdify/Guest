@@ -55,6 +55,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     companyId: z.string().min(1, "Company is required"),
     name: z.string().min(1, "Clinic name is required"),
     addressLine1: z.string().min(1, "Address Line 1 is required"),
+    addressLine2: z.string().optional().nullable(),
     city: z.string().min(1, "City is required"),
     state: z.string().min(1, "State is required"),
     postalCode: z.string().min(1, "Postal Code is required"),
@@ -65,19 +66,13 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
       .max(10, "Phone number must be 10 digits")
       .regex(/^\d{10}$/, "Phone number must be 10 digits"),
     email: z.string().email("Invalid email"),
-    // Accept values like "www.example.com" by auto-prepending https:// when protocol is missing
-    website: z
-      .string()
-      .trim()
-      .optional()
-      .transform((val) => {
-        if (!val) return undefined;
-        const value = val.trim();
-        if (!value) return undefined;
-        return /^https?:\/\//i.test(value) ? value : `https://${value}`;
-      }),
-    taxId: z.string().min(1, "Tax ID is required"),
-    licenseNumber: z.string().min(1, "License Number is required"),
+    website: z.string().optional().or(z.literal("")).transform((val) => {
+      if (!val || val === "") return null;
+      const value = val.trim();
+      return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    }),
+    taxId: z.string(),
+    licenseNumber: z.string(),
     location: z.object({
       lat: z.number(),
       lng: z.number(),
@@ -126,14 +121,22 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
 
   // Handle location selection from map
   const handleLocationSelect = (location: LocationData) => {
-    form.setValue('location', {
+    const fullAddress = location.address.trim();
+
+    form.setValue("location", {
       lat: location.lat,
       lng: location.lng,
-      address: location.address
-    },{
-      shouldValidate: true,
+      address: fullAddress,
     });
-    form.setValue('addressLine1', location.address);
+
+    // --- NEW LOGIC: Auto-split address ---
+    if (fullAddress.length > 100) {
+      form.setValue("addressLine1", fullAddress.slice(0, 100));
+      form.setValue("addressLine2", fullAddress.slice(100));
+    } else {
+      form.setValue("addressLine1", fullAddress);
+      form.setValue("addressLine2", "");
+    }
 
     // Parse the address with a more flexible approach for international formats
     const addressParts = location.address.split(', ');
@@ -183,17 +186,14 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
 
   const handleSubmit = async (values: Omit<Clinic, "id" | "createdAt" | "updatedAt">) => {
     try {
-      // Convert subscriptionExpiresAt to UTC if it exists
-      // const dataToSubmit = {
-      //   ...values,
-      //   subscriptionExpiresAt: values.subscriptionExpiresAt 
-      //     ? new Date(values.subscriptionExpiresAt).toISOString()
-      //     : null
-      // };
-      //await createClinic.mutateAsync(dataToSubmit);
-      await createClinic.mutateAsync(values);
+      const payload = {
+        ...values,
+        website: values.website?.trim() ? values.website.trim() : null,
+      };
+
+      await createClinic.mutateAsync(payload);
     } catch (error) {
-      // Error is handled in onError callback
+      // handled in onError
     }
   };
 
@@ -346,12 +346,18 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
                 <FormControl>
                   <Input
                     {...field}
+                    type="url"
+                    placeholder="https://example.com"
                     onBlur={(e) => {
                       const value = e.target.value?.trim();
-                      if (!value) return;
+                      if (!value) {
+                        field.onChange("");
+                        return;
+                      }
                       if (!/^https?:\/\//i.test(value)) {
                         // Prepend https:// to values like www.example.com
-                        form.setValue('website', `https://${value}`);
+                        const formattedValue = `https://${value}`;
+                        field.onChange(formattedValue);
                       }
                     }}
                   />
@@ -431,7 +437,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
 
         </div>
         <div className="flex justify-end">
-          <Button type="submit">
+          <Button type="submit" className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white">
             Create Clinic
           </Button>
         </div>
