@@ -776,94 +776,34 @@ export default function AppointmentList({
   }
 
   const handleCancelConfirm = async () => {
-    if (!appointmentToCancel) return
+  if (!appointmentToCancel) return;
 
+  try {
+    await updateAppointmentMutation.mutateAsync({
+      id: appointmentToCancel.id.toString(),
+      data: {
+        ...appointmentToCancel,
+        status: "cancelled",
+      }
+    });
 
-    try {
-      await updateAppointmentMutation.mutateAsync({
-        id: appointmentToCancel.id.toString(),
-        data: {
-          id: appointmentToCancel.id,
-          clinicId: appointmentToCancel.clinicId,
-          patientId: appointmentToCancel.patientId,
-          clientId: appointmentToCancel.clientId,
-          veterinarianId: appointmentToCancel.veterinarianId,
-          roomId: appointmentToCancel.roomId,
-          appointmentDate: appointmentToCancel.appointmentDate,
-          appointmentTimeFrom: appointmentToCancel.appointmentTimeFrom,
-          appointmentTimeTo: appointmentToCancel.appointmentTimeTo,
-          startTime: appointmentToCancel.startTime,
-          endTime: appointmentToCancel.endTime,
-          appointmentTypeId: appointmentToCancel.appointmentTypeId,
-          reason: appointmentToCancel.reason,
-          status: "cancelled",
-          notes: appointmentToCancel.notes,
-          createdBy: appointmentToCancel.createdBy,
-        }
-      });
-
-      // Format the appointment date and time
-      const formatDate = (dateString: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        });
-      };
-
-      const formatTime = (timeString: string) => {
-        if (!timeString) return '';
-        const [hours, minutes] = timeString.split(':');
-        const hour = parseInt(hours, 10);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour % 12 || 12;
-        return `${displayHour}:${minutes} ${ampm}`;
-      };
-
-      const appointmentDate = formatDate(appointmentToCancel.appointmentDate);
-      const appointmentTime = formatTime(appointmentToCancel.appointmentTimeFrom);
-      const timeSlot = appointmentTime ? ` at ${appointmentTime}` : '';
-      const patientName = appointmentToCancel.patient?.name || 'the patient';
-
-      const notification = {
-        id: `cancel-${Date.now()}`,
-        type: 'appointment_cancelled',
-        title: 'Appointment Cancelled',
-        message: `Appointment for ${patientName} on ${appointmentDate}${timeSlot} has been cancelled`,
-        timestamp: new Date().toISOString(),
-        data: {
-          appointmentId: appointmentToCancel.id,
-          patientId: appointmentToCancel.patientId,
-          clientId: appointmentToCancel.clientId,
-          appointmentDate: appointmentToCancel.appointmentDate,
-          appointmentTime: appointmentToCancel.appointmentTimeFrom
-        }
-      };
-
-      // Dispatch the notification event (for the notification bell)
-      const event = new CustomEvent('new-notification', { detail: notification });
-      document.dispatchEvent(event);
-      
-      // Show toast with the cancellation details
-      toast({
-        title: notification.title,
-        description: notification.message,
-        variant: 'default',
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to cancel appointment",
-        variant: "destructive",
-      })
-    } finally {
-      setIsCancelDialogOpen(false)
-      setAppointmentToCancel(null)
-
-    }
+    toast({
+      title: "Appointment Cancelled",
+      description: `Appointment has been cancelled successfully.`,
+      variant: "default",
+    });
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to cancel appointment",
+      variant: "destructive",
+    });
+  } finally {
+    setIsCancelDialogOpen(false);
+    setAppointmentToCancel(null);
   }
+};
+
 
   // Update page handling
   const handlePageChange = (page: number) => {

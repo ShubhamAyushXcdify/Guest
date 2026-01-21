@@ -40,12 +40,13 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/images/logo.png" />
       </head>
-      <body className={` antialiased`} suppressHydrationWarning>
+      <body className={`antialiased`} suppressHydrationWarning>
         <AuthProvider>
           <NuqsAdapter>
             <QueryWrapper>
               <TooltipProvider delayDuration={100}>
                 {children}
+                <NotificationListener />
               </TooltipProvider>
               <Toaster />
               {/* <PWAInstallPrompt /> */}
@@ -53,7 +54,6 @@ export default function RootLayout({
           </NuqsAdapter>
         </AuthProvider>
         <NotificationInitializer />
-        <NotificationListener />
       </body>
     </html>
   )
