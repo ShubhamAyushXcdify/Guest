@@ -6,13 +6,13 @@ const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     let token = getJwtToken(request);
     if (!token) token = testToken;
 
-    const { id } = params;
+    const { id } = await params; 
     const response = await fetch(`${apiUrl}/api/Notification/${id}`, {
       headers: {
         "Content-Type": "application/json",
@@ -40,14 +40,14 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     const body = await request.json();
     let token = getJwtToken(request);
     if (!token) token = testToken;
 
-    const { id } = params;
+    const { id } = await params; 
     const response = await fetch(`${apiUrl}/api/Notification/${id}`, {
       method: "PUT",
       headers: {
@@ -73,13 +73,13 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     let token = getJwtToken(request);
     if (!token) token = testToken;
 
-    const { id } = params;
+    const { id } = await params; 
     const response = await fetch(`${apiUrl}/api/Notification/${id}`, {
       method: "DELETE",
       headers: {
