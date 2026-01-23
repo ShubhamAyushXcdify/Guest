@@ -457,7 +457,7 @@ export function NewPatientForm({ onSuccess, defaultClientId, hideOwnerSection = 
                   name="microchipNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Microchip Number</FormLabel>
+                      <FormLabel>Microchip Number*</FormLabel>
                       <FormControl>
                         <Input placeholder="Microchip number (optional)" {...field} />
                       </FormControl>

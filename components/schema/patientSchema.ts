@@ -16,7 +16,7 @@ export const patientFormSchema = z.object({
       z.coerce.number().min(0, "Weight must be a positive number")
     )
     .optional(),
-  microchipNumber: z.string().optional(),
+  microchipNumber: z.string().min(1, "Microchip number is required"),
   registrationNumber: z.string().optional(),
   insuranceProvider: z.string().optional(),
   insurancePolicyNumber: z.string().optional(),
@@ -37,4 +37,5 @@ export const defaultPatientValues: Partial<PatientFormValues> = {
   isNeutered: false,
   isActive: true,
   weightKg: 0,
+  microchipNumber: "",
 }

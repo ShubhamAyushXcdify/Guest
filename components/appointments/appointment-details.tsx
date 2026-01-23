@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useQueryClient } from "@tanstack/react-query"
-import { useGetPatients } from "@/queries/patients/get-patients"
+import { useGetPatients, PaginatedResponse, Patient } from "@/queries/patients/get-patients"
 import { useGetClients, type Client } from "@/queries/clients/get-client"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRole } from "@/queries/roles/get-role"
@@ -26,7 +26,7 @@ import { useGetAppointmentType } from "@/queries/appointmentType/get-appointment
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import VisitManager from "@/components/appointments/visit"
 import CertificateGeneration from "./certificate-generation"
-import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
+//import { useSearchPatients } from "@/queries/patients/get-patients-by-search"
 import { getCompanyId } from "@/utils/clientCookie"
 import { useRootContext } from "@/context/RootContext"
 import { useDebouncedValue } from "@/hooks/use-debounce"
@@ -84,9 +84,18 @@ interface ExtendedPatient {
   name?: string
   firstName?: string
   lastName?: string
-  patientId?: string
   species?: string
   breed?: string
+  microchipNumber?: string;
+  clientId?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
+  clientPhonePrimary?: string;
+  client?: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+  }
 }
 
 export default function AppointmentDetails({ appointmentId, onClose }: AppointmentDetailsProps) {
@@ -106,7 +115,17 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<{ id: string; name: string; clientId?: string } | null>(null)
   const [veterinarianRoleId, setVeterinarianRoleId] = useState<string | null>(null)
-  const debouncedPatientQuery = useDebouncedValue(patientSearchQuery, 300)
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("") // New state for debounced value
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(patientSearchQuery);
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [patientSearchQuery, 300]); // Depend on patientSearchQuery
   const searchDropdownRef = useRef<HTMLDivElement>(null)
 
   // Initialize form
@@ -231,14 +250,16 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
     }
   }, [rolesData])
 
-  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
-    debouncedPatientQuery,
-    "name", // Always search by name as specified
-    companyId || undefined,
+  const { data: searchResults, isLoading: isSearching } = useGetPatients(
+    1, // pageNumber
+    50, // pageSize - get more results for search
+    debouncedSearchTerm, // Use the debounced string value here
+    '', // clientId - empty for general search
+    companyId || undefined // companyId
   )
 
   // Convert search results to our format
-  const typedSearchResults = searchResults as ExtendedPatient[]
+  const typedSearchResults = searchResults?.items || [] as ExtendedPatient[]
 
   // Format time for display (assuming HH:mm:ss format from API)
   const formatTime = (timeString: string) => {
@@ -285,8 +306,8 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 
     if (patient.name) {
       patientName = patient.name
-    } else if (patient.patientId) {
-      patientName = patient.patientId
+    } else if (patient.id) {
+      patientName = patient.id
       if (patient.species) {
         patientName += ` (${patient.species})`
       }
@@ -376,8 +397,8 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 
     if (patient.name) {
       displayName = patient.name
-    } else if (patient.patientId) {
-      displayName = patient.patientId
+    } else if (patient.id) {
+      displayName = patient.id
       if (patient.species) {
         displayName += ` (${patient.species})`
       }
@@ -846,18 +867,22 @@ export default function AppointmentDetails({ appointmentId, onClose }: Appointme
 
                                           if (patient.name) {
                                             displayName = patient.name
-                                          } else if (patient.patientId) {
-                                            displayName = patient.patientId
+                                          } else if (patient.id) {
+                                            displayName = patient.id
                                             if (patient.species) {
                                               displayName += ` (${patient.species})`
                                             }
-                                          } else if (patient.firstName || patient.lastName) {
-                                            displayName = `${patient.firstName || ""} ${patient.lastName || ""}`.trim()
+                                          } else if (patient.name ) {
+                                            displayName = `${patient.name}`.trim()
                                           }
 
                                           if (!displayName) {
                                             displayName = `Patient (ID: ${patient.id.substring(0, 8)}...)`
                                           }
+
+                                          const microchipDisplay = patient.microchipNumber ? ` (Microchip: ${patient.microchipNumber})` : '';
+
+                                          displayName += microchipDisplay;
 
                                           return (
                                             <li

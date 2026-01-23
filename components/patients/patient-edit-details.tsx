@@ -57,7 +57,7 @@ const patientFormSchema = z.object({
       return !isNaN(parsedDate.getTime()) && parsedDate <= today;
     }, "Date of birth cannot be in the future"),
   weightKg: z.coerce.number().min(0, "Weight must be a positive number"),
-  microchipNumber: z.string().optional(),
+  microchipNumber: z.string().min(1, "Microchip number is required"),
   registrationNumber: z.string().optional(),
   insuranceProvider: z.string().optional(),
   insurancePolicyNumber: z.string().optional(),
@@ -110,6 +110,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
     isNeutered: false,
     isActive: true,
     weightKg: 0,
+    microchipNumber: "",
   }
 
   const form = useForm<PatientFormValues>({
@@ -216,7 +217,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Name*</FormLabel>
                   <FormControl>
                     <Input placeholder="Pet name" {...field} />
                   </FormControl>
@@ -230,7 +231,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="species"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Species</FormLabel>
+                  <FormLabel>Species*</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value || ''}
@@ -259,7 +260,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="breed"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Primary Breed</FormLabel>
+                  <FormLabel>Primary Breed*</FormLabel>
                   <FormControl>
                     <Input placeholder="Primary Breed" {...field} />
                   </FormControl>
@@ -287,7 +288,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>Color*</FormLabel>
                   <FormControl>
                     <Input placeholder="Color" {...field} />
                   </FormControl>
@@ -301,7 +302,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="gender"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Gender</FormLabel>
+                  <FormLabel>Gender*</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value || ''}
@@ -347,7 +348,7 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="dateOfBirth"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date of Birth</FormLabel>
+                  <FormLabel>Date of Birth*</FormLabel>
                   <FormControl>
                     <DatePicker
                       selected={field.value ? new Date(
@@ -399,9 +400,9 @@ export function PatientEditDetails({ patientId, onSuccess }: PatientEditDetailsP
               name="microchipNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Microchip Number</FormLabel>
+                  <FormLabel>Microchip Number*</FormLabel>
                   <FormControl>
-                    <Input placeholder="Microchip number (optional)" {...field} value={field.value || ""} />
+                    <Input placeholder="Microchip number" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

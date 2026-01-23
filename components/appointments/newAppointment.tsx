@@ -48,6 +48,7 @@ interface SearchPatientResult {
   clientFirstName?: string;
   clientLastName?: string;
   clientPhonePrimary?: string;
+  microchipNumber?: string; // Added microchipNumber
   client?: {
     id?: string;
     firstName?: string;
@@ -84,13 +85,26 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   // Patient search state
   const [patientSearchQuery, setPatientSearchQuery] = useState("")
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false)
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("") // New state for debounced value
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(patientSearchQuery);
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [patientSearchQuery, 300]); // Depend on patientSearchQuery
 
   const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
 
-  const { data: searchResults = [], isLoading: isSearching } = useSearchPatients(
-    patientSearchQuery,
-    "name",
-    companyId // Always search by name as specified
+  const { data: searchResults, isLoading: isSearching } = useGetPatients(
+    1, // pageNumber
+    50, // pageSize - get more results for search
+    debouncedSearchTerm, // Use the debounced string value here
+    '', // clientId - empty for general search
+    companyId || undefined // companyId
   )
 
   // Fetch specific patient by ID when patientId is provided
@@ -100,7 +114,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   const { data: appointmentData, isLoading: isLoadingAppointment } = useGetAppointmentById(appointmentId || "");
 
   // Cast the search results to our custom interface to handle API variations
-  const typedSearchResults = searchResults as SearchPatientResult[];
+  const typedSearchResults = (searchResults?.items || []) as SearchPatientResult[];
 
   const { data: rolesData } = useGetRole();
 
@@ -528,16 +542,21 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     setShowNewPatientForm(false)
   }
 
+  // const handlePatientSearch = (searchTerm: string) => {
+  //   setPatientSearchQuery(searchTerm)
+
+  //   // Update URL with search parameter but don't expose specific fields
+  //   const url = new URL(window.location.href);
+  //   url.searchParams.set('search', encodeURIComponent(searchTerm));
+
+  //   // Update the URL without page reload
+  //   window.history.pushState({}, '', url.toString());
+  // }
+
   const handlePatientSearch = (searchTerm: string) => {
-    setPatientSearchQuery(searchTerm)
-
-    // Update URL with search parameter but don't expose specific fields
-    const url = new URL(window.location.href);
-    url.searchParams.set('search', encodeURIComponent(searchTerm));
-
-    // Update the URL without page reload
-    window.history.pushState({}, '', url.toString());
-  }
+     setPatientSearchQuery(searchTerm)
+     setIsSearchDropdownOpen(true)
+   }
   const debouncedPatientQuery = useDebounce(handlePatientSearch, 300)
 
   const handleCancel = () => {
@@ -826,7 +845,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                       <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
                                         {isSearching ? (
                                           <div className="p-2 text-center text-gray-500">Searching...</div>
-                                        ) : searchResults.length === 0 ? (
+                                        ) : typedSearchResults.length === 0 ? (
                                           <div className="p-2 text-center text-gray-500">No patients found</div>
                                         ) : (
                                           <ul>
@@ -863,11 +882,13 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
                                               // Combine client and patient names with phone number in the format {clients name}-{patients name} ({phone})
                                               const phoneNumber = patient.clientPhonePrimary;
+                                              const microchipDisplay = patient.microchipNumber ? ` (Microchip: ${patient.microchipNumber})` : '';
+
                                               const displayName = clientName
                                                 ? phoneNumber
-                                                  ? `${patientName}-${clientName} (${phoneNumber})`
-                                                  : `${patientName}-${clientName}`
-                                                : patientName;
+                                                  ? `${patientName}-${clientName} (${phoneNumber})${microchipDisplay}`
+                                                  : `${patientName}-${clientName}${microchipDisplay}`
+                                                : `${patientName}${microchipDisplay}`;
 
                                               return (
                                                 <li
