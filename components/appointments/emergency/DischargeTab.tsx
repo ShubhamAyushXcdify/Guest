@@ -221,7 +221,7 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
 
   // Keep internal Follow-up Date in sync with footer picker (if provided)
   useEffect(() => {
-    if (typeof externalFollowUpDate !== "undefined") {
+    if (typeof externalFollowUpDate !== "undefined" && externalFollowUpDate !== "") {
       setFollowUpDate(externalFollowUpDate ? new Date(externalFollowUpDate) : null);
     }
   }, [externalFollowUpDate]);
@@ -509,6 +509,25 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
             placeholder="Discharge instructions for the client"
             value={instructions}
             onChange={e => setInstructions(e.target.value)}
+          />
+        </div>
+        <div className="mb-4">
+          <Label htmlFor="followUpDate">Follow-up Date</Label>
+          <DatePicker
+            selected={followUpDate}
+            onChange={(date) => {
+              setFollowUpDate(date);
+              if (onExternalFollowUpDateChange) {
+                onExternalFollowUpDateChange(date ? date.toISOString() : "");
+              }
+            }}
+            minDate={new Date()}
+            showYearDropdown
+            showMonthDropdown
+            dropdownMode="select"
+            dateFormat="dd/MM/yyyy"
+            placeholderText="dd/mm/yyyy"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <div className="mb-4">

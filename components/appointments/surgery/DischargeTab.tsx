@@ -8,8 +8,6 @@ import { useUpdateSurgeryDischarge } from "@/queries/surgery/discharge/update-su
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,6 +20,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { surgeryDischargeAnalysis } from "@/app/actions/reasonformatting";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface DischargeTabProps {
   patientId: string;
@@ -46,13 +46,14 @@ export default function DischargeTab({ patientId, appointmentId, onClose, extern
   const [medications, setMedications] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [followUpDate, setFollowUpDate] = useState<string>("");
+  const [followUpUpdate, setFollowUpUpdate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-const [isChatMode, setIsChatMode] = useState(false);
-const [analysisResult, setAnalysisResult] = useState("");
-const [chatInput, setChatInput] = useState("");
-const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [isChatMode, setIsChatMode] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState("");
+  const [chatInput, setChatInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const { data: visitData } = useGetVisitByAppointmentId(appointmentId);
   const { data: appointmentData } = useGetAppointmentById(appointmentId);
@@ -72,6 +73,7 @@ const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const createDischarge = useCreateSurgeryDischarge();
   const updateDischarge = useUpdateSurgeryDischarge();
   const { markTabAsCompleted } = useTabCompletion();
+  const today = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
   const isAppointmentCompleted = appointmentData?.status === "completed";
   const areAnyVisitTabsCompleted = (): boolean => {
     if (!visitData) return false;
@@ -90,9 +92,10 @@ const messagesEndRef = useRef<HTMLDivElement | null>(null);
       homeCare.trim() !== "" ||
       medications.trim() !== "" ||
       followUp.trim() !== "" ||
+      followUpUpdate.trim() !== "" ||
       followUpDate.trim() !== "";
     return nonDefaultSelects || hasTexts;
-  }, [status, dischargeTime, homeCare, medications, followUp, followUpDate]);
+  }, [status, dischargeTime, homeCare, medications, followUp, followUpUpdate, followUpDate]);
 
   useEffect(() => {
     if (dischargeData && dischargeData.length > 0) {
@@ -102,23 +105,23 @@ const messagesEndRef = useRef<HTMLDivElement | null>(null);
       setHomeCare(data.homeCareInstructions || "");
       setMedications(data.medicationsToGoHome || "");
       setFollowUp(data.followUpInstructions || "");
-      // Read followupDate from API (accept both followupDate and followUpDate just in case)
-      const apiFollowUpDate = (data as any)?.followupDate || (data as any)?.followUpDate as string | undefined;
-      setFollowUpDate(apiFollowUpDate || "");
+      const apiFollowUpDate = (data as any)?.followupDate as string | undefined;
+      if (apiFollowUpDate) {
+        setFollowUpDate(apiFollowUpDate);
+      }
     }
   }, [dischargeData]);
 
-  // Keep internal follow-up date in sync with footer picker (if provided)
   useEffect(() => {
-    if (typeof externalFollowUpDate !== "undefined") {
-      setFollowUpDate(externalFollowUpDate || "");
+    if (typeof externalFollowUpDate !== "undefined" && externalFollowUpDate !== "") {
+      setFollowUpDate(externalFollowUpDate);
     }
   }, [externalFollowUpDate]);
 
   const surgeryDischargeContextRef = useRef("");
 
-const buildSurgeryDischargeContext = () => {
-  const dischargeInfo = `
+  const buildSurgeryDischargeContext = () => {
+    const dischargeInfo = `
 Current Surgery Discharge Data:
 - Discharge Status: ${dischargeStatus || "Not specified"}
 - Discharge Datetime: ${dischargeTime ? dischargeTime.toString() : "Not recorded"}
@@ -127,106 +130,107 @@ Current Surgery Discharge Data:
 - Follow-up Instructions: ${followUp || "Not provided"}
 - Follow-up Date: ${followUpDate ? followUpDate.toString() : "Not scheduled"}
 `.trim();
- 
-  return dischargeInfo;
-};
 
-useEffect(() => {
-  surgeryDischargeContextRef.current = buildSurgeryDischargeContext();
-}, [
-  dischargeStatus,
-  dischargeTime,
-  homeCare,
-  medications,
-  followUp,
-  followUpDate,
-]);
+    return dischargeInfo;
+  };
 
-const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
-  id: `surgery-discharge-analysis-${patientId}-${appointmentId}`,
-  transport: new DefaultChatTransport({
-    prepareSendMessagesRequest: ({ id, messages }) => {
-      const dischargeContext = surgeryDischargeContextRef.current;
+  useEffect(() => {
+    surgeryDischargeContextRef.current = buildSurgeryDischargeContext();
+  }, [
+    dischargeStatus,
+    dischargeTime,
+    homeCare,
+    medications,
+    followUp,
+    followUpDate,
+  ]);
 
-      return {
-        body: {
-          id,
-          messages,
-          patientId: patientId ?? null,
-          surgeryDischargeContext: dischargeContext || undefined,
-        },
-      };
-    },
-  }),
-});
-const hasAnyInput = () => {
-  return (
-    status?.trim() ||
-    dischargeTime?.trim() ||
-    homeCare?.trim() ||
-    medications?.trim() ||
-    followUp?.trim() ||
-    followUpDate
-  );
-};
+  const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
+    id: `surgery-discharge-analysis-${patientId}-${appointmentId}`,
+    transport: new DefaultChatTransport({
+      prepareSendMessagesRequest: ({ id, messages }) => {
+        const dischargeContext = surgeryDischargeContextRef.current;
 
-const handleAnalyze = async () => {
-  const species = appointmentData?.patient?.species;
-
-  if (!species) {
-    toast.error("Patient species information is required for analysis");
-    return;
-  }
-
-  if (!hasAnyInput()) {
-    toast.error("Please enter at least one discharge detail before analyzing");
-    return;
-  }
-
-  setIsAnalyzing(true);
-
-  try {
-    const analysis = await surgeryDischargeAnalysis(species, {
-      dischargeStatus: status,
-      dischargeDatetime: dischargeTime ? dischargeTime.toString() : undefined,
-      homeCareInstructions: homeCare,
-      medicationsToGoHome: medications,
-      followUpInstructions: followUp,
-      followupDate: followUpDate ? followUpDate.toString() : undefined,
-    });
-
-    setAnalysisResult(analysis);
-    setIsChatMode(true);
-
-    setMessages([
-      {
-        id: "initial-surgery-discharge-analysis",
-        role: "assistant",
-        parts: [{ type: "text", text: analysis }],
+        return {
+          body: {
+            id,
+            messages,
+            patientId: patientId ?? null,
+            surgeryDischargeContext: dischargeContext || undefined,
+          },
+        };
       },
-    ]);
-
-    toast.success("Surgery discharge analysis completed");
-  } catch (error) {
-    toast.error(
-      error instanceof Error ? error.message : "Failed to analyze surgery discharge"
+    }),
+  });
+  const hasAnyInput = () => {
+    return (
+      status?.trim() ||
+      dischargeTime?.trim() ||
+      homeCare?.trim() ||
+      medications?.trim() ||
+      followUp?.trim() ||
+      followUpUpdate?.trim() ||
+      followUpDate
     );
-  } finally {
-    setIsAnalyzing(false);
-  }
-};
+  };
 
-const handleChatSend = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!chatInput.trim()) return;
+  const handleAnalyze = async () => {
+    const species = appointmentData?.patient?.species;
 
-  await sendMessage({ text: chatInput });
-  setChatInput("");
-};
+    if (!species) {
+      toast.error("Patient species information is required for analysis");
+      return;
+    }
 
-useEffect(() => {
-  messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-}, [messages]);
+    if (!hasAnyInput()) {
+      toast.error("Please enter at least one discharge detail before analyzing");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      const analysis = await surgeryDischargeAnalysis(species, {
+        dischargeStatus: status,
+        dischargeDatetime: dischargeTime ? dischargeTime.toString() : undefined,
+        homeCareInstructions: homeCare,
+        medicationsToGoHome: medications,
+        followUpInstructions: followUp,
+        followupDate: followUpDate ? followUpDate.toString() : undefined,
+      });
+
+      setAnalysisResult(analysis);
+      setIsChatMode(true);
+
+      setMessages([
+        {
+          id: "initial-surgery-discharge-analysis",
+          role: "assistant",
+          parts: [{ type: "text", text: analysis }],
+        },
+      ]);
+
+      toast.success("Surgery discharge analysis completed");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to analyze surgery discharge"
+      );
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleChatSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    await sendMessage({ text: chatInput });
+    setChatInput("");
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
 
   const handleSubmit = async () => {
@@ -280,7 +284,7 @@ useEffect(() => {
     try {
       // First save the discharge details
       await handleSubmit();
-      
+
       // Update appointment status to completed
       await updateAppointmentMutation.mutateAsync({
         id: appointmentId,
@@ -299,78 +303,113 @@ useEffect(() => {
   return (
     <Card>
       <CardContent className="p-0">
-      <div className="h-[calc(100vh-22.5rem)] overflow-y-auto p-6">
-        <div className="space-y-4">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-medium mb-1">Discharge Status</label>
-              <select
-                className="border rounded px-2 py-1 w-full"
-                value={status}
-                onChange={e => setStatus(e.target.value)}
-                disabled={isReadOnly}
-              >
-                <option value="" disabled>Select Discharge Status</option>
-                {dischargeStatus.map(dischargeStatus => (
-                  <option key={dischargeStatus} value={dischargeStatus}>{dischargeStatus}</option>
-                ))}
-              </select>
+        <div className="h-[calc(100vh-22.5rem)] overflow-y-auto p-6">
+          <div className="space-y-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-medium mb-1">Discharge Status</label>
+                <select
+                  className="border rounded px-2 py-1 w-full"
+                  value={status}
+                  onChange={e => setStatus(e.target.value)}
+                  disabled={isReadOnly}
+                >
+                  <option value="" disabled>Select Discharge Status</option>
+                  {dischargeStatus.map(dischargeStatus => (
+                    <option key={dischargeStatus} value={dischargeStatus}>{dischargeStatus}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-medium mb-1">Discharge Date/Time</label>
+                <DatePicker
+                  selected={dischargeTime ? new Date(dischargeTime) : null}
+                  onChange={(date) => {
+                    if (date instanceof Date && !isNaN(date.getTime())) {
+                      setDischargeTime(date.toISOString());
+                    } else {
+                      setDischargeTime("");
+                    }
+                  }}
+                  minDate={today}
+                  showYearDropdown
+                  showMonthDropdown
+                  dropdownMode="select"
+                  dateFormat="dd/MM/yyyy h:mm aa"
+                  placeholderText="dd/mm/yyyy hh:mm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isReadOnly}
+                />
+              </div>
             </div>
             <div>
-              <label className="block font-medium mb-1">Discharge Date/Time</label>
+              <label className="block font-medium mb-1">Home Care Instructions</label>
+              <Textarea
+                value={homeCare}
+                onChange={e => setHomeCare(e.target.value)}
+                placeholder="Detailed instructions for home care"
+                disabled={isReadOnly}
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Medications to Go Home</label>
+              <Textarea
+                value={medications}
+                onChange={e => setMedications(e.target.value)}
+                placeholder="List medications, dosages, and administration instructions"
+                disabled={isReadOnly}
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Follow-up Date</label>
               <DatePicker
-                selected={dischargeTime ? new Date(dischargeTime) : null}
+                selected={followUpDate ? new Date(followUpDate) : null}
                 onChange={(date) => {
                   if (date instanceof Date && !isNaN(date.getTime())) {
-                    setDischargeTime(date.toISOString());
+                    setFollowUpDate(date.toISOString());
+                    if (onExternalFollowUpDateChange) {
+                      onExternalFollowUpDateChange(date.toISOString());
+                    }
                   } else {
-                    setDischargeTime("");
+                    setFollowUpDate("");
+                    if (onExternalFollowUpDateChange) {
+                      onExternalFollowUpDateChange("");
+                    }
                   }
                 }}
-                showTimeSelect
-                timeIntervals={5}
+                minDate={new Date()}
                 showYearDropdown
                 showMonthDropdown
                 dropdownMode="select"
-                dateFormat="dd/MM/yyyy h:mm aa"
-                placeholderText="dd/mm/yyyy hh:mm"
+                dateFormat="dd/MM/yyyy"
+                placeholderText="dd/mm/yyyy"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 disabled={isReadOnly}
               />
             </div>
+            <div>
+              <label className="block font-medium mb-1">Follow-up Instructions</label>
+              <Textarea
+                value={followUp}
+                onChange={e => setFollowUp(e.target.value)}
+                placeholder="Follow-up appointment details and instructions"
+                disabled={isReadOnly}
+              />
+            </div>
+            <div>
+              <label className="block font-medium mb-1">Follow-up Update</label>
+              <Textarea
+                value={followUpUpdate}
+                onChange={e => setFollowUpUpdate(e.target.value)}
+                placeholder="Follow-up appointment details and instructions"
+                disabled={isReadOnly}
+              />
+            </div>
+
           </div>
-          <div>
-            <label className="block font-medium mb-1">Home Care Instructions</label>
-            <Textarea
-              value={homeCare}
-              onChange={e => setHomeCare(e.target.value)}
-              placeholder="Detailed instructions for home care"
-              disabled={isReadOnly}
-            />
-          </div>
-          <div>
-            <label className="block font-medium mb-1">Medications to Go Home</label>
-            <Textarea
-              value={medications}
-              onChange={e => setMedications(e.target.value)}
-              placeholder="List medications, dosages, and administration instructions"
-              disabled={isReadOnly}
-            />
-          </div>
-          <div>
-            <label className="block font-medium mb-1">Follow-up Instructions</label>
-            <Textarea
-              value={followUp}
-              onChange={e => setFollowUp(e.target.value)}
-              placeholder="Follow-up appointment details and instructions"
-              disabled={isReadOnly}
-            />
-          </div>
-         
-        </div>
-         {/* AI Emergency Procedures Analysis */}
-        <div className="mt-8 border-t pt-6">
+          {/* AI Emergency Procedures Analysis */}
+          <div className="mt-8 border-t pt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-md font-semibold">AI Emergency Procedures Analysis</h3>
               {!isChatMode && (
@@ -508,23 +547,23 @@ useEffect(() => {
           </div>
         </div>
         <div className="mt-6 flex justify-end gap-2 px-4 pb-4">
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || isProcessing || isReadOnly || !hasAnyFieldFilled}
-              className="bg-[#1E3D3D] text-white px-4 py-2 rounded enabled:hover:bg-[#152B2B] disabled:opacity-50"
-            >
-              {isSubmitting
-                ? "Saving..."
-                : dischargeData && dischargeData.length > 0 ? "Update" : "Save"}
-            </Button>
-            <Button
-              onClick={handleCheckout}
-              disabled={isSubmitting || isProcessing || (!anyVisitTabComplete) || isReadOnly}
-              className="ml-2 bg-green-600 hover:bg-green-700 text-white"
-            >
-              Checkout
-            </Button>
-          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || isProcessing || isReadOnly || !hasAnyFieldFilled}
+            className="bg-[#1E3D3D] text-white px-4 py-2 rounded enabled:hover:bg-[#152B2B] disabled:opacity-50"
+          >
+            {isSubmitting
+              ? "Saving..."
+              : dischargeData && dischargeData.length > 0 ? "Update" : "Save"}
+          </Button>
+          <Button
+            onClick={handleCheckout}
+            disabled={isSubmitting || isProcessing || (!anyVisitTabComplete) || isReadOnly}
+            className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+          >
+            Checkout
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
