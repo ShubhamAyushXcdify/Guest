@@ -39,6 +39,7 @@ type DoctorProps = {
 };
 
 function DoctorComponent({ clinicId }: DoctorProps) {
+  
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
@@ -65,13 +66,15 @@ function DoctorComponent({ clinicId }: DoctorProps) {
     pageNumber,
     pageSize,
     search,
-    !!veterinarianRoleId, // enabled
+    !!veterinarianRoleId, // enabled - only when veterinarianRoleId is available
     '', // companyId - not needed for doctors tab
     clinicId ? [clinicId] : [], // Pass clinicId as an array
     veterinarianRoleId ? [veterinarianRoleId] : [] // Pass veterinarianRoleId as an array
   );
 
-  const doctors = usersData?.items || [];
+  const doctors = clinicId
+    ? usersData?.items?.filter(user => user.clinics?.some(c => c.clinicId === clinicId)) || []
+    : usersData?.items || [];
   const totalPages = usersData?.totalPages || 1;
 
   const [openNew, setOpenNew] = useState(false);

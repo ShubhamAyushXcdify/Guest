@@ -366,7 +366,7 @@ export default function NewUser({ onSuccess }: NewUserProps) {
 
               return (
                 <FormItem>
-                  <FormLabel>Clinics</FormLabel>
+                    <FormLabel>Clinics*</FormLabel>
                   <FormControl>
                     {isVeterinarian ? (
                       <MultiSelect

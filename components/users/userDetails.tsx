@@ -363,7 +363,7 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
              
              return (
                 <FormItem>
-                  <FormLabel>Clinics</FormLabel>
+                  <FormLabel>Clinics*</FormLabel>
                   <FormControl>
                     {isVeterinarian ? (
                       <MultiSelect
