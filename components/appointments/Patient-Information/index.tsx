@@ -43,7 +43,7 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
   const { isTabCompleted } = useTabCompletion()
   const { data: history } = useGetPatientAppointmentHistory(patientId)
 
-  // Filter appointment history to exclude scheduled appointments
+  // Filter appointment history to exclude scheduled appointments only
   const filteredAppointmentHistory = useMemo(() => {
     return history?.appointmentHistory.filter(appt => appt.status !== "scheduled") || [];
   }, [history?.appointmentHistory]);

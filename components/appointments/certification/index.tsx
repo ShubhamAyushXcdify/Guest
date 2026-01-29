@@ -64,7 +64,9 @@ function CertificateManagement({ appointmentId, patientId, onClose, embedded = f
   }, [currentTabConfig, appointment?.appointmentType?.name])
 
   const filteredAppointmentHistory = useMemo(() => {
-    return history?.appointmentHistory?.filter((appt: any) => appt.status !== "scheduled") || []
+    return history?.appointmentHistory?.filter((appt: any) => 
+      appt.status === "InProgress" || appt.status === "completed"
+    ) || []
   }, [history?.appointmentHistory])
 
   useEffect(() => {

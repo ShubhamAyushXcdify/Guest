@@ -94,7 +94,7 @@ function EmergencyContent({ patientId, appointmentId: initialAppointmentId, onCl
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
-  // Filter appointment history to exclude scheduled appointmentsf
+  // Filter appointment history to exclude scheduled appointments only
   const filteredAppointmentHistory = useMemo(() => {
     return history?.appointmentHistory.filter(appt => appt.status !== "scheduled") || [];
   }, [history?.appointmentHistory]);

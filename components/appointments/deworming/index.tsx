@@ -50,7 +50,8 @@ function DewormingContent({
   // Get the current tab configuration based on appointment type
   const currentTabConfig = useMemo(() => {
     const type = appointment?.appointmentType?.name || "Deworming"
-    return appointmentTabConfigMap[type] || []
+    const config = appointmentTabConfigMap[type] || appointmentTabConfigMap["Deworming"] || []
+    return config
   }, [appointment?.appointmentType?.name])
 
   // Initialize tab from URL parameter or default to first tab
@@ -81,9 +82,13 @@ function DewormingContent({
     router.replace(`?${params.toString()}`, { scroll: false })
   }
 
-  // Filter appointment history to exclude scheduled appointments
+  // Filter appointment history to only include InProgress or completed appointments of type Deworming
   const filteredAppointmentHistory = useMemo(() => {
-    return history?.appointmentHistory.filter((appt) => appt.status !== "scheduled") || []
+    return history?.appointmentHistory.filter((appt) => 
+      (appt.status === "InProgress" || 
+       appt.status === "completed") &&
+      appt.appointmentType === "Deworming"
+    ) || []
   }, [history?.appointmentHistory])
 
   // Keep currentAppointmentId in sync if parent prop changes
@@ -97,6 +102,11 @@ function DewormingContent({
   }, [currentAppointmentId, refetchVisitData])
 
   const isDewormingTabCompleted = (tabValue: string): boolean => {
+    // First check TabCompletionContext for immediate state
+    const contextCompleted = isTabCompleted(tabValue as TabId);
+    if (contextCompleted) return true;
+    
+    // Fall back to database state
     if (!visitData) return false
     const visit = visitData as any
     const tabConfig = currentTabConfig.find((tab) => tab.value === tabValue)

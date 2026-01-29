@@ -96,7 +96,7 @@ function VaccinationManager({
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
-  // Filter appointment history to exclude scheduled appointments
+  // Filter appointment history to exclude scheduled appointments only
   const filteredAppointmentHistory = useMemo(() => {
     return history?.appointmentHistory.filter(appt => appt.status !== "scheduled") || [];
   }, [history?.appointmentHistory]);

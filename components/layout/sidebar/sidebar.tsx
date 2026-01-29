@@ -25,7 +25,7 @@ import { ClinicSelector } from "../clinic-selector"
 import { useGetScreenAccess } from "@/queries/screen/access/get-screen-access"
 import { getClinicId, getCompanyId } from "@/utils/clientCookie"
 import { getCompanySubdomain } from "@/utils/subdomain"
-import { useGetCompanyBySubdomain } from "@/queries/companies"
+import { useGetCompanyBySubdomain, useGetCompanyById } from "@/queries/companies"
 import Image from "next/image"
 
 export function Sidebar() {
@@ -41,7 +41,10 @@ export function Sidebar() {
         "Settings": true,
     })
     const subdomain = getCompanySubdomain()
-    const { data: company, isLoading: companyLoading, error: companyError } = useGetCompanyBySubdomain(subdomain)
+    const companyId = (user as any)?.companyId || getCompanyId()
+    
+    // Use user's companyId if available, otherwise fall back to subdomain
+    const { data: company, isLoading: companyLoading, error: companyError } = useGetCompanyById(companyId || '')
 
     const successMessage = () => {
         toast({
@@ -51,7 +54,7 @@ export function Sidebar() {
         })
     }
     const companyData = company || {
-        name: "PawTrack Veterinary Clinic",
+        name: companyLoading ? "Loading..." : "Veterinary Clinic",
         description: "Professional veterinary care for your beloved pets",
         logoUrl: "/images/logo.png",
         email: "info@pawtrack.com",

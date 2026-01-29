@@ -298,8 +298,7 @@ const handleChatSend = async (e: React.FormEvent) => {
         (isUpdate ? "Triage updated successfully" : "Triage created successfully");
   
       toast.success(successMessage, {
-        duration: 4000,
-        className: "bg-green-500 text-white",
+        
       });
   
       await refetchTriage();
