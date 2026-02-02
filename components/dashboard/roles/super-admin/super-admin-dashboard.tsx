@@ -11,9 +11,29 @@ import type { DateRange } from "react-day-picker"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
+import { format, startOfDay, endOfDay } from "date-fns"
 
 export const SuperAdminDashboard = () => {
-  const { data: dashboardData, isLoading, error } = useGetSuperAdminDashboard();
+  // Add date range state
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(new Date().setDate(new Date().getDate() - 30)), // 30 days ago
+    to: new Date(),
+  });
+
+  // Prepare parameters for API call
+  const dashboardParams = useMemo(() => {
+    const formatDate = (date: Date | undefined) => {
+      if (!date) return '';
+      return format(date, 'yyyy-MM-dd');
+    };
+
+    return {
+      fromDate: formatDate(dateRange?.from),
+      toDate: formatDate(dateRange?.to),
+    };
+  }, [dateRange]);
+
+  const { data: dashboardData, isLoading, error } = useGetSuperAdminDashboard(dashboardParams);
   const companies = dashboardData?.companies || [];
 
   // Calculate overall statistics
@@ -90,6 +110,14 @@ export const SuperAdminDashboard = () => {
         <div>
           <h1 className="text-2xl font-bold tracking-tight theme-text-primary">Super Admin Dashboard</h1>
           <p className="text-muted-foreground text-sm">Monitor and manage all companies and clinics across the system</p>
+        </div>
+         <div>
+          <DatePickerWithRangeV2
+            date={dateRange}
+            setDate={setDateRange}
+            showYear={true}
+          // className="w-[350px]"
+          />
         </div>
       </div>
 
