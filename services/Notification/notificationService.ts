@@ -38,7 +38,7 @@ export const notificationService = {
       return;
     }
 
-    console.log("[NotificationService] Initializing SignalR connection...");
+    console.log("[NotificationService] Initializing SignalR connection to:", API_URL);
     isConnecting = true;
 
     connection = new signalR.HubConnectionBuilder()

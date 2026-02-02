@@ -46,6 +46,7 @@ export default function RootLayout({
             <QueryWrapper>
               <TooltipProvider delayDuration={100}>
                 {children}
+                <NotificationInitializer />
                 <NotificationListener />
               </TooltipProvider>
               <Toaster />
@@ -53,7 +54,6 @@ export default function RootLayout({
             </QueryWrapper>
           </NuqsAdapter>
         </AuthProvider>
-        <NotificationInitializer />
       </body>
     </html>
   )

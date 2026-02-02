@@ -3,51 +3,41 @@
 import { useEffect } from "react";
 import { notificationService } from "@/services/Notification/notificationService";
 import { toast } from "sonner";
-import { useCreateNotification } from "@/queries/notifications/create-notification";
-import { useRootContext } from "@/context/RootContext"; // Import your context to get user
 import { useQueryClient } from "@tanstack/react-query";
 
 export const NotificationListener = () => {
-  const createNotificationMutation = useCreateNotification();
-  const { user } = useRootContext();
-  const queryClient = useQueryClient(); 
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let isMounted = true;
 
     const setupNotifications = async () => {
+      // Wait a bit for NotificationInitializer to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (!isMounted) return;
+
       try {
-        await notificationService.init();
+        // Don't call init() here - let NotificationInitializer handle it
+        // Just register the notification callback
+        notificationService.onNotification((payload) => {
+          console.log("[NotificationListener] Received notification:", payload);
 
-        if (!isMounted) return;
-
-        notificationService.onNotification(async (payload) => {
-          console.log("[NotificationListener] Received:", payload);
-
+          // Show toast notification
           toast(payload.title || "New notification", {
             description: payload.message,
             duration: 5000,
           });
 
-          if (user?.id) {
-            try {
-              await createNotificationMutation.mutateAsync({
-                userId: user.id, 
-                title: payload.title,
-                message: payload.message,
-                type: payload.type || 'info',
-                data: payload.data ? JSON.stringify(payload.data) : undefined,
-              });
-              console.log("[NotificationListener] Saved to database");
-              queryClient.invalidateQueries({ queryKey: ['notifications'] });
-              queryClient.invalidateQueries({ queryKey: ['unreadNotificationCount'] });
-            } catch (error) {
-              console.error("[NotificationListener] Failed to save to DB:", error);
-            }
-          } else {
-            console.warn("[NotificationListener] No user ID available, skipping DB save");
-          }
+          // Invalidate queries to refetch the updated notification list
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+          queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
+          
+          console.log("[NotificationListener] Queries invalidated");
         });
+
+        // Log connection state for debugging
+        console.log("[NotificationListener] Connection state:", notificationService.getConnectionState());
       } catch (error) {
         console.error("[NotificationListener] Setup error:", error);
       }
@@ -57,9 +47,8 @@ export const NotificationListener = () => {
 
     return () => {
       isMounted = false;
-      notificationService.stop();
     };
-  }, [createNotificationMutation, user?.id]);
+  }, [queryClient]);
 
   return null;
 };
