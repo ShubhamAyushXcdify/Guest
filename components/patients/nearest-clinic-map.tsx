@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useGetLocation } from '@/hooks/useGetLocation';
 import { useGetClinic } from '@/queries/clinic/get-clinic';
@@ -13,7 +13,7 @@ const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLaye
 const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false });
 const Popup = dynamic(() => import('react-leaflet').then(mod => mod.Popup), { ssr: false });
 
-const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void; companyId?: string }> = ({ onClinicSelect, companyId }) => {
+function NearestClinicMapContent({ onClinicSelect, companyId }: { onClinicSelect: (clinic: Clinic) => void; companyId?: string }) {
   const [isClient, setIsClient] = useState(false);
   const { latitude, longitude, address, isLoading, error, refetch } = useGetLocation();
   
@@ -21,8 +21,13 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void; com
     setIsClient(true);
   }, []);
   
-  // Only fetch clinics when location is available
-  const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(1, 100, companyId || '', Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude) && companyId));
+  // Only fetch clinics when location is available and we're on the client side
+  const { data: clinicsData, isLoading: clinicsLoading } = useGetClinic(
+    1, 
+    100, 
+    companyId || '', 
+    Boolean(isClient && latitude && longitude && typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude) && companyId)
+  );
   
   // Center map on user location
   const center = latitude && longitude ? [latitude, longitude] as [number, number] : [20, 77] as [number, number]; // fallback to India center
@@ -145,6 +150,14 @@ const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void; com
       )}
     </div>
   );
+}
+
+const NearestClinicMap: React.FC<{ onClinicSelect: (clinic: Clinic) => void; companyId?: string }> = ({ onClinicSelect, companyId }) => {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">Loading map…</div>}>
+      <NearestClinicMapContent onClinicSelect={onClinicSelect} companyId={companyId} />
+    </Suspense>
+  );
 };
 
-export default NearestClinicMap; 
+export default NearestClinicMap;

@@ -16,12 +16,21 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { Check } from 'lucide-react';
 import App from 'next/app';
+import { Suspense } from 'react';
 
 const searchParamsParser = {
   notificationState: parseAsString,
 } as const;
 
 export const NotificationPanel = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NotificationPanelContent />
+    </Suspense>
+  );
+};
+
+const NotificationPanelContent = () => {
   const [{ notificationState }, setNotificationState] = useQueryStates(searchParamsParser);
   
   const { data: notificationsData, isLoading } = useGetNotifications();

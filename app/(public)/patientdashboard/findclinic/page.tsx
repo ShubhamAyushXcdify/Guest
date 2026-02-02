@@ -1,5 +1,6 @@
 "use client"
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 import { MapPin, Search, Info, Phone, Clock } from "lucide-react";
 
 const NearestClinicMap = dynamic(() => import("@/components/patients/nearest-clinic-map"), {
@@ -59,7 +60,9 @@ export default function FindClinic() {
                 </div>
                 
                 <div className="md:w-full w-full max-w-full ">
-                    <NearestClinicMap onClinicSelect={() => { }} />
+                    <Suspense fallback={<div className="p-6 text-center">Loading map…</div>}>
+                        <NearestClinicMap onClinicSelect={() => { }} />
+                    </Suspense>
                 </div>
             </div>
 

@@ -4,12 +4,13 @@ import { Bell } from 'lucide-react';
 import { useUnreadNotificationCount } from '@/queries/notifications/get-notifcation-unread-count';
 import { Button } from '@/components/ui/button';
 import { useQueryStates, parseAsString } from 'nuqs';
+import { Suspense } from 'react';
 
 const searchParamsParser = {
   notificationState: parseAsString,
 } as const;
 
-export const NotificationBell = () => {
+function NotificationBellContent() {
   // Fetch unread count from API
   const { data: unreadCount = 0, isLoading } = useUnreadNotificationCount();
   const [, setNotificationState] = useQueryStates(searchParamsParser);
@@ -36,5 +37,13 @@ export const NotificationBell = () => {
         )}
       </Button>
     </div>
+  );
+};
+
+export const NotificationBell = () => {
+  return (
+    <Suspense fallback={<div className="relative"><Button variant="ghost" size="icon" aria-label="Open notifications"><Bell className="h-5 w-5" /></Button></div>}>
+      <NotificationBellContent />
+    </Suspense>
   );
 };

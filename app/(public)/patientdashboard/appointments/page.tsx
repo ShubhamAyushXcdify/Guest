@@ -1,11 +1,7 @@
-import AppointmentsPage from "@/components/patientDashboard/appointment";
-import { Suspense } from "react";
+"use client";
 
+import AppointmentsPage from "@/components/patientDashboard/appointment";
 
 export default function Appointments() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <AppointmentsPage />
-    </Suspense>
-  )
+  return <AppointmentsPage />;
 }
