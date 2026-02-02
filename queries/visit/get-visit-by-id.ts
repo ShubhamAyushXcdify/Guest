@@ -44,5 +44,9 @@ export const useGetVisitById = (visitId: string, enabled = true) => {
     queryKey: ['visit', visitId],
     queryFn: () => getVisitById(visitId),
     enabled: !!visitId && enabled,
+    staleTime: 30 * 1000, // 30 seconds - shorter for more frequent updates
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 };

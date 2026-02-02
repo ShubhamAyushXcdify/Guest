@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query"
 
 const getInvoiceByVisit = async (visitId: string) => {
   try {
+    if (!visitId) {
+      throw new Error("visitId is required");
+    }
+    
     const response = await fetch(`/api/invoice/by-visit/${visitId}`, {
       headers: {
         'Content-Type': 'application/json',
@@ -18,6 +22,12 @@ const getInvoiceByVisit = async (visitId: string) => {
     }
 
     const result = await response.json()
+    
+    // Handle null response (no data found)
+    if (result === null) {
+      return null;
+    }
+    
     return result
   } catch (error) {
     console.error("Error in getInvoiceByVisit function:", error)

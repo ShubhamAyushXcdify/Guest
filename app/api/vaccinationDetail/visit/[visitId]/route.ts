@@ -28,18 +28,24 @@ export async function GET(
       },
     });
 
-    const data = await response.text();
+    if (!response.ok) {
+      if (response.status === 404) {
+        // No data found yet – return null or an empty object
+        return NextResponse.json(null, { status: 200 });
+      }
+      const errorData = await response.json().catch(() => ({}));
+      return NextResponse.json(
+        { message: errorData.message || 'Failed to fetch vaccination details' },
+        { status: response.status }
+      );
+    }
 
-    return new NextResponse(data, {
-      status: response.status,
-      headers: {
-        "Content-Type": "text/plain",
-      },
-    });
+    const data = await response.json();
+    return NextResponse.json(data, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(
       { message: error.message },
       { status: 500 }
     );
   }
-} 
+}

@@ -22,6 +22,10 @@ export async function GET(
             },
         });
         if (!response.ok) {
+            if (response.status === 404) {
+                // No data found yet – return null or an empty object
+                return NextResponse.json(null, { status: 200 });
+            }
             return NextResponse.json(
                 { message: 'Failed to fetch surgery detail by visitId' },
                 { status: response.status }

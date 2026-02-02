@@ -24,10 +24,8 @@ export async function GET(
 
     if (!response.ok) {
       if (response.status === 404) {
-        return NextResponse.json(
-          { message: "Invoice not found for this visit" },
-          { status: 404 }
-        )
+        // No data found yet – return null or an empty object
+        return NextResponse.json(null, { status: 200 });
       }
       return NextResponse.json(
         { message: 'Failed to fetch invoice' },

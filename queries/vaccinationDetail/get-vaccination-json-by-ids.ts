@@ -14,15 +14,30 @@ export const getVaccinationJsonByIds = async (
 ): Promise<VaccinationJsonResponse | null> => {
   if (!visitId || !vaccinationMasterId) return null;
 
-  const params = new URLSearchParams({ visitId, vaccinationMasterId });
-  const response = await fetch(`/api/vaccinationDetail/by-visit-master?${params.toString()}`);
+  try {
+    const params = new URLSearchParams({ visitId, vaccinationMasterId });
+    const response = await fetch(`/api/vaccinationDetail/by-visit-master?${params.toString()}`);
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to fetch vaccination JSON");
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Failed to fetch vaccination JSON");
+    }
+
+    const result = await response.json();
+    
+    // Handle null response (no data found)
+    if (result === null) {
+      return null;
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Error fetching vaccination JSON:", error);
+    throw error;
   }
-
-  return await response.json();
 };
 
 // Hook for getting vaccination JSON by visitId and vaccinationMasterId
@@ -35,5 +50,9 @@ export const useGetVaccinationJsonByIds = (
     queryFn: () => getVaccinationJsonByIds(visitId, vaccinationMasterId),
     enabled: !!visitId && !!vaccinationMasterId,
     retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection time)
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 };
