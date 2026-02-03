@@ -29,14 +29,15 @@ import { cn } from "@/lib/utils"
 import { Bot, User, Send } from "lucide-react"
 
 
-
+// Add onComplete prop to ComplaintsTab interface
 interface ComplaintsTabProps {
   patientId: string
   appointmentId: string
   onNext?: () => void
+  onComplete?: (completed: boolean) => void;
 }
 
-export default function ComplaintsTab({ patientId, appointmentId, onNext }: ComplaintsTabProps) {
+export default function ComplaintsTab({ patientId, appointmentId, onNext, onComplete }: ComplaintsTabProps) {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([])
   const [rightSideSearchQuery, setRightSideSearchQuery] = useState("")
   const [notes, setNotes] = useState("")
@@ -154,6 +155,9 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     onSuccess: () => {
       toast.success("Complaint details saved successfully")
       markTabAsCompleted("cc-hpi")
+      if (onComplete) {
+        onComplete(true);
+      }
       refetchComplaint()
       if (onNext) onNext()
     },
@@ -166,6 +170,9 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext }: Comp
     onSuccess: () => {
       toast.success("Complaint details updated successfully")
       markTabAsCompleted("cc-hpi")
+      if (onComplete) {
+        onComplete(true);
+      }
       refetchComplaint()
       if (onNext) onNext()
     },

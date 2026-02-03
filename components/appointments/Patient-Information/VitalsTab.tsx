@@ -29,9 +29,10 @@ interface VitalsTabProps {
   patientId: string
   appointmentId: string
   onNext?: () => void
+  onComplete?: (completed: boolean) => void;
 }
 
-export default function VitalsTab({ patientId, appointmentId, onNext }: VitalsTabProps) {
+export default function VitalsTab({ patientId, appointmentId, onNext, onComplete }: VitalsTabProps) {
   const { markTabAsCompleted } = useTabCompletion()
 
   // Get visit data from appointment ID
@@ -209,6 +210,9 @@ ${notes ? `- Additional Notes: ${notes}` : ''}
 
       markTabAsCompleted("vitals")
       refetchVitalDetail()
+      if (onComplete) {
+        onComplete(true);
+      }
       onNext?.()
     } catch (error) {
       toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)

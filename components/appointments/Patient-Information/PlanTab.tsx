@@ -47,9 +47,10 @@ interface PlanTabProps {
   appointmentId: string
   onNext?: () => void
   onClose?: () => void
+  onComplete?: (completed: boolean) => void;
 }
 
-export default function PlanTab({ patientId, appointmentId, onNext, onClose }: PlanTabProps) {
+export default function PlanTab({ patientId, appointmentId, onNext, onClose, onComplete }: PlanTabProps) {
   // State declarations
   const [selectedPlans, setSelectedPlans] = useState<string[]>([])
   const [analysisResult, setAnalysisResult] = useState<string>("")
@@ -233,6 +234,9 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       toast.success("Plan details saved successfully")
       refetchPlanDetail()
       markTabAsCompleted("plan")
+      if (onComplete) {
+        onComplete(true);
+      }
     },
     onError: (error) => {
       toast.error(`Failed to save plan details: ${error.message}`)
@@ -245,6 +249,9 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose }: P
       toast.success("Plan details updated successfully")
       refetchPlanDetail()
       markTabAsCompleted("plan")
+      if (onComplete) {
+        onComplete(true);
+      }
     },
     onError: (error: any) => {
       toast.error(`Failed to update plan details: ${error.message}`)

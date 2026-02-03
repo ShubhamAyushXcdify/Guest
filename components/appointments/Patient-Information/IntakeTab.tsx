@@ -33,6 +33,7 @@ interface IntakeTabProps {
   patientId: string
   appointmentId: string
   onNext?: () => void
+  onComplete?: (completed: boolean) => void;
 }
 
 // Types to track image sources
@@ -50,7 +51,7 @@ interface LocalImage {
 
 type ImageItem = StoredImage | LocalImage;
 
-export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTabProps) {
+export default function IntakeTab({ patientId, appointmentId, onNext, onComplete }: IntakeTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { markTabAsCompleted, isTabCompleted } = useTabCompletion()
   
@@ -101,6 +102,13 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       refetchIntake();
     },
   });
+  const isIntakeCompleted = () => {
+    return (
+      weightKg !== undefined ||
+      imagePaths.length > 0 ||
+      notes.trim() !== ""
+    );
+  };
 
   const { mutateAsync: deleteIntakeFile, isPending: isFileDeleting } = useDeleteIntakeFile({
     onSuccess: () => {
@@ -112,6 +120,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
   // Combined loading state
   const isPending = isCreating || isUpdating || isImageDeleting || isFileDeleting
 
+  useEffect(() => {
+    if (intakeData && onComplete) {
+      onComplete(!!intakeData.isCompleted);
+    }
+  }, [intakeData, onComplete]);
   // Audio modal state
   const [audioModalOpen, setAudioModalOpen] = useState(false)
   const transcriber = useTranscriber()
@@ -236,7 +249,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
           imagePaths,
           files: imageFiles,
           notes,
-          isCompleted: true
+          isCompleted: isIntakeCompleted()
         })
         
         toast.success("Intake detail updated successfully")
@@ -248,7 +261,7 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
           imagePaths,
           files: imageFiles,
           notes,
-          isCompleted: true
+          isCompleted: isIntakeCompleted()
         })
         
         toast.success("Intake detail saved successfully")
@@ -260,6 +273,13 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
       
       // Refetch intake data and navigate to next tab
       refetchIntake();
+      
+      // Always call onComplete with the actual completion status
+      if (onComplete) {
+        onComplete(isIntakeCompleted());
+      }
+      
+      // Always call onNext when data is saved successfully
       if (onNext) {
         onNext();
       }
@@ -585,13 +605,13 @@ export default function IntakeTab({ patientId, appointmentId, onNext }: IntakeTa
                   weightKg === undefined ||
                   isPending ||
                   isReadOnly ||
-                  (!!intakeData && !!intakeData.isCompleted && !hasChanges())
+                  (!!intakeData && !hasChanges())
                 }
                 className="ml-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
               >
                 {isPending
                   ? "Saving..."
-                  : (intakeData && intakeData.isCompleted) ? "Update & Next" : "Save & Next"}
+                  : hasIntake ? "Update & Next" : "Save & Next"}
               </Button>
             </div>
         </CardContent>

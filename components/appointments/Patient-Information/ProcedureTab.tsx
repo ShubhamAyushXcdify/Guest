@@ -62,9 +62,10 @@ interface ProcedureTabProps {
   patientId: string
   appointmentId: string
   onNext?: () => void
+  onComplete?: (completed: boolean) => void;
 }
 
-export default function ProcedureTab({ patientId, appointmentId, onNext }: ProcedureTabProps) {
+export default function ProcedureTab({ patientId, appointmentId, onNext, onComplete }: ProcedureTabProps) {
   const [selectedProcedures, setSelectedProcedures] = useState<string[]>([])
   const [newProcedureName, setNewProcedureName] = useState("")
   const [notes, setNotes] = useState("")
@@ -578,51 +579,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext }: Proce
     }
   }
 
-  // const handleSave = async () => {
-  //   // This now just saves the notes and marks as complete
-  //   if (!visitData?.id) {
-  //     toast.error("No visit data found for this appointment")
-  //     return
-  //   }
-
-  //   try {
-  //     if (existingProcedureDetail) {
-  //       // Update notes and mark as completed
-  //       await updateProcedureDetail({
-  //         id: existingProcedureDetail.id,
-  //         notes: notes || "",
-  //         isCompleted: true,
-  //         procedureIds: selectedProcedures
-  //       })
-
-  //       toast.success("Procedure details updated successfully")
-  //     } else {
-  //       // This case should rarely happen now since procedures are saved immediately
-  //       await createProcedureDetail({
-  //         visitId: visitData.id,
-  //         notes: notes || "",
-  //         isCompleted: true,
-  //         procedureIds: selectedProcedures
-  //       })
-
-  //       toast.success("Procedure details saved successfully")
-  //     }
-
-  //     // Mark the tab as completed
-  //     markTabAsCompleted("procedure")
-
-  //     // After successful save, navigate to next tab
-  //     if (onNext) {
-  //       onNext()
-  //     }
-
-  //   } catch (error) {
-  //     console.error('Error saving procedure details:', error)
-  //     toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
-  //   }
-  // }
   const handleSave = async () => {
     markTabAsCompleted("procedure")
+    if (onComplete) {
+      onComplete(true);
+    }
     // After successful save, navigate to next tab
     if (onNext) {
       onNext()

@@ -40,7 +40,15 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
   const [showInvoice, setShowInvoice] = useState(false)
   const [currentAppointmentId, setCurrentAppointmentId] = useState(appointmentId)
 
-  const { isTabCompleted } = useTabCompletion()
+  const { isTabCompleted, markTabAsCompleted } = useTabCompletion()
+
+  // Function to handle tab completion from child components
+  const handleTabComplete = (tabId: string, completed: boolean) => {
+    if (completed) {
+      markTabAsCompleted(tabId as TabId);
+    }
+  };
+
   const { data: history } = useGetPatientAppointmentHistory(patientId)
 
   // Filter appointment history to exclude scheduled appointments only
@@ -129,6 +137,11 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
 
   // Function to determine if a tab should appear completed/green based on visit data
   const shouldShowTabAsCompleted = (tabId: string) => {
+    // First check TabCompletionContext for immediate state
+    const contextCompleted = isTabCompleted(tabId as TabId);
+    if (contextCompleted) return true;
+    
+    // Fall back to database state
     if (!visitData) return false;
 
     // Use type assertion to access all properties
@@ -232,6 +245,7 @@ function PatientInformationContent({ patientId, appointmentId, onClose }: Patien
                       allTabsCompleted={allTabsCompleted}
                       appointment={appointment}
                       species={appointment?.patient?.species || ""}
+                      onComplete={(completed: boolean) => handleTabComplete(tab.value, completed)}
                     />
                   </TabProvider>
                 </TabsContent>

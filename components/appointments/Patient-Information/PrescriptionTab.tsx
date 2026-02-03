@@ -40,6 +40,7 @@ interface PrescriptionTabProps {
   patientId: string
   appointmentId: string
   onNext?: () => void
+  onComplete?: (completed: boolean) => void;
 }
 
 // Extend the base ProductMapping to include our additional properties
@@ -104,7 +105,7 @@ interface ExtendedProductMapping extends BaseProductMapping {
   }
 }
 
-export default function PrescriptionTab({ patientId, appointmentId, onNext }: PrescriptionTabProps) {
+export default function PrescriptionTab({ patientId, appointmentId, onNext, onComplete }: PrescriptionTabProps) {
   // AI Analysis state
   const [analysisResult, setAnalysisResult] = useState<string>("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -341,6 +342,9 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     onSuccess: () => {
       toast.success("Prescription details saved successfully")
       markTabAsCompleted("prescription")
+      if (onComplete) {
+        onComplete(true);
+      }
       refetchPrescriptionDetail()
     },
     onError: (error) => {
@@ -352,6 +356,9 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext }: Pr
     onSuccess: () => {
       toast.success("Prescription details updated successfully")
       markTabAsCompleted("prescription")
+      if (onComplete) {
+        onComplete(true);
+      }
       refetchPrescriptionDetail()
     },
     onError: (error: any) => {
