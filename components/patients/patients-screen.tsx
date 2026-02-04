@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { PatientsTable } from "@/components/patients/patients-table"
 import { Button } from "@/components/ui/button"
-import { Plus, Download } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Plus, Download, Filter } from "lucide-react"
 import { 
   Sheet, 
   SheetContent, 
@@ -19,6 +21,23 @@ import { getCompanyId } from "@/utils/clientCookie"
 import Loader from "@/components/ui/loader"
 import * as XLSX from 'xlsx'
 import { toast } from "@/components/ui/use-toast"
+import { Patient } from "@/queries/patients/get-patients"
+
+export type PatientFilters = {
+  name?: string
+  gender?: string
+  primaryBreed?: string
+  microchipNumber?: string
+  species?: string
+}
+
+const defaultFilters: PatientFilters = {
+  name: "",
+  gender: "",
+  primaryBreed: "",
+  microchipNumber: "",
+  species: "",
+}
 
 export const PatientsScreen = () => {
   const [openNew, setOpenNew] = useState(false)
@@ -27,7 +46,13 @@ export const PatientsScreen = () => {
   const [pageSize, setPageSize] = useState(10)
   const { userType, clinic, user } = useRootContext()
   const [isExporting, setIsExporting] = useState(false)
-  
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState<PatientFilters>({ ...defaultFilters })
+  const activeFilterCount = useMemo(
+    () => Object.values(filters).filter((v) => v != null && String(v).trim() !== "").length,
+    [filters]
+  )
+
   // Memoize companyId resolution
   const companyId = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -104,6 +129,24 @@ export const PatientsScreen = () => {
   // Extract patients from the data source
   const patients = patientsData?.items || []
   const totalPages = patientsData?.totalPages || 1
+
+  // Client-side filter by name, gender, primary breed, microchip number, species
+  const filteredPatients = useMemo(() => {
+    if (activeFilterCount === 0) return patients
+    const n = (filters.name ?? "").trim().toLowerCase()
+    const g = (filters.gender ?? "").trim().toLowerCase()
+    const b = (filters.primaryBreed ?? "").trim().toLowerCase()
+    const m = (filters.microchipNumber ?? "").trim().toLowerCase()
+    const s = (filters.species ?? "").trim().toLowerCase()
+    return patients.filter((p: Patient) => {
+      if (n && !(p.name ?? "").toLowerCase().includes(n)) return false
+      if (g && (p.gender ?? "").toLowerCase() !== g) return false
+      if (b && !(p.breed ?? "").toLowerCase().includes(b)) return false
+      if (m && !(p.microchipNumber ?? "").toLowerCase().includes(m)) return false
+      if (s && !(p.species ?? "").toLowerCase().includes(s)) return false
+      return true
+    })
+  }, [patients, filters, activeFilterCount])
 
   // Optimized search handler with URL sync
   const handleSearch = useCallback((searchTerm: string) => {
@@ -252,6 +295,14 @@ export const PatientsScreen = () => {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ""}
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleExportToExcel}
             disabled={isExporting}
             className="flex items-center gap-2"
@@ -276,6 +327,105 @@ export const PatientsScreen = () => {
       </div>
 
       <div className="space-y-4 bg-slate-50 dark:bg-slate-900 p-6">
+        {showFilters && (
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-4 mb-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Filters</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilters({ ...defaultFilters })}
+              >
+                Clear Filters
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="filter-name">Name</Label>
+                <Input
+                  id="filter-name"
+                  placeholder="Search by name..."
+                  value={filters.name ?? ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-gender">Gender</Label>
+                <Input
+                  id="filter-gender"
+                  placeholder="e.g. Male, Female"
+                  value={filters.gender ?? ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-breed">Primary Breed</Label>
+                <Input
+                  id="filter-breed"
+                  placeholder="Search by breed..."
+                  value={filters.primaryBreed ?? ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, primaryBreed: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-microchip">Microchip Number</Label>
+                <Input
+                  id="filter-microchip"
+                  placeholder="Microchip number..."
+                  value={filters.microchipNumber ?? ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, microchipNumber: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="filter-species">Species</Label>
+                <Input
+                  id="filter-species"
+                  placeholder="e.g. Dog, Cat"
+                  value={filters.species ?? ""}
+                  onChange={(e) => setFilters((f) => ({ ...f, species: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {filters.name && (
+              <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 px-2 py-1 rounded text-xs">
+                Name: {filters.name}
+              </span>
+            )}
+            {filters.gender && (
+              <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 px-2 py-1 rounded text-xs">
+                Gender: {filters.gender}
+              </span>
+            )}
+            {filters.primaryBreed && (
+              <span className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 px-2 py-1 rounded text-xs">
+                Breed: {filters.primaryBreed}
+              </span>
+            )}
+            {filters.microchipNumber && (
+              <span className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 px-2 py-1 rounded text-xs">
+                Microchip: {filters.microchipNumber}
+              </span>
+            )}
+            {filters.species && (
+              <span className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-2 py-1 rounded text-xs">
+                Species: {filters.species}
+              </span>
+            )}
+            <button
+              type="button"
+              className="text-xs text-gray-500 dark:text-gray-400 underline"
+              onClick={() => setFilters({ ...defaultFilters })}
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="min-h-[calc(100vh-20rem)] flex items-center justify-center p-6">
             <div className="flex flex-col items-center gap-4 text-center">
@@ -288,7 +438,7 @@ export const PatientsScreen = () => {
           </div>
         ) : (
           <PatientsTable
-            patients={patients}
+            patients={filteredPatients}
             totalPages={totalPages}
             currentPage={page}
             pageSize={pageSize}
