@@ -4,7 +4,7 @@ export interface Company {
   id: string;
   name: string;
   description: string;
-  logoUrl: string;
+  logoUrl?: string | null;
   registrationNumber: string;
   email: string;
   phone: string;

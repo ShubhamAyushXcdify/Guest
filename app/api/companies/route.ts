@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL
 
+async function toProxyResponse(upstream: Response) {
+  const contentType = upstream.headers.get("content-type") || "";
+  const status = upstream.status;
+  const text = await upstream.text().catch(() => "");
+
+  // Try JSON first
+  if (contentType.includes("application/json")) {
+    try {
+      const json = text ? JSON.parse(text) : null;
+      return NextResponse.json(json, { status });
+    } catch {
+      // fall through to text
+    }
+  }
+
+  return new NextResponse(text, {
+    status,
+    headers: {
+      "content-type": contentType || "text/plain; charset=utf-8",
+    },
+  });
+}
+
 // GET /api/companies - Get companies with optional pagination
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +50,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      return toProxyResponse(response)
     }
 
     const data = await response.json()
@@ -44,18 +67,38 @@ export async function GET(request: NextRequest) {
 // POST /api/companies - Create a new company
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const contentType = request.headers.get("content-type") || "";
 
-    const response = await fetch(`${API_BASE_URL}/api/company`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
+    // Multipart: forward to POST /api/company/upload (individual form fields + optional file).
+    const response = contentType.includes("multipart/form-data")
+      ? await (async () => {
+          const form = await request.formData();
+          const forwardForm = new FormData();
+          for (const [key, value] of form.entries()) {
+            if (value instanceof File) {
+              forwardForm.set(key, value, value.name);
+            } else {
+              forwardForm.set(key, String(value ?? ""));
+            }
+          }
+          return fetch(`${API_BASE_URL}/api/company/upload`, {
+            method: "POST",
+            body: forwardForm,
+          });
+        })()
+      : await (async () => {
+          const body = await request.json();
+          return fetch(`${API_BASE_URL}/api/company`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+          });
+        })();
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      return toProxyResponse(response)
     }
 
     const data = await response.json()

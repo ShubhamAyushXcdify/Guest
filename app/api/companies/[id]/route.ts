@@ -45,15 +45,34 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
- 
-    const response = await fetch(`${API_BASE_URL}/api/company/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
+    const contentType = request.headers.get("content-type") || "";
+
+    const response = contentType.includes("multipart/form-data")
+      ? await (async () => {
+          const form = await request.formData();
+          const forwardForm = new FormData();
+          for (const [key, value] of form.entries()) {
+            if (value instanceof File) {
+              forwardForm.set(key, value, value.name);
+            } else {
+              forwardForm.set(key, String(value ?? ""));
+            }
+          }
+          return fetch(`${API_BASE_URL}/api/company/${id}/upload`, {
+            method: "PUT",
+            body: forwardForm,
+          });
+        })()
+      : await (async () => {
+          const body = await request.json();
+          return fetch(`${API_BASE_URL}/api/company/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          });
+        })();
  
     if (!response.ok) {
       if (response.status === 404) {
@@ -62,7 +81,22 @@ export async function PUT(
           { status: 404 }
         )
       }
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const contentType = response.headers.get("content-type") || "";
+      const text = await response.text().catch(() => "");
+      if (contentType.includes("application/json")) {
+        try {
+          const json = text ? JSON.parse(text) : null;
+          return NextResponse.json(json, { status: response.status });
+        } catch {
+          // fall through
+        }
+      }
+      return new NextResponse(text, {
+        status: response.status,
+        headers: {
+          "content-type": contentType || "text/plain; charset=utf-8",
+        },
+      });
     }
  
     const data = await response.json()

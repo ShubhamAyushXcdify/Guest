@@ -9,13 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { PDFUpload } from "../ui/pdf-upload";
 import { useCreateCompany, CreateCompanyRequest } from "@/queries/companies/create-company";
 import { toast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Building, Mail, MapPin, FileText } from "lucide-react";
 
 const companySchema = z.object({
   name: z.string().min(1, "Company name is required"),
   description: z.string().optional(),
-  logoUrl: z.string().min(1, "Logo URL is required").url("Please enter a valid URL"),
+  logoFile: z.any().optional(),
   registrationNumber: z.string().min(1, "Registration number is required"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(1, "Phone number is required"),
@@ -40,6 +40,7 @@ type NewCompanyProps = {
 
 export default function NewCompany({ onSuccess }: NewCompanyProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const createCompanyMutation = useCreateCompany();
 
   const form = useForm<CompanyFormValues>({
@@ -47,7 +48,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
     defaultValues: {
       name: "",
       description: "",
-      logoUrl: "",
+      logoFile: null,
       registrationNumber: "",
       email: "",
       phone: "",
@@ -59,11 +60,18 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
         postalCode: "",
         country: "",
       },
-      status: "Active",
+      status: "active",
       privacyPolicy: "",
       termsOfUse: "",
     },
   });
+
+  // Cleanup blob URLs
+  useEffect(() => {
+    return () => {
+      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+    };
+  }, [logoPreviewUrl]);
 
   const handleSubmit = async (values: CompanyFormValues) => {
     setIsSubmitting(true);
@@ -75,11 +83,15 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
         variant: "success",
       });
       form.reset();
+      if (logoPreviewUrl) {
+        URL.revokeObjectURL(logoPreviewUrl);
+        setLogoPreviewUrl(null);
+      }
       onSuccess?.();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create company",
+        description: error instanceof Error ? error.message : "Failed to create company",
         variant: "destructive",
       });
     } finally {
@@ -131,13 +143,32 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
 
           <FormField
             control={form.control}
-            name="logoUrl"
+            name="logoFile"
             render={({ field }) => (
               <FormItem className="mb-4">
-                <FormLabel>Logo URL*</FormLabel>
+                <FormLabel>Company Logo (optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="https://example.com/logo.png" {...field} />
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      field.onChange(file);
+                      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+                      setLogoPreviewUrl(file ? URL.createObjectURL(file) : null);
+                    }}
+                  />
                 </FormControl>
+                {logoPreviewUrl && (
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mb-2">Preview</p>
+                    <img
+                      src={logoPreviewUrl}
+                      alt="Company logo preview"
+                      className="h-20 w-20 object-contain rounded-lg border-2 border-gray-200 p-2 bg-white"
+                    />
+                  </div>
+                )}
                 <FormMessage />
               </FormItem>
             )}

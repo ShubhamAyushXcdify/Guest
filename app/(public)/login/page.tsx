@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react"
-import Image from "next/image"
 import { Moon, Sun, Calendar, PawPrint, Heart, FileText, Bell } from "lucide-react"
 import { signIn } from "next-auth/react"
 import {
@@ -13,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { LoginForm } from "@/components/auth/login/loginform"
 import { getCompanySubdomain } from "@/utils/subdomain";
 import { useGetCompanyBySubdomain } from "@/queries/companies";
+import { CompanyLogo } from "@/components/company-logo";
 
 export default function LoginPage() {
   const subdomain = getCompanySubdomain();
@@ -43,16 +43,14 @@ export default function LoginPage() {
         <div className="max-w-md w-full space-y-6 md:space-y-8">
           <div className="flex flex-col items-center">
             <div className="w-80 relative h-20">
-              {company?.logoUrl ? (
-                <Image 
-                  src={company.logoUrl} 
-                  alt={`${company.name} Logo`} 
-                  fill 
-                  className="object-contain" 
-                />
-              ) : (
-                <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className="object-contain" />
-              )}
+              <CompanyLogo
+                logoUrl={company?.logoUrl}
+                companyName={company?.name}
+                context="public-login"
+                fallbackSrc="/images/logo-white.png"
+                fill
+                className="object-contain"
+              />
             </div>
           </div>
           

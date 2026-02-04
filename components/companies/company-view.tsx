@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import { useState } from "react";
 import CompanyDetails from "./company-details";
+import { CompanyLogo } from "@/components/company-logo";
 
 interface CompanyViewProps {
   companyId: string;
@@ -158,13 +159,14 @@ export default function CompanyView({ companyId }: CompanyViewProps) {
                     <div>
                       <span className="font-medium text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide">Logo</span>
                       <div className="mt-3">
-                        <img
-                          src={company.logoUrl}
-                          alt={`${company.name} logo`}
+                        <CompanyLogo
+                          logoUrl={company.logoUrl}
+                          companyName={company.name}
+                          context="company-view"
+                          fallbackSrc="/images/logo.png"
+                          width={80}
+                          height={80}
                           className="h-20 w-20 object-contain rounded-lg border-2 border-gray-200 dark:border-gray-600 p-2 bg-gray-50 dark:bg-gray-700"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
                         />
                       </div>
                     </div>

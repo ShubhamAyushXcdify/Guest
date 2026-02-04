@@ -18,6 +18,13 @@ const withPWA = require('next-pwa')({
     ],
 })
 
+// Allow API host for company logo images (UploadPath/Uploads/*)
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+let apiHost = "";
+try {
+    apiHost = new URL(apiUrl).hostname;
+} catch (_) {}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     eslint: {
@@ -28,6 +35,12 @@ const nextConfig = {
     },
     images: {
         unoptimized: true,
+        ...(apiHost && {
+            remotePatterns: [
+                { protocol: "https", hostname: apiHost, pathname: "/Uploads/**" },
+                { protocol: "http", hostname: apiHost, pathname: "/Uploads/**" },
+            ],
+        }),
     },
     // PWA configuration
     async headers() {

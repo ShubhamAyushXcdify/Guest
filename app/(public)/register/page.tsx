@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react"
-import Image from "next/image"
 import { Moon, Sun, Calendar, PawPrint, Heart, FileText, Bell, Building2 } from "lucide-react"
 import {
   DropdownMenu,
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { RegistrationForm } from "@/components/auth/register/registration-form"
 import { getCompanySubdomain } from "@/utils/subdomain";
 import { useGetCompanyBySubdomain } from "@/queries/companies";
+import { CompanyLogo } from "@/components/company-logo";
 
 export default function RegisterPage() {
   // Get company information based on subdomain
@@ -40,16 +40,14 @@ export default function RegisterPage() {
               <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" priority />
             </div> */}
             <div className="w-80 relative h-20">
-              {company?.logoUrl ? (
-                <Image 
-                  src={company.logoUrl} 
-                  alt={`${company.name} Logo`} 
-                  fill 
-                  className="object-contain" 
-                />
-              ) : (
-                <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className="object-contain" />
-              )}
+              <CompanyLogo
+                logoUrl={company?.logoUrl}
+                companyName={company?.name}
+                context="public-register"
+                fallbackSrc="/images/logo-white.png"
+                fill
+                className="object-contain"
+              />
             </div>
             {/* <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-center">PawTrack</h1>
             <p className="mt-2 text-base md:text-xl text-center">Your Pet's Health Journey</p> */}
