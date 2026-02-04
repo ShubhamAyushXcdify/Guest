@@ -146,7 +146,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
             name="logoFile"
             render={({ field }) => (
               <FormItem className="mb-4">
-                <FormLabel>Company Logo (optional)</FormLabel>
+                <FormLabel>Company Logo*</FormLabel>
                 <FormControl>
                   <Input
                     type="file"

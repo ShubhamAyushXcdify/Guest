@@ -112,6 +112,7 @@ export default function LandingPage() {
                   companyName={companyData.name}
                   context="landing-header"
                   fallbackSrc="/images/logo.png"
+                  cacheBust={company?.updatedAt}
                   fill
                   className="object-contain rounded"
                 />
@@ -434,6 +435,7 @@ export default function LandingPage() {
                     companyName={companyData.name}
                     context="landing-footer"
                     fallbackSrc="/images/logo.png"
+                    cacheBust={company?.updatedAt}
                     fill
                     className="object-contain rounded"
                   />
