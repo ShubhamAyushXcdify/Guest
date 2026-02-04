@@ -49,7 +49,7 @@ export default function ProductDetailPage() {
         </div>
         <Button
           onClick={() => router.push(`/products/${productId}/edit`)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]/80"
         >
           <Edit className="h-4 w-4" />
           Edit Product
@@ -137,15 +137,17 @@ export default function ProductDetailPage() {
           <CardContent className="space-y-4 p-4">
             <div className="flex items-center justify-between border p-2 rounded-md">
               <span className="text-sm font-medium">Requires Prescription</span>
-              <Badge variant={product.requiresPrescription ? "default" : "outline"}>
-                {product.requiresPrescription ? "Yes" : "No"}
-              </Badge>
+              {product.requiresPrescription ? 
+                <Badge className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]/80">Yes</Badge> : 
+                <Badge variant="outline">No</Badge>
+              }
             </div>
             <div className="flex items-center justify-between border p-2 rounded-md">
               <span className="text-sm font-medium">Status</span>
-              <Badge variant={product.isActive ? "default" : "destructive"}>
-                {product.isActive ? "Active" : "Inactive"}
-              </Badge>
+              {product.isActive ? 
+                <Badge className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]/80">Active</Badge> : 
+                <Badge variant="destructive">Inactive</Badge>
+              }
             </div>
           </CardContent>
         </Card>

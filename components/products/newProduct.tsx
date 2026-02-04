@@ -291,6 +291,7 @@ useEffect(() => {
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
+                    className="data-[state=checked]:bg-[#1E3D3D]"
                   />
                 </FormControl>
                 <FormMessage />
@@ -306,6 +307,7 @@ useEffect(() => {
                   <Switch
                     checked={field.value}
                     onCheckedChange={field.onChange}
+                    className="data-[state=checked]:bg-[#1E3D3D]"
                   />
                 </FormControl>
                 <FormMessage />
@@ -326,7 +328,7 @@ useEffect(() => {
           }}>
             Cancel
           </Button>
-            <Button type="submit">
+            <Button type="submit" className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white">
               Create Product
             </Button>
           </div>

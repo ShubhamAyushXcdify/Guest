@@ -372,7 +372,7 @@ export function ClientForm({
           control={form.control}
           name="isActive"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 pt-4">
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -434,7 +434,7 @@ export function ClientForm({
           </Button>
       <Button
         type="button"
-        className={isUpdate ? "bg-green-600 hover:bg-green-700 text-white" : "theme-button text-white"}
+        className={isUpdate ? "bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white" : "theme-button text-white"}
         disabled={isSubmitting}
         onClick={(e) => {
           e.preventDefault();
