@@ -49,6 +49,9 @@ function transformPatient(patient: any): Patient | null {
     if (patient.name && typeof patient.name === 'string') {
         patientName = patient.name;
         
+        // Remove microchip number from display if present (keep it searchable)
+        patientName = patientName.replace(/\s*\(Microchip:\s*[^)]+\)/g, '');
+        
         // Add species info if available for pet patients
         if (patient.species) {
             patientName += ` (${patient.species}`;
@@ -61,6 +64,10 @@ function transformPatient(patient: any): Patient | null {
     // Option 2: PatientId might be used as name for animal patients
     else if (patient.patientId) {
         patientName = patient.patientId;
+        
+        // Remove microchip number from display if present (keep it searchable)
+        patientName = patientName.replace(/\s*\(Microchip:\s*[^)]+\)/g, '');
+        
         // Add species info if available
         if (patient.species) {
             patientName += ` (${patient.species}`;
@@ -79,6 +86,10 @@ function transformPatient(patient: any): Patient | null {
     // Option 4: The patient object structure might include a nested 'patient' property
     else if (patient.patient && patient.patient.name) {
         patientName = patient.patient.name;
+        
+        // Remove microchip number from display if present (keep it searchable)
+        patientName = patientName.replace(/\s*\(Microchip:\s*[^)]+\)/g, '');
+        
         // Add species info if available
         if (patient.patient.species) {
             patientName += ` (${patient.patient.species})`;

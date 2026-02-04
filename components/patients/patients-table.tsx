@@ -92,7 +92,6 @@ export function PatientsTable({
     { accessorKey: "name", header: "Name" },
     { accessorKey: "species", header: "Species" },
     { accessorKey: "breed", header: "Primary Breed" },
-    { accessorKey: "secondaryBreed", header: "Secondary Breed" },
     { 
       accessorKey: "gender", 
       header: "Gender",
@@ -108,13 +107,9 @@ export function PatientsTable({
       }
     },
     { 
-      accessorKey: "dateOfBirth", 
-      header: "Date of Birth",
-      cell: ({ getValue }) => formatDate(getValue() as string)
-    },
-    { accessorKey: "createdAt",
-       header: "Created Date",
-       cell: ({ getValue }) => formatDate(getValue() as string)
+      accessorKey: "microchipNumber", 
+      header: "Microchip Number",
+      cell: ({ getValue }) => getValue() || '-'
     },
     // { 
     //   accessorKey: "isActive", 
