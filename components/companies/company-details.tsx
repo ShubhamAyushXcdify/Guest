@@ -10,14 +10,17 @@ import { PDFUpload } from "../ui/pdf-upload";
 import { useGetCompanyById } from "@/queries/companies/get-company";
 import { useUpdateCompany, UpdateCompanyRequest } from "@/queries/companies/update-comapny";
 import { toast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Building, Mail, MapPin, FileText } from "lucide-react";
+import { CompanyLogo } from "@/components/company-logo";
 
 const companySchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Company name is required"),
   description: z.string().optional(),
-  logoUrl: z.string().min(1, "Logo URL is required").url("Please enter a valid URL"),
+  logoUrl: z.string().optional(),
+  logoFile: z.any().optional(),
+  removeLogo: z.boolean().optional(),
   registrationNumber: z.string().min(1, "Registration number is required"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(1, "Phone number is required"),
@@ -55,6 +58,8 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
       name:   "",
       description: "",
       logoUrl: "",
+      logoFile: null,
+      removeLogo: false,
       registrationNumber: "",
       email: "",
       phone: "",
@@ -82,6 +87,8 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
         name: company.name,
         description: company.description,
         logoUrl: company.logoUrl || "",
+        logoFile: null,
+        removeLogo: false,
         registrationNumber: company.registrationNumber,
         email: company.email,
         phone: company.phone,
@@ -101,10 +108,28 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
     }
   }, [company, form, isFormReady]);
 
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+
+  // Cleanup blob URLs
+  useEffect(() => {
+    return () => {
+      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+    };
+  }, [logoPreviewUrl]);
+
   const handleSubmit = async (values: CompanyFormValues) => {
     setIsSubmitting(true);
     try {
-      await updateCompanyMutation.mutateAsync(values as UpdateCompanyRequest);
+      const { logoFile: rawLogoFile, removeLogo, ...rest } = values;
+      const logoFile = rawLogoFile instanceof File ? rawLogoFile : null;
+
+      await updateCompanyMutation.mutateAsync({
+        ...(rest as unknown as UpdateCompanyRequest),
+        logoFile,
+        // If user wants to remove logo and no new file is uploaded, clear it.
+        logoUrl: removeLogo && !logoFile ? "" : values.logoUrl,
+      });
+
       toast({
         title: "Company Updated",
         description: "Company has been successfully updated",
@@ -114,7 +139,7 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update company",
+        description: error instanceof Error ? error.message : "Failed to update company",
         variant: "destructive",
       });
     } finally {
@@ -195,10 +220,94 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
               name="logoUrl"
               render={({ field }) => (
                 <FormItem className="mb-4">
-                  <FormLabel>Logo URL*</FormLabel>
+                  <FormLabel>Logo URL (optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://example.com/logo.png" {...field} />
+                    <Input
+                      placeholder='Example: "company/<file>.png" or "/Uploads/company/<file>.png"'
+                      {...field}
+                    />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="mb-4">
+              <FormLabel>Current Logo</FormLabel>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="relative h-20 w-20">
+                  <CompanyLogo
+                    logoUrl={company.logoUrl}
+                    companyName={company.name}
+                    context="company-details-current"
+                    fallbackSrc="/images/logo.png"
+                    fill
+                    className="object-contain rounded-lg border-2 border-gray-200 p-2 bg-white"
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Upload a new logo below to replace it, or check “Remove logo” to clear it.
+                </div>
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="logoFile"
+              render={({ field }) => (
+                <FormItem className="mb-4">
+                  <FormLabel>Upload New Logo (optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] ?? null;
+                        field.onChange(file);
+                        if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+                        setLogoPreviewUrl(file ? URL.createObjectURL(file) : null);
+                        if (file) form.setValue("removeLogo", false);
+                      }}
+                    />
+                  </FormControl>
+                  {logoPreviewUrl && (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted-foreground mb-2">New logo preview</p>
+                      <img
+                        src={logoPreviewUrl}
+                        alt="New company logo preview"
+                        className="h-20 w-20 object-contain rounded-lg border-2 border-gray-200 p-2 bg-white"
+                      />
+                    </div>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="removeLogo"
+              render={({ field }) => (
+                <FormItem className="mb-4 flex items-center gap-2">
+                  <FormControl>
+                    <input
+                      type="checkbox"
+                      checked={!!field.value}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        if (e.target.checked) {
+                          form.setValue("logoFile", null);
+                          if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+                          setLogoPreviewUrl(null);
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="mb-0">Remove logo</FormLabel>
+                    <span className="text-xs text-muted-foreground">(clears `logoUrl`)</span>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

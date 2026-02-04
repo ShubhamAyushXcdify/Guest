@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { getCompanySubdomain } from "@/utils/subdomain"
 import { useGetCompanyBySubdomain } from "@/queries/companies"
 import { base64ToPdfBlob, openPdf } from "@/utils/pdf";
+import { CompanyLogo } from "@/components/company-logo";
 
 
 
@@ -106,16 +107,14 @@ export default function LandingPage() {
             {/* Logo */}
             <div className="flex items-center space-x-3">
               <div className="relative w-8 h-8">
-                {companyData.logoUrl ? (
-                  <Image
-                    src={companyData.logoUrl}
-                    alt={`${companyData.name} Logo`}
-                    fill
-                    className="object-contain rounded"
-                  />
-                ) : (
-                  <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" />
-                )}
+                <CompanyLogo
+                  logoUrl={companyData.logoUrl}
+                  companyName={companyData.name}
+                  context="landing-header"
+                  fallbackSrc="/images/logo.png"
+                  fill
+                  className="object-contain rounded"
+                />
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">{companyData.name}</span>
             </div>
@@ -430,16 +429,14 @@ export default function LandingPage() {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <div className="relative w-8 h-8">
-                  {companyData.logoUrl ? (
-                    <Image
-                      src={companyData.logoUrl}
-                      alt={`${companyData.name} Logo`}
-                      fill
-                      className="object-contain rounded"
-                    />
-                  ) : (
-                    <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" />
-                  )}
+                  <CompanyLogo
+                    logoUrl={companyData.logoUrl}
+                    companyName={companyData.name}
+                    context="landing-footer"
+                    fallbackSrc="/images/logo.png"
+                    fill
+                    className="object-contain rounded"
+                  />
                 </div>
                 <span className="text-xl font-bold">{companyData.name}</span>
               </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react"
-import Image from "next/image"
 import { Moon, Sun } from "lucide-react"
 import { signIn } from "next-auth/react"
 import {
@@ -13,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { LoginForm } from "@/components/auth/login/loginform"
 import { getCompanySubdomain } from "@/utils/subdomain";
 import { useGetCompanyBySubdomain } from "@/queries/companies";
+import { CompanyLogo } from "@/components/company-logo";
 
 export default function LoginPage() {
   const subdomain = getCompanySubdomain();
@@ -41,18 +41,16 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col justify-center items-center text-white">
         <div className="max-w-md w-full space-y-8">
           <div className="flex flex-col items-center">
-          <div className="w-80">
-              {company?.logoUrl ? (
-                <Image 
-                  src={company.logoUrl} 
-                  alt={`${company.name} Logo`} 
-                  fill 
-                  className="!relative w-40 object-contain" 
-                  priority 
-                />
-              ) : (
-                <Image src="/images/logo-white.png" alt="PawTrack Logo" fill className="!relative w-40" priority />
-              )}
+            <div className="w-80 relative h-20">
+              <CompanyLogo
+                logoUrl={company?.logoUrl}
+                companyName={company?.name}
+                context="internal-login"
+                fallbackSrc="/images/logo-white.png"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
           </div>
 

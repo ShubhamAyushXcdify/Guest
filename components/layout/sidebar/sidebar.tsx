@@ -26,7 +26,7 @@ import { useGetScreenAccess } from "@/queries/screen/access/get-screen-access"
 import { getClinicId, getCompanyId } from "@/utils/clientCookie"
 import { getCompanySubdomain } from "@/utils/subdomain"
 import { useGetCompanyBySubdomain, useGetCompanyById } from "@/queries/companies"
-import Image from "next/image"
+import { CompanyLogo } from "@/components/company-logo"
 
 export function Sidebar() {
     const router = useRouter()
@@ -224,17 +224,15 @@ export function Sidebar() {
                     )}>
                         {/* <PawPrint className="h-7 w-7 text-[#9333ea]" /> */}
                         <div className="w-10 h-10 relative">
-                        {companyData.logoUrl ? (
-                  <Image 
-                    src={companyData.logoUrl} 
-                    alt={`${companyData.name} Logo`} 
-                    fill 
-                    className="object-contain rounded" 
-                  />
-                ) : (
-                  <Image src="/images/logo.png" alt="PawTrack Logo" fill className="object-contain" />
-                )}
-                </div>
+                          <CompanyLogo
+                            logoUrl={companyData.logoUrl}
+                            companyName={companyData.name}
+                            context="admin-sidebar"
+                            fallbackSrc="/images/logo.png"
+                            fill
+                            className="object-contain rounded"
+                          />
+                        </div>
                         {state !== "collapsed" && (
                             <span className="text-lg text-[#1E3D3D] font-bold tracking-tight">{companyData.name}</span>
                         )}
