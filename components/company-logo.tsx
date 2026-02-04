@@ -11,6 +11,8 @@ type Props = Omit<ImageProps, "src" | "alt"> & {
   context?: string;
   fallbackSrc: string;
   alt?: string;
+  /** Optional cache-bust string (e.g. company.updatedAt) so browser fetches updated logo. */
+  cacheBust?: string | null;
 };
 
 export function CompanyLogo({
@@ -19,6 +21,7 @@ export function CompanyLogo({
   context,
   fallbackSrc,
   alt,
+  cacheBust,
   onError,
   ...imageProps
 }: Props) {
@@ -28,8 +31,14 @@ export function CompanyLogo({
   const resolved = useMemo(() => resolveCompanyLogoSrc(logoUrl), [logoUrl]);
   const kind = useMemo(() => getCompanyLogoKind(logoUrl), [logoUrl]);
 
+  const finalSrc = useMemo(() => {
+    const base = !errored && resolved ? resolved : fallbackSrc;
+    if (!cacheBust || !base || base.startsWith("data:")) return base;
+    const sep = base.includes("?") ? "&" : "?";
+    return `${base}${sep}v=${encodeURIComponent(cacheBust)}`;
+  }, [errored, resolved, fallbackSrc, cacheBust]);
+
   const finalAlt = alt ?? `${companyName || "Company"} Logo`;
-  const finalSrc = !errored && resolved ? resolved : fallbackSrc;
 
   return (
     <Image

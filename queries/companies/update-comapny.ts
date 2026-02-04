@@ -86,6 +86,8 @@ export function useUpdateCompany() {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       // Update the specific company in cache
       queryClient.setQueryData(['company', data.id], data);
+      // Invalidate company-by-subdomain so home page (and login/register) show fresh logo/data
+      queryClient.invalidateQueries({ queryKey: ['company', 'subdomain'] });
     },
   });
 }

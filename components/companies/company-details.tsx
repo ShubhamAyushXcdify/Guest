@@ -215,23 +215,6 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="logoUrl"
-              render={({ field }) => (
-                <FormItem className="mb-4">
-                  <FormLabel>Logo URL (optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder='Example: "company/<file>.png" or "/Uploads/company/<file>.png"'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <div className="mb-4">
               <FormLabel>Current Logo</FormLabel>
               <div className="mt-3 flex items-center gap-4">
@@ -246,7 +229,7 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
                   />
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Upload a new logo below to replace it, or check “Remove logo” to clear it.
+                  Upload a new logo below to replace current logo.
                 </div>
               </div>
             </div>
@@ -256,7 +239,7 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
               name="logoFile"
               render={({ field }) => (
                 <FormItem className="mb-4">
-                  <FormLabel>Upload New Logo (optional)</FormLabel>
+                  <FormLabel>Upload New Logo</FormLabel>
                   <FormControl>
                     <Input
                       type="file"
@@ -280,34 +263,6 @@ export default function CompanyDetails({ companyId, onSuccess }: CompanyDetailsP
                       />
                     </div>
                   )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="removeLogo"
-              render={({ field }) => (
-                <FormItem className="mb-4 flex items-center gap-2">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={!!field.value}
-                      onChange={(e) => {
-                        field.onChange(e.target.checked);
-                        if (e.target.checked) {
-                          form.setValue("logoFile", null);
-                          if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
-                          setLogoPreviewUrl(null);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <div className="flex items-center gap-2">
-                    <FormLabel className="mb-0">Remove logo</FormLabel>
-                    <span className="text-xs text-muted-foreground">(clears `logoUrl`)</span>
-                  </div>
                   <FormMessage />
                 </FormItem>
               )}
