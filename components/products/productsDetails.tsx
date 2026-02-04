@@ -381,7 +381,7 @@ useEffect(() => {
         </div>
 
         <div className="flex justify-end my-4 bottom-0 bg-white gap-4">
-        <Button type="button" variant="outline" onClick={() => {
+          <Button type="button" variant="outline" onClick={() => {
             if (onCancel) {
               onCancel();
             } else {
@@ -390,14 +390,12 @@ useEffect(() => {
           }}>
             Cancel
           </Button>
-          <Button type="submit">
+          <Button type="submit" className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white">
             Update Product
           </Button>
         </div>
       </form>
     </Form>
-
-
   </div>
-  );
+);
 }

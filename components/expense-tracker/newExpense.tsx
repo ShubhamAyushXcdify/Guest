@@ -238,7 +238,11 @@ export default function NewExpense({ onSuccess }: NewExpenseProps) {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

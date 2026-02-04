@@ -264,6 +264,7 @@ export default function RBACScreen() {
                               checked={checked}
                               onCheckedChange={(v) => handleToggle(role.id, screen.id, Boolean(v))}
                               aria-label={`Toggle ${role.name} access to ${screen.name}`}
+                              className="data-[state=checked]:bg-[#1E3D3D]"
                             />
                           </td>
                         );

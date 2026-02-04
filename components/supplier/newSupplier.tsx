@@ -221,6 +221,7 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
           </Button>
           <Button 
             type="submit"
+            className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white"
             disabled={isSubmitting}
           >
             Create Supplier

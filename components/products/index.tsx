@@ -326,7 +326,9 @@ export default function Products() {
     {
       accessorKey: "isActive",
       header: "Status",
-      cell: ({ getValue }) => <Badge variant={getValue() ? "default" : "destructive"}>{getValue() ? "Active" : "Inactive"}</Badge>
+      cell: ({ getValue }) => getValue() ? 
+        <Badge className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]/80">Active</Badge> : 
+        <Badge variant="destructive">Inactive</Badge>
     },
     { accessorKey: "reorderThreshold", header: "Threshold", cell: ({ getValue }) => getValue() ?? '-' },
     {
@@ -341,8 +343,9 @@ export default function Products() {
               e.stopPropagation();
               handleProductClick(row.original.id);
             }} 
-            title="Edit Product"         
-            >
+            title="Edit Product"
+            className="text-[#1E3D3D] hover:text-[#1E3D3D] hover:bg-[#1E3D3D]/10"         
+          >
             <Edit className="h-4 w-4" />
           </Button>
           <Button
@@ -495,6 +498,7 @@ export default function Products() {
             <ProductDetails
               productId={selectedProductId}
               onSuccess={() => setOpenDetails(false)}
+              onCancel={() => setOpenDetails(false)}
             />
           )}
         </SheetContent>

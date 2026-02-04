@@ -69,7 +69,7 @@ export function DeleteConfirmationDialog({
               handleConfirm()
             }}
           >
-            <Button variant="destructive" disabled={isDeleting}>
+            <Button className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white" disabled={isDeleting}>
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </AlertDialogAction>

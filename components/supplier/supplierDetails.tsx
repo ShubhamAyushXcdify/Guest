@@ -44,9 +44,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 type SupplierDetailsProps = {
   supplierId: string;
   onSuccess?: () => void;
+  onCancel?: () => void;
 };
 
-export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetailsProps) {
+export default function SupplierDetails({ supplierId, onSuccess, onCancel }: SupplierDetailsProps) {
   const router = useRouter();
   const { userType, clinic } = useRootContext();
   const { data: clinicsData } = useGetClinic(1, 10, clinic?.companyId || null);
@@ -289,16 +290,30 @@ export default function SupplierDetails({ supplierId, onSuccess }: SupplierDetai
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )} />
         </div>
-        </div>
-        <div className="flex justify-end">
-          <Button type="submit">
-            Update Supplier
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
+      </div>
+      <div className="flex justify-end gap-4">
+        <Button 
+          type="button" 
+          variant="outline"
+          onClick={() => {
+            if (onCancel) {
+              onCancel();
+            } else {
+              router.push('/suppliers');
+            }
+          }}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white">
+          Update Supplier
+        </Button>
+      </div>
+    </form>
+  </Form>
+);
 }

@@ -584,6 +584,7 @@ function Supplier() {
             <SupplierDetails
               supplierId={selectedSupplierId}
               onSuccess={() => setOpenDetails(false)}
+              onCancel={() => setOpenDetails(false)}
             />
           )}
         </SheetContent>
