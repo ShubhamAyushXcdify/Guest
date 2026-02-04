@@ -5,6 +5,7 @@ import { PatientsTable } from "@/components/patients/patients-table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Combobox } from "@/components/ui/combobox"
 import { Plus, Download, Filter } from "lucide-react"
 import { 
   Sheet, 
@@ -351,11 +352,16 @@ export const PatientsScreen = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="filter-gender">Gender</Label>
-                <Input
-                  id="filter-gender"
-                  placeholder="e.g. Male, Female"
-                  value={filters.gender ?? ""}
-                  onChange={(e) => setFilters((f) => ({ ...f, gender: e.target.value }))}
+                <Combobox
+                  options={[
+                    { value: "Male", label: "Male" },
+                    { value: "Female", label: "Female" },
+                  ]}
+                  value={[ "Male", "Female" ].includes(filters.gender ?? "") ? (filters.gender ?? "") : ""}
+                  onValueChange={(v) => setFilters((f) => ({ ...f, gender: v }))}
+                  placeholder="Select gender"
+                  searchPlaceholder="Search gender..."
+                  emptyText="No gender found."
                 />
               </div>
               <div className="space-y-2">
@@ -378,11 +384,16 @@ export const PatientsScreen = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="filter-species">Species</Label>
-                <Input
-                  id="filter-species"
-                  placeholder="e.g. Dog, Cat"
-                  value={filters.species ?? ""}
-                  onChange={(e) => setFilters((f) => ({ ...f, species: e.target.value }))}
+                <Combobox
+                  options={[
+                    { value: "Dog", label: "Dog" },
+                    { value: "Cat", label: "Cat" },
+                  ]}
+                  value={[ "Dog", "Cat" ].includes(filters.species ?? "") ? (filters.species ?? "") : ""}
+                  onValueChange={(v) => setFilters((f) => ({ ...f, species: v }))}
+                  placeholder="Select species"
+                  searchPlaceholder="Search species..."
+                  emptyText="No species found."
                 />
               </div>
             </div>
