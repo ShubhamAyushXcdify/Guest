@@ -120,15 +120,18 @@ export const ClinicAdminDashboard = ({
     });
 
 
-  // Create pie data for appointment distribution
+  // Create pie data for appointment distribution (uses normalized completionMetrics after it's defined below)
   const pieData = useMemo(() => {
-    if (!clinicDashboardData?.appointmentCompletionRatios) return [];
-
-    const metrics = clinicDashboardData.appointmentCompletionRatios;
+    if (!clinicDashboardData) return [];
+    const raw = (clinicDashboardData as any)?.appointmentCompletionRatios ?? (clinicDashboardData as any)?.AppointmentCompletionRatios;
+    if (!raw) return [];
+    const total = raw.totalAppointments ?? raw.TotalAppointments ?? 0;
+    const completed = raw.completedAppointments ?? raw.CompletedAppointments ?? 0;
+    const canceled = raw.canceledAppointments ?? raw.CanceledAppointments ?? 0;
     return [
-      { name: "Completed", value: metrics.completedAppointments || 0, color: "#10b981" },
-      { name: "Scheduled", value: (metrics.totalAppointments - metrics.completedAppointments - metrics.canceledAppointments) || 0, color: "#3b82f6" },
-      { name: "Canceled", value: metrics.canceledAppointments || 0, color: "#ef4444" }
+      { name: "Completed", value: completed, color: "#10b981" },
+      { name: "Scheduled", value: Math.max(0, total - completed - canceled), color: "#3b82f6" },
+      { name: "Canceled", value: canceled, color: "#ef4444" }
     ];
   }, [clinicDashboardData]);
 
@@ -162,16 +165,29 @@ export const ClinicAdminDashboard = ({
   if (error) return <div className="p-6 text-red-500">Error loading clinic dashboard</div>;
   if (!clinicDashboardData) return <div className="p-6">No data available</div>;
 
-  console.log('Clinic Dashboard Data:', clinicDashboardData);
-
-  // Extract clinic details
-  const clinicName = clinicDashboardData?.clinicName || "Clinic";
-
-  // Check for both clinicDetail and clinicDetails using type assertion
-  // This handles API inconsistency between interface and actual response
+  // Normalize API response: backend may return PascalCase (ClinicDetails, AppointmentCompletionRatios, etc.) or camelCase
   const responseAny = clinicDashboardData as any;
-  const clinicDetail = responseAny?.clinicDetails || clinicDashboardData?.clinicDetail || {};
-  const completionMetrics = clinicDashboardData?.appointmentCompletionRatios || {};
+  const rawDetails = responseAny?.clinicDetails ?? responseAny?.ClinicDetails ?? responseAny?.clinicDetail ?? {};
+  const rawRatios = responseAny?.appointmentCompletionRatios ?? responseAny?.AppointmentCompletionRatios ?? {};
+  const clinicDetail = {
+    numberOfVeterinarians: rawDetails.numberOfVeterinarians ?? rawDetails.NumberOfVeterinarians ?? 0,
+    numberOfPatients: rawDetails.numberOfPatients ?? rawDetails.NumberOfPatients ?? 0,
+    numberOfClients: rawDetails.numberOfClients ?? rawDetails.NumberOfClients ?? 0,
+    numberOfProducts: rawDetails.numberOfProducts ?? rawDetails.NumberOfProducts ?? 0,
+    numberOfSuppliers: rawDetails.numberOfSuppliers ?? rawDetails.NumberOfSuppliers ?? 0,
+  };
+  const completionMetrics = {
+    totalAppointments: rawRatios.totalAppointments ?? rawRatios.TotalAppointments ?? 0,
+    completedAppointments: rawRatios.completedAppointments ?? rawRatios.CompletedAppointments ?? 0,
+    canceledAppointments: rawRatios.canceledAppointments ?? rawRatios.CanceledAppointments ?? 0,
+    completionRatio: rawRatios.completionRatio ?? rawRatios.CompletionRatio ?? 0,
+    percentageOfCompleting: rawRatios.percentageOfCompleting ?? rawRatios.PercentageOfCompleting ?? "0",
+  };
+
+  const clinicName = responseAny?.clinicName ?? responseAny?.ClinicName ?? "Clinic";
+  const averageRating = responseAny?.averageRating ?? responseAny?.AverageRating ?? 0;
+  const productProfit = responseAny?.productProfit ?? responseAny?.ProductProfit ?? 0;
+  const serviceProfit = responseAny?.serviceProfit ?? responseAny?.ServiceProfit ?? 0;
 
   return (
     <div className="px-0 space-y-8">
@@ -250,77 +266,72 @@ export const ClinicAdminDashboard = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Clinic Statistics Card */}
+        {/* Clinic Statistics Card - same style as admin dashboard */}
         <Card className="border shadow-lg">
           <CardHeader>
             <CardTitle>Clinic Statistics</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 border rounded-md overflow-hidden divide-y-2 md:divide-y-0 md:divide-x-2 divide-slate-200">
-              <div className="space-y-2 p-3 min-w-0 text-center">
-                <div className="flex items-center justify-center space-x-2">
-                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Veterinarians</span>
+            <div className="grid grid-cols-2 gap-4 pr-2">
+              <div className="space-y-2 border p-4 rounded-md">
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">Vets</span>
                 </div>
                 <p className="text-2xl font-bold theme-text-primary">{clinicDetail?.numberOfVeterinarians || 0}</p>
               </div>
-
-              <div className="space-y-2 p-3 min-w-0 text-center">
-                <div className="flex items-center justify-center space-x-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2 border p-4 rounded-md">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm text-muted-foreground">Patients</span>
                 </div>
                 <p className="text-2xl font-bold theme-text-secondary">{clinicDetail?.numberOfPatients || 0}</p>
               </div>
-
-              <div className="space-y-2 p-3 min-w-0 text-center">
-                <div className="flex items-center justify-center space-x-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2 border p-4 rounded-md">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm text-muted-foreground">Clients</span>
                 </div>
                 <p className="text-2xl font-bold theme-text-accent">{clinicDetail?.numberOfClients || 0}</p>
               </div>
-
-              <div className="space-y-2 p-3 min-w-0 text-center">
-                <div className="flex items-center justify-center space-x-2">
-                  <Package className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2 border p-4 rounded-md">
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm text-muted-foreground">Products</span>
                 </div>
                 <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{clinicDetail?.numberOfProducts || 0}</p>
               </div>
-
-              <div className="space-y-2 p-3 min-w-0 text-center">
-                <div className="flex items-center justify-center space-x-2">
-                  <Truck className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2 border p-4 rounded-md col-span-2">
+                <div className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm text-muted-foreground">Suppliers</span>
                 </div>
                 <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{clinicDetail?.numberOfSuppliers || 0}</p>
               </div>
             </div>
 
-            <div className="mt-8 p-4 rounded-lg bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border border-green-200 dark:border-green-800">
+            <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-green-700 dark:text-green-300">Completion Rate</span>
                 <span className="text-lg font-bold text-green-600 dark:text-green-400">{completionMetrics?.percentageOfCompleting || "0%"}</span>
               </div>
             </div>
-            {/* NEW: Average Rating */}
-            <div className=" mt-4 p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
               <div className="flex items-center justify-between">
-                <span className="text-md font-medium text-yellow-700 dark:text-yellow-300">Average Rating</span>
-                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{clinicDashboardData.averageRating ?? 0}</span>
+                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Average Rating</span>
+                <span className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{averageRating}</span>
               </div>
             </div>
-            <div className=" mt-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20 border border-blue-200 dark:border-blue-800">
               <div className="flex items-center justify-between">
-                <span className="text-md font-medium text-blue-700 dark:text-blue-300">Profit By Products</span>
-                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{clinicDashboardData.productProfit ?? 0}</span>
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Profit By Products</span>
+                <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{productProfit}</span>
               </div>
             </div>
             <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/20 dark:to-purple-900/20 border border-purple-200 dark:border-purple-800">
               <div className="flex items-center justify-between">
-                <span className="text-md font-medium text-purple-700 dark:text-purple-300">Profit By Services</span>
-                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">{clinicDashboardData.serviceProfit ?? 0}</span>
+                <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Profit By Services</span>
+                <span className="text-lg font-bold text-purple-600 dark:text-purple-400">{serviceProfit}</span>
               </div>
             </div>
           </CardContent>
