@@ -11,14 +11,14 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useGetVaccinationJsonByIds } from "@/queries/vaccinationDetail/get-vaccination-json-by-ids";
 import { useUpdateVaccinationJson } from "@/queries/vaccinationDetail/update-vaccination-json";
 import { useState, useEffect } from "react";
-import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
-import { useUpdateVaccinationDetail } from "@/queries/vaccinationDetail/update-vaccinationDetail";
-import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/get-vaccinationDetail-by-visitId";
+// import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
+// import { useUpdateVaccinationDetail } from "@/queries/vaccinationDetail/update-vaccinationDetail";
+// import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/get-vaccinationDetail-by-visitId";
 import { toast } from "sonner";
 
 interface VaccinationDocumentationModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose: (vaccineId?: string) => void;
   vaccine: {
     id: string;
     species: string;
@@ -89,9 +89,9 @@ export default function VaccinationDocumentationModal({
   const vaccinationMasterId = vaccine?.id;
   const { data: vaccinationJsonData } = useGetVaccinationJsonByIds(visitId || "", vaccinationMasterId || "");
   const updateVaccinationJson = useUpdateVaccinationJson();
-  const createVaccinationDetail = useCreateVaccinationDetail();
-  const updateVaccinationDetail = useUpdateVaccinationDetail();
-  const { data: existingVaccinationDetails, refetch: refetchVaccinationDetails } = useGetVaccinationDetailsByVisitId(visitId || "");
+  // const createVaccinationDetail = useCreateVaccinationDetail();
+  // const updateVaccinationDetail = useUpdateVaccinationDetail();
+  // const { data: existingVaccinationDetails, refetch: refetchVaccinationDetails } = useGetVaccinationDetailsByVisitId(visitId || "");
 
   useEffect(() => {
     if (vaccinationJsonData?.vaccinationJson) {
@@ -131,54 +131,54 @@ export default function VaccinationDocumentationModal({
     }
 
     // Step 1: Handle creation/update of VaccinationDetail record
-    const currentVaccineId = vaccine.id;
-    let targetVaccinationDetailId: string | undefined;
-    let existingMasterIds: string[] = [];
+    // const currentVaccineId = vaccine.id;
+    // let targetVaccinationDetailId: string | undefined;
+    // let existingMasterIds: string[] = [];
 
-    if (existingVaccinationDetails && existingVaccinationDetails.length > 0) {
-      // Assuming there's only one VaccinationDetail per visit for simplicity, or we take the first one.
-      const primaryDetail = existingVaccinationDetails[0];
-      targetVaccinationDetailId = primaryDetail.id;
-      existingMasterIds = primaryDetail.vaccinationMasterIds || [];
+    // if (existingVaccinationDetails && existingVaccinationDetails.length > 0) {
+    //   // Assuming there's only one VaccinationDetail per visit for simplicity, or we take the first one.
+    //   const primaryDetail = existingVaccinationDetails[0];
+    //   targetVaccinationDetailId = primaryDetail.id;
+    //   existingMasterIds = primaryDetail.vaccinationMasterIds || [];
 
-      // Ensure the current vaccine is in the list of master IDs
-      if (!existingMasterIds.includes(currentVaccineId)) {
-        existingMasterIds.push(currentVaccineId);
-      }
+    //   // Ensure the current vaccine is in the list of master IDs
+    //   if (!existingMasterIds.includes(currentVaccineId)) {
+    //     existingMasterIds.push(currentVaccineId);
+    //   }
 
-      try {
-        await updateVaccinationDetail.mutateAsync({
-          id: targetVaccinationDetailId,
-          data: {
-            id: targetVaccinationDetailId,
-            notes: primaryDetail.notes || "",
-            isCompleted: true, // Mark as completed when documenting individual vaccine
-            vaccinationMasterIds: existingMasterIds,
-          },
-        });
-      } catch (error) {
-        toast.error("Failed to update vaccination detail.");
-        console.error("Update Vaccination Detail Error:", error);
-        return;
-      }
-    } else {
-      // No existing VaccinationDetail, create a new one
-      try {
-        const newDetail = await createVaccinationDetail.mutateAsync({
-          visitId: visitId,
-          notes: "", // Default empty notes
-          isCompleted: true, // Mark as completed when documenting individual vaccine
-          vaccinationMasterIds: [currentVaccineId],
-        });
-        targetVaccinationDetailId = newDetail.id;
-        // After creating, refetch to ensure local state is updated for subsequent operations
-        await refetchVaccinationDetails();
-      } catch (error) {
-        toast.error("Failed to create vaccination detail.");
-        console.error("Create Vaccination Detail Error:", error);
-        return;
-      }
-    }
+    //   try {
+    //     await updateVaccinationDetail.mutateAsync({
+    //       id: targetVaccinationDetailId,
+    //       data: {
+    //         id: targetVaccinationDetailId,
+    //         notes: primaryDetail.notes || "",
+    //         isCompleted: true, // Mark as completed when documenting individual vaccine
+    //         vaccinationMasterIds: existingMasterIds,
+    //       },
+    //     });
+    //   } catch (error) {
+    //     toast.error("Failed to update vaccination detail.");
+    //     console.error("Update Vaccination Detail Error:", error);
+    //     return;
+    //   }
+    // } else {
+    //   // No existing VaccinationDetail, create a new one
+    //   try {
+    //     const newDetail = await createVaccinationDetail.mutateAsync({
+    //       visitId: visitId,
+    //       notes: "", // Default empty notes
+    //       isCompleted: true, // Mark as completed when documenting individual vaccine
+    //       vaccinationMasterIds: [currentVaccineId],
+    //     });
+    //     targetVaccinationDetailId = newDetail.id;
+    //     // After creating, refetch to ensure local state is updated for subsequent operations
+    //     await refetchVaccinationDetails();
+    //   } catch (error) {
+    //     toast.error("Failed to create vaccination detail.");
+    //     console.error("Create Vaccination Detail Error:", error);
+    //     return;
+    //   }
+    // }
 
     // Step 2: Save the specific vaccine documentation (vaccinationJson)
     // Format nextDueDate as local ISO with timezone offset to avoid UTC day shifts
@@ -219,7 +219,7 @@ export default function VaccinationDocumentationModal({
       JSON.parse(vaccinationJsonPayload.vaccinationJson);
       await updateVaccinationJson.mutateAsync(vaccinationJsonPayload);
       toast.success("Vaccination record saved successfully!");
-      onClose();
+      onClose(vaccine.id);
     } catch (error) {
       console.error("JSON Validation or Update Vaccination Json Error:", error);
       toast.error("Error saving vaccination documentation. Please check the data and try again.");
@@ -227,7 +227,7 @@ export default function VaccinationDocumentationModal({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
+    <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
       <SheetContent
         side="right"
         className="w-full sm:!max-w-full md:!max-w-[50%] lg:!max-w-[50%] overflow-x-hidden overflow-y-auto"
@@ -239,7 +239,7 @@ export default function VaccinationDocumentationModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block font-medium mb-1">Vaccine</label>
-              <Input value={vaccine?.disease || ""} disabled={isReadOnly}/>
+              <Input value={vaccine?.disease || ""} disabled={isReadOnly} readOnly />
             </div>
             
 
@@ -338,7 +338,7 @@ export default function VaccinationDocumentationModal({
             </div>
           </div>
           <Button type="submit" className="w-full bg-[#1E3D3D] text-white hover:bg-[#1E3D3D] hover:text-white" disabled={isReadOnly}>
-            Add Vaccination Record
+            Save Vaccination Documentation
           </Button>
         </form>
       </SheetContent>
