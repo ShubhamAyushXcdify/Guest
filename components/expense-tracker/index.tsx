@@ -39,16 +39,15 @@ function ExpenseTracker() {
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
 
-
   const companyId: string | null = userType.isAdmin ? clinic?.companyId ?? null : null;
 
-  // ✅ Fixed clinic ID logic - get from user's clinics array for clinic admin
+  // ✅ Fixed clinic ID logic - get from user's clinics array for clinic admin and receptionist
   const clinicId: string | null = useMemo(() => {
     if (userType.isClinicAdmin) {
       // For clinic admin, get the clinic ID from user's clinics array
       return user?.clinics?.[0]?.clinicId ?? null;
-    } else if (userType.isVeterinarian) {
-      // For veterinarian, use the clinic ID from context
+    } else if (userType.isVeterinarian || userType.isReceptionist) {
+      // For veterinarian and receptionist, use the clinic ID from context
       return clinic?.id ?? null;
     }
     return null;

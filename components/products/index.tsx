@@ -463,25 +463,23 @@ export default function Products() {
           <Loader size="lg" label="Loading products..." />
         </div>
       ) : isError ? (
-        <p className="text-red-500 text-center">Error loading products</p>
-      ) : products.length === 0 ? (
-        <p className="text-center">
-          No products found. Click "Add Product" to create one.
-        </p>
+        <div className="flex items-center justify-center h-32">
+          <p className="text-red-500 text-center">Error loading products</p>
+        </div>
       ) : (
         <div className="bg-slate-50 dark:bg-slate-900 p-6">
-        <DataTable
-          columns={columns}
-          data={products as Product[]}
-          searchColumn="name"
-          searchPlaceholder="Search products..."
-          page={pageNumber}
-          pageSize={pageSize}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          onRowClick={(row) => handleViewProduct(row.id)}
-        />
+          <DataTable
+            columns={columns}
+            data={products as Product[]}
+            searchColumn="name"
+            searchPlaceholder="Search products..."
+            page={pageNumber}
+            pageSize={pageSize}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            onRowClick={(row) => handleViewProduct(row.id)}
+          />
         </div>
       )}
 
