@@ -1,15 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CheckCircle, AlertTriangle, History } from "lucide-react"
+import { AlertTriangle, History } from "lucide-react"
 import { useGetVaccinationMasters } from "@/queries/vaccinationMaster/get-vaccinationMaster"
-import VaccinationRecord from "./VaccinationRecord"
 import VaccinationDocumentationModal from "./modals/VaccinationDocumentationModal";
-import { useRootContext } from "@/context/RootContext";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
@@ -19,9 +16,9 @@ import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/g
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import MedicalHistoryTab from "../MedicalHistoryTab";
 import { TabCompletionProvider } from "@/context/TabCompletionContext";
-import { cn } from "@/lib/utils"
-import { useGetVaccinationJsonByIds } from "@/queries/vaccinationDetail/get-vaccination-json-by-ids";
 import VaccineItemCertificate from "../certification/vaccine-item-certificate";
+import { useQueryClient } from "@tanstack/react-query";
+import { useGetVaccinationJsonByIds } from "@/queries/vaccinationDetail/get-vaccination-json-by-ids"
 
 interface Vaccination {
   id: string;
@@ -33,7 +30,7 @@ interface Vaccination {
   booster: string;
   revaccinationInterval: string;
   notes: string;
-  vacCode?: string; // Add vacCode for type safety
+  vacCode?: string;
 }
 
 interface VaccinationPlanningProps {
@@ -44,21 +41,40 @@ interface VaccinationPlanningProps {
   onClose: () => void;
   clinicId?: string;
   isReadOnly?: boolean;
-  embedded?: boolean; // When true, don't wrap in Sheet (used within tabs)
-  hideMedicalHistoryButton?: boolean; // When true, hide the Medical History button
+  embedded?: boolean;
+  hideMedicalHistoryButton?: boolean;
 }
 
-function VaccineGenerateButton({ visitId, vaccinationMasterId, onClick, selected }: { visitId: string; vaccinationMasterId: string; onClick: () => void; selected: boolean }) {
-  const { data } = useGetVaccinationJsonByIds(visitId || "", vaccinationMasterId || "");
+function VaccineGenerateButton({
+  visitId,
+  vaccinationMasterId,
+  onClick,
+  selected,
+}: {
+  visitId: string;
+  vaccinationMasterId: string;
+  onClick: () => void;
+  selected: boolean;
+}) {
+  // Only check when vaccine is selected
+  const { data, isLoading } = useGetVaccinationJsonByIds(
+    visitId,
+    vaccinationMasterId
+  );
+
   if (!selected) return null;
+  if (isLoading) return null;
+
+  // 🔥 This is the key condition
   if (!data || !data.vaccinationJson) return null;
+
   return (
     <Button
       size="sm"
       variant="default"
       onClick={onClick}
     >
-      Generate/Print
+      Generate / Print
     </Button>
   );
 }
@@ -80,6 +96,12 @@ export default function VaccinationPlanning({
   const [vaccinationDetailId, setVaccinationDetailId] = useState<string | null>(null);
   const [showMedicalHistory, setShowMedicalHistory] = useState(false);
   const [certificateVaccineId, setCertificateVaccineId] = useState<string | null>(null);
+  
+  const queryClient = useQueryClient();
+  
+  // Use ref to track if initial data has been loaded
+  const initialLoadComplete = useRef(false);
+  
   // Convert species to lowercase for API call
   const speciesLowerCase = species.toLowerCase();
 
@@ -89,103 +111,49 @@ export default function VaccinationPlanning({
   });
   const typedVaccinations: Vaccination[] = vaccinations;
 
-  ;
-
-  const handleVaccineSelection = async (id: string) => {
-
-    if (isReadOnly) return;
-    if (!visitData || !visitData.id) {
-      toast.error("No visit data found for this appointment");
-      return;
-    }
-    let newSelected: string[];
-    if (selectedVaccines.includes(id)) {
-      newSelected = selectedVaccines.filter(vaccineId => vaccineId !== id);
-    } else {
-      newSelected = [...selectedVaccines, id];
-    }
-
-    setSelectedVaccines(newSelected);
-
-    if (!vaccinationDetails || vaccinationDetails.length === 0) {
-      // First selection: create
-      try {
-        await createVaccinationDetail.mutateAsync({
-          visitId: visitData.id,
-          notes: "",
-          isCompleted: false,
-          vaccinationMasterIds: newSelected,
-        });
-        // Refetch to get the new id
-        const { data: newDetails } = await refetchVaccinationDetails();
-        if (newDetails && newDetails.length > 0) {
-          setVaccinationDetailId(newDetails[0].id);
-        }
-      } catch (error) {
-        toast.error("Failed to create vaccination detail");
-      }
-    } else {
-      // Always use the latest id from backend
-      const latestId = vaccinationDetails[0].id;
-      try {
-        await updateVaccinationDetail.mutateAsync({
-          id: latestId,
-          data: {
-            id: latestId,
-            notes: "",
-            isCompleted: false,
-            vaccinationMasterIds: newSelected,
-          },
-        });
-        // Refetch to ensure state is up to date
-        const { data: newDetails } = await refetchVaccinationDetails();
-        if (newDetails && newDetails.length > 0) {
-          setVaccinationDetailId(newDetails[0].id);
-        }
-      } catch (error) {
-        toast.error("Failed to update vaccination detail");
-      }
-    }
-  };
-
-  // Get frequency from revaccinationInterval field
-  const getFrequency = (vaccine: Vaccination) => {
-    if (vaccine.revaccinationInterval.toLowerCase().includes("year")) {
-      return vaccine.revaccinationInterval.split(" ").slice(0, 2).join(" ");
-    }
-    return "As needed";
-  };
-  const hasAnyDocumentation = () => {
-    return selectedVaccines.length > 0 && vaccinationDetails && 
-           vaccinationDetails.length > 0 && vaccinationDetails[0].isCompleted;
-  };
-
-  // Format species name for display (capitalize first letter)
-  const displaySpecies = species.charAt(0).toUpperCase() + species.slice(1).toLowerCase();
-
-  // Find the vaccine object for the currently documented vaccine
-  const documentVaccine = typedVaccinations.find((v) => v.id === documentVaccineId);
-
   // Fetch visit data for this appointment
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId);
 
-  // Fetch existing vaccination details for this visit
-  const { data: vaccinationDetails, isLoading: vaccinationDetailsLoading, refetch: refetchVaccinationDetails } = useGetVaccinationDetailsByVisitId(visitData?.id || "");
+  // Fetch existing vaccination details to initialize documented vaccines
+  const { data: vaccinationDetails } = useGetVaccinationDetailsByVisitId(visitData?.id || "");
 
   // Fetch full appointment data for update
   const { data: appointmentData, isLoading: appointmentLoading } = useGetAppointmentById(appointmentId);
 
-  // Initialize state from existing data if details exist
+  // Initialize state from existing data when component loads (only once)
   useEffect(() => {
-    if (vaccinationDetails && vaccinationDetails.length > 0) {
-      // Assuming only one detail per visit, or use the first one
-      setVaccinationDetailId(vaccinationDetails[0].id);
-      setSelectedVaccines(vaccinationDetails[0].vaccinationMasterIds || []);
-    }
-  }, [vaccinationDetails]);
+  if (!vaccinationDetails || initialLoadComplete.current) return;
 
-  // Mutations for checkout
+  // 🔥 Merge ALL vaccination details for this visit
+  const mergedMasterIds = new Set<string>();
+  let detailId: string | null = null;
+
+  vaccinationDetails.forEach((detail: any) => {
+    detailId ??= detail.id;
+
+    if (detail.vaccinationMasterIds?.length) {
+      detail.vaccinationMasterIds.forEach((id: string) =>
+        mergedMasterIds.add(id)
+      );
+    }
+
+    if (detail.vaccinationMasterIdsDetails?.length) {
+      detail.vaccinationMasterIdsDetails.forEach((item: any) =>
+        mergedMasterIds.add(item.id || item.vaccinationMasterId)
+      );
+    }
+  });
+
+  setVaccinationDetailId(detailId);
+  setSelectedVaccines(Array.from(mergedMasterIds));
+
+  initialLoadComplete.current = true;
+}, [vaccinationDetails]);
+
+
+  // Mutations
   const createVaccinationDetail = useCreateVaccinationDetail();
+  const updateVaccinationDetail = useUpdateVaccinationDetail();
   const updateAppointment = useUpdateAppointment({
     onSuccess: () => {
       setIsProcessing(false);
@@ -197,23 +165,109 @@ export default function VaccinationPlanning({
       toast.error("Failed to update appointment status");
     }
   });
-  const updateVaccinationDetail = useUpdateVaccinationDetail();
+
+  const handleVaccineSelection = async (id: string) => {
+    if (isReadOnly) return;
+    
+    if (!visitData || !visitData.id) {
+      toast.error("No visit data found for this appointment");
+      return;
+    }
+
+    // Calculate new selection
+    const newSelected = selectedVaccines.includes(id)
+      ? selectedVaccines.filter(vaccineId => vaccineId !== id)
+      : [...selectedVaccines, id];
+
+    // Optimistically update the UI
+    setSelectedVaccines(newSelected);
+
+    try {
+      // Always try to create or update, even if vaccinationDetailId is not set yet
+      if (!vaccinationDetailId) {
+        // First selection: create
+        const result = await createVaccinationDetail.mutateAsync({
+          visitId: visitData.id,
+          notes: "",
+          isCompleted: false,
+          vaccinationMasterIds: newSelected,
+        });
+        
+        if (result?.id) {
+          setVaccinationDetailId(result.id);
+        }
+      } else {
+        // Update existing record
+        await updateVaccinationDetail.mutateAsync({
+          id: vaccinationDetailId,
+          data: {
+            id: vaccinationDetailId,
+            notes: "",
+            isCompleted: false,
+            vaccinationMasterIds: newSelected,
+          },
+        });
+      }
+    } catch (error) {
+      // Revert on error
+      setSelectedVaccines(selectedVaccines.includes(id) 
+        ? selectedVaccines 
+        : selectedVaccines.filter(vaccineId => vaccineId !== id)
+      );
+      toast.error("Failed to update vaccination selection");
+          }
+  };
+
+  const handleDocumentClick = (vaccineId: string) => {
+    if (!vaccinationDetailId) {
+      toast.error("Please select a vaccine first");
+      return;
+    }
+    setDocumentVaccineId(vaccineId);
+  };
+
+  const handleDocumentModalClose = (vaccineId?: string) => {
+  setDocumentVaccineId(null);
+
+  if (vaccineId && visitData?.id) {
+    queryClient.invalidateQueries({
+      queryKey: ["vaccinationJson", visitData.id, vaccineId],
+    });
+  }
+};
+
+
+  // Get frequency from revaccinationInterval field
+  const getFrequency = (vaccine: Vaccination) => {
+    if (vaccine.revaccinationInterval.toLowerCase().includes("year")) {
+      return vaccine.revaccinationInterval.split(" ").slice(0, 2).join(" ");
+    }
+    return "As needed";
+  };
+
+  // Format species name for display (capitalize first letter)
+  const displaySpecies = species.charAt(0).toUpperCase() + species.slice(1).toLowerCase();
+
+  // Find the vaccine object for the currently documented vaccine
+  const documentVaccine = typedVaccinations.find((v) => v.id === documentVaccineId);
 
   // Checkout handler
   const handleCheckout = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
-      return
+      toast.error("No visit data found for this appointment");
+      return;
     }
     if (selectedVaccines.length === 0) {
-      toast.error("Please select at least one vaccine before checking out")
-      return
+      toast.error("Please select at least one vaccine before checking out");
+      return;
     }
     if (!appointmentData) {
-      toast.error("No appointment data found")
-      return
+      toast.error("No appointment data found");
+      return;
     }
-    setIsProcessing(true)
+    
+    setIsProcessing(true);
+    
     try {
       // Mark vaccination detail as completed
       if (vaccinationDetailId) {
@@ -225,7 +279,7 @@ export default function VaccinationPlanning({
             isCompleted: true,
             vaccinationMasterIds: selectedVaccines,
           },
-        })
+        });
       } else {
         // If for some reason no vaccination detail exists, create it as completed
         await createVaccinationDetail.mutateAsync({
@@ -233,32 +287,27 @@ export default function VaccinationPlanning({
           notes: "",
           isCompleted: true,
           vaccinationMasterIds: selectedVaccines,
-        })
+        });
       }
-      // Update appointment status to completed, sending the full object
+      
+      // Update appointment status to completed
       await updateAppointment.mutateAsync({
         id: appointmentId,
         data: {
           ...appointmentData,
           status: "completed"
         }
-      })
-      toast.success("Vaccination checkout completed")
-      if (onClose) {
-        onClose()
-      }
+      });
+      
     } catch (error) {
-      toast.error("Error during vaccination checkout")
-      setIsProcessing(false)
+      toast.error("Error during vaccination checkout");
+      setIsProcessing(false);
     }
-  }
+  };
 
-  if (isLoading || visitLoading || vaccinationDetailsLoading) {
+  if (isLoading || visitLoading) {
     return <div>Loading...</div>;
   }
-  const hasCompletedDetail = vaccinationDetails && 
-                           vaccinationDetails.length > 0 && 
-                           vaccinationDetails[0].isCompleted;
 
   // Content to render (shared between embedded and non-embedded modes)
   const content = (
@@ -284,7 +333,7 @@ export default function VaccinationPlanning({
                         <Checkbox
                           id={vaccine.id}
                           checked={selectedVaccines.includes(vaccine.id)}
-                          onCheckedChange={() => !isReadOnly && handleVaccineSelection(vaccine.id)}
+                          onCheckedChange={() => handleVaccineSelection(vaccine.id)}
                           className="mr-3"
                           disabled={isReadOnly}
                         />
@@ -303,20 +352,22 @@ export default function VaccinationPlanning({
                       </div>
                       <div className="flex items-center gap-2">
                         {selectedVaccines.includes(vaccine.id) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setDocumentVaccineId(vaccine.id)}
-                          >
-                            Document
-                          </Button>
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDocumentClick(vaccine.id)}
+                            >
+                              Document
+                            </Button>
+                            <VaccineGenerateButton
+                              visitId={visitData?.id || ""}
+                              vaccinationMasterId={vaccine.id}
+                              selected={selectedVaccines.includes(vaccine.id)}
+                              onClick={() => setCertificateVaccineId(vaccine.id)}
+                            />
+                          </>
                         )}
-                        <VaccineGenerateButton
-                          visitId={visitData?.id || ""}
-                          vaccinationMasterId={vaccine.id}
-                          selected={selectedVaccines.includes(vaccine.id)}
-                          onClick={() => setCertificateVaccineId(vaccine.id)}
-                        />
                       </div>
                     </div>
                   ))}
@@ -354,10 +405,10 @@ export default function VaccinationPlanning({
         </div>
       </div>
       {/* Vaccine-specific documentation modals */}
-      {documentVaccineId && documentVaccine && (
+      {documentVaccineId && documentVaccine && visitData?.id && (
         <VaccinationDocumentationModal
           open={true}
-          onClose={() => setDocumentVaccineId(null)}
+          onClose={(vaccineId) => handleDocumentModalClose(vaccineId)}
           vaccine={documentVaccine}
           patientId={patientId}
           appointmentId={appointmentId}
@@ -418,7 +469,7 @@ export default function VaccinationPlanning({
   // Non-embedded mode: wrap in Sheet
   return (
     <>
-      <Sheet open={true} onOpenChange={onClose}>
+      <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
         <SheetContent side="right" className="w-full sm:!max-w-full md:!max-w-[80%] lg:!max-w-[80%] overflow-x-hidden overflow-y-auto">
           <SheetHeader className="mb-6 mr-10">
             <div className="flex items-center justify-between">
@@ -465,4 +516,4 @@ export default function VaccinationPlanning({
       )}
     </>
   );
-} 
+}
