@@ -244,11 +244,24 @@ export default function Users() {
 
   const totalPages = usersData?.totalPages || 1;
 
+  // Teal gradient from darkest (highest privilege) to lightest (lowest privilege)
+  const ROLE_GRADIENT: { bg: string; text: string }[] = [
+    { bg: '#1E3D3D', text: '#FFFFFF' },  // priority 1 – Super Admin
+    { bg: '#2A5555', text: '#FFFFFF' },  // priority 2 – Administrator
+    { bg: '#3A7272', text: '#FFFFFF' },  // priority 3 – Clinic Admin
+    { bg: '#549090', text: '#FFFFFF' },  // priority 4 – Veterinarian
+    { bg: '#7AB3B3', text: '#1E3D3D' },  // priority 5 – Receptionist
+    { bg: '#A3D1D1', text: '#1E3D3D' },  // priority 6 – Client
+    { bg: '#D2EFEC', text: '#1E3D3D' },  // priority 7+ – Patient / lowest
+  ];
+
   const roleColors = React.useMemo(() => {
-    const colors: { [key: string]: string } = {};
+    const colors: { [key: string]: { bg: string; text: string } } = {};
     if (rolesData?.data) {
-      rolesData.data.forEach((role: any) => {
-        colors[role.name] = role.colourName;
+      const sorted = [...rolesData.data].sort((a: any, b: any) => a.priority - b.priority);
+      sorted.forEach((role: any, idx: number) => {
+        const gradientIdx = Math.min(idx, ROLE_GRADIENT.length - 1);
+        colors[role.name] = ROLE_GRADIENT[gradientIdx];
       });
     }
     return colors;
@@ -463,18 +476,13 @@ export default function Users() {
       header: "Role",
       cell: ({ row }) => {
         const roleDisplayName = row.original.roleName as string;
-        const colorValue = roleColors[roleDisplayName];
+        const colorEntry = roleColors[roleDisplayName];
 
-        let badgeProps: BadgeProps = {};
+        const badgeStyle = colorEntry
+          ? { backgroundColor: colorEntry.bg, color: colorEntry.text }
+          : { backgroundColor: '#D2EFEC', color: '#1E3D3D' };
 
-        if (colorValue) {
-          badgeProps.style = { backgroundColor: colorValue };
-        } else {
-          // Fallback to default color if no role-specific color is found
-          badgeProps.style = { backgroundColor: "#999999" };
-        }
-
-        return <Badge {...badgeProps}>{roleDisplayName}</Badge>;
+        return <Badge style={badgeStyle}>{roleDisplayName}</Badge>;
       },
     } as ColumnDef<User>]),
     ...(userType?.isSuperAdmin ? [] : [{

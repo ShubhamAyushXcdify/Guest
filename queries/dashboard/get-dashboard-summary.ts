@@ -25,9 +25,14 @@ const getDashboardSummary = async (params: DashboardSummaryParams) => {
   return result;
 };
 
-export const useGetDashboardSummary = (params: DashboardSummaryParams) => {
+export const useGetDashboardSummary = (
+  params: DashboardSummaryParams | null,
+  options?: { enabled?: boolean }
+) => {
+  const enabled = (options?.enabled ?? true) && !!params?.companyId;
   return useQuery({
     queryKey: ['dashboard-summary', params],
-    queryFn: () => getDashboardSummary(params),
+    queryFn: () => getDashboardSummary(params!),
+    enabled,
   });
 }; 

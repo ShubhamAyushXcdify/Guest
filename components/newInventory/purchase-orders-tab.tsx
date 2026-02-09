@@ -357,7 +357,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
           <Button
             variant="outline"
             size="sm"
-            className="hover:bg-blue-50 border-blue-500 text-blue-500 hover:text-blue-600 hover:border-blue-600"
+            className="hover:bg-[#D2EFEC]/50 border-[#1E3D3D]/40 text-[#1E3D3D] hover:text-[#1E3D3D] hover:border-[#1E3D3D]"
             onClick={() => {
               setSelectedOrderId(row.original.id || null);
               setIsSheetOpen(true);
@@ -368,7 +368,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
           <Button
             variant="outline"
             size="sm"
-            className="hover:bg-green-50 border-green-500 text-green-500 hover:text-green-600 hover:border-green-600"
+            className="hover:bg-[#D2EFEC]/50 border-[#1E3D3D]/40 text-[#1E3D3D] hover:text-[#1E3D3D] hover:border-[#1E3D3D]"
             onClick={() => handlePrintOrder(row.original)}
           >
             <Printer className="mr-1 h-4 w-4" /> Print
@@ -413,19 +413,19 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
           {filters.orderNumber && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">Order #: {filters.orderNumber}</span>
+            <span className="bg-[#D2EFEC] text-[#1E3D3D] px-2 py-1 rounded text-xs">Order #: {filters.orderNumber}</span>
           )}
           {filters.supplierName && (
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Supplier: {filters.supplierName}</span>
+            <span className="bg-[#D2EFEC]/80 text-[#1E3D3D] px-2 py-1 rounded text-xs">Supplier: {filters.supplierName}</span>
           )}
           {filters.status && (
-            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">Status: {filters.status}</span>
+            <span className="bg-[#D2EFEC]/70 text-[#1E3D3D] px-2 py-1 rounded text-xs">Status: {filters.status}</span>
           )}
           {filters.dateFrom && (
-            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">From: {formatDate(filters.dateFrom)}</span>
+            <span className="bg-[#D2EFEC]/60 text-[#1E3D3D] px-2 py-1 rounded text-xs">From: {formatDate(filters.dateFrom)}</span>
           )}
           {filters.dateTo && (
-            <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">To: {formatDate(filters.dateTo)}</span>
+            <span className="bg-[#D2EFEC]/60 text-[#1E3D3D] px-2 py-1 rounded text-xs">To: {formatDate(filters.dateTo)}</span>
           )}
           <button
             className="text-xs text-gray-500 underline"
@@ -509,7 +509,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
                   dropdownMode="select"
                   popperPlacement="bottom-start"
                   popperClassName="z-[100]"
-                  className="w-full z-[100] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full z-[100] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E3D3D] focus:border-transparent"
                 />
               </div>
               <div className="flex-1 space-y-2 relative z-50">
@@ -529,7 +529,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
                   dropdownMode="select"
                   popperPlacement="bottom-start"
                   popperClassName="z-[100]"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E3D3D] focus:border-transparent"
                 />
               </div>
             </div>
@@ -568,7 +568,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
               {selectedOrderForPrint && (
                 <Button
                   onClick={handleDownloadPDF}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="theme-button text-white"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download PDF
@@ -590,7 +590,7 @@ export default function PurchaseOrdersTab({ clinicId, onNewOrder }: PurchaseOrde
                   <p>Your browser does not support PDF display.
                     <button
                       onClick={handleDownloadPDF}
-                      className="ml-2 text-blue-600 underline"
+                      className="ml-2 text-[#1E3D3D] underline"
                     >
                       Click here to download the PDF
                     </button>
