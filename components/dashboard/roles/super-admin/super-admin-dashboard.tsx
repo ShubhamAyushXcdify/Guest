@@ -137,15 +137,15 @@ export const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="border border-green-200 bg-gradient-to-br from-green-100 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+        <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-full bg-green-200 dark:bg-green-900/50">
-                <Activity className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                <Activity className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
               </div>
               <div>
                 <p className="text-md font-medium text-muted-foreground">Total Clinics</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-100">{overallStats.totalClinics}</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{overallStats.totalClinics}</p>
               </div>
             </div>
           </CardContent>
@@ -182,25 +182,21 @@ export const SuperAdminDashboard = () => {
             
             return (
             <AccordionItem key={company.companyId} value={String(company.companyId)} className="!border-b-0">
-              <AccordionTrigger className="px-4 border my-2 rounded-lg hover:no-underline bg-red">
-                <CardTitle className="flex items-center gap-3 text-left ">
-                  <Building2 className="h-5 w-5 text-[#1E3D3D]" />
-                  <div className="flex items-center gap-3">
-                    <span className="text-[1rem] font-medium">{company.companyName}</span>
-                    <Badge variant="secondary">
+              <AccordionTrigger className="px-4 border my-2 rounded-lg hover:no-underline">
+                <div className="flex items-center justify-between w-full pr-2">
+                  <div className="flex items-center gap-2 shrink-0 min-w-0">
+                    <Building2 className="h-5 w-5 text-[#1E3D3D] dark:text-[#D2EFEC] shrink-0" />
+                    <span className="text-[1rem] font-medium truncate">{company.companyName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <Badge variant="secondary" className="whitespace-nowrap">
                       {company.clinics.length} Clinic{company.clinics.length !== 1 ? "s" : ""}
                     </Badge>
-                    {/* <Badge variant="secondary">
-                      Patients: {totalPatients}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Clients: {totalClients}
-                    </Badge> */}
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="whitespace-nowrap">
                       Products: {totalProducts}
                     </Badge>
                   </div>
-                </CardTitle>
+                </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="">

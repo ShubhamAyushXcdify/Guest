@@ -5,7 +5,7 @@ import { useGetDashboardSummary } from "@/queries/dashboard/get-dashboard-summar
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Pie, PieChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { Pie, PieChart, Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { TrendingUp, Users, Stethoscope, Package, Truck, Building2 } from "lucide-react"
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range";
 import type { DateRange } from "react-day-picker";
@@ -176,15 +176,15 @@ export const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+          <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-green-200 dark:bg-green-900/50">
-                  <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                  <Users className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
                 </div>
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Patients</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">
                     {clinics.reduce((sum: number, c: any) => sum + (c.clinicDetails?.numberOfPatients || 0), 0)}
                   </p>
                 </div>
@@ -192,15 +192,15 @@ export const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50">
+          <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-full bg-orange-200 dark:bg-orange-900/50">
-                  <Package className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                  <Package className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
                 </div>
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Products</p>
-                  <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">
                     {clinics.reduce((sum: number, c: any) => sum + (c.clinicDetails?.numberOfProducts || 0), 0)}
                   </p>
                 </div>
@@ -211,7 +211,7 @@ export const AdminDashboard = () => {
 
         {/* Appointment Requests Card - 50% width on desktop */}
         {appointmentRequests.length > 0 && (
-          <Card className="col-span-1 border-0 shadow-lg bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950/50 dark:to-cyan-900/50 lg:w-1/2 flex flex-col">
+          <Card className="col-span-1 shadow-lg border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50 lg:w-1/2 flex flex-col">
             <CardHeader>
               <CardTitle className="text-xl">Appointment Requests</CardTitle>
             </CardHeader>
@@ -224,7 +224,7 @@ export const AdminDashboard = () => {
                       <span className="text-sm text-muted-foreground">{new Date(appointment.appointmentDate).toLocaleDateString()}</span>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700" onClick={() => handleApproveAppointment(appointment.id)} title="Approve">
+                      <Button size="sm" variant="default" className="theme-button text-white" onClick={() => handleApproveAppointment(appointment.id)} title="Approve">
                         Approve
                       </Button>
                     </div>
@@ -252,154 +252,145 @@ export const AdminDashboard = () => {
               { name: "Canceled", value: ratios.canceledAppointments || 0, fill: "hsl(var(--destructive))" },
               { name: "Other", value: Math.max(0, (ratios.totalAppointments || 0) - (ratios.completedAppointments || 0) - (ratios.canceledAppointments || 0)), fill: "hsl(var(--muted))" },
             ].filter((d) => d.value > 0);
-            const barData = [
-              { metric: "Vets", count: details.numberOfVeterinarians || 0, fill: "var(--color-vets)" },
-              { metric: "Patients", count: details.numberOfPatients || 0, fill: "var(--color-patients)" },
-              { metric: "Clients", count: details.numberOfClients || 0, fill: "var(--color-clients)" },
-              { metric: "Products", count: details.numberOfProducts || 0, fill: "var(--color-products)" },
-              { metric: "Suppliers", count: details.numberOfSuppliers || 0, fill: "var(--color-suppliers)" },
+            // Profit comparison data for bar chart
+            const profitData = [
+              { label: "Products", value: Number(clinic.productProfit ?? 0) },
+              { label: "Services", value: Number(clinic.serviceProfit ?? 0) },
             ];
-            const barConfig = {
-              count: { label: "Count" },
-              vets: { label: "Veterinarians", color: "hsl(var(--primary))" },
-              patients: { label: "Patients", color: "hsl(142 76% 36%)" },
-              clients: { label: "Clients", color: "hsl(262 83% 58%)" },
-              products: { label: "Products", color: "hsl(25 95% 53%)" },
-              suppliers: { label: "Suppliers", color: "hsl(173 58% 39%)" },
+            const profitConfig = {
+              value: { label: "Profit", color: "#1E3D3D" },
             };
 
             return (
               <AccordionItem key={idx} value={String(idx)} className="border-b border-border last:border-b-0 px-4">
                 <AccordionTrigger className="hover:no-underline py-4 [&[data-state=open]]:border-b [&[data-state=open]]:border-border">
-                  <div className="flex flex-wrap items-center gap-3 text-left">
-                    <Building2 className="h-5 w-5 text-[#1E3D3D] dark:text-[#D2EFEC] shrink-0" />
-                    <span className="font-semibold text-foreground">{clinic.clinicName}</span>
-                    <Badge variant="secondary" className="font-normal">
-                      {ratios.completionRatio ?? 0}% completion
-                    </Badge>
-                    <Badge variant="outline" className="font-normal">
-                      {details.numberOfVeterinarians || 0} vets · {details.numberOfPatients || 0} patients
-                    </Badge>
-                    <span className="flex items-center gap-1.5 text-muted-foreground text-sm">
-                      <span className="w-2 h-2 rounded-full bg-green-500" /> Active
-                    </span>
+                  <div className="flex items-center justify-between w-full pr-2">
+                    <div className="flex items-center gap-2 shrink-0 min-w-0">
+                      <Building2 className="h-5 w-5 text-[#1E3D3D] dark:text-[#D2EFEC] shrink-0" />
+                      <span className="font-semibold text-foreground truncate">{clinic.clinicName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-4">
+                      <Badge variant="secondary" className="font-normal whitespace-nowrap">
+                        {ratios.completionRatio ?? 0}% completion
+                      </Badge>
+                      <Badge variant="outline" className="font-normal whitespace-nowrap">
+                        {details.numberOfVeterinarians || 0} vets · {details.numberOfPatients || 0} patients
+                      </Badge>
+                      <span className="flex items-center gap-1.5 text-muted-foreground text-sm whitespace-nowrap">
+                        <span className="w-2 h-2 rounded-full bg-[#1E3D3D]" /> Active
+                      </span>
+                    </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-6 pt-2">
-                  <Card className="border-0 shadow-none bg-transparent">
-                    <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-0">
-                      {/* Bar chart: Clinic statistics */}
-                      <div className="space-y-4 lg:border-r border-border pr-6">
-                        <h3 className="text-sm font-medium text-foreground">Clinic statistics</h3>
-                        <ChartContainer
-                          config={barConfig}
-                          className="h-[220px] w-full"
-                        >
-                          <BarChart data={barData} layout="vertical" margin={{ left: 8, right: 8 }}>
-                            <CartesianGrid horizontal={false} stroke="hsl(var(--border))" />
-                            <XAxis type="number" hide />
-                            <YAxis type="category" dataKey="metric" width={80} tick={{ fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-                            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                            <Bar dataKey="count" radius={4} fill="hsl(var(--primary))" />
-                          </BarChart>
-                        </ChartContainer>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Vets</span>
-                            <span className="font-semibold text-foreground">{details.numberOfVeterinarians || 0}</span>
+                <AccordionContent className="pb-6 pt-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Column 1: Clinic statistics as clean cards */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium text-foreground">Clinic statistics</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Stethoscope className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
+                            <span className="text-xs text-muted-foreground">Vets</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Patients</span>
-                            <span className="font-semibold text-foreground">{details.numberOfPatients || 0}</span>
+                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfVeterinarians || 0}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Users className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
+                            <span className="text-xs text-muted-foreground">Patients</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Clients</span>
-                            <span className="font-semibold text-foreground">{details.numberOfClients || 0}</span>
+                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfPatients || 0}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Users className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
+                            <span className="text-xs text-muted-foreground">Clients</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Products</span>
-                            <span className="font-semibold text-foreground">{details.numberOfProducts || 0}</span>
+                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfClients || 0}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Package className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
+                            <span className="text-xs text-muted-foreground">Products</span>
                           </div>
-                          <div className="flex items-center gap-2 col-span-2">
-                            <Truck className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Suppliers</span>
-                            <span className="font-semibold text-foreground">{details.numberOfSuppliers || 0}</span>
+                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfProducts || 0}</p>
+                        </div>
+                        <div className="border rounded-lg p-3 col-span-2 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Truck className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
+                            <span className="text-xs text-muted-foreground">Suppliers</span>
                           </div>
+                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfSuppliers || 0}</p>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Pie chart: Appointment analytics */}
-                      <div className="space-y-4 lg:border-r border-border pr-6">
-                        <h3 className="text-sm font-medium text-foreground">Appointment analytics</h3>
-                        <ChartContainer
-                          config={{
-                            completed: { label: "Completed", color: "hsl(var(--chart-1))" },
-                            canceled: { label: "Canceled", color: "hsl(var(--destructive))" },
-                            other: { label: "Other", color: "hsl(var(--muted))" },
-                          }}
-                          className="mx-auto aspect-square max-h-[200px]"
-                        >
-                          <PieChart>
-                            <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-                            <Pie
-                              data={pieData.length ? pieData : [{ name: "No data", value: 1, fill: "hsl(var(--muted))" }]}
-                              dataKey="value"
-                              nameKey="name"
-                              innerRadius={40}
-                              outerRadius={80}
-                            />
-                          </PieChart>
-                        </ChartContainer>
-                        <div className="text-center space-y-1 text-sm">
-                          <p className="text-muted-foreground">
-                            Total appointments: <span className="font-semibold text-foreground">{ratios.totalAppointments || 0}</span>
-                          </p>
-                          <p className="text-muted-foreground">
-                            Completion: <span className="font-semibold text-green-600 dark:text-green-400">{ratios.completionRatio ?? 0}%</span>
-                          </p>
-                        </div>
+                    {/* Column 2: Appointment analytics pie + profit bar chart */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium text-foreground">Appointment analytics</h3>
+                      <ChartContainer
+                        config={{
+                          completed: { label: "Completed", color: "#1E3D3D" },
+                          canceled: { label: "Canceled", color: "hsl(var(--destructive))" },
+                          other: { label: "Other", color: "hsl(var(--muted))" },
+                        }}
+                        className="mx-auto aspect-square max-h-[180px]"
+                      >
+                        <PieChart>
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                          <Pie
+                            data={pieData.length ? pieData : [{ name: "No data", value: 1, fill: "hsl(var(--muted))" }]}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={40}
+                            outerRadius={75}
+                          />
+                        </PieChart>
+                      </ChartContainer>
+                      <div className="text-center space-y-1 text-sm">
+                        <p className="text-muted-foreground">
+                          Total: <span className="font-semibold text-foreground">{ratios.totalAppointments || 0}</span>
+                          {" · "}
+                          Completion: <span className="font-semibold text-[#1E3D3D] dark:text-[#D2EFEC]">{ratios.completionRatio ?? 0}%</span>
+                        </p>
                       </div>
+                    </div>
 
-                      {/* Performance metrics */}
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-medium text-foreground">Performance metrics</h3>
-                        <div className="space-y-3">
-                          <div className="p-3 rounded-lg bg-green-500/10 dark:bg-green-500/10 border border-green-500/20">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-green-700 dark:text-green-300">Completion rate</span>
-                              <span className="font-bold text-green-600 dark:text-green-400">{ratios.percentageOfCompleting ?? 0}</span>
-                            </div>
-                          </div>
-                          <div className="p-3 rounded-lg bg-blue-500/10 dark:bg-blue-500/10 border border-blue-500/20">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Profit (products)</span>
-                              <span className="font-bold text-blue-600 dark:text-blue-400">{clinic.productProfit ?? 0}</span>
-                            </div>
-                          </div>
-                          <div className="p-3 rounded-lg bg-[#1E3D3D]/10 dark:bg-[#D2EFEC]/10 border border-[#1E3D3D]/20 dark:border-[#D2EFEC]/20">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">Profit (services)</span>
-                              <span className="font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{clinic.serviceProfit ?? 0}</span>
-                            </div>
-                          </div>
-                          <div className="p-3 rounded-lg bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/20">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Average rating</span>
-                              <span className="font-bold text-amber-600 dark:text-amber-400">{clinic.averageRating ?? 0}</span>
-                            </div>
+                    {/* Column 3: Profit comparison chart + rating */}
+                    <div className="space-y-4">
+                      <h3 className="text-sm font-medium text-foreground">Profit breakdown</h3>
+                      <ChartContainer
+                        config={profitConfig}
+                        className="h-[160px] w-full"
+                      >
+                        <BarChart data={profitData} margin={{ left: 0, right: 0 }}>
+                          <CartesianGrid vertical={false} stroke="hsl(var(--border))" />
+                          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                          <Bar dataKey="value" radius={[4, 4, 0, 0]} fill="#1E3D3D" />
+                        </BarChart>
+                      </ChartContainer>
+                      <div className="space-y-2">
+                        <div className="p-3 rounded-lg bg-[#D2EFEC]/40 dark:bg-[#1E3D3D]/20 border border-[#1E3D3D]/10 dark:border-[#D2EFEC]/10">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">Completion rate</span>
+                            <span className="font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{ratios.percentageOfCompleting ?? 0}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
-                          <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                          <span>Last updated: {new Date().toLocaleDateString()}</span>
+                        <div className="p-3 rounded-lg bg-[#D2EFEC]/40 dark:bg-[#1E3D3D]/20 border border-[#1E3D3D]/10 dark:border-[#D2EFEC]/10">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">Average rating</span>
+                            <span className="font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{clinic.averageRating ?? "N/A"}</span>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <TrendingUp className="h-3.5 w-3.5 text-[#1E3D3D] dark:text-[#D2EFEC]" />
+                        <span>Updated: {new Date().toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             );

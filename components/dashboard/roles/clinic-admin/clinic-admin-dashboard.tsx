@@ -198,7 +198,7 @@ export const ClinicAdminDashboard = ({
           <p className="text-muted-foreground text-sm">Clinic performance and daily operations overview</p>
         </div>
         <div className="flex gap-2">
-          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2" onClick={onNewPatient}>
+          <Button className="theme-button text-white flex items-center gap-2" onClick={onNewPatient}>
             <UserPlus className="h-4 w-4" />
             <span>New Patient</span>
           </Button>
@@ -236,15 +236,15 @@ export const ClinicAdminDashboard = ({
           </CardContent>
         </Card>
 
-        <Card className="border border-green-200 bg-gradient-to-br from-green-100 to-green-100 dark:from-green-950/50 dark:to-green-900/50">
+        <Card className="border bg-gradient-to-br from-[#D2EFEC] to-[#D2EFEC] dark:from-[#1E3D3D]/50 dark:to-[#1E3D3D]/50">
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-full bg-green-200 dark:bg-green-900/50">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="p-3 rounded-full bg-[#D2EFEC] dark:bg-[#1E3D3D]/50">
+                <CheckCircle className="h-6 w-6 text-[#1E3D3D] dark:text-[#D2EFEC]" />
               </div>
               <div>
                 <p className="text-md font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-100">{completionMetrics?.completedAppointments || 0}</p>
+                <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{completionMetrics?.completedAppointments || 0}</p>
               </div>
             </div>
           </CardContent>
