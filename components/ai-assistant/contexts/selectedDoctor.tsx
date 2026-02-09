@@ -1,7 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useState, useMemo, ReactNode } from "react"
-import { Patient } from "@/components/appointments/hooks/use-patient-search"
+
+interface Patient {
+  id: string
+  name: string
+  clientId?: string
+}
 
 interface SelectedPatientContextType {
   selectedPatient: Patient | null
