@@ -187,7 +187,7 @@ export default function ReceivingTab({ clinicId, onNewEntity = () => {} }: Recei
               <Button
                 variant="outline"
                 size="sm"
-                className="hover:bg-blue-50 border-blue-500 text-blue-500 hover:text-blue-600 hover:border-blue-600"
+                className="hover:bg-[#D2EFEC]/50 border-[#1E3D3D]/40 text-[#1E3D3D] hover:text-[#1E3D3D] hover:border-[#1E3D3D]"
                 onClick={() => setSelectedOrderId(row.original.id || null)}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-package-check mr-1 h-4 w-4"><path d="M16 16h6" /><path d="m22 10-5.5 5.5-3-3" /><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 4 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14" /><path d="M16 5.3V8L12 10 8 8V5.3" /></svg> Receive
@@ -311,7 +311,7 @@ export default function ReceivingTab({ clinicId, onNewEntity = () => {} }: Recei
                   dropdownMode="select"
                   popperPlacement="bottom-start"
                   popperClassName="z-[100]"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E3D3D] focus:border-transparent"
                 />
               </div>
               <div className="flex-1 space-y-2 relative z-50">
@@ -331,7 +331,7 @@ export default function ReceivingTab({ clinicId, onNewEntity = () => {} }: Recei
                   dropdownMode="select"
                   popperPlacement="bottom-start"
                   popperClassName="z-[100]"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E3D3D] focus:border-transparent"
                 />
               </div>
             </div>

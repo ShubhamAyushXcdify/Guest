@@ -704,7 +704,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
     if (batch.shelf && batch.bin) {
       return (
         <div className="flex items-center gap-1">
-          <MapPin className="w-3 h-3 text-blue-500" />
+            <MapPin className="w-3 h-3 text-[#1E3D3D]" />
           <span className="font-medium">Shelf {batch.shelf}</span>
           <span className="text-gray-500">•</span>
           <span className="font-medium">Bin {batch.bin}</span>
@@ -718,7 +718,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       if (parts.length >= 2) {
         return (
           <div className="flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-blue-500" />
+            <MapPin className="w-3 h-3 text-[#1E3D3D]" />
             <span className="font-medium">Shelf {parts[0]}</span>
             <span className="text-gray-500">•</span>
             <span className="font-medium">Bin {parts[1]}</span>
@@ -744,7 +744,7 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
           <div className="text-sm">
             {row.original.orderNumber ? (
               <div className="flex items-center gap-1">
-                <span className="text-blue-600 font-medium">{row.original.orderNumber}</span>
+                <span className="text-[#1E3D3D] font-medium">{row.original.orderNumber}</span>
                 {row.original.isReceivedItem && (
                   <Badge variant="outline" className="text-xs">Received</Badge>
                 )}
@@ -882,22 +882,22 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 items-center">
           {filters.search && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+            <span className="bg-[#D2EFEC] text-[#1E3D3D] px-2 py-1 rounded text-xs">
               Search: {filters.search}
             </span>
           )}
           {filters.shelf && (
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+            <span className="bg-[#D2EFEC]/80 text-[#1E3D3D] px-2 py-1 rounded text-xs">
               Shelf: {filters.shelf}
             </span>
           )}
           {filters.bin && (
-            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+            <span className="bg-[#D2EFEC]/70 text-[#1E3D3D] px-2 py-1 rounded text-xs">
               Bin: {filters.bin}
             </span>
           )}
           {filters.batchNumber && (
-            <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
+            <span className="bg-[#D2EFEC]/60 text-[#1E3D3D] px-2 py-1 rounded text-xs">
               Batch: {filters.batchNumber}
             </span>
           )}
@@ -1010,13 +1010,13 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         </TabsList>
 
         <TabsContent value="unlocated" className="space-y-4">
-          <div className="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-[#D2EFEC]/40 to-[#D2EFEC]/70 border border-[#1E3D3D]/15 rounded-lg p-4">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
+              <AlertTriangle className="w-5 h-5 text-[#1E3D3D]" />
               <div>
-                <h4 className="font-medium text-amber-800">Unlocated Batches</h4>
-                <p className="text-sm text-amber-700">
-                  These batches need shelf and bin locations assigned. Click "Assign" to set their storage location.
+                <h4 className="font-medium text-[#1E3D3D]">Unlocated Batches</h4>
+                <p className="text-sm text-[#1E3D3D]/70">
+                  These batches need shelf and bin locations assigned. Click &quot;Assign&quot; to set their storage location.
                 </p>
               </div>
             </div>
@@ -1038,13 +1038,13 @@ export default function LocationsTab({ clinicId }: LocationsTabProps) {
         </TabsContent>
 
         <TabsContent value="located" className="space-y-4">
-          <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-[#D2EFEC]/60 to-[#D2EFEC] border border-[#1E3D3D]/15 rounded-lg p-4">
             <div className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-green-600" />
+              <MapPin className="w-5 h-5 text-[#1E3D3D]" />
               <div>
-                <h4 className="font-medium text-green-800">Located Batches</h4>
-                <p className="text-sm text-green-700">
-                  These batches have assigned shelf and bin locations. Click "Update" to modify their storage location.
+                <h4 className="font-medium text-[#1E3D3D]">Located Batches</h4>
+                <p className="text-sm text-[#1E3D3D]/70">
+                  These batches have assigned shelf and bin locations. Click &quot;Update&quot; to modify their storage location.
                 </p>
               </div>
             </div>

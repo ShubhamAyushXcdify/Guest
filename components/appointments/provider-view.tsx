@@ -162,16 +162,16 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-[#D2EFEC] dark:bg-[#1E3D3D]/20 p-2 rounded">
-                      <div className="text-2xl font-bold text-[#1E3D3D] dark:text-[#1E3D3D]">{provider.total}</div>
-                      <div className="text-sm text-[#1E3D3D] dark:text-[#1E3D3D]">Total</div>
+                      <div className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{provider.total}</div>
+                      <div className="text-sm text-[#1E3D3D] dark:text-[#D2EFEC]">Total</div>
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
-                      <div className="text-2xl font-bold text-green-700 dark:text-green-400">{provider.done}</div>
-                      <div className="text-sm text-green-600 dark:text-green-500">Done</div>
+                    <div className="bg-[#D2EFEC]/60 dark:bg-[#1E3D3D]/10 p-2 rounded">
+                      <div className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{provider.done}</div>
+                      <div className="text-sm text-[#1E3D3D] dark:text-[#D2EFEC]">Done</div>
                     </div>
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
-                      <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{provider.pending}</div>
-                      <div className="text-sm text-amber-600 dark:text-amber-400">Pending</div>
+                    <div className="bg-[#D2EFEC]/40 dark:bg-[#1E3D3D]/5 p-2 rounded">
+                      <div className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{provider.pending}</div>
+                      <div className="text-sm text-[#1E3D3D] dark:text-[#D2EFEC]">Pending</div>
                     </div>
                   </div>
                 </CardContent>
@@ -181,33 +181,28 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
         </div>
       </div>
       
-      {/* Date Range Picker - Only shown in list view */}
-      {viewType === "list" && selectedProvider && (
-        <div className="mb-6 bg-gray-100 dark:bg-slate-800 p-4 rounded-lg">
-          <h3 className="text-md font-medium mb-2">Select Date Range</h3>
-          <DatePickerWithRangeV2
-            date={dateRange}
-            setDate={handleDateRangeChange}
-            className="w-[300px]"
-          />
-        </div>
-      )}
-      
       {/* Selected Provider Appointments */}
       {selectedProvider && (
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-              {selectedProviderObj?.name}'s Appointments 
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <h2 className="text-lg font-semibold text-foreground">
+              {selectedProviderObj?.name}&apos;s Appointments
               {viewType === "list" && (
-                <span> ({format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')})</span>
+                <span className="text-muted-foreground font-normal text-sm ml-2">
+                  ({format(dateRange.from, 'MMM d, yyyy')} - {format(dateRange.to, 'MMM d, yyyy')})
+                </span>
               )}
             </h2>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {viewType === "list" && (
+                <DatePickerWithRangeV2
+                  date={dateRange}
+                  setDate={handleDateRangeChange}
+                />
+              )}
               <Tabs 
                 value={viewType} 
                 onValueChange={(value) => setViewType(value as "list" | "calendar")}
-                className="mr-4"
               >
                 <TabsList>
                   <TabsTrigger value="list" className="flex items-center gap-2">
@@ -220,7 +215,6 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
-              {/* <Button className="theme-button text-white">View Schedule</Button> */}
             </div>
           </div>
           
@@ -229,25 +223,25 @@ export default function ProviderView({ onAppointmentClick }: { onAppointmentClic
               {appointments.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">No appointments found for the selected date range.</div>
               ) : (
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
-                  <thead className="bg-gray-50 dark:bg-slate-700">
-                    <tr className="text-md font-bold">
-                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-[#D2EFEC]/30 dark:bg-[#1E3D3D]/20">
+                    <tr className="text-sm font-semibold">
+                      <th className="px-6 py-3 text-left text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                         Time
                       </th>
-                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                         Patient
                       </th>
-                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                         Owner
                       </th>
-                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                         Visit Type
                       </th>
-                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>

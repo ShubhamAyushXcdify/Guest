@@ -41,29 +41,29 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
           title="Total Items"
           value={data.totalItems}
           trend=""
-          trendColor="text-green-500"
-          icon={<Package className="h-8 w-8 text-blue-500" />}
+          trendColor="text-[#1E3D3D]"
+          icon={<Package className="h-8 w-8 text-[#1E3D3D]" />}
         />
         <StatsCard
           title="Low Stock Items"
           value={data.lowStockItemsCount}
           trend=""
-          trendColor="text-red-500"
-          icon={<AlertTriangle className="h-8 w-8 text-red-500" />}
+          trendColor="text-[#1E3D3D]"
+          icon={<AlertTriangle className="h-8 w-8 text-[#1E3D3D]" />}
         />
         <StatsCard
           title="Expiring Soon"
           value={data.expiringSoonItems}
           trend=""
-          trendColor="text-amber-500"
-          icon={<Clock className="h-8 w-8 text-amber-500" />}
+          trendColor="text-[#1E3D3D]"
+          icon={<Clock className="h-8 w-8 text-[#1E3D3D]" />}
         />
         <StatsCard
           title="Pending Orders"
           value={data.pendingPurchaseOrders}
           trend=""
-          trendColor="text-blue-500"
-          icon={<ShoppingCart className="h-8 w-8 text-blue-500" />}
+          trendColor="text-[#1E3D3D]"
+          icon={<ShoppingCart className="h-8 w-8 text-[#1E3D3D]" />}
         />
       </div>
 
@@ -82,18 +82,18 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-slate-700">
+                <thead className="bg-[#D2EFEC]/30 dark:bg-[#1E3D3D]/20">
                   <tr>
-                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                       Item
                     </th>
-                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                       Current
                     </th>
-                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                       Threshold
                     </th>
-                    <th className="px-6 py-3 text-left text-md font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-[#1E3D3D] dark:text-[#D2EFEC] uppercase tracking-wider">
                       Action
                     </th>
                   </tr>
@@ -137,26 +137,26 @@ export default function DashboardTab({ clinicId }: DashboardTabProps) {
           <CategoryCard
             title="Medications"
             count={data.numberOfAntibiotics + data.numberOfPainManagement}
-            bgColor="bg-blue-50 dark:bg-blue-900/20"
-            textColor="text-blue-500"
+            bgColor="bg-[#D2EFEC] dark:bg-[#1E3D3D]/20"
+            textColor="text-[#1E3D3D] dark:text-[#D2EFEC]"
           />
           <CategoryCard
             title="Vaccines"
             count={data.numberOfVaccines}
-            bgColor="bg-green-50 dark:bg-green-900/20"
-            textColor="text-green-500"
+            bgColor="bg-[#D2EFEC]/80 dark:bg-[#1E3D3D]/15"
+            textColor="text-[#1E3D3D] dark:text-[#D2EFEC]"
           />
           <CategoryCard
             title="Medical Supplies"
             count={data.numberOfMedicalSupplies}
-            bgColor="bg-red-50 dark:bg-red-900/20"
-            textColor="text-red-500"
+            bgColor="bg-[#D2EFEC]/60 dark:bg-[#1E3D3D]/10"
+            textColor="text-[#1E3D3D] dark:text-[#D2EFEC]"
           />
           <CategoryCard
             title="Food & Supplements"
             count={data.numberOfFood + data.numberOfSupplements}
-            bgColor="bg-purple-50 dark:bg-purple-900/20"
-            textColor="text-purple-500"
+            bgColor="bg-[#D2EFEC]/40 dark:bg-[#1E3D3D]/5"
+            textColor="text-[#1E3D3D] dark:text-[#D2EFEC]"
           />
         </div>
       </div>

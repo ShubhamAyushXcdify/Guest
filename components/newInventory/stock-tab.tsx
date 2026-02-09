@@ -280,12 +280,12 @@ export default function StockTab({ clinicId }: StockTabProps) {
       {activeFilterCount > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 items-center">
           {filters.search && (
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+            <span className="bg-[#D2EFEC] text-[#1E3D3D] px-2 py-1 rounded text-xs">
               Search: {filters.search}
             </span>
           )}
           {filters.batchNumber && (
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+            <span className="bg-[#D2EFEC]/70 text-[#1E3D3D] px-2 py-1 rounded text-xs">
               Batch: {filters.batchNumber}
             </span>
           )}
