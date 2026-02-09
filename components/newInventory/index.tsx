@@ -74,7 +74,7 @@ export default function Inventory() {
   return (
     <>
       <div className="p-0">
-        {!clinicId && (
+        {!clinicId && !userType?.isReceptionist && (
           <div className="flex flex-col md:flex-row justify-between items-center md:items-center mb-6">
             <div className="flex items-center gap-2">
               <Select value={effectiveClinicId} onValueChange={handleClinicChange}>
