@@ -17,7 +17,8 @@ import {
     setClinicId,
     setClinicName,
     removeClinicName,
-    setCompanyId
+    setCompanyId,
+    getClientId
 } from "../utils/clientCookie";
 import { isTokenExpired, getTokenExpiration } from "../utils/jwtToken";
 
@@ -224,18 +225,34 @@ export const useContentLayout = () => {
             userid = undefined as any;
         }
         if (!userid && (pathname !== '/login' && pathname !== '/register' && pathname !== '/login/internal' && pathname !== '/')) {
-            setLoading(false);
-            handleLogout();
-            return;
+            // Check if this is a client dashboard scenario
+            const clientId = getClientId();
+            if (!clientId) {
+                // No userid and no clientId - logout
+                setLoading(false);
+                handleLogout();
+                return;
+            }
+            // Has clientId but no userid - continue (client dashboard scenario)
         }
-        if (!userid) {
-            return;
-        }
-
         // Only fetch full user profile if we don't have complete data or need clinic info
         // This fetch happens in background and updates the user state when complete
         try {
-            const response = await fetch(`/api/user/${userid}`);
+            let response;
+            
+            // If we have a userid, use the user API, otherwise use client API
+            if (userid) {
+                response = await fetch(`/api/user/${userid}`);
+            } else {
+                // For client dashboard, use clientId to fetch client data
+                const clientId = getClientId();
+                if (clientId) {
+                    response = await fetch(`/api/clients/${clientId}`);
+                } else {
+                    console.error("No userid or clientId available for fetch");
+                    return;
+                }
+            }
             
             // Check for 401 Unauthorized response
             if (response.status === 401) {
@@ -255,7 +272,6 @@ export const useContentLayout = () => {
                 }
                 return;
             }
-            setUserId(userData.id)
             let effectiveClinicId = userData.clinicId || (userData as any)?.clinics?.[0]?.clinicId || (userData as any)?.clinics?.[0]?.id;
             let effectiveClinicName = userData.clinicName || (userData as any)?.clinics?.[0]?.clinicName || (userData as any)?.clinics?.[0]?.name;
             let effectiveCompanyId = (userData as any)?.companyId ?? (userData as any)?.clinicCompanyId ?? null;
@@ -265,9 +281,18 @@ export const useContentLayout = () => {
                 setCompanyId(effectiveCompanyId);
             }
 
-            // Update user with complete data
-            setUser({ ...userData, clinicId: effectiveClinicId, clinicName: effectiveClinicName });
-
+            // Update user with complete data only if this is actual user data (not client data)
+            if (userid) {
+                setUser({ ...userData, clinicId: effectiveClinicId, clinicName: effectiveClinicName });
+                setUserId(userData.id);
+                registerUser(userData);
+            } else {
+                // This is client data, don't set it as user to avoid confusion
+                // Just set the clinic info and authorization
+                console.log("Client data loaded, not setting as user");
+            }
+            
+            // Always set clinic info and authorization regardless of user/client type
             setClinicId(effectiveClinicId);
             setClinicName(effectiveClinicName);
             setClinic({
@@ -276,7 +301,6 @@ export const useContentLayout = () => {
                 companyId: effectiveCompanyId
             });
             setAuthorized(true);
-            registerUser(userData);
         } catch (error) {
             console.error("Error fetching user:", error);
             // Only set loading/authorized to false if we don't have login data
