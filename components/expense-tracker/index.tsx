@@ -415,16 +415,12 @@ function ExpenseTracker() {
       )}
 
       {isLoading ? (
-        <div className="min-h-[calc(100vh-20rem)] flex items-center justify-center p-6">
+        <div className="flex items-center justify-center min-h-[200px]">
           <Loader size="lg" label="Loading expenses..." />
         </div>
       ) : isError ? (
         <div className="flex items-center justify-center h-32">
-          <p className="text-red-500">Error loading expenses</p>
-        </div>
-      ) : expenses.length === 0 ? (
-        <div className="flex items-center justify-center h-32">
-          <p>No expenses found. Click "Add Expense" to create one.</p>
+          <p className="text-red-500 text-center">Error loading expenses</p>
         </div>
       ) : (
         <div className="bg-slate-50 dark:bg-slate-900 p-6">

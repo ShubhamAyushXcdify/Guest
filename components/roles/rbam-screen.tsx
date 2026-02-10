@@ -19,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useRootContext } from "@/context/RootContext";
 import { useQueryStates, parseAsString } from "nuqs";
+import { navGroups } from "@/components/layout/sidebar/constant";
 
 type AccessKey = string; // `${roleId}:${screenId}`
 
@@ -89,12 +90,39 @@ export default function RBACScreen() {
   const { data: rolesData } = useGetRole(1, 10, "", true);
   const roles = rolesData?.data ?? [];
   const visibleRoles = React.useMemo(
-    () => roles.filter((r: any) => !/^(Super Admin|Administrator)$/i.test(String(r?.name ?? ""))),
+    () => {
+      // Filter out Super Admin and Administrator, then deduplicate by role name
+      const filtered = roles.filter((r: any) => !/^(Super Admin|Administrator)$/i.test(String(r?.name ?? "")));
+      const seen = new Set<string>();
+      return filtered.filter((r: any) => {
+        const name = String(r?.name ?? "");
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
+    },
     [roles]
   );
 
   const { data: screensData } = useGetScreen(1, 10, "", true);
   const screens = screensData?.data ?? [];
+
+  // Get allowed screens for a specific role from navGroups
+  const getAllowedScreensForCurrentRole = React.useCallback((roleName: string) => {
+    const allowedScreens: string[] = [];
+    
+    navGroups.forEach(group => {
+      if (group.items) {
+        group.items.forEach((item) => {
+          if (item.allowedRoles && item.allowedRoles.includes(roleName)) {
+            allowedScreens.push(item.label);
+          }
+        });
+      }
+    });
+    
+    return allowedScreens;
+  }, []);
 
   // Access matrix
   const { data: accessData, refetch: refetchAccess } = useGetScreenAccess(
@@ -141,11 +169,12 @@ export default function RBACScreen() {
     },
   });
 
-  const handleToggle = (roleId: string, screenId: string, enable: boolean) => {
+  const handleToggle = (roleId: string, screenId: string, enable: boolean, roleName: string) => {
     if (!ctxClinic?.id) {
       toast({ title: "Select clinic", description: "Please select a clinic first", variant: "destructive" });
       return;
     }
+    
     const key: AccessKey = `${roleId}:${screenId}`;
     // Optimistic update
     setGrantedSet((prev) => {
@@ -237,7 +266,7 @@ export default function RBACScreen() {
                     >
                       Role / Screen
                     </th>
-                    {screens.map((screen) => (
+                    {screens.map((screen: any) => (
                       <th
                         key={screen.id}
                         className="sticky font-bold text-lg top-0 z-[10] bg-card p-3 text-center whitespace-nowrap w-[120px] min-w-[120px] border border-border border-b-2 text-foreground shadow-[0_2px_3px_rgba(0,0,0,0.1)]"
@@ -248,21 +277,32 @@ export default function RBACScreen() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRoles.map((role: any) => (
+                  {visibleRoles.map((role: any) => {
+                    const allowedScreens = getAllowedScreensForCurrentRole(role.name);
+                    return (
                     <tr key={role.id} className="group">
                       <td
                          className="sticky left-0 z-[5] bg-card p-4 font-bold text-md border border-border border-r-[1px] shadow-[3px_0_5px_-2px_rgba(0,0,0,0.15)] whitespace-nowrap w-[220px] min-w-[220px] group-hover:bg-white"
                       >
                         {role.name}
                       </td>
-                      {screens.map((screen) => {
+                      {screens.map((screen: any) => {
+                        // Only filter screens for Receptionist role, show all for other roles
+                        if (role.name === "Receptionist") {
+                          // Case-insensitive comparison
+                          const isAllowed = allowedScreens.some(s => s.toLowerCase() === screen.name.toLowerCase());
+                          if (!isAllowed) {
+                            return <td key={screen.id} className="p-2 border border-border group-hover:bg-muted/30 w-[130px] min-w-[130px] text-center align-middle" />;
+                          }
+                        }
+
                         const key: AccessKey = `${role.id}:${screen.id}`;
                         const checked = grantedSet.has(key);
                         return (
                           <td key={screen.id} className="p-2 border border-border group-hover:bg-muted/30 w-[130px] min-w-[130px] text-center align-middle">
                             <Switch
                               checked={checked}
-                              onCheckedChange={(v) => handleToggle(role.id, screen.id, Boolean(v))}
+                              onCheckedChange={(v) => handleToggle(role.id, screen.id, Boolean(v), role.name)}
                               aria-label={`Toggle ${role.name} access to ${screen.name}`}
                               className="data-[state=checked]:bg-[#1E3D3D]"
                             />
@@ -270,7 +310,8 @@ export default function RBACScreen() {
                         );
                       })}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
               </div>
