@@ -72,6 +72,7 @@ export function useCreateCompany() {
 
   return useMutation({
     mutationFn: createCompany,
+    retry: false,
     onSuccess: () => {
       // Invalidate and refetch companies list
       queryClient.invalidateQueries({ queryKey: ['companies'] });

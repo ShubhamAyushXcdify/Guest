@@ -3,7 +3,7 @@ import "@/app/globals.css"
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import localFont from "next/font/local";
 import QueryWrapper from "@/components/layout/queryWrapper";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "@/provider/AuthProvider";
 import PWAInstallPrompt from "@/components/pwa-install-prompt";
 import { TooltipProvider } from "@/components/ui/tooltip";
