@@ -16,7 +16,7 @@ function trimSlashesStart(value: string) {
 }
 
 export function getCompanyLogoKind(logoUrl: string | null | undefined): CompanyLogoKind {
-  const raw = (logoUrl ?? "").trim();
+  const raw = (logoUrl ?? "").trim().replace(/\\/g, "/"); // Convert backslashes to forward slashes
   if (!raw) return "missing";
 
   if (/^data:/i.test(raw)) return "data-uri";
@@ -39,7 +39,7 @@ export function getCompanyLogoKind(logoUrl: string | null | undefined): CompanyL
  * - Keeps `data:` URIs and absolute http(s) URLs
  */
 export function resolveCompanyLogoSrc(logoUrl: string | null | undefined): string | undefined {
-  const raw = (logoUrl ?? "").trim();
+  const raw = (logoUrl ?? "").trim().replace(/\\/g, "/"); // Convert backslashes to forward slashes
   if (!raw) return undefined;
 
   if (/^data:/i.test(raw)) return raw;
