@@ -7,12 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useGetProductById } from "@/queries/products/get-product-by-id"
 import { useGetPurchaseOrderHistoryByProductIdClinicId } from "@/queries/purchaseOrderReceiving/get-purchase-order-history-by-productId-clinidId"
+import { useGetProductUsageHistory } from "@/queries/products/get-product-usage-history"
 import { formatDate } from "@/lib/utils"
 import { InventoryData } from "@/queries/inventory/get-inventory"
-import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Database, Download } from "lucide-react"
+import { Loader2, Package, History, AlertTriangle, CheckCircle, XCircle, Database, Download, Activity, ChevronLeft, ChevronRight } from "lucide-react"
 import Barcode from "react-barcode"
 import { Document, Page, View, Image, StyleSheet } from '@react-pdf/renderer'
 import { toast } from "@/hooks/use-toast"
+import { useMemo, useState } from "react"
 
 
 // Format currency consistently
@@ -49,6 +51,19 @@ export default function InventoryItemDetailsSheet({
     productId || "",
     clinicId || ""
   )
+  const [usagePage, setUsagePage] = useState(1)
+  const PAGE_SIZE = 5
+
+
+  const {data: usageHistoryData,isLoading: usageLoading,isError: usageError,isFetching} = useGetProductUsageHistory(
+  productId || "",
+  usagePage,
+  PAGE_SIZE
+)
+
+
+  const productUsageHistory = usageHistoryData?.items || []
+
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -546,6 +561,116 @@ export default function InventoryItemDetailsSheet({
                 )}
               </CardContent>
             </Card>
+
+            {/* Product Usage History */}
+<Card className="rounded-xl border shadow-sm">
+  <CardHeader className="pb-2">
+    <CardTitle className="flex items-center gap-2 text-lg">
+      <Activity className="w-5 h-5" />
+      Product Usage History
+      {isFetching && (
+        <Loader2 className="w-4 h-4 animate-spin ml-2 opacity-60" />
+      )}
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent>
+    {usageLoading ? (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+        Loading product usage history...
+      </div>
+    ) : usageError ? (
+      <div className="text-red-500 p-4">
+        Failed to load product usage history.
+      </div>
+    ) : usageHistoryData && usageHistoryData.items.length > 0 ? (
+      <div className="overflow-x-auto rounded-lg border">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
+            <tr>
+              <th className="text-left px-3 py-2 font-medium">Client Name</th>
+              <th className="text-left px-3 py-2 font-medium">Patient Name</th>
+              <th className="text-center px-3 py-2 font-medium">Appointment Type</th>
+              <th className="text-center px-3 py-2 font-medium">Appointment Date</th>
+              <th className="text-center px-3 py-2 font-medium whitespace-nowrap">
+                Quantity Given
+              </th>
+              <th className="text-center px-3 py-2 font-medium">Frequency</th>
+              <th className="text-center px-3 py-2 font-medium">Number of Days</th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+            {usageHistoryData.items.map((item, index) => (
+              <tr
+                key={`${item.dateGiven}-${item.clientName}-${item.patientName}-${index}`}
+                className="hover:bg-gray-50/70 dark:hover:bg-gray-800/60 odd:bg-white even:bg-gray-50/40 dark:odd:bg-gray-900 dark:even:bg-gray-800/40"
+              >
+
+                <td className="px-3 py-2">{item.clientName || "-"}</td>
+                <td className="px-3 py-2">{item.patientName || "-"}</td>
+                <td className="px-3 py-2 text-center">{item.appointmentType || "-"}</td>
+                <td className="px-3 py-2 text-center min-w-32">
+                  {item.dateGiven ? formatDate(item.dateGiven) : "-"}
+                </td>
+                <td className="px-3 py-2 text-center font-medium">
+                  {item.quantityGiven}
+                </td>
+                <td className="px-3 py-2 text-center">{item.doseFrequency || "-"}</td>
+                <td className="px-3 py-2 text-center">
+                  {item.numberOfDaysGiven
+                    ? `${item.numberOfDaysGiven} days`
+                    : "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        {usageHistoryData && usageHistoryData.totalPages >= 1 && (
+          <div className="flex items-center justify-between mt-4 px-2">
+            <p className="text-sm text-muted-foreground">
+              Page {usageHistoryData.pageNumber} of {usageHistoryData.totalPages}
+            </p>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!usageHistoryData.hasPreviousPage}
+                onClick={() =>
+                  setUsagePage((prev) => Math.max(prev - 1, 1))
+                }
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Newer
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!usageHistoryData.hasNextPage}
+                onClick={() =>
+                  setUsagePage((prev) => prev + 1)
+                }
+              >
+                Older
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div className="text-gray-500 p-4 text-center">
+        No product usage history found.
+      </div>
+    )}
+  </CardContent>
+</Card>
+
 
             <div className="flex justify-end">
               <Button variant="secondary" onClick={() => onOpenChange(false)} className="shadow-sm">
