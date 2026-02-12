@@ -24,6 +24,10 @@ export async function GET(
         if (searchParams.has('toDate')) {
             formattedParams.set('toDate', searchParams.get('toDate')!);
         }
+        // Backend should use this to return all-time numberOfVeterinarians/numberOfPatients (not filtered by date)
+        if (searchParams.get('useAllTimeCountsForClinicDetails') === 'true') {
+            formattedParams.set('useAllTimeCountsForClinicDetails', 'true');
+        }
 
         // Copy any other parameters
         searchParams.forEach((value, key) => {
