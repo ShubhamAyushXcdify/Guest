@@ -88,10 +88,11 @@ function Supplier() {
     pageNumber,
     pageSize,
     filters: {
-      ...(debouncedSearch && { name: debouncedSearch }), // Changed from 'name' to 'search' to match backend API
-      ...(clinicId && { clinicId }), // Only include clinicId if it exists
-      ...(companyId && { companyId }), // Only include companyId if it exists
-      ...filters, // Include any additional filters
+      // Search bar and filter panel both can set name; search bar takes precedence
+      ...((debouncedSearch || filters.name) && { name: debouncedSearch || filters.name }),
+      ...(clinicId && { clinicId }),
+      ...(companyId && { companyId }),
+      ...filters,
     },
     enabled: Boolean(clinicId || companyId),
   })
@@ -163,14 +164,15 @@ function Supplier() {
       pageSize: '10000', // Large number to get all suppliers
     });
 
-    // Add filters
-    if (debouncedSearch) params.append('name', debouncedSearch);  // Changed from 'name' to 'search'
+    // Add filters: name from search bar or filter panel
+    const nameFilter = debouncedSearch || filters.name;
+    if (nameFilter) params.append('name', nameFilter);
     if (clinicId) params.append('clinicId', clinicId);
     if (companyId) params.append('companyId', companyId);
 
-    // Add additional filters if present
+    // Add additional filters if present (name already added above)
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
+      if (key !== 'name' && value !== undefined && value !== null && value !== "") {
         params.append(key, String(value));
       }
     });
@@ -486,12 +488,18 @@ function Supplier() {
         </div>
       )}
 
-      {/* Active Filters */}
-      {Object.values(filters).filter(Boolean).length > 0 && (
+      {/* Active Filters: search bar value (above table) and filter panel values */}
+      {(search || Object.values(filters).filter(Boolean).length > 0) && (
         <div className="flex flex-wrap gap-2 mb-4 px-6">
+          {search && (
+            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
+              Search: {search}
+              <button onClick={() => setSearch('')} className="ml-1">×</button>
+            </span>
+          )}
           {filters.name && (
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
-              Search: {filters.name}
+              Supplier Name: {filters.name}
               <button onClick={() => setFilters({ ...filters, name: '' })} className="ml-1">×</button>
             </span>
           )}
@@ -554,22 +562,10 @@ function Supplier() {
             totalPages={totalPages}
             onPageChange={handlePageChange}
             onPageSizeChange={handlePageSizeChange}
+            searchValue={search}
             onSearch={(searchTerm) => {
               setSearch(searchTerm);
-              // Reset to first page when searching
               setPageNumber(1);
-              // Update filters with the search term for name only
-              setFilters(prev => ({
-                ...prev,
-                name: searchTerm,
-                // Clear other search filters when searching by name
-                contactPerson: '',
-                email: '',
-                phone: '',
-                city: '',
-                state: '',
-                clinicName: ''
-              }));
             }}
           />
         </div>

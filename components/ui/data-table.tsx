@@ -27,6 +27,8 @@ interface DataTableProps<TData, TValue> {
   data: TData[]
   searchColumn?: string
   searchPlaceholder?: string
+  /** When provided, the search input is controlled by this value (e.g. from parent state). */
+  searchValue?: string
   onSearch?: (searchTerm: string) => void
   onUpdate?: (rowIndex: number, columnId: string, value: any) => void
   className?: string
@@ -147,6 +149,7 @@ export function DataTable<TData, TValue>({
   data,
   searchColumn,
   searchPlaceholder = "Search...",
+  searchValue,
   onSearch,
   onUpdate,
   className,
@@ -163,8 +166,15 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [globalFilter, setGlobalFilter] = useState("")
+  const [globalFilter, setGlobalFilter] = useState(searchValue ?? "")
   const [rowData, setRowData] = useState<TData[]>(data ?? [])
+
+  // Keep internal search in sync when parent passes controlled searchValue (e.g. after clear)
+  useEffect(() => {
+    if (searchValue !== undefined) {
+      setGlobalFilter(searchValue)
+    }
+  }, [searchValue])
 
   useEffect(() => {
     setRowData(data ?? [])
