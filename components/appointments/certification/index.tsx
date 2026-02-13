@@ -7,7 +7,7 @@ import { Search, FileText, CheckCircle, XCircle } from "lucide-react"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useGetCertificateByVisitId } from "@/queries/certificate/get-certificate-by-visit-id"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import { useGetPatientAppointmentHistory } from "@/queries/patients/get-patient-appointment-history"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs-new";

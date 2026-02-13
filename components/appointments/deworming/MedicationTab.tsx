@@ -16,7 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { dewormingMedicationAnalysis } from "@/app/actions/reasonformatting";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface MedicationTabProps {
   patientId: string;
@@ -28,6 +28,7 @@ interface MedicationTabProps {
 }
 
 export default function MedicationTab({ patientId, appointmentId, visitId, onComplete, onNext, isCompleted = false }: MedicationTabProps) {
+  const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isChatMode, setIsChatMode] = useState(false);
@@ -89,13 +90,21 @@ ${remarks ? `- Remarks: ${remarks}` : ''}
 
   const handleAnalyze = async () => {
   if (!patientData?.species) {
-    toast.error("Patient species information is required for analysis");
+    toast({
+      title: "Error",
+      description: "Patient species information is required for analysis",
+      variant: "destructive"
+    });
     return;
   }
 
   // Check if there's any medication data to analyze
   if (!route && !dateTimeGiven && !veterinarianName && !administeredBy && !remarks) {
-    toast.error("Please enter at least one medication detail before analyzing");
+    toast({
+      title: "Error",
+      description: "Please enter at least one medication detail before analyzing",
+      variant: "destructive"
+    });
     return;
   }
 
@@ -121,9 +130,17 @@ ${remarks ? `- Remarks: ${remarks}` : ''}
       }
     ]);
     
-    toast.success("Medication analysis completed");
+    toast({
+      title: "Success",
+      description: "Medication analysis completed",
+      variant: "success"
+    });
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : "Failed to analyze medication");
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to analyze medication",
+      variant: "destructive"
+    });
   } finally {
     setIsAnalyzing(false);
   }
@@ -214,6 +231,13 @@ const handleChatSend = async (e: React.FormEvent) => {
       if (onComplete) {
         onComplete(true);
       }
+      const operation = medicationData && medicationData.length > 0 ? 'updated' : 'created';
+      
+      toast({
+        title: "Success",
+        description: `Medication information ${operation} successfully`,
+        variant: "success"
+      });
 
       // Move to next tab if provided
       if (onNext) {
@@ -332,7 +356,7 @@ const handleChatSend = async (e: React.FormEvent) => {
           isReadOnly ||
           (!route && !dateTimeGiven && !veterinarianName && !administeredBy && !remarks)
         }
-        className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+        className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
       >
         <Sparkles className="w-4 h-4" />
         {isAnalyzing ? (

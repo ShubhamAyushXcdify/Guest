@@ -11,7 +11,7 @@ import { ChatInterface } from "@/components/ai-assistant/chat-interface"
 import { SelectedFilesProvider } from "@/components/ai-assistant/contexts/selectFiles"
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id"
 import { planAnalysis } from "@/app/actions/reasonformatting"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useCreatePlanDetail } from "@/queries/PlanDetail/create-plan-detail"
@@ -51,6 +51,7 @@ interface PlanTabProps {
 }
 
 export default function PlanTab({ patientId, appointmentId, onNext, onClose, onComplete }: PlanTabProps) {
+  const { toast } = useToast()
   // State declarations
   const [selectedPlans, setSelectedPlans] = useState<string[]>([])
   const [analysisResult, setAnalysisResult] = useState<string>("")
@@ -104,11 +105,19 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
   }
     const handleAnalyzePlan = async () => {
     if (!patientData?.species) {
-      toast.error("Patient species information is required for analysis")
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      })
       return
     }
     if (selectedPlans.length === 0) {
-      toast.error("Select at least one plan to analyze")
+      toast({
+        title: "Error",
+        description: "Select at least one plan to analyze",
+        variant: "destructive"
+      })
       return
     }
     setIsAnalyzing(true)
@@ -131,9 +140,17 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
           parts: [{ type: 'text', text: analysis }]
         }
       ])
-      toast.success("Plan analysis completed")
+      toast({
+        title: "Success",
+        description: "Plan analysis completed",
+        variant: "success"
+      })
     } catch (error: any) {
-      toast.error(error?.message || "Failed to analyze plan")
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to analyze plan",
+        variant: "destructive"
+      })
     } finally {
       setIsAnalyzing(false)
     }
@@ -222,16 +239,28 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
       setIsAddingPlan(false)
       // Explicitly refetch plans to update the UI immediately
       refetchPlans()
-      toast.success("Plan added successfully")
+      toast({
+        title: "Success",
+        description: "Plan added successfully",
+        variant: "success"
+      })
     },
     onError: (error) => {
-      toast.error(`Failed to add plan: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to add plan: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
   const createPlanDetailMutation = useCreatePlanDetail({
     onSuccess: () => {
-      toast.success("Plan details saved successfully")
+      toast({
+        title: "Success",
+        description: "Plan details saved successfully",
+        variant: "success"
+      })
       refetchPlanDetail()
       markTabAsCompleted("plan")
       if (onComplete) {
@@ -239,14 +268,22 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
       }
     },
     onError: (error) => {
-      toast.error(`Failed to save plan details: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to save plan details: ${error.message}`,
+        variant: "destructive"
+      })
       setIsProcessing(false)
     }
   })
 
   const updatePlanDetailMutation = useUpdatePlanDetail({
     onSuccess: () => {
-      toast.success("Plan details updated successfully")
+      toast({
+        title: "Success",
+        description: "Plan details updated successfully",
+        variant: "success"
+      })
       refetchPlanDetail()
       markTabAsCompleted("plan")
       if (onComplete) {
@@ -254,18 +291,30 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
       }
     },
     onError: (error: any) => {
-      toast.error(`Failed to update plan details: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to update plan details: ${error.message}`,
+        variant: "destructive"
+      })
       setIsProcessing(false)
     }
   })
   
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
-      toast.success("Visit completed successfully")
+      toast({
+        title: "Success",
+        description: "Visit completed successfully",
+        variant: "success"
+      })
       setIsProcessing(false)
     },
     onError: (error) => {
-      toast.error(`Failed to update appointment status: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to update appointment status: ${error.message}`,
+        variant: "destructive"
+      })
       setIsProcessing(false)
     }
   })
@@ -292,11 +341,19 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
   // Save or update plan detail (for Save/Update button)
   const handleSave = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      })
       return
     }
     if (selectedPlans.length === 0) {
-      toast.error("Please select at least one plan before saving.")
+      toast({
+        title: "Error",
+        description: "Please select at least one plan before saving.",
+        variant: "destructive"
+      })
       return
     }
     try {
@@ -317,19 +374,35 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
           isCompleted: true
         })
       }
-      toast.success("Plan details saved successfully")
+      toast({
+        title: "Success",
+        description: "Plan details saved successfully",
+        variant: "success"
+      })
     } catch (error) {
-      toast.error(`Failed to save plan details: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast({
+        title: "Error",
+        description: `Failed to save plan details: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      })
     }
   }
 
   const handleCheckout = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      })
       return
     }
     if (!appointmentData) {
-      toast.error("No appointment data found")
+      toast({
+        title: "Error",
+        description: "No appointment data found",
+        variant: "destructive"
+      })
       return
     }
 
@@ -575,7 +648,7 @@ export default function PlanTab({ patientId, appointmentId, onNext, onClose, onC
                       isReadOnly ||
                       selectedPlans.length === 0
                     }
-                    className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                    className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
                   >
                     <Sparkles className="w-4 h-4" />
                     {isAnalyzing ? (

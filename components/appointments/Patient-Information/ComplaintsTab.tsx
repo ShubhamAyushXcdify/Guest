@@ -7,7 +7,6 @@ import { useCreateSymptom } from "@/queries/symptoms/create-symptom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PlusCircle, X, Mic, Search, Sparkles, Loader2 } from "lucide-react"
-import { toast } from "sonner"
 import { useCreateComplaintDetail } from "@/queries/complaint/create-complaint-detail"
 import { useGetComplaintByVisitId } from "@/queries/complaint/get-complaint-by-visit-id"
 import { useUpdateComplaintDetail } from "@/queries/complaint/update-complaint-detail"
@@ -27,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { Bot, User, Send } from "lucide-react"
+import { toast } from "@/hooks/use-toast"
 
 
 // Add onComplete prop to ComplaintsTab interface
@@ -125,10 +125,18 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
   const createSymptomMutation = useCreateSymptom({
     onSuccess: () => {
       setRightSideSearchQuery("")
-      toast.success("Symptom added successfully")
+      toast({
+        title: "Success",
+        description: "Symptom added successfully",
+        variant: "success"
+      })
     },
     onError: (error) => {
-      toast.error(`Failed to add symptom: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to add symptom: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
@@ -153,7 +161,11 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
 
   const createComplaintMutation = useCreateComplaintDetail({
     onSuccess: () => {
-      toast.success("Complaint details saved successfully")
+      toast({
+        title: "Success",
+        description: "Complaint details saved successfully",
+        variant: "success"
+      })
       markTabAsCompleted("cc-hpi")
       if (onComplete) {
         onComplete(true);
@@ -162,13 +174,21 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
       if (onNext) onNext()
     },
     onError: (error) => {
-      toast.error(`Failed to save complaint details: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to save complaint details: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
   const updateComplaintMutation = useUpdateComplaintDetail({
     onSuccess: () => {
-      toast.success("Complaint details updated successfully")
+      toast({
+        title: "Success",
+        description: "Complaint details updated successfully",
+        variant: "success"
+      })
       markTabAsCompleted("cc-hpi")
       if (onComplete) {
         onComplete(true);
@@ -177,7 +197,11 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
       if (onNext) onNext()
     },
     onError: (error: any) => {
-      toast.error(`Failed to update complaint details: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to update complaint details: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
@@ -204,11 +228,19 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
 
   const handleSave = () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      })
       return
     }
     if (selectedSymptoms.length === 0) {
-      toast.error("Please select at least one symptom before saving.")
+      toast({
+        title: "Error",
+        description: "Please select at least one symptom before saving.",
+        variant: "destructive"
+      })
       return
     }
     
@@ -233,13 +265,21 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
 
     const handleAnalyze = async () => {
     if (!patientData?.species) {
-      toast.error("Patient species information is required for analysis")
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      })
       return
     }
 
     // Check if there are any symptoms selected
     if (selectedSymptoms.length === 0) {
-      toast.error("Please select at least one symptom before analyzing")
+      toast({
+        title: "Error",
+        description: "Please select at least one symptom before analyzing",
+        variant: "destructive"
+      })
       return
     }
 
@@ -266,9 +306,17 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
         }
       ])
 
-      toast.success("Complaints analysis completed")
+      toast({
+        title: "Success",
+        description: "Complaints analysis completed",
+        variant: "success"
+      })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to analyze complaints")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to analyze complaints",
+        variant: "destructive"
+      })
     } finally {
       setIsAnalyzing(false)
     }
@@ -481,7 +529,7 @@ export default function ComplaintsTab({ patientId, appointmentId, onNext, onComp
                 variant="outline"
                 onClick={handleAnalyze}
                 disabled={isAnalyzing || isReadOnly || selectedSymptoms.length === 0}
-                className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
               >
                 <Sparkles className="w-4 h-4" />
                 {isAnalyzing ? (

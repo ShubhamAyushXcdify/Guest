@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Download, FileText, Loader2, AlertCircle } from "lucide-react"
 import { useGetDischargeSummaryEmergency } from "@/queries/discharge-summary/get-discharge-summary-emergency"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer'
 
 interface DischargeSummarySheetProps {

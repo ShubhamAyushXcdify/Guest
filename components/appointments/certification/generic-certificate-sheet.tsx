@@ -9,7 +9,7 @@ import {
   Mail,
   Phone,
 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import { useGetPatientById } from "@/queries/patients/get-patient-by-id";
 import { useGetClientById } from "@/queries/clients/get-client";

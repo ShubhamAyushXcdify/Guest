@@ -8,7 +8,6 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useCreateEmergencyVisit } from "@/queries/emergency/triage/create-emergency-visit";
 import { useGetEmergencyVisitByVisitId } from "@/queries/emergency/triage/get-emergency-visit-by-visit-id";
 import { useUpdateEmergencyVisit } from "@/queries/emergency/triage/update-emergency-visit";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
@@ -23,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { emergencyTriageAnalysis } from "@/app/actions/reasonformatting";
+import { toast } from "@/hooks/use-toast";
 
 interface TriageTabProps {
   patientId: string;
@@ -188,12 +188,20 @@ const { messages, sendMessage, status, setMessages } = useChat({
 
 const handleAnalyze = async () => {
   if (!patientData?.species) {
-    toast.error("Patient species information is required for analysis");
+    toast({
+      title: "Error",
+      description: "Patient species information is required for analysis",
+      variant: "destructive"
+    });
     return;
   }
 
   if (!hasAnyInput()) {
-    toast.error("Please enter at least one triage detail before analyzing");
+    toast({
+      title: "Error",
+      description: "Please enter at least one triage detail before analyzing",
+      variant: "destructive"
+    });
     return;
   }
 
@@ -225,11 +233,17 @@ const handleAnalyze = async () => {
       },
     ]);
 
-    toast.success("Triage analysis completed");
+    toast({
+      title: "Success",
+      description: "Triage analysis completed",
+      variant: "success"
+    });
   } catch (error) {
-    toast.error(
-      error instanceof Error ? error.message : "Failed to analyze triage data"
-    );
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : "Failed to analyze triage data",
+      variant: "destructive"
+    });
   } finally {
     setIsAnalyzing(false);
   }
@@ -246,7 +260,11 @@ const handleChatSend = async (e: React.FormEvent) => {
 
   const handleSubmit = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
   
@@ -297,8 +315,10 @@ const handleChatSend = async (e: React.FormEvent) => {
         response?.message ||
         (isUpdate ? "Triage updated successfully" : "Triage created successfully");
   
-      toast.success(successMessage, {
-        
+      toast({
+        title: "Success",
+        description: successMessage,
+        variant: "success"
       });
   
       await refetchTriage();
@@ -317,9 +337,10 @@ const handleChatSend = async (e: React.FormEvent) => {
         error?.message ||
         "Failed to save triage record";
   
-      toast.error(errorMessage, {
-        duration: 5000,
-        className: "bg-red-500 text-white",
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -464,7 +485,7 @@ const handleChatSend = async (e: React.FormEvent) => {
                     isReadOnly ||
                     !hasAnyInput()
                   }
-                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
                 >
                   <Sparkles className="w-4 h-4" />
                   {isAnalyzing ? (

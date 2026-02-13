@@ -11,7 +11,7 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
 import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
 import { useUpdateVaccinationDetail } from "@/queries/vaccinationDetail/update-vaccinationDetail";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast"
 import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/get-vaccinationDetail-by-visitId";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import MedicalHistoryTab from "../MedicalHistoryTab";
@@ -98,6 +98,7 @@ export default function VaccinationPlanning({
   const [certificateVaccineId, setCertificateVaccineId] = useState<string | null>(null);
   
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   // Use ref to track if initial data has been loaded
   const initialLoadComplete = useRef(false);
@@ -157,12 +158,20 @@ export default function VaccinationPlanning({
   const updateAppointment = useUpdateAppointment({
     onSuccess: () => {
       setIsProcessing(false);
-      toast.success("Vaccination checkout completed");
+      toast({
+        title: "Success",
+        description: "Vaccination checkout completed",
+        variant: "success"
+      });
       onClose();
     },
     onError: (error) => {
       setIsProcessing(false);
-      toast.error("Failed to update appointment status");
+      toast({
+        title: "Error",
+        description: "Failed to update appointment status",
+        variant: "destructive"
+      });
     }
   });
 
@@ -170,7 +179,11 @@ export default function VaccinationPlanning({
     if (isReadOnly) return;
     
     if (!visitData || !visitData.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -214,13 +227,21 @@ export default function VaccinationPlanning({
         ? selectedVaccines 
         : selectedVaccines.filter(vaccineId => vaccineId !== id)
       );
-      toast.error("Failed to update vaccination selection");
+      toast({
+        title: "Error",
+        description: "Failed to update vaccination selection",
+        variant: "destructive"
+      });
           }
   };
 
   const handleDocumentClick = (vaccineId: string) => {
     if (!vaccinationDetailId) {
-      toast.error("Please select a vaccine first");
+      toast({
+        title: "Error",
+        description: "Please select a vaccine first",
+        variant: "destructive"
+      });
       return;
     }
     setDocumentVaccineId(vaccineId);
@@ -254,15 +275,27 @@ export default function VaccinationPlanning({
   // Checkout handler
   const handleCheckout = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
     if (selectedVaccines.length === 0) {
-      toast.error("Please select at least one vaccine before checking out");
+      toast({
+        title: "Error",
+        description: "Please select at least one vaccine before checking out",
+        variant: "destructive"
+      });
       return;
     }
     if (!appointmentData) {
-      toast.error("No appointment data found");
+      toast({
+        title: "Error",
+        description: "No appointment data found",
+        variant: "destructive"
+      });
       return;
     }
     
@@ -300,7 +333,11 @@ export default function VaccinationPlanning({
       });
       
     } catch (error) {
-      toast.error("Error during vaccination checkout");
+      toast({
+        title: "Error",
+        description: "Error during vaccination checkout",
+        variant: "destructive"
+      });
       setIsProcessing(false);
     }
   };

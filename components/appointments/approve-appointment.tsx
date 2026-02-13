@@ -750,7 +750,7 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
                       variant="outline"
                       onClick={handleAIFormatReason}
                       disabled={isReasonFormatting}
-                      className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                      className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
                     >
                       <Sparkles className="w-3 h-3" />
                       {isReasonFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
@@ -796,7 +796,7 @@ export default function ApproveAppointment({ appointmentId, onClose }: ApproveAp
                       variant="outline"
                       onClick={handleAIFormatNotes}
                       disabled={isNotesFormatting}
-                      className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
+                      className="ml-2 flex items-center gap-1 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0 px-2 py-0.5 rounded-full text-sm"
                     >
                       <Sparkles className="w-3 h-3" />
                       {isNotesFormatting ? <Loader2 className="w-3 h-3 animate-spin" /> : "AI Format"}
