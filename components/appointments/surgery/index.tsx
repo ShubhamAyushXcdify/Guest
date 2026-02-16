@@ -234,18 +234,16 @@ function SurgeryContent({ patientId, appointmentId: initialAppointmentId, onClos
                   const TabComponent = tab.component;
                   return (
                     <TabsContent key={tab.value} value={tab.value}>
-                      <TabProvider patientId={patientId} appointmentId={currentAppointmentId} onClose={onClose}>
-                        <TabComponent
-                          patientId={patientId}
-                          appointmentId={currentAppointmentId}
-                          visitId={visitData?.id} // Add this line to pass visitId
-                          onNext={navigateToNextTab}
-                          onClose={onClose}
-                          externalFollowUpDate={followUpDateFooter}
-                          onExternalFollowUpDateChange={setFollowUpDateFooter}
-                          setWeightGraphOpen={tab.value === "surgery-pre-op" ? setWeightGraphOpen : undefined}
-                        />
-                      </TabProvider>
+                      <TabComponent
+                        patientId={patientId}
+                        appointmentId={currentAppointmentId}
+                        visitId={visitData?.id}
+                        onNext={navigateToNextTab}
+                        onClose={onClose}
+                        externalFollowUpDate={followUpDateFooter}
+                        onExternalFollowUpDateChange={setFollowUpDateFooter}
+                        setWeightGraphOpen={tab.value === "surgery-pre-op" ? setWeightGraphOpen : undefined}
+                      />
                     </TabsContent>
                   );
                 })}

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useGetVitalDetailByVisitId } from "@/queries/vitals/get-vital-detail-by-visit-id"
 import { useCreateVitalDetail } from "@/queries/vitals/create-vital-detail"
@@ -34,6 +34,7 @@ interface VitalsTabProps {
 
 export default function VitalsTab({ patientId, appointmentId, onNext, onComplete }: VitalsTabProps) {
   const { markTabAsCompleted } = useTabCompletion()
+  const { toast } = useToast()
 
   // Get visit data from appointment ID
   const { data: visitData, isLoading: visitLoading } = useGetVisitByAppointmentId(appointmentId)
@@ -182,7 +183,11 @@ ${notes ? `- Additional Notes: ${notes}` : ''}
 
   const handleSave = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      })
       return
     }
 
@@ -201,11 +206,19 @@ ${notes ? `- Additional Notes: ${notes}` : ''}
       if (vitalDetail) {
         // update existing
         await updateVitalDetail({ id: vitalDetail.id, ...vitalData })
-        toast.success("Vital details updated successfully")
+        toast({
+          title: "Success",
+          description: "Vital details updated successfully",
+          variant: "success"
+        })
       } else {
         // create new once
         await createVitalDetail({ visitId: visitData.id, ...vitalData })
-        toast.success("Vital details saved successfully")
+        toast({
+          title: "Success",
+          description: "Vital details saved successfully",
+          variant: "success"
+        })
       }
 
       markTabAsCompleted("vitals")
@@ -215,19 +228,31 @@ ${notes ? `- Additional Notes: ${notes}` : ''}
       }
       onNext?.()
     } catch (error) {
-      toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast({
+        title: "Error",
+        description: `Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      })
     }
   }
 
   const handleAnalyze = async () => {
     if (!patientData?.species) {
-      toast.error("Patient species information is required for analysis")
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      })
       return
     }
 
     // Check if there's any vital data to analyze
     if (!temperatureC && !heartRateBpm && !respiratoryRateBpm && !mucousMembraneColor && !capillaryRefillTimeSec && !hydrationStatus) {
-      toast.error("Please enter at least one vital sign before analyzing")
+      toast({
+        title: "Error",
+        description: "Please enter at least one vital sign before analyzing",
+        variant: "destructive"
+      })
       return
     }
 
@@ -254,9 +279,17 @@ ${notes ? `- Additional Notes: ${notes}` : ''}
         }
       ])
       
-      toast.success("Vitals analysis completed")
+      toast({
+        title: "Success",
+        description: "Vitals analysis completed",
+        variant: "success"
+      })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to analyze vitals")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to analyze vitals",
+        variant: "destructive"
+      })
     } finally {
       setIsAnalyzing(false)
     }

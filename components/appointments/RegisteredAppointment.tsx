@@ -9,7 +9,7 @@ import { NewAppointmentDrawer } from "@/components/new-appointment-drawer"
 import { ApproveAppointmentDrawer } from "@/components/approve-appointment-drawer"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from '@/context/RootContext'
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { Clock, User, Calendar, MapPin, CheckCircle, AlertCircle } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import { DateRange } from 'react-day-picker'

@@ -96,6 +96,11 @@ export function ClinicSelector() {
 
   const effectiveClinicId = qp.clinicId || clinic?.id || ""
 
+  // Hide dropdown completely for veterinarians with only one clinic
+  if (clinics.length <= 1) {
+    return null
+  }
+
   return (
     <div className="px-2 text-black">
       <div className="bg-white/10 rounded-lg p-3">

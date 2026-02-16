@@ -12,7 +12,7 @@ import { useUpdateIntakeDetail } from "@/queries/intake/update-intake-detail"
 import { useDeleteIntakeImage } from "@/queries/intake/delete-intake-image"
 import { useDeleteIntakeFile } from "@/queries/intake/delete-intake-file"
 import { Plus, Trash, Upload, Image, X, ZoomIn, ZoomOut, RotateCw, TrendingUp } from "lucide-react"
-import { toast } from "sonner";
+ 
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscrib
 import { AudioManager } from "@/components/audioTranscriber/AudioManager"
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id"
 import WeightGraph from "@/components/appointments/WeightGraph"
+import { toast } from "@/hooks/use-toast"
 
 interface IntakeTabProps {
   patientId: string
@@ -235,7 +236,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext, onComplete
 
   const handleSaveIntake = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return
     }
     
@@ -252,7 +257,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext, onComplete
           isCompleted: isIntakeCompleted()
         })
         
-        toast.success("Intake detail updated successfully")
+        toast({
+          title: "Success",
+          description: "Intake detail updated successfully",
+          variant: "success"
+        })
       } else {
         // Create new intake
         await createIntakeDetail({
@@ -264,7 +273,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext, onComplete
           isCompleted: isIntakeCompleted()
         })
         
-        toast.success("Intake detail saved successfully")
+        toast({
+          title: "Success",
+          description: "Intake detail saved successfully",
+          variant: "success"
+        })
         setHasIntake(true);
       }
       
@@ -285,7 +298,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext, onComplete
       }
     } catch (error) {
       console.error('Error saving intake details:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to save intake detail")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save intake detail",
+        variant: "destructive"
+      })
     }
   }
 
@@ -362,7 +379,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext, onComplete
           });
         }
         
-        toast.success("Image deleted successfully");
+        toast({
+          title: "Success",
+          description: "Image deleted successfully",
+          variant: "success"
+        });
       } else {
         // For local image, release the blob URL
         if (imagePaths[index].startsWith('blob:')) {
@@ -395,7 +416,11 @@ export default function IntakeTab({ patientId, appointmentId, onNext, onComplete
       
     } catch (error) {
       console.error('Error deleting image:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to delete image");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete image",
+        variant: "destructive"
+      });
     }
   }
   

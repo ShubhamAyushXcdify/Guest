@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PlusCircle, X, Trash2, Pencil, Search, Printer, AlertTriangle, Receipt, Sparkles, Loader2 } from "lucide-react"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import { useCreatePrescriptionDetail } from "@/queries/PrescriptionDetail/create-prescription-detail"
 import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id"
 import { useUpdatePrescriptionDetail } from "@/queries/PrescriptionDetail/update-prescription-detail"
@@ -106,6 +106,18 @@ interface ExtendedProductMapping extends BaseProductMapping {
 }
 
 export default function PrescriptionTab({ patientId, appointmentId, onNext, onComplete }: PrescriptionTabProps) {
+  const { toast } = useToast()
+  
+  // Test function to verify toast is working
+  const testToast = () => {
+    console.log("Testing toast...");
+    toast({
+      title: "Test Toast",
+      description: "This is a test message to verify toast is working",
+      variant: "success"
+    });
+  };
+  
   // AI Analysis state
   const [analysisResult, setAnalysisResult] = useState<string>("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -118,11 +130,19 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
   // AI Prescription Analysis Handler
   const handleAnalyzePrescription = async () => {
     if (!patientData?.species) {
-      toast.error("Patient species information is required for analysis")
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      })
       return
     }
     if (!productMappings.length) {
-      toast.error("Add at least one medicine to analyze prescription")
+      toast({
+        title: "Error",
+        description: "Add at least one medicine to analyze prescription",
+        variant: "destructive"
+      })
       return
     }
     setIsAnalyzing(true)
@@ -151,9 +171,17 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
           parts: [{ type: 'text', text: analysis }]
         }
       ])
-      toast.success("Prescription analysis completed")
+      toast({
+        title: "Success",
+        description: "Prescription analysis completed",
+        variant: "success"
+      })
     } catch (error: any) {
-      toast.error(error?.message || "Failed to analyze prescription")
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to analyze prescription",
+        variant: "destructive"
+      })
     } finally {
       setIsAnalyzing(false)
     }
@@ -339,8 +367,13 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
 
   
   const createPrescriptionDetailMutation = useCreatePrescriptionDetail({
-    onSuccess: () => {
-      toast.success("Prescription details saved successfully")
+    onSuccess: (data) => {
+      console.log("Create prescription success:", data);
+      toast({
+        title: "Success",
+        description: "Prescription details saved successfully",
+        variant: "success"
+      })
       markTabAsCompleted("prescription")
       if (onComplete) {
         onComplete(true);
@@ -348,13 +381,23 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
       refetchPrescriptionDetail()
     },
     onError: (error) => {
-      toast.error(`Failed to save prescription details: ${error.message}`)
+      console.error("Create prescription error:", error);
+      toast({
+        title: "Error",
+        description: `Failed to save prescription details: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
   const updatePrescriptionDetailMutation = useUpdatePrescriptionDetail({
-    onSuccess: () => {
-      toast.success("Prescription details updated successfully")
+    onSuccess: (data) => {
+      console.log("Update prescription success:", data);
+      toast({
+        title: "Success",
+        description: "Prescription details updated successfully",
+        variant: "success"
+      })
       markTabAsCompleted("prescription")
       if (onComplete) {
         onComplete(true);
@@ -362,7 +405,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
       refetchPrescriptionDetail()
     },
     onError: (error: any) => {
-      toast.error(`Failed to update prescription details: ${error.message}`)
+      console.error("Update prescription error:", error);
+      toast({
+        title: "Error",
+        description: `Failed to update prescription details: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
@@ -492,10 +540,18 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
 
       // Update local state only after successful API call
       setProductMappings(updatedMappings)
-      toast.success("Medicine removed successfully")
+      toast({
+        title: "Success",
+        description: "Medicine removed successfully",
+        variant: "success"
+      })
       setIsDeleteDialogOpen(false)
     } catch (error) {
-      toast.error("Failed to remove medicine")
+      toast({
+        title: "Error",
+        description: "Failed to remove medicine",
+        variant: "destructive"
+      })
     } finally {
       setIsDeleting(false)
       setProductToDelete(null)
@@ -517,12 +573,20 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
     // Validate required fields based on unit of measure and category
     if (isMedicineType) {
       if (!currentMapping.productId || !currentMapping.frequency || !currentMapping.numberOfDays || currentMapping.numberOfDays <= 0 || !currentMapping.purchaseOrderReceivingHistoryId) {
-        toast.error("Please fill in all required fields including medicine, batch details, number of days, and frequency.")
+        toast({
+        title: "Error",
+        description: "Please fill in all required fields including medicine, batch details, number of days, and frequency.",
+        variant: "destructive"
+      })
         return
       }
     } else { // For Food, Equipment, Other, Medical Supply categories, only productId and quantity are required
       if (!currentMapping.productId || !currentMapping.quantity || currentMapping.quantity <= 0) {
-        toast.error("Please select a product and enter a valid quantity.")
+        toast({
+        title: "Error",
+        description: "Please select a product and enter a valid quantity.",
+        variant: "destructive"
+      })
         return
       }
       // For non-medicine types, ensure purchaseOrderReceivingHistoryId is explicitly set to an empty string if not available
@@ -533,7 +597,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
 
     // Only validate dosage if the product is a bottle and it's a medicine type
     if (isBottle && isMedicineType && !currentMapping.dosage) {
-      toast.error("Please fill in the dosage field.")
+      toast({
+        title: "Error",
+        description: "Please fill in the dosage field.",
+        variant: "destructive"
+      })
       return
     }
 
@@ -542,16 +610,22 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
       const calculatedQuantity = calculateQuantity(currentMapping.frequency || "", currentMapping.numberOfDays || 0);
       const availableQuantity = currentMapping.quantityAvailable || 0;
       const maxDays = calculateMaxDays(currentMapping.frequency || "", availableQuantity);
-      toast.error(
-        `Cannot save: Insufficient stock! Required: ${calculatedQuantity} ${unitOfMeasure}, ` +
+      toast({
+        title: "Error",
+        description: `Cannot save: Insufficient stock! Required: ${calculatedQuantity} ${unitOfMeasure}, ` +
         `Available: ${availableQuantity} ${unitOfMeasure}. ` +
-        `Maximum ${maxDays} days possible with frequency "${currentMapping.frequency}".`
-      );
+        `Maximum ${maxDays} days possible with frequency "${currentMapping.frequency}".`,
+        variant: "destructive"
+      });
       return;
     }
 
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      })
       return
     }
 
@@ -605,9 +679,17 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
       setMedicineSearchQuery("")
       setOriginalEditValues(null)
 
-      toast.success(editingIndex !== null ? "Medicine updated successfully" : "Medicine added successfully")
+      toast({
+        title: "Success",
+        description: editingIndex !== null ? "Medicine updated successfully" : "Medicine added successfully",
+        variant: "success"
+      })
     } catch (error) {
-      toast.error("Failed to save medicine")
+      toast({
+        title: "Error",
+        description: "Failed to save medicine",
+        variant: "destructive"
+      })
     }
   }
 
@@ -708,7 +790,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
   const handlePrintPrescription = useCallback(async () => {
     try {
       if (!visitData?.id) {
-        toast.error("No visit data found for this appointment")
+        toast({
+          title: "Error",
+          description: "No visit data found for this appointment",
+          variant: "destructive"
+        })
         return
       }
 
@@ -724,14 +810,26 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
           setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (error) {
           console.error("Error opening PDF:", error);
-          toast.error("Failed to open prescription PDF")
+          toast({
+            title: "Error",
+            description: "Failed to open prescription PDF",
+            variant: "destructive"
+          })
         }
       } else {
-        toast.error("No prescription PDF available for this visit")
+        toast({
+          title: "Error",
+          description: "No prescription PDF available for this visit",
+          variant: "destructive"
+        })
       }
     } catch (error) {
       console.error("Error printing prescription:", error);
-      toast.error("Failed to print prescription")
+      toast({
+        title: "Error",
+        description: "Failed to print prescription",
+        variant: "destructive"
+      })
     }
   }, [visitData?.id, refetchPrescriptionPdf])
 
@@ -1006,7 +1104,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
                              try {
                                await updatePrescriptionDetailMutation.mutateAsync(updatePayload);
                              } catch (error) {
-                               toast.error("Failed to update prescription");
+                               toast({
+                                 title: "Error",
+                                 description: "Failed to update prescription",
+                                 variant: "destructive"
+                               });
                                // Revert the checkbox state on error
                                const revertedUpdated = [...productMappings];
                                revertedUpdated[index] = { ...mapping, isChecked: !e.target.checked, checked: !e.target.checked };
@@ -1070,7 +1172,7 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
                   isReadOnly ||
                   productMappings.length === 0
                 }
-                className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
               >
                 <Sparkles className="w-4 h-4" />
                 {isAnalyzing ? (
@@ -1382,10 +1484,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
                     // Show warning if calculated quantity exceeds available stock
                     if (calculatedQuantity > availableQuantity && availableQuantity > 0 && newFrequency && currentMapping.numberOfDays) {
                       const maxDays = calculateMaxDays(newFrequency, availableQuantity);
-                      toast.error(
-                        `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                        `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
-                      );
+                      toast({
+                        title: "Error",
+                        description: `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                        `With frequency "${newFrequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`,
+                        variant: "destructive"
+                      });
                     }
 
                     setCurrentMapping({
@@ -1422,10 +1526,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
                         // Show warning if calculated quantity exceeds available stock
                         if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.numberOfDays) {
                           const maxDays = calculateMaxDays(value, availableQuantity);
-                          toast.error(
-                            `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                            `With frequency "${value}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
-                          );
+                          toast({
+                            title: "Error",
+                            description: `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                            `With frequency "${value}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`,
+                            variant: "destructive"
+                          });
                         }
 
                         setCurrentMapping({
@@ -1464,10 +1570,12 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
                     // Show warning if calculated quantity exceeds available stock
                     if (calculatedQuantity > availableQuantity && availableQuantity > 0 && currentMapping.frequency) {
                       const maxDays = calculateMaxDays(currentMapping.frequency, availableQuantity);
-                      toast.error(
-                        `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
-                        `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`
-                      );
+                      toast({
+                        title: "Error",
+                        description: `Insufficient stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}. ` +
+                        `With frequency "${currentMapping.frequency}", maximum ${maxDays} days can be prescribed. Quantity capped to available stock.`,
+                        variant: "destructive"
+                      });
                     }
 
                     setCurrentMapping({
@@ -1504,9 +1612,11 @@ export default function PrescriptionTab({ patientId, appointmentId, onNext, onCo
 
                   // Prevent quantity from exceeding available stock
                   if (newQuantity > availableQuantity && availableQuantity > 0) {
-                    toast.error(
-                      `Quantity cannot exceed available stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}`
-                    );
+                    toast({
+                      title: "Error",
+                      description: `Quantity cannot exceed available stock! Available: ${availableQuantity} ${currentMapping.product?.unitOfMeasure || "EA"}`,
+                      variant: "destructive"
+                    });
                     return;
                   }
 

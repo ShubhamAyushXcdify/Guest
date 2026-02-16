@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
 import { useCreateEmergencyDischarge } from "@/queries/emergency/discharge/create-emergency-discharge";
 import { useUpdateEmergencyDischarge } from "@/queries/emergency/discharge/update-emergency-discharge";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { useRootContext } from '@/context/RootContext';
 import { useGetUsers } from '@/queries/users/get-users';
 import { useGetRoomsByClinicId } from '@/queries/rooms/get-room-by-clinic-id';
@@ -49,6 +49,7 @@ const dischargeStatuses = [
 ];
 
 export default function DischargeTab({ patientId, appointmentId, onClose, externalFollowUpDate, onExternalFollowUpDateChange }: DischargeTabProps) {
+  const { toast } = useToast()
   const [status, setStatus] = useState("");
   const [dischargeTime, setDischargeTime] = useState<Date>(() => new Date());
   const [clinician, setClinician] = useState("");
@@ -168,21 +169,37 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
   const { data: dischargeData, isLoading: dischargeLoading } = useGetEmergencyDischargeByVisitId(visitData?.id || '', !!visitData?.id);
   const createDischarge = useCreateEmergencyDischarge({
     onSuccess: () => {
-      toast.success("Discharge record saved successfully");
+      toast({
+        title: "Success",
+        description: "Discharge record saved successfully",
+        variant: "success"
+      });
       setIsDischargeSaved(true);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to save discharge record");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save discharge record",
+        variant: "destructive"
+      });
     }
   });
 
   const updateDischarge = useUpdateEmergencyDischarge({
     onSuccess: () => {
-      toast.success("Discharge record updated successfully");
+      toast({
+        title: "Success",
+        description: "Discharge record updated successfully",
+        variant: "success"
+      });
       setIsDischargeSaved(true);
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to update discharge record");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update discharge record",
+        variant: "destructive"
+      });
     }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -190,11 +207,19 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
   const updateVisit = useUpdateVisit();
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
-      toast.success("Visit completed successfully");
+      toast({
+        title: "Success",
+        description: "Visit completed successfully",
+        variant: "success"
+      });
       setIsSubmitting(false);
     },
     onError: (error) => {
-      toast.error(`Failed to update appointment status: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Failed to update appointment status: ${error.message}`,
+        variant: "destructive"
+      });
       setIsSubmitting(false);
     }
   });
@@ -230,12 +255,20 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
     const species = appointmentData?.patient?.species;
   
     if (!species) {
-      toast.error("Patient species information is required for analysis");
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      });
       return;
     }
   
     if (!hasAnyInput()) {
-      toast.error("Please enter at least one discharge detail before analyzing");
+      toast({
+        title: "Error",
+        description: "Please enter at least one discharge detail before analyzing",
+        variant: "destructive"
+      });
       return;
     }
   
@@ -266,13 +299,19 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
         },
       ]);
   
-      toast.success("Discharge analysis completed");
+      toast({
+        title: "Success",
+        description: "Discharge analysis completed",
+        variant: "success"
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error
+      toast({
+        title: "Error",
+        description: error instanceof Error
           ? error.message
-          : "Failed to analyze discharge"
-      );
+          : "Failed to analyze discharge",
+        variant: "destructive"
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -354,7 +393,11 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
         currentVisitId = (ref.data as any)?.id;
       } catch {}
       if (!currentVisitId) {
-        toast.error("No visit data found for this appointment");
+        toast({
+          title: "Error",
+          description: "No visit data found for this appointment",
+          variant: "destructive"
+        });
         return;
       }
     }
@@ -394,7 +437,11 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
 
   const handleCheckout = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
     // Proceed even if appointment data hasn't loaded; we'll skip appointment status update in that case
@@ -558,7 +605,7 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
                     isReadOnly ||
                     !hasAnyInput()
                   }
-                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
                 >
                   <Sparkles className="w-4 h-4" />
                   {isAnalyzing ? (
@@ -693,7 +740,7 @@ const { messages, sendMessage, status: chatStatus, setMessages } = useChat({
           <Button
             onClick={handleCheckout}
             disabled={isSubmitting || visitLoading || !isAnyEmergencyTabCompleted() || isReadOnly}
-            className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+            className="ml-2 bg-[#1E3D3D] hover:bg-[#1E3D3D] text-white"
           >
             {isSubmitting ? "Processing..." : "Checkout"}
           </Button>
