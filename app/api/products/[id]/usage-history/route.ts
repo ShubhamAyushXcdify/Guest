@@ -8,13 +8,13 @@ const testToken = process.env.NEXT_PUBLIC_TEST_TOKEN || '';
 // GET API Route for product usage history
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    ctx: { params: Promise<{ id: string }> }
 ) {
+    const { id } = await ctx.params;
     try {
         const { searchParams } = new URL(request.url);
         const pageNumber = searchParams.get('pageNumber') || '1';
         const pageSize = searchParams.get('pageSize') || '10';
-        const { id } = params;
         
         if (!id) {
             return NextResponse.json(
