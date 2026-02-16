@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from "@/context/RootContext"
 import Loader from "@/components/ui/loader"
+import { ExpiringProductsCard } from "@/components/dashboard/shared/expiring-products-card"
 
 export const AdminDashboard = () => {
   const today = new Date();
@@ -66,58 +67,129 @@ export const AdminDashboard = () => {
     }
   };
 
-  const dashboardSummaryParams = useMemo(() => {
-    if (!clinic?.companyId) return null;  // Return null if no companyId
+  // Separate params: clinic details (all-time, no date filter) vs appointment metrics (date-filtered)
+  const clinicDetailsParams = useMemo(() => {
+    if (!clinic?.companyId) return null;
+    return {
+      companyId: clinic.companyId,
+      // NO date params - always fetch all-time clinic details (vets/patients)
+    };
+  }, [clinic?.companyId]);
 
+  const appointmentMetricsParams = useMemo(() => {
+    if (!clinic?.companyId) return null;
     const formatDate = (date: Date | undefined, fallback: Date) => {
       const d = date || fallback;
       return d.toISOString().split('T')[0];
     };
-
     return {
-      companyId: clinic.companyId,  // We know this is defined here
+      companyId: clinic.companyId,
       fromDate: formatDate(dateRange?.from, startOfDay),
       toDate: formatDate(dateRange?.to, endOfDay),
+      // Only fetch appointment metrics with date filter
     };
   }, [clinic?.companyId, dateRange, startOfDay, endOfDay]);
 
-  const { data: dashboardSummaryData, isLoading, error } = useGetDashboardSummary(
-    dashboardSummaryParams,
-    { enabled: !!dashboardSummaryParams?.companyId }
+  // Fetch clinic details (all-time, no date filter)
+  const { data: clinicDetailsData, isLoading: isLoadingClinicDetails } = useGetDashboardSummary(
+    clinicDetailsParams,
+    { enabled: !!clinicDetailsParams?.companyId, queryKeySuffix: 'clinic-details-all-time' }
   );
+
+  // Fetch appointment metrics (date-filtered)
+  const { data: appointmentMetricsData, isLoading: isLoadingAppointments } = useGetDashboardSummary(
+    appointmentMetricsParams,
+    { enabled: !!appointmentMetricsParams?.companyId, queryKeySuffix: 'appointment-metrics-filtered' }
+  );
+
+  const isLoading = isLoadingClinicDetails || isLoadingAppointments;
+  const error = null; // Handle errors separately if needed
 
   // Get appointment requests
   const appointmentRequests = appointmentRequestsData?.items || [];
 
+  // Merge clinic details (all-time) with appointment metrics (date-filtered)
   // Normalize API response: backend may return PascalCase (Clinics, ClinicDetails, etc.) or camelCase
-  const rawData = dashboardSummaryData?.data;
-  const rawClinics = rawData?.clinics ?? rawData?.Clinics ?? [];
-  const clinics = rawClinics.map((c: any) => {
+  const clinicDetailsRaw = clinicDetailsData?.data;
+  const appointmentMetricsRaw = appointmentMetricsData?.data;
+  
+  const clinicDetailsClinics = clinicDetailsRaw?.clinics ?? clinicDetailsRaw?.Clinics ?? [];
+  const appointmentMetricsClinics = appointmentMetricsRaw?.clinics ?? appointmentMetricsRaw?.Clinics ?? [];
+
+  // Create maps for merging: clinic details (all-time) and appointment metrics (date-filtered)
+  const clinicDetailsMap = new Map();
+  clinicDetailsClinics.forEach((c: any) => {
+    const clinicId = c.clinicId ?? c.ClinicId ?? c.id ?? "";
+    const clinicName = c.clinicName ?? c.ClinicName ?? "";
+    const key = clinicId || clinicName;
     const details = c.clinicDetails ?? c.ClinicDetails ?? {};
-    const ratios = c.appointmentCompletionRatios ?? c.AppointmentCompletionRatios ?? {};
-    return {
-      clinicName: c.clinicName ?? c.ClinicName ?? "",
-      clinicDetails: {
-        numberOfVeterinarians: details.numberOfVeterinarians ?? details.NumberOfVeterinarians ?? 0,
-        numberOfPatients: details.numberOfPatients ?? details.NumberOfPatients ?? 0,
-        numberOfClients: details.numberOfClients ?? details.NumberOfClients ?? 0,
-        numberOfProducts: details.numberOfProducts ?? details.NumberOfProducts ?? 0,
-        numberOfSuppliers: details.numberOfSuppliers ?? details.NumberOfSuppliers ?? 0,
-      },
-      appointmentCompletionRatios: {
-        totalAppointments: ratios.totalAppointments ?? ratios.TotalAppointments ?? 0,
-        completedAppointments: ratios.completedAppointments ?? ratios.CompletedAppointments ?? 0,
-        canceledAppointments: ratios.canceledAppointments ?? ratios.CanceledAppointments ?? 0,
-        completionRatio: ratios.completionRatio ?? ratios.CompletionRatio ?? 0,
-        percentageOfCompleting: ratios.percentageOfCompleting ?? ratios.PercentageOfCompleting ?? "0",
-      },
+    clinicDetailsMap.set(key, {
+      numberOfVeterinarians: details.numberOfVeterinarians ?? details.NumberOfVeterinarians ?? 0,
+      numberOfPatients: details.numberOfPatients ?? details.NumberOfPatients ?? 0,
+      numberOfClients: details.numberOfClients ?? details.NumberOfClients ?? 0,
+      numberOfProducts: details.numberOfProducts ?? details.NumberOfProducts ?? 0,
+      numberOfSuppliers: details.numberOfSuppliers ?? details.NumberOfSuppliers ?? 0,
       averageRating: c.averageRating ?? c.AverageRating ?? null,
       serviceProfit: c.serviceProfit ?? c.ServiceProfit ?? 0,
       productProfit: c.productProfit ?? c.ProductProfit ?? 0,
+    });
+  });
+
+  const appointmentMetricsMap = new Map();
+  appointmentMetricsClinics.forEach((c: any) => {
+    const clinicId = c.clinicId ?? c.ClinicId ?? c.id ?? "";
+    const clinicName = c.clinicName ?? c.ClinicName ?? "";
+    const key = clinicId || clinicName;
+    const ratios = c.appointmentCompletionRatios ?? c.AppointmentCompletionRatios ?? {};
+    appointmentMetricsMap.set(key, {
+      totalAppointments: ratios.totalAppointments ?? ratios.TotalAppointments ?? 0,
+      completedAppointments: ratios.completedAppointments ?? ratios.CompletedAppointments ?? 0,
+      canceledAppointments: ratios.canceledAppointments ?? ratios.CanceledAppointments ?? 0,
+      completionRatio: ratios.completionRatio ?? ratios.CompletionRatio ?? 0,
+      percentageOfCompleting: ratios.percentageOfCompleting ?? ratios.PercentageOfCompleting ?? "0",
+    });
+  });
+
+  // Start with clinic details (all-time) as base, overlay appointment metrics (date-filtered)
+  // Use clinicDetailsClinics as primary source to ensure all clinics are shown even if no appointments in date range
+  const clinics = clinicDetailsClinics.map((c: any) => {
+    const clinicId = c.clinicId ?? c.ClinicId ?? c.id ?? "";
+    const clinicName = c.clinicName ?? c.ClinicName ?? "";
+    const key = clinicId || clinicName;
+    const allTimeDetails = clinicDetailsMap.get(key) ?? (c.clinicDetails ?? c.ClinicDetails ?? {});
+    const appointmentMetrics = appointmentMetricsMap.get(key) ?? {
+      totalAppointments: 0,
+      completedAppointments: 0,
+      canceledAppointments: 0,
+      completionRatio: 0,
+      percentageOfCompleting: "0",
+    };
+    
+    return {
+      clinicId,
+      clinicName,
+      clinicDetails: {
+        numberOfVeterinarians: allTimeDetails.numberOfVeterinarians ?? 0,
+        numberOfPatients: allTimeDetails.numberOfPatients ?? 0,
+        numberOfClients: allTimeDetails.numberOfClients ?? 0,
+        numberOfProducts: allTimeDetails.numberOfProducts ?? 0,
+        numberOfSuppliers: allTimeDetails.numberOfSuppliers ?? 0,
+      },
+      appointmentCompletionRatios: {
+        totalAppointments: appointmentMetrics.totalAppointments ?? 0,
+        completedAppointments: appointmentMetrics.completedAppointments ?? 0,
+        canceledAppointments: appointmentMetrics.canceledAppointments ?? 0,
+        // completionRatio from API is decimal (0-1); display as percentage by multiplying by 100
+        completionRatio: appointmentMetrics.completionRatio ?? 0,
+        percentageOfCompleting: appointmentMetrics.percentageOfCompleting ?? "0",
+      },
+      averageRating: allTimeDetails.averageRating ?? c.averageRating ?? c.AverageRating ?? null,
+      serviceProfit: allTimeDetails.serviceProfit ?? c.serviceProfit ?? c.ServiceProfit ?? 0,
+      productProfit: allTimeDetails.productProfit ?? c.productProfit ?? c.ProductProfit ?? 0,
     };
   });
 
-  if (!dashboardSummaryParams?.companyId) return <div className="p-6 text-muted-foreground">Select a company or clinic to view dashboard.</div>;
+  if (!clinicDetailsParams?.companyId) return <div className="p-6 text-muted-foreground">Select a company or clinic to view dashboard.</div>;
   if (isLoading) return <div className="min-h-svh flex items-center justify-center p-6">
     <div className="flex flex-col items-center gap-4 text-center">
       <Loader size="lg" label="Loading..." />
@@ -271,7 +343,7 @@ export const AdminDashboard = () => {
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-4">
                       <Badge variant="secondary" className="font-normal whitespace-nowrap">
-                        {ratios.completionRatio ?? 0}% completion
+                        {typeof ratios.percentageOfCompleting === "string" && ratios.percentageOfCompleting.includes("%") ? ratios.percentageOfCompleting : `${((ratios.completionRatio ?? 0) * 100).toFixed(2)}%`} completion
                       </Badge>
                       <Badge variant="outline" className="font-normal whitespace-nowrap">
                         {details.numberOfVeterinarians || 0} vets · {details.numberOfPatients || 0} patients
@@ -283,6 +355,11 @@ export const AdminDashboard = () => {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pb-6 pt-4">
+                  {clinic.clinicId && (
+                    <div className="mb-6">
+                      <ExpiringProductsCard className="w-full" clinicId={clinic.clinicId} />
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Column 1: Clinic statistics as clean cards */}
                     <div className="space-y-4">
@@ -352,7 +429,7 @@ export const AdminDashboard = () => {
                         <p className="text-muted-foreground">
                           Total: <span className="font-semibold text-foreground">{ratios.totalAppointments || 0}</span>
                           {" · "}
-                          Completion: <span className="font-semibold text-[#1E3D3D] dark:text-[#D2EFEC]">{ratios.completionRatio ?? 0}%</span>
+                          Completion: <span className="font-semibold text-[#1E3D3D] dark:text-[#D2EFEC]">{typeof ratios.percentageOfCompleting === "string" && ratios.percentageOfCompleting.includes("%") ? ratios.percentageOfCompleting : `${((ratios.completionRatio ?? 0) * 100).toFixed(2)}%`}</span>
                         </p>
                       </div>
                     </div>
@@ -375,7 +452,7 @@ export const AdminDashboard = () => {
                         <div className="p-3 rounded-lg bg-[#D2EFEC]/40 dark:bg-[#1E3D3D]/20 border border-[#1E3D3D]/10 dark:border-[#D2EFEC]/10">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-[#1E3D3D] dark:text-[#D2EFEC]">Completion rate</span>
-                            <span className="font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{ratios.percentageOfCompleting ?? 0}</span>
+                            <span className="font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{typeof ratios.percentageOfCompleting === "string" && ratios.percentageOfCompleting.includes("%") ? ratios.percentageOfCompleting : `${((ratios.completionRatio ?? 0) * 100).toFixed(2)}%`}</span>
                           </div>
                         </div>
                         <div className="p-3 rounded-lg bg-[#D2EFEC]/40 dark:bg-[#1E3D3D]/20 border border-[#1E3D3D]/10 dark:border-[#D2EFEC]/10">

@@ -16,6 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DatePickerWithRangeV2 } from "@/components/ui/custom/date/date-picker-with-range"
 import { DateRange } from "react-day-picker"
 import { WeeklyProfitCard } from "../../shared/weekly-profit-card"
+import { ExpiringProductsCard } from "../../shared/expiring-products-card"
+import { useGetScreenAccess } from "@/queries/screen/access/get-screen-access"
 
 // Define appointment interface
 interface Appointment {
@@ -47,7 +49,19 @@ export const ClinicAdminDashboard = ({
   onNewAppointment: () => void;
 }) => {
   const today = new Date();
-  const { clinic, user } = useRootContext();
+  const { clinic, user, userType } = useRootContext();
+  const clinicId = clinic?.id ?? null;
+  const roleId = (user as any)?.roleId ?? undefined;
+  const { data: screenAccessData } = useGetScreenAccess(clinicId, roleId, !!clinicId && !userType?.isSuperAdmin, false);
+  const hasInventoryAccess = (() => {
+    if (userType?.isSuperAdmin || userType?.isAdmin) return true;
+    const allowed = new Set(
+      (Array.isArray(screenAccessData) ? screenAccessData : [])
+        .filter((item: any) => item?.isAccessEnable)
+        .map((item: any) => String(item?.screenName ?? "").toLowerCase())
+    );
+    return allowed.size === 0 || allowed.has("inventory");
+  })();
 
   const startOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
   const endOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
@@ -265,6 +279,12 @@ export const ClinicAdminDashboard = ({
         </Card>
       </div>
 
+      {hasInventoryAccess && clinic?.id && (
+        <div className="w-full">
+          <ExpiringProductsCard className="w-full" clinicId={clinic.id} />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Clinic Statistics Card - same style as admin dashboard */}
         <Card className="border shadow-lg">
@@ -313,7 +333,15 @@ export const ClinicAdminDashboard = ({
             <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20 border border-green-200 dark:border-green-800">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-green-700 dark:text-green-300">Completion Rate</span>
-                <span className="text-lg font-bold text-green-600 dark:text-green-400">{completionMetrics?.percentageOfCompleting || "0%"}</span>
+                <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                {(() => {
+                  const p = completionMetrics?.percentageOfCompleting ?? "0";
+                  if (typeof p === "string" && p.includes("%")) return p;
+                  const num = Number(p);
+                  if (!Number.isNaN(num) && num <= 1 && num >= 0) return `${(num * 100).toFixed(2)}%`;
+                  return typeof p === "string" ? p : `${(Number(p) * 100).toFixed(2)}%`;
+                })()}
+              </span>
               </div>
             </div>
             <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-950/20 dark:to-yellow-900/20 border border-yellow-200 dark:border-yellow-800">

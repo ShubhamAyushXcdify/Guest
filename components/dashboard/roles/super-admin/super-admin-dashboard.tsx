@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 import { format, startOfDay, endOfDay } from "date-fns"
+import { ExpiringProductsCard } from "@/components/dashboard/shared/expiring-products-card"
 
 export const SuperAdminDashboard = () => {
   // Add date range state
@@ -249,6 +250,11 @@ export const SuperAdminDashboard = () => {
                               </div>
                             </div>
                           </div>
+                          {((clinic as any).clinicId ?? (clinic as any).id) && (
+                            <div className="mt-4">
+                              <ExpiringProductsCard className="w-full" clinicId={(clinic as any).clinicId ?? (clinic as any).id} />
+                            </div>
+                          )}
                           {/* Subtle hover effect overlay */}
                           <div className="absolute inset-0 bg-gradient-to-br from-[#1E3D3D]/5 to-[#1E3D3D]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"></div>
                         </div>
