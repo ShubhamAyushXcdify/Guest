@@ -8,7 +8,7 @@ import { useUpdateDewormingVisit } from "@/queries/deworming/intake/update-dewor
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import { useGetDewormingVisitByVisitId } from "@/queries/deworming/intake/get-deworming-visit-by-visit-id";
 import { DatePicker } from "@/components/ui/datePicker";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label"
 import { TrendingUp } from "lucide-react";
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId";
@@ -33,6 +33,7 @@ export default function IntakeTab({
   isCompleted = false,
   setWeightGraphOpen = () => { }
 }: IntakeTabProps) {
+  const { toast } = useToast()
   const [weight, setWeight] = useState("");
   const [lastDeworming, setLastDeworming] = useState<Date | null>(null);
   const [symptoms, setSymptoms] = useState("");
@@ -89,7 +90,11 @@ export default function IntakeTab({
     today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
 
     if (date && date > today) {
-      toast.error('Last deworming date cannot be in the future');
+      toast({
+        title: "Error",
+        description: 'Last deworming date cannot be in the future',
+        variant: "destructive"
+      });
       setLastDeworming(null);
       return;
     }
@@ -98,7 +103,11 @@ export default function IntakeTab({
 
   const handleSave = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -107,7 +116,11 @@ export default function IntakeTab({
     today.setHours(0, 0, 0, 0);
 
     if (lastDeworming && lastDeworming > today) {
-      toast.error('Last deworming date cannot be in the future');
+      toast({
+        title: "Error",
+        description: 'Last deworming date cannot be in the future',
+        variant: "destructive"
+      });
       return;
     }
 
@@ -139,15 +152,25 @@ export default function IntakeTab({
       if (onComplete) {
         onComplete(isIntakeCompleted());
       }
-
-      toast.success("Intake information saved successfully");
+      const operation = data?.id ? 'updated' : 'created';
+      
+      toast({
+        title: "Success",
+        description: `Intake information ${operation} successfully`,
+        variant: "success"
+      });
       
       if (onNext && isIntakeCompleted()) {
         onNext();
       }
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Failed to save intake information");
+      const currentTime = new Date().toLocaleTimeString();
+      toast({
+        title: "Error",
+        description: `Failed to save intake information at ${currentTime}: ${error.message || "Unknown error"}`,
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }

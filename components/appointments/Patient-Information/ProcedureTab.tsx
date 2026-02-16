@@ -7,7 +7,7 @@ import { useCreateProcedure } from "@/queries/procedure/create-procedure"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PlusCircle, X, Mic, Search, FileText, ChevronDown } from "lucide-react"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import { useCreateProcedureDetail } from "@/queries/ProcedureDetails/create-procedure-detail"
 import { useGetProcedureDetailByVisitId } from "@/queries/ProcedureDetails/get-procedure-detail-by-visit-id"
 import { useUpdateProcedureDetail } from "@/queries/ProcedureDetails/update-procedure-detail"
@@ -67,6 +67,7 @@ interface ProcedureTabProps {
 
 export default function ProcedureTab({ patientId, appointmentId, onNext, onComplete }: ProcedureTabProps) {
   const [selectedProcedures, setSelectedProcedures] = useState<string[]>([])
+  const { toast } = useToast()
   const [newProcedureName, setNewProcedureName] = useState("")
   const [notes, setNotes] = useState("")
   const [audioModalOpen, setAudioModalOpen] = useState(false)
@@ -79,8 +80,8 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
   const [urinalysisModalOpen, setUrinalysisModalOpen] = useState(false)
   const [eyeSurgeryModalOpen, setEyeSurgeryModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [isAdding, setIsAdding] = useState(false)
-  const [isRemoving, setIsRemoving] = useState(false)
+  const [removingProcedureId, setRemovingProcedureId] = useState<string | null>(null)
+  const [addingProcedureId, setAddingProcedureId] = useState<string | null>(null)
   const [hasCreatedDetail, setHasCreatedDetail] = useState(false)
   const [microchippingModalOpen, setMicrochippingModalOpen] = useState(false)
   const [fleaTickControlModalOpen, setFleaTickControlModalOpen] = useState(false)
@@ -219,10 +220,18 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
   const createProcedureMutation = useCreateProcedure({
     onSuccess: () => {
       setNewProcedureName("")
-      toast.success("Procedure added successfully")
+      toast({
+        title: "Success",
+        description: "Procedure added successfully",
+        variant: "success"
+      })
     },
     onError: (error) => {
-      toast.error(`Failed to add procedure: ${error.message}`)
+      toast({
+        title: "Error",
+        description: `Failed to add procedure: ${error.message}`,
+        variant: "destructive"
+      })
     }
   })
 
@@ -231,7 +240,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
   const { mutateAsync: updateProcedureDetail, isPending: isUpdating } = useUpdateProcedureDetail()
 
   // Combined loading state
-  const isPending = isCreating || isUpdating || isAdding || isRemoving
+  const isPending = isCreating || isUpdating || !!removingProcedureId
 
   const isReadOnly = appointmentData?.status === "completed"
 
@@ -255,7 +264,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
 
   const handleProcedureClick = async (id: string) => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment")
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      })
       return
     }
 
@@ -263,7 +276,8 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
       // Add to local state first for immediate UI feedback
       setSelectedProcedures(prev => [...prev, id])
 
-      setIsAdding(true)
+      setAddingProcedureId(id)
+
 
       // Make API call
       if (existingProcedureDetail) {
@@ -275,7 +289,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
           isCompleted: true,
           procedureIds: updatedProcedures
         })
-        toast.success("Procedure added successfully")
+        toast({
+          title: "Success",
+          description: "Procedure added successfully",
+          variant: "success"
+        })
       } else {
         // If this is the first procedure, create a new record (POST)
         const createdDetail = await createProcedureDetail({
@@ -284,7 +302,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
           isCompleted: true,
           procedureIds: [id]
         })
-        toast.success("Procedure added successfully")
+        toast({
+          title: "Success",
+          description: "Procedure added successfully",
+          variant: "success"
+        })
 
         // Mark that we've created a procedure detail
         setHasCreatedDetail(true)
@@ -310,15 +332,26 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
     } catch (error) {
       // If API call fails, revert UI change
       setSelectedProcedures(prev => prev.filter(procId => procId !== id))
-      toast.error(`Failed to add procedure: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast({
+        title: "Error",
+        description: `Failed to add procedure: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      })
     } finally {
-      setIsAdding(false)
+      // Add a small delay to ensure "Adding..." is visible to the user
+      setTimeout(() => {
+        setAddingProcedureId(null)
+      }, 500)
     }
   }
 
   const handleRemoveProcedure = async (id: string) => {
     if (!visitData?.id || !existingProcedureDetail) {
-      toast.error("No saved procedure details found")
+      toast({
+        title: "Error",
+        description: "No saved procedure details found",
+        variant: "destructive"
+      })
       return
     }
 
@@ -326,7 +359,7 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
       // Update UI first for immediate feedback
       setSelectedProcedures(prev => prev.filter(procId => procId !== id))
 
-      setIsRemoving(true)
+      setRemovingProcedureId(id)
 
       // Make API call to update (remove the procedure)
       const updatedProcedures = selectedProcedures.filter(procId => procId !== id)
@@ -337,7 +370,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
         procedureIds: updatedProcedures
       })
 
-      toast.success("Procedure removed successfully")
+      toast({
+        title: "Success",
+        description: "Procedure removed successfully",
+        variant: "success"
+      })
 
       // If we removed the last procedure, we might want to un-mark the tab as completed
       if (updatedProcedures.length === 0) {
@@ -347,9 +384,13 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
     } catch (error) {
       // If API call fails, revert UI change
       setSelectedProcedures(prev => [...prev, id])
-      toast.error(`Failed to remove procedure: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast({
+        title: "Error",
+        description: `Failed to remove procedure: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive"
+      })
     } finally {
-      setIsRemoving(false)
+      setRemovingProcedureId(null)
     }
   }
 
@@ -408,7 +449,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
       if (selectedProcedureId) {
         setAllergyModalOpen(true)
       } else {
-        toast.error("Please select a procedure first")
+        toast({
+          title: "Error",
+          description: "Please select a procedure first",
+          variant: "destructive"
+        })
       }
       return
     }
@@ -433,7 +478,11 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
       if (selectedProcedureId) {
         setAcupunctureModalOpen(true)
       } else {
-        toast.error("Please select a procedure first")
+        toast({
+          title: "Error",
+          description: "Please select a procedure first",
+          variant: "destructive"
+        })
       }
       return
     }
@@ -672,10 +721,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
                             e.stopPropagation()
                             handleProcedureClick(procedure.id)
                           }}
-                          disabled={isReadOnly || isPending}
+                          disabled={isReadOnly || addingProcedureId === procedure.id}
                           className="ml-2"
                         >
-                          {isAdding ? "Adding..." : "Add"}
+                          {addingProcedureId === procedure.id ? "Adding..." : "Add"}
                         </Button>
                       </div>
                     </div>
@@ -741,10 +790,10 @@ export default function ProcedureTab({ patientId, appointmentId, onNext, onCompl
                               variant="destructive"
                               size="sm"
                               onClick={() => handleRemoveProcedure(procedure.id)}
-                              disabled={isReadOnly || isPending}
+                              disabled={isReadOnly || removingProcedureId === procedure.id}
                               title="Remove Procedure"
                             >
-                              {isRemoving ? "..." : <X className="h-4 w-4" />}
+                              {removingProcedureId === procedure.id ? "..." : <X className="h-4 w-4" />}
                             </Button>
                           </div>
                         </TableCell>

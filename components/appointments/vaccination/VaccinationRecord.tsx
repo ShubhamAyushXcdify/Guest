@@ -18,7 +18,7 @@ import {
 } from "@/queries/vaccinationDetail/create-vaccinationDetail"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useRootContext } from "@/context/RootContext"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appointmentId"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import { useGetRole } from "@/queries/roles/get-role";

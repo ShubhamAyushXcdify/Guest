@@ -9,7 +9,7 @@ import { useGetEmergencyProceduresByVisitId } from "@/queries/emergency/procedur
 import { useCreateEmergencyProcedure } from "@/queries/emergency/procedures/create-emergency-procedure";
 import { useUpdateEmergencyProcedure } from "@/queries/emergency/procedures/update-emergency-procedure";
 import { EmergencyVisitProcedure } from "@/queries/emergency/procedures/get-emergency-procedures";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
 import { useUpdateVisit } from "@/queries/visit/update-visit";
@@ -42,6 +42,7 @@ const commonProcedures = [
 ];
 
 export default function EmergencyProceduresTab({ patientId, appointmentId, onNext }: EmergencyProceduresTabProps) {
+  const { toast } = useToast()
   const [procedure, setProcedure] = useState("");
   const [procedureTime, setProcedureTime] = useState<Date>(() => new Date());
 
@@ -163,12 +164,20 @@ ${notes ? `- Notes: ${notes}` : ""}
     const species = appointmentData?.patient?.species;
 
     if (!species) {
-      toast.error("Patient species information is required for analysis");
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!hasAnyInput()) {
-      toast.error("Please enter at least one procedure detail before analyzing");
+      toast({
+        title: "Error",
+        description: "Please enter at least one procedure detail before analyzing",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -199,13 +208,24 @@ ${notes ? `- Notes: ${notes}` : ""}
         },
       ]);
 
-      toast.success("Emergency procedures analysis completed");
+      toast({
+        title: "Success",
+        description: "Emergency procedures analysis completed",
+        variant: "success"
+      });
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error
+      toast({
+        title: "Error",
+        description: error instanceof Error
           ? error.message
-          : "Failed to analyze emergency procedures"
-      );
+          : "Failed to analyze emergency procedures",
+        variant: "destructive"
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -254,7 +274,11 @@ ${notes ? `- Notes: ${notes}` : ""}
 
   const handleSubmit = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
     setIsSubmitting(true);
@@ -287,11 +311,19 @@ ${notes ? `- Notes: ${notes}` : ""}
       if (proceduresData && proceduresData.length > 0) {
         // Update
         await updateProcedure.mutateAsync({ id: proceduresData[0].id, ...payload });
-        toast.success("Emergency procedure updated successfully");
+        toast({
+          title: "Success",
+          description: "Emergency procedure updated successfully",
+          variant: "success"
+        });
       } else {
         // Create
         await createProcedure.mutateAsync(payload);
-        toast.success("Emergency procedure saved successfully");
+        toast({
+          title: "Success",
+          description: "Emergency procedure saved successfully",
+          variant: "success"
+        });
       }
       await refetchProcedures();
       if (visitData?.id) {
@@ -301,7 +333,11 @@ ${notes ? `- Notes: ${notes}` : ""}
       }
       if (onNext) onNext();
     } catch (e: any) {
-      toast.error(e.message || "Failed to save emergency procedure");
+      toast({
+        title: "Error",
+        description: e.message || "Failed to save emergency procedure",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -424,7 +460,7 @@ ${notes ? `- Notes: ${notes}` : ""}
                     isReadOnly ||
                     !hasAnyInput()
                   }
-                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
                 >
                   <Sparkles className="w-4 h-4" />
                   {isAnalyzing ? (

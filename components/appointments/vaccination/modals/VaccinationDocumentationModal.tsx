@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 // import { useCreateVaccinationDetail } from "@/queries/vaccinationDetail/create-vaccinationDetail";
 // import { useUpdateVaccinationDetail } from "@/queries/vaccinationDetail/update-vaccinationDetail";
 // import { useGetVaccinationDetailsByVisitId } from "@/queries/vaccinationDetail/get-vaccinationDetail-by-visitId";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast"
 
 interface VaccinationDocumentationModalProps {
   open: boolean;
@@ -54,6 +54,8 @@ export default function VaccinationDocumentationModal({
   const [doseVolume, setDoseVolume] = useState("");
   const [route, setRoute] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
+
+  const { toast } = useToast();
 
   const { data: rolesData } = useGetRole();
 
@@ -126,7 +128,11 @@ export default function VaccinationDocumentationModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!visitId || !vaccinationMasterId) {
-      toast.error("Visit ID or Vaccination Master ID is missing.");
+      toast({
+        title: "Error",
+        description: "Visit ID or Vaccination Master ID is missing.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -218,11 +224,19 @@ export default function VaccinationDocumentationModal({
     try {
       JSON.parse(vaccinationJsonPayload.vaccinationJson);
       await updateVaccinationJson.mutateAsync(vaccinationJsonPayload);
-      toast.success("Vaccination record saved successfully!");
+      toast({
+        title: "Success",
+        description: "Vaccination record saved successfully!",
+        variant: "success"
+      });
       onClose(vaccine.id);
     } catch (error) {
       console.error("JSON Validation or Update Vaccination Json Error:", error);
-      toast.error("Error saving vaccination documentation. Please check the data and try again.");
+      toast({
+        title: "Error",
+        description: "Error saving vaccination documentation. Please check the data and try again.",
+        variant: "destructive"
+      });
     }
   };
 

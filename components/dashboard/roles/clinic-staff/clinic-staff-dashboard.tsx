@@ -9,6 +9,7 @@ import { ExpiringProductsCard } from "../../shared/expiring-products-card"
 import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from "@/context/RootContext"
 import { useExpiringProducts } from "@/queries/dashboard/get-expiring-products"
+import { useGetScreenAccess } from "@/queries/screen/access/get-screen-access"
 import { WeeklyProfitCard } from "@/components/dashboard/shared/weekly-profit-card";
 
 export const ClinicStaffDashboard = ({
@@ -41,8 +42,20 @@ export const ClinicStaffDashboard = ({
   const startOfDay = new Date(startOfDayLocal.getTime() - startOfDayLocal.getTimezoneOffset() * 60000);
   const endOfDay = new Date(endOfDayLocal.getTime() - endOfDayLocal.getTimezoneOffset() * 60000);
 
-  const { clinic } = useRootContext();
-  
+  const { clinic, user, userType } = useRootContext();
+  const clinicIdForAccess = clinic?.id ?? null;
+  const roleId = (user as any)?.roleId ?? undefined;
+  const { data: screenAccessData } = useGetScreenAccess(clinicIdForAccess, roleId, !!clinicIdForAccess && !userType?.isSuperAdmin, false);
+  const hasInventoryAccess = (() => {
+    if (userType?.isSuperAdmin || userType?.isAdmin) return true;
+    const allowed = new Set(
+      (Array.isArray(screenAccessData) ? screenAccessData : [])
+        .filter((item: any) => item?.isAccessEnable)
+        .map((item: any) => String(item?.screenName ?? "").toLowerCase())
+    );
+    return allowed.size === 0 || allowed.has("inventory");
+  })();
+
   // Update searchParams to use dateRange
   const searchParams = {
     search: null,
@@ -118,7 +131,7 @@ export const ClinicStaffDashboard = ({
   // Get appointment requests
   const appointmentRequests = appointmentRequestsData?.items || [];
   const { data: expiringProducts = [] } = useExpiringProducts(clinic?.id || "");
-  const hasExpiringProducts = expiringProducts.length > 0;
+  const hasExpiringProducts = hasInventoryAccess && expiringProducts.length > 0;
 
   return (
     <div className="p-6">

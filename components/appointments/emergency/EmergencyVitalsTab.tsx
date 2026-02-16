@@ -21,7 +21,7 @@ import { useGetEmergencyVitalByVisitId } from "@/queries/emergency/vitals/get-em
 import { useCreateEmergencyVital } from "@/queries/emergency/vitals/create-emergency-vital";
 import { useUpdateEmergencyVital } from "@/queries/emergency/vitals/update-emergency-vital";
 import { useGetAppointmentById } from "@/queries/appointment/get-appointment-by-id";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { validateVitals as validateVitalsFn, isVitalsComplete as isVitalsCompleteFn, VitalsValidationErrors } from "../../schema/emergencyVitalsValidation";
 
 interface EmergencyVitalsTabProps {
@@ -46,6 +46,7 @@ const heartRhythms = [
 ];
 
 export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }: EmergencyVitalsTabProps) {
+  const { toast } = useToast()
   const [heartRate, setHeartRate] = useState("");
   const [respiratoryRate, setRespiratoryRate] = useState("");
   const [temperature, setTemperature] = useState("");
@@ -201,7 +202,11 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
 
   const handleAnalyze = async () => {
     if (!appointmentData?.patient?.species) {
-      toast.error("Patient species information is required for analysis");
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -246,11 +251,17 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
         },
       ]);
 
-      toast.success("Vitals analysis completed");
+      toast({
+        title: "Success",
+        description: "Vitals analysis completed",
+        variant: "success"
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to analyze vitals data"
-      );
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to analyze vitals data",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -298,10 +309,18 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
       };
       if (vitalsData && vitalsData.id) {
         await updateVitals.mutateAsync({ id: vitalsData.id, ...payload });
-        toast.success("Vitals updated successfully");
+        toast({
+          title: "Success",
+          description: "Vitals updated successfully",
+          variant: "success"
+        });
       } else {
         await createVitals.mutateAsync(payload);
-        toast.success("Vitals saved successfully");
+        toast({
+          title: "Success",
+          description: "Vitals saved successfully",
+          variant: "success"
+        });
       }
       await refetchVitals();
       if (visitData?.id) {
@@ -311,7 +330,11 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
       }
       if (onNext) onNext();
     } catch (e: any) {
-      toast.error(e.message || "Failed to save vitals");
+      toast({
+        title: "Error",
+        description: e.message || "Failed to save vitals",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -575,7 +598,7 @@ export default function EmergencyVitalsTab({ patientId, appointmentId, onNext }:
                 isReadOnly ||
                 !hasAnyInput()
               }
-              className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+              className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
             >
               <Sparkles className="w-4 h-4" />
               {isAnalyzing ? (

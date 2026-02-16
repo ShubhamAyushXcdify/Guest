@@ -5,7 +5,8 @@ import { useGetVisitByAppointmentId } from "@/queries/visit/get-visit-by-appoint
 import { useGetSurgeryDischargeByVisitId } from "@/queries/surgery/discharge/get-surgery-discharge-by-visit-id";
 import { useCreateSurgeryDischarge } from "@/queries/surgery/discharge/create-surgery-discharge";
 import { useUpdateSurgeryDischarge } from "@/queries/surgery/discharge/update-surgery-discharge";
-import { toast } from "sonner";
+import { useGetPrescriptionDetailByVisitId } from "@/queries/PrescriptionDetail/get-prescription-detail-by-visit-id";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment";
@@ -22,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { surgeryDischargeAnalysis } from "@/app/actions/reasonformatting";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { toast } from "@/hooks/use-toast";
+
 
 interface DischargeTabProps {
   patientId: string;
@@ -29,17 +32,19 @@ interface DischargeTabProps {
   onClose: () => void;
   externalFollowUpDate?: string;
   onExternalFollowUpDateChange?: (v: string) => void;
+  allTabsCompleted?: boolean;
 }
 interface ExtendedVisitData {
   isSurgeryPostOpCompleted: boolean;
   isSurgeryDischargeCompleted: boolean;
   isSurgeryDetailsCompleted: boolean;
   isSurgeryPreOpCompleted: boolean;
+  isSurgeryPrescriptionCompleted: boolean;
 }
 
 const dischargeStatus = ["Ready for discharge", "Needs monitoring", "Referred to specialist", "Admitted for observation"];
 
-export default function DischargeTab({ patientId, appointmentId, onClose, externalFollowUpDate, onExternalFollowUpDateChange }: DischargeTabProps) {
+export default function DischargeTab({ patientId, appointmentId, onClose, externalFollowUpDate, onExternalFollowUpDateChange, allTabsCompleted = false }: DischargeTabProps) {
   const [status, setStatus] = useState("");
   const [dischargeTime, setDischargeTime] = useState("");
   const [homeCare, setHomeCare] = useState("");
@@ -60,30 +65,60 @@ export default function DischargeTab({ patientId, appointmentId, onClose, extern
   const isReadOnly = appointmentData?.status === "completed";
   const updateAppointmentMutation = useUpdateAppointment({
     onSuccess: () => {
-      toast.success("Visit completed successfully");
+      toast({
+        title: "Success",
+        description: "Visit completed successfully",
+        variant: "success"
+      });
       setIsProcessing(false);
       if (onClose) onClose();
     },
     onError: (error) => {
-      toast.error(`Failed to update appointment status: ${error.message}`);
+      toast({
+        title: "Error",
+        description: `Failed to update appointment status: ${error.message}`,
+        variant: "destructive"
+      });
       setIsProcessing(false);
     }
   });
   const { data: dischargeData, refetch } = useGetSurgeryDischargeByVisitId(visitData?.id || "", !!visitData?.id);
   const createDischarge = useCreateSurgeryDischarge();
   const updateDischarge = useUpdateSurgeryDischarge();
-  const { markTabAsCompleted } = useTabCompletion();
+  const { markTabAsCompleted, isTabCompleted } = useTabCompletion();
+  const { data: prescriptionData } = useGetPrescriptionDetailByVisitId(visitData?.id || "", !!visitData?.id);
   const today = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
-  const isAppointmentCompleted = appointmentData?.status === "completed";
   const areAnyVisitTabsCompleted = (): boolean => {
     if (!visitData) return false;
     const visit = visitData as unknown as ExtendedVisitData;
     return (
       visit.isSurgeryPostOpCompleted ||
+      visit.isSurgeryPrescriptionCompleted ||
       visit.isSurgeryDetailsCompleted ||
       visit.isSurgeryPreOpCompleted
     );
   };
+
+  const isPrescriptionCompletedViaVisitData = (): boolean => {
+    if (!visitData) return false;
+    const visit = visitData as unknown as ExtendedVisitData;
+    return Boolean(visit.isSurgeryPrescriptionCompleted);
+  };
+
+  const hasPrescriptionData = (): boolean => {
+    return Boolean(prescriptionData && Array.isArray(prescriptionData) && prescriptionData.length > 0);
+  };
+
+  const areAnySurgeryTabsCompletedInContext = (): boolean => {
+    return (
+      isTabCompleted("surgery-pre-op") ||
+      isTabCompleted("surgery-details") ||
+      isTabCompleted("surgery-post-op") ||
+      isTabCompleted("prescription") ||
+      isTabCompleted("surgery-discharge")
+    );
+  };
+  const isAppointmentCompleted = appointmentData?.status === "completed";
 
   const hasAnyFieldFilled = useMemo(() => {
     const nonDefaultSelects = status !== dischargeStatus[0];
@@ -178,12 +213,20 @@ Current Surgery Discharge Data:
     const species = appointmentData?.patient?.species;
 
     if (!species) {
-      toast.error("Patient species information is required for analysis");
+      toast({
+        title: "Error",
+        description: "Patient species information is required for analysis",
+        variant: "destructive"
+      });
       return;
     }
 
     if (!hasAnyInput()) {
-      toast.error("Please enter at least one discharge detail before analyzing");
+      toast({
+        title: "Error",
+        description: "Please enter at least one discharge detail before analyzing",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -210,11 +253,17 @@ Current Surgery Discharge Data:
         },
       ]);
 
-      toast.success("Surgery discharge analysis completed");
+      toast({
+        title: "Success",
+        description: "Surgery discharge analysis completed",
+        variant: "success"
+      });
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to analyze surgery discharge"
-      );
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to analyze surgery discharge",
+        variant: "destructive"
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -235,7 +284,11 @@ Current Surgery Discharge Data:
 
   const handleSubmit = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
     setIsSubmitting(true);
@@ -252,15 +305,27 @@ Current Surgery Discharge Data:
     try {
       if (dischargeData && dischargeData.length > 0) {
         await updateDischarge.mutateAsync({ id: dischargeData[0].id, ...payload });
-        toast.success("Discharge record updated successfully");
+        toast({
+          title: "Success",
+          description: "Discharge record updated successfully",
+          variant: "success"
+        });
       } else {
         await createDischarge.mutateAsync(payload);
-        toast.success("Discharge record saved successfully");
+        toast({
+          title: "Success",
+          description: "Discharge record saved successfully",
+          variant: "success"
+        });
       }
       await refetch();
       markTabAsCompleted("surgery-discharge");
     } catch (e: any) {
-      toast.error(e.message || "Failed to save discharge record");
+      toast({
+        title: "Error",
+        description: e.message || "Failed to save discharge record",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -268,17 +333,20 @@ Current Surgery Discharge Data:
 
   const handleCheckout = async () => {
     if (!visitData?.id) {
-      toast.error("No visit data found for this appointment");
+      toast({
+        title: "Error",
+        description: "No visit data found for this appointment",
+        variant: "destructive"
+      });
       return;
     }
     if (!appointmentData) {
-      toast.error("No appointment data found");
+      toast({
+        title: "Error",
+        description: "No appointment data found",
+        variant: "destructive"
+      });
       return;
-    }
-    // Require at least one tab to be completed before checkout
-    if (!isAppointmentCompleted && !areAnyVisitTabsCompleted()) {
-      toast.error("Please complete at least one tab before checking out")
-      return
     }
     setIsProcessing(true);
     try {
@@ -298,7 +366,6 @@ Current Surgery Discharge Data:
       setIsProcessing(false);
     }
   };
-  const anyVisitTabComplete = useMemo(() => areAnyVisitTabsCompleted(), [visitData]);
 
   return (
     <Card>
@@ -422,7 +489,7 @@ Current Surgery Discharge Data:
                     isReadOnly ||
                     !hasAnyInput()
                   }
-                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                  className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
                 >
                   <Sparkles className="w-4 h-4" />
                   {isAnalyzing ? (
@@ -558,8 +625,8 @@ Current Surgery Discharge Data:
           </Button>
           <Button
             onClick={handleCheckout}
-            disabled={isSubmitting || isProcessing || (!anyVisitTabComplete) || isReadOnly}
-            className="ml-2 bg-green-600 hover:bg-green-700 text-white"
+            disabled={isSubmitting || isProcessing || isReadOnly || isAppointmentCompleted || (!areAnyVisitTabsCompleted() && !areAnySurgeryTabsCompletedInContext() && !isPrescriptionCompletedViaVisitData() && !hasPrescriptionData())}
+            className="ml-2 bg-[#1E3D3D] hover:bg-[#152B2B] text-white"
           >
             Checkout
           </Button>

@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { dewormingNotesAnalysis } from "@/app/actions/reasonformatting";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 
 
@@ -29,6 +29,7 @@ interface NotesTabProps {
 }
 
 export default function NotesTab({ patientId, appointmentId, visitId, onComplete, onNext, isCompleted = false }: NotesTabProps) {
+  const { toast } = useToast()
   const [reactions, setReactions] = useState("");
   const [notes, setNotes] = useState("");
   const [ownerQuestions, setOwnerQuestions] = useState("");
@@ -100,12 +101,20 @@ const handleAnalyze = async () => {
   const species = appointmentData?.patient?.species;
 
   if (!species) {
-    toast.error("Patient species information is required for analysis");
+    toast({
+      title: "Error",
+      description: "Patient species information is required for analysis",
+      variant: "destructive"
+    });
     return;
   }
 
   if (!hasAnyInput()) {
-    toast.error("Please enter at least one deworming note before analyzing");
+    toast({
+      title: "Error",
+      description: "Please enter at least one deworming note before analyzing",
+      variant: "destructive"
+    });
     return;
   }
 
@@ -129,13 +138,19 @@ const handleAnalyze = async () => {
       },
     ]);
 
-    toast.success("Deworming notes analysis completed");
+    toast({
+      title: "Success",
+      description: "Deworming notes analysis completed",
+      variant: "success"
+    });
   } catch (error) {
-    toast.error(
-      error instanceof Error
+    toast({
+      title: "Error",
+      description: error instanceof Error
         ? error.message
-        : "Failed to analyze deworming notes"
-    );
+        : "Failed to analyze deworming notes",
+      variant: "destructive"
+    });
   } finally {
     setIsAnalyzing(false);
   }
@@ -185,8 +200,18 @@ useEffect(() => {
 
       if (data && data.id) {
         await updateMutation.mutateAsync({ id: data.id, ...payload });
+        toast({
+          title: "Success",
+          description: "Deworming notes updated successfully",
+          variant: "success"
+        });
       } else {
         await createMutation.mutateAsync(payload);
+        toast({
+          title: "Success", 
+          description: "Deworming notes saved successfully",
+          variant: "success"
+        });
       }
 
       await refetch();
@@ -198,8 +223,13 @@ useEffect(() => {
       if (onNext) {
         onNext();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving notes:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save deworming notes",
+        variant: "destructive"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -287,7 +317,7 @@ useEffect(() => {
                             isReadOnly ||
                             !hasAnyInput()
                           }
-                          className="flex items-center gap-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg hover:from-purple-500 hover:to-blue-500 hover:scale-105 transition-transform duration-150 border-0"
+                          className="flex items-center gap-2 font-semibold bg-gradient-to-r from-[#1E3D3D] to-[#1E3D3D] text-white shadow-lg hover:from-[#1E3D3D] hover:to-[#1E3D3D] hover:scale-105 transition-transform duration-150 border-0"
                         >
                           <Sparkles className="w-4 h-4" />
                           {isAnalyzing ? (
