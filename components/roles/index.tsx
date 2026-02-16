@@ -10,9 +10,6 @@ import { useRootContext } from "@/context/RootContext"; // Import useRootContext
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "../ui/sheet";
 import NewRole from "./newRole";
 import RoleDetails from "./roleDetails";
-import { useDeleteRole } from "@/queries/roles/delete-role";
-import { toast } from "@/hooks/use-toast";
-import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { Role } from "@/queries/roles/get-role";
 import { useRouter } from "next/navigation";
 
@@ -30,46 +27,12 @@ export default function Roles() {
   const [openNew, setOpenNew] = useState(false);
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [openDetails, setOpenDetails] = useState(false);
-  const deleteRole = useDeleteRole();
-  
-  // State for delete confirmation dialog
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleRoleClick = (roleId: string) => {
     setSelectedRoleId(roleId);
     setOpenDetails(true);
   };
 
-  const openDeleteDialog = (role: Role) => {
-    setRoleToDelete(role);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteRole = async () => {
-    if (!roleToDelete) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteRole.mutateAsync({ id: roleToDelete.id });
-      toast({
-        title: "Role Deleted",
-        description: "Role has been deleted successfully",
-        variant: "success",
-      });
-      setIsDeleteDialogOpen(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete role",
-        variant: "error",
-      });
-    } finally {
-      setIsDeleting(false);
-      setRoleToDelete(null);
-    }
-  };
 
   const handlePageChange = (page: number) => {
     setPageNumber(page);
@@ -123,17 +86,6 @@ export default function Roles() {
             }}
           >
             <Edit className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="text-red-500 hover:text-red-700 hover:bg-red-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              openDeleteDialog(row.original);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ),
@@ -215,15 +167,6 @@ export default function Roles() {
         </SheetContent>
       </Sheet>
 
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmationDialog
-        isOpen={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleDeleteRole}
-        title="Delete Role"
-        itemName={roleToDelete?.name}
-        isDeleting={isDeleting}
-      />
     </div>
   );
 }
