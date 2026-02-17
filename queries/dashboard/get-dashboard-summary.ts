@@ -4,6 +4,8 @@ interface DashboardSummaryParams {
   companyId: string;
   fromDate?: string;
   toDate?: string;
+  totalPatients?: boolean;
+  totalProducts?: boolean;
   /** When true, backend should return all-time counts for vets/patients (not filtered by fromDate/toDate). */
   useAllTimeCountsForClinicDetails?: boolean;
 }
