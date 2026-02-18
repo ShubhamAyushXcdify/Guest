@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Edit, Eye, Filter } from "lucide-react"
+import { Badge } from "../ui/badge";
 import { Client, useGetClients } from "@/queries/clients/get-client"
 import { useDebounce } from "@/hooks/use-debounce"
 import { ColumnDef } from "@tanstack/react-table"
@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { getCompanyId } from "@/utils/clientCookie"
 import { useRootContext } from "@/context/RootContext"
 import Loader from "@/components/ui/loader"
+import { Edit, Eye, Filter } from "lucide-react"
 
 interface ClientsScreenProps {
   onEditClient?: (client: Client | null) => void;
@@ -120,7 +121,13 @@ export const ClientsScreen = ({ onEditClient, showFilters, filters, setFilters, 
     { accessorKey: "lastName", header: "Last Name" },
     { accessorKey: "email", header: "Email" },
     { accessorKey: "phonePrimary", header: "Phone" },
-    { accessorKey: "isActive", header: "Active", cell: ({ getValue }) => getValue() ? "Yes" : "No" },
+   {
+      accessorKey: "isActive",
+      header: "Status",
+      cell: ({ getValue }) => getValue() ? 
+        <Badge className="bg-[#1E3D3D] text-white hover:bg-[#1E3D3D]/80">Active</Badge> : 
+        <Badge variant="destructive">Inactive</Badge>
+    },
     {
       id: "actions",
       header: () => <div className="text-center">Actions</div>,

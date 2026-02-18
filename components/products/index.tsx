@@ -63,22 +63,11 @@ export default function Products() {
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
 
-  const PRODUCT_CATEGORIES = [
-    { name: "antibiotics", value: "antibiotics" },
-    { name: "pain_management", value: "pain_management" },
-    { name: "vaccines", value: "vaccines" },
-    { name: "supplements", value: "supplements" },
-    { name: "medical_supplies", value: "medical_supplies" },
-    { name: "equipment", value: "equipment" },
-    { name: "food", value: "food" },
-    { name: "other", value: "other" },
-  ]
-
-
   const companyId =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("user") || "{}")?.companyId
       : undefined;
+
  
   const { data: productsData, isLoading, isError, refetch } = useGetProducts(
     pageNumber, 
@@ -446,7 +435,7 @@ export default function Products() {
                   <SelectItem value="all">All Categories</SelectItem>
                   {PRODUCT_CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
-                      {cat.name}
+                      {cat.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

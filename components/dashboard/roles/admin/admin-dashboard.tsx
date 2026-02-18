@@ -122,6 +122,10 @@ export const AdminDashboard = () => {
   // Get appointment requests
   const appointmentRequests = appointmentRequestsData?.items || [];
 
+  // Extract company-wide totals from API response
+  const totalPatients = clinicDetailsData?.data?.totalPatients || 0;
+  const totalProducts = clinicDetailsData?.data?.totalProducts || 0;
+
   // Merge clinic details (all-time) with appointment metrics (date-filtered)
   // Normalize API response: backend may return PascalCase (Clinics, ClinicDetails, etc.) or camelCase
   const clinicDetailsRaw = clinicDetailsData?.data;
@@ -271,7 +275,7 @@ export const AdminDashboard = () => {
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Patients</p>
                   <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">
-                    {clinics.reduce((sum: number, c: any) => sum + (c.clinicDetails?.numberOfPatients || 0), 0)}
+                    {totalPatients}
                   </p>
                 </div>
               </div>
@@ -287,7 +291,7 @@ export const AdminDashboard = () => {
                 <div>
                   <p className="text-md font-medium text-muted-foreground">Total Products</p>
                   <p className="text-2xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">
-                    {clinics.reduce((sum: number, c: any) => sum + (c.clinicDetails?.numberOfProducts || 0), 0)}
+                    {totalProducts}
                   </p>
                 </div>
               </div>
@@ -378,7 +382,7 @@ export const AdminDashboard = () => {
                     {/* Column 1: Clinic statistics as clean cards */}
                     <div className="space-y-4">
                       <h3 className="text-sm font-medium text-foreground">Clinic statistics</h3>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3">
                         <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
                           <div className="flex items-center gap-2 mb-1">
                             <Stethoscope className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
@@ -387,27 +391,6 @@ export const AdminDashboard = () => {
                           <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfVeterinarians || 0}</p>
                         </div>
                         <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Users className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
-                            <span className="text-xs text-muted-foreground">Patients</span>
-                          </div>
-                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfPatients || 0}</p>
-                        </div>
-                        <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Users className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
-                            <span className="text-xs text-muted-foreground">Clients</span>
-                          </div>
-                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfClients || 0}</p>
-                        </div>
-                        <div className="border rounded-lg p-3 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Package className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
-                            <span className="text-xs text-muted-foreground">Products</span>
-                          </div>
-                          <p className="text-xl font-bold text-[#1E3D3D] dark:text-[#D2EFEC]">{details.numberOfProducts || 0}</p>
-                        </div>
-                        <div className="border rounded-lg p-3 col-span-2 bg-gradient-to-br from-[#D2EFEC]/30 to-transparent dark:from-[#1E3D3D]/20">
                           <div className="flex items-center gap-2 mb-1">
                             <Truck className="h-4 w-4 text-[#1E3D3D] dark:text-[#D2EFEC]" />
                             <span className="text-xs text-muted-foreground">Suppliers</span>
