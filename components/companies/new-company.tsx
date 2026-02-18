@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { PDFUpload } from "../ui/pdf-upload";
 import { useCreateCompany, CreateCompanyRequest } from "@/queries/companies/create-company";
 import { toast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { useEffect, useState } from "react";
 import { Building, Mail, MapPin, FileText } from "lucide-react";
 
@@ -91,7 +92,7 @@ export default function NewCompany({ onSuccess }: NewCompanyProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create company",
+        description: getToastErrorMessage(error, "Failed to create company"),
         variant: "destructive",
       });
     } finally {

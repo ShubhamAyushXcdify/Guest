@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface DashboardSummaryParams {
   companyId: string;
@@ -23,9 +24,10 @@ const getDashboardSummary = async (params: DashboardSummaryParams) => {
       'Content-Type': 'application/json',
     },
   });
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw result;
+    const message = getMessageFromErrorBody(result, 'Failed to load dashboard summary');
+    throw new Error(message);
   }
   return result;
 };

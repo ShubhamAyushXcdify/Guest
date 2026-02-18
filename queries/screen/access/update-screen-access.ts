@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 export interface UpdateScreenAccessPayload {
   roleId: string;
@@ -13,17 +14,19 @@ const updateScreenAccess = async (payload: UpdateScreenAccessPayload) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+  const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const err = await response.json().catch(() => null);
-    throw err ?? new Error("Failed to update screen access");
+    const message = getMessageFromErrorBody(result, "Failed to update screen access");
+    throw new Error(message);
   }
-  return await response.json().catch(() => ({}));
+  return result;
 };
 
 export const useUpdateScreenAccess = ({ onSuccess, onError }: { onSuccess?: () => void; onError?: (e: any) => void }) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateScreenAccess,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["screen-access"] });
       onSuccess?.();

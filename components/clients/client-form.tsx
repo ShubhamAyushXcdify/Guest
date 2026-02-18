@@ -22,6 +22,7 @@ import { Mic, Loader2 } from "lucide-react";
 import { AudioManager } from "@/components/audioTranscriber/AudioManager";
 import { useTranscriber } from "@/components/audioTranscriber/hooks/useTranscriber";
 import { useToast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { ClientFormValues, clientFormSchema } from "@/components/schema/clientSchema";
 
 interface ClientFormProps {
@@ -147,8 +148,11 @@ export function ClientForm({
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to ${isUpdate ? "update" : "create"} owner. Please try again.`,
-        variant: "error",
+        description: getToastErrorMessage(
+          error,
+          isUpdate ? "Failed to update owner. Please try again." : "Failed to create owner. Please try again."
+        ),
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

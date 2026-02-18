@@ -10,6 +10,7 @@ import { useCreateProduct } from "@/queries/products/create-products";
 import { productSchema, ProductFormValues, defaultProductValues } from "@/components/schema/productSchema";
 import { Combobox } from "../ui/combobox";
 import { useToast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { useEffect } from "react";
 import { getCompanyId } from "@/utils/clientCookie";
 import { zodResolver } from "@hookform/resolvers/zod";  
@@ -59,8 +60,8 @@ export default function NewProduct({ onSuccess, onCancel }: NewProductProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while creating the product.",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to create product"),
+        variant: "destructive",
       });
     },
   });

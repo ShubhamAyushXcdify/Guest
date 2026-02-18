@@ -1,24 +1,23 @@
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 const createRole = async (data: { name: string; value: string; isPrivileged: boolean; metadata: string; isClinicRequired: boolean; colourName: string; priority: number; }) => {
-  try {
-    const url = `/api/role`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    const result = await response.json();
-    if (!response.ok) {
-      throw result;
-    }
-    return result;
-  } catch (error) {
-    throw error;
+  const url = `/api/role`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to create role');
+    throw new Error(message);
   }
+  return result;
 }
 
 export const useCreateRole = ({ onSuccess, onError }: {
@@ -28,6 +27,7 @@ export const useCreateRole = ({ onSuccess, onError }: {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createRole,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['role'] });
       onSuccess?.();

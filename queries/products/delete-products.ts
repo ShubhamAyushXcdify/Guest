@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface DeleteProductParams {
   id: string;
@@ -9,9 +10,10 @@ const deleteProduct = async ({ id }: DeleteProductParams) => {
     method: 'DELETE',
   });
   if (!response.ok && response.status !== 204) {
-    throw new Error('Failed to delete product');
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to delete product');
+    throw new Error(message);
   }
-  // Try to parse JSON, but if empty, just return null
   try {
     return await response.json();
   } catch {
@@ -23,6 +25,7 @@ export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteProduct,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product"] });

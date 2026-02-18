@@ -21,7 +21,8 @@ import { useRootContext } from "@/context/RootContext"
 import { getCompanyId } from "@/utils/clientCookie"
 import Loader from "@/components/ui/loader"
 import * as XLSX from 'xlsx'
-import { toast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
+import { getToastErrorMessage } from "@/utils/apiErrorHandler"
 import { Patient } from "@/queries/patients/get-patients"
 
 export type PatientFilters = {
@@ -279,7 +280,7 @@ export const PatientsScreen = () => {
       console.error('Export error:', error)
       toast({
         title: "Export Failed",
-        description: error instanceof Error ? error.message : "Failed to export patients data",
+        description: getToastErrorMessage(error, "Failed to export patients data"),
         variant: "destructive",
       })
     } finally {

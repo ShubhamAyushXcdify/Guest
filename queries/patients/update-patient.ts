@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 import { Patient } from "./get-patients";
 
 interface UpdatePatientPayload {
@@ -36,14 +37,16 @@ export const useUpdatePatient = () => {
         body: JSON.stringify(data),
       });
 
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error("Failed to update patient");
+        const message = getMessageFromErrorBody(result, 'Failed to update patient');
+        throw new Error(message);
       }
 
-      return response.json();
+      return result;
     },
+    retry: false,
     onSuccess: () => {
-      // Invalidate and refetch patients queries
       queryClient.invalidateQueries({ queryKey: ["patients"] });
     },
   });

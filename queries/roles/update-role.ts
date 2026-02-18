@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface UpdateRoleData {
   name: string;
@@ -17,7 +18,9 @@ const updateRole = async ({ id, ...data }: { id: string } & UpdateRoleData) => {
     body: JSON.stringify(data),
   });
   if (!response.ok && response.status !== 204) {
-    throw new Error('Failed to update role');
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to update role');
+    throw new Error(message);
   }
   return response.status === 204 ? null : response.json();
 };
@@ -26,6 +29,7 @@ export const useUpdateRole = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateRole,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["role"] });
       queryClient.invalidateQueries({ queryKey: ["users"] });

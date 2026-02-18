@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface DeleteSupplierParams {
   id: string;
@@ -9,9 +10,10 @@ const deleteSupplier = async ({ id }: DeleteSupplierParams) => {
     method: 'DELETE',
   });
   if (!response.ok && response.status !== 204) {
-    throw new Error('Failed to delete supplier');
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to delete supplier');
+    throw new Error(message);
   }
-  // Try to parse JSON, but if empty, just return null
   try {
     return await response.json();
   } catch {

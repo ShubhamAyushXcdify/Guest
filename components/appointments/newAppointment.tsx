@@ -11,6 +11,7 @@ import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import { useCreateAppointment } from "@/queries/appointment"
 import { useToast } from "@/hooks/use-toast"
+import { getToastErrorMessage } from "@/utils/apiErrorHandler"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetPatients, Patient } from "@/queries/patients/get-patients"
 import { useGetClients, Client } from "@/queries/clients/get-client"
@@ -309,8 +310,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create appointment",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to create appointment"),
+        variant: "destructive",
       })
     }
   })
@@ -334,8 +335,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update appointment",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to update appointment"),
+        variant: "destructive",
       })
     }
   })

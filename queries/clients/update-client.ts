@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
+import { getMessageFromErrorBody, getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { Client } from "./get-client";
 
 interface UpdateClientPayload {
@@ -22,26 +23,20 @@ interface UpdateClientPayload {
 }
 
 const updateClient = async (clientData: UpdateClientPayload): Promise<Client> => {
-  try {
-    // Send PUT request to the client API endpoint
-    const response = await fetch(`/api/clients/${clientData.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(clientData),
-    });
+  const response = await fetch(`/api/clients/${clientData.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(clientData),
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to update client');
-    }
-
-    const data = await response.json();
-    return data as Client;
-  } catch (error) {
-    throw error;
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to update client');
+    throw new Error(message);
   }
+  return result as Client;
 };
 
 export function useUpdateClient() {
@@ -49,14 +44,14 @@ export function useUpdateClient() {
 
   return useMutation({
     mutationFn: updateClient,
+    retry: false,
     onSuccess: () => {
-      // Invalidate clients query to refetch the updated list
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update owner",
+        description: getToastErrorMessage(error, "Failed to update owner"),
         variant: "destructive",
       });
     },

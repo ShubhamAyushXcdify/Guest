@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface DeleteRoleParams {
   id: string;
@@ -9,7 +10,9 @@ const deleteRole = async ({ id }: DeleteRoleParams) => {
     method: 'DELETE',
   });
   if (!response.ok && response.status !== 204) {
-    throw new Error('Failed to delete role');
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to delete role');
+    throw new Error(message);
   }
   try {
     return await response.json();

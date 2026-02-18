@@ -1,24 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 const deleteAppointmentType = async (id: string) => {
-  try {
-    const url = `/api/appointmentType/${id}`;
-    
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const url = `/api/appointmentType/${id}`;
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw result;
-    }
-    return result;
-  } catch (error) {
-    throw error;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to delete appointment type');
+    throw new Error(message);
   }
+  return result;
 }
 
 export const useDeleteAppointmentType = (options: any = {}) => {

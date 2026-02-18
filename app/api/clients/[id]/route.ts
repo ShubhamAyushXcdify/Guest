@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJwtToken } from '@/utils/serverCookie';
 
+/** Extract error message from backend response (JSON message/error/title or plain text). */
+async function getMessageFromBackendResponse(response: Response, fallback: string): Promise<string> {
+  const contentType = response.headers.get("content-type") || "";
+  try {
+    if (contentType.includes("application/json")) {
+      const body = await response.json().catch(() => ({}));
+      const msg = (body && typeof body === "object" && (body.message ?? body.error ?? body.title)) || "";
+      if (typeof msg === "string" && msg.trim()) return msg.trim();
+    }
+    const text = await response.text().catch(() => "");
+    if (typeof text === "string" && text.trim()) return text.trim();
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
@@ -68,9 +85,9 @@ export async function PUT(
         );
 
         if (!response.ok) {
-            const errorText = await response.text().catch(() => "Failed to get error details");
+            const message = await getMessageFromBackendResponse(response, "Failed to update client");
             return NextResponse.json(
-                { message: 'Failed to update client' },
+                { message },
                 { status: response.status }
             );
         }

@@ -12,6 +12,7 @@ import NewProduct from "./newProduct";
 import ProductDetails from "./productsDetails";
 import { useDeleteProduct } from "@/queries/products/delete-products";
 import { useToast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { DeleteConfirmationDialog } from "../ui/delete-confirmation-dialog";
 import { useFilter, ProductSearchParamsType } from "./hooks/useFilter";
 import Loader from "@/components/ui/loader"
@@ -147,8 +148,8 @@ export default function Products() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while deleting the product.",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to delete product"),
+        variant: "destructive",
       });
     } finally {
       setIsDeleting(false);
@@ -267,7 +268,7 @@ export default function Products() {
       console.error('Export error:', error);
       toast({
         title: "Export Failed",
-        description: error instanceof Error ? error.message : "Failed to export products data",
+        description: getToastErrorMessage(error, "Failed to export products data"),
         variant: "destructive",
       });
     } finally {

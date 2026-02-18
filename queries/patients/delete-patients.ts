@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 const deletePatient = async (patientId: string): Promise<void> => {
   const response = await fetch(`/api/patients/${patientId}`, {
@@ -9,10 +10,10 @@ const deletePatient = async (patientId: string): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to delete patient");
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to delete patient');
+    throw new Error(message);
   }
-
-  return;
 };
 
 export function useDeletePatient() {

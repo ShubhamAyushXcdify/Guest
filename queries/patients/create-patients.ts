@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 import { Patient } from "./get-patients";
 
 interface CreatePatientRequest {
@@ -34,11 +35,12 @@ const createPatient = async (data: CreatePatientRequest): Promise<Patient> => {
     body: JSON.stringify(data),
   });
 
+  const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error("Failed to create patient");
+    const message = getMessageFromErrorBody(result, 'Failed to create patient');
+    throw new Error(message);
   }
-
-  return response.json();
+  return result as Patient;
 };
 
 export function useCreatePatient() {
@@ -46,6 +48,7 @@ export function useCreatePatient() {
 
   return useMutation({
     mutationFn: (newPatient: CreatePatientRequest) => createPatient(newPatient),
+    retry: false,
     onSuccess: () => {
       // Invalidate and refetch the patients list
       queryClient.invalidateQueries({ queryKey: ["patients"] });
