@@ -4,6 +4,23 @@ import { NextResponse } from "next/server";
 import { getJwtToken } from "@/utils/serverCookie";
 import { NextRequest } from "next/server";
 
+/** Extract error message from backend response (JSON message/error/title or plain text). */
+async function getMessageFromBackendResponse(response: Response, fallback: string): Promise<string> {
+  const contentType = response.headers.get("content-type") || "";
+  try {
+    if (contentType.includes("application/json")) {
+      const body = await response.json().catch(() => ({}));
+      const msg = (body && typeof body === "object" && (body.message ?? body.error ?? body.title)) || "";
+      if (typeof msg === "string" && msg.trim()) return msg.trim();
+    }
+    const text = await response.text().catch(() => "");
+    if (typeof text === "string" && text.trim()) return text.trim();
+  } catch {
+    // ignore
+  }
+  return fallback;
+}
+
 const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}`;
 const testToken = `${process.env.NEXT_PUBLIC_TEST_TOKEN}`;
 
@@ -94,15 +111,18 @@ export async function POST(request: NextRequest) {
         );
 
         if (!response.ok) {
-            const errorText = await response.text().catch(() => "Failed to get error details");
-            console.error("Error response from backend:", errorText);
-            throw new Error('Failed to create client');
+            const message = await getMessageFromBackendResponse(response, "Failed to create client");
+            console.error("Error response from backend:", message);
+            return NextResponse.json({ message }, { status: response.status });
         }
 
         const data = await response.json();
         return NextResponse.json(data, { status: 200 });
     } catch (error: any) {
         console.error("Error in clients POST route:", error);
-        return NextResponse.json({ message: `Error creating client: ${error.message}` }, { status: 500 });
+        return NextResponse.json(
+            { message: error?.message || "Error creating client" },
+            { status: 500 }
+        );
     }
 }

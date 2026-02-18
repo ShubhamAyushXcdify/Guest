@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface CreateScreenData {
   name: string;
@@ -11,9 +12,10 @@ const createScreen = async (data: CreateScreenData) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw result;
+    const message = getMessageFromErrorBody(result, "Failed to create screen");
+    throw new Error(message);
   }
   return result;
 };
@@ -22,6 +24,7 @@ export const useCreateScreen = ({ onSuccess, onError }: { onSuccess?: () => void
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createScreen,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["screen"] });
       onSuccess?.();

@@ -15,10 +15,14 @@ import { useGetAppointments } from "@/queries/appointment/get-appointment"
 import { useRootContext } from "@/context/RootContext"
 import Loader from "@/components/ui/loader"
 import { ExpiringProductsCard } from "@/components/dashboard/shared/expiring-products-card"
+import { useToast } from "@/hooks/use-toast"
+import { getToastErrorMessage } from "@/utils/apiErrorHandler"
+import { useEffect } from "react"
 
 export const AdminDashboard = () => {
   const today = new Date();
   const { clinic } = useRootContext();
+  const { toast } = useToast();
 
   const startOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
   const endOfDayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
@@ -91,19 +95,29 @@ export const AdminDashboard = () => {
   }, [clinic?.companyId, dateRange, startOfDay, endOfDay]);
 
   // Fetch clinic details (all-time, no date filter)
-  const { data: clinicDetailsData, isLoading: isLoadingClinicDetails } = useGetDashboardSummary(
+  const { data: clinicDetailsData, isLoading: isLoadingClinicDetails, error: clinicDetailsError } = useGetDashboardSummary(
     clinicDetailsParams,
     { enabled: !!clinicDetailsParams?.companyId, queryKeySuffix: 'clinic-details-all-time' }
   );
 
   // Fetch appointment metrics (date-filtered)
-  const { data: appointmentMetricsData, isLoading: isLoadingAppointments } = useGetDashboardSummary(
+  const { data: appointmentMetricsData, isLoading: isLoadingAppointments, error: appointmentMetricsError } = useGetDashboardSummary(
     appointmentMetricsParams,
     { enabled: !!appointmentMetricsParams?.companyId, queryKeySuffix: 'appointment-metrics-filtered' }
   );
 
   const isLoading = isLoadingClinicDetails || isLoadingAppointments;
-  const error = null; // Handle errors separately if needed
+  const error = clinicDetailsError || appointmentMetricsError;
+
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: getToastErrorMessage(error, "Failed to load dashboard summary"),
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   // Get appointment requests
   const appointmentRequests = appointmentRequestsData?.items || [];
@@ -195,7 +209,7 @@ export const AdminDashboard = () => {
       <Loader size="lg" label="Loading..." />
     </div>
   </div>
-  if (error) return <div className="p-6 text-red-500">Error loading dashboard summary</div>;
+  if (error) return <div className="p-6 text-red-500">{getToastErrorMessage(error, "Error loading dashboard summary")}</div>;
 
   return (
     <div className="space-y-4">

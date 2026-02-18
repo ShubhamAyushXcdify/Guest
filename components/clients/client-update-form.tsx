@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Client } from "@/queries/clients/get-client";
 import { useUpdateClient } from "@/queries/clients/update-client";
 import { useToast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { CheckCircle } from "lucide-react";
 
 const updateClientSchema = z.object({
@@ -111,8 +112,8 @@ export function ClientUpdateForm({ client, onSuccess }: ClientUpdateFormProps) {
       console.error("Error updating client:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the owner.",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to update owner. Please try again."),
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);

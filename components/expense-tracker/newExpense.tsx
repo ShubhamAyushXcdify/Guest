@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { expenseFormSchema, ExpenseFormValues } from "@/components/schema/expense-schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { toast } from "sonner";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 
 interface NewExpenseProps {
   onSuccess: () => void;
@@ -74,7 +75,7 @@ export default function NewExpense({ onSuccess }: NewExpenseProps) {
       toast("Expense created successfully");
       onSuccess();
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Failed to create expense");
+      toast.error(getToastErrorMessage(error, "Failed to create expense"));
     }
   };
 

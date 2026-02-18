@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface UpdateSupplierData {
   id: string;
@@ -12,7 +13,9 @@ const updateSupplier = async (data: UpdateSupplierData) => {
     body: JSON.stringify(data),
   });
   if (!response.ok && response.status !== 204) {
-    throw new Error('Failed to update supplier');
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to update supplier');
+    throw new Error(message);
   }
   return response.status === 204 ? null : response.json();
 };
@@ -21,6 +24,7 @@ export const useUpdateSupplier = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateSupplier,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["supplier"] });
     },

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
+import { getMessageFromErrorBody, getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { Client } from "./get-client";
 
 interface CreateClientPayload {
@@ -21,27 +22,20 @@ interface CreateClientPayload {
 }
 
 const createClient = async (clientData: CreateClientPayload): Promise<Client> => {
-  try {
-    const response = await fetch('/api/clients', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(clientData),
-    });
+  const response = await fetch('/api/clients', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(clientData),
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-       console.error("Client API error response:", errorData);
-      throw new Error(errorData.message || 'Failed to create client');
-    }
-
-    const data = await response.json();
-    return data as Client;
-  } catch (error) {
-    console.error("Error in createClient function:", error);
-    throw error;
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to create client');
+    throw new Error(message);
   }
+  return result as Client;
 };
 
 export function useCreateClient() {
@@ -49,15 +43,14 @@ export function useCreateClient() {
 
   return useMutation({
     mutationFn: createClient,
+    retry: false,
     onSuccess: () => {
-      // Invalidate clients query to refetch the updated list
       queryClient.invalidateQueries({ queryKey: ['clients'] });
     },
-    onError: (error: Error) => {
-       console.error("Client creation error:", error);
+    onError: (error: unknown) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create client",
+        description: getToastErrorMessage(error, "Failed to create client"),
         variant: "destructive",
       });
     },

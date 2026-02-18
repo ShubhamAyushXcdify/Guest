@@ -12,6 +12,7 @@ import { Switch } from "../ui/switch";
 import { User } from ".";
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { useGetRole } from "@/queries/roles/get-role";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useGetCompanies } from "@/queries/companies/get-company";
@@ -258,8 +259,8 @@ export default function UserDetails({ userId, onSuccess }: UserDetailsProps) {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update user",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to update user"),
+        variant: "destructive",
       });
     }
   };

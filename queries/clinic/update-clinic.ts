@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface UpdateClinicData {
   id: string;
@@ -37,7 +38,9 @@ const updateClinic = async (data: UpdateClinicData) => {
     body: JSON.stringify(requestBody),
   });
   if (!response.ok && response.status !== 204) {
-    throw new Error('Failed to update clinic');
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to update clinic');
+    throw new Error(message);
   }
   return response.status === 204 ? null : response.json();
 };
@@ -46,6 +49,7 @@ export const useUpdateClinic = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateClinic,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clinic"] });
     },

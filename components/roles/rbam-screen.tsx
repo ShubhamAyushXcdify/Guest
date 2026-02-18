@@ -16,6 +16,7 @@ import { useCreateScreen } from "@/queries/screen/create-screen";
 import { useGetScreenAccess } from "@/queries/screen/access/get-screen-access";
 import { useUpdateScreenAccess } from "@/queries/screen/access/update-screen-access";
 import { toast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
 import { useRootContext } from "@/context/RootContext";
 import { useQueryStates, parseAsString } from "nuqs";
@@ -151,8 +152,12 @@ export default function RBACScreen() {
     onSuccess: () => {
       refetchAccess();
     },
-    onError: () => {
-      toast({ title: "Failed", description: "Could not update access", variant: "destructive" });
+    onError: (error) => {
+      toast({
+        title: "Failed",
+        description: getToastErrorMessage(error, "Could not update access"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -163,9 +168,12 @@ export default function RBACScreen() {
       setNewScreenDescription("");
       toast({ title: "Screen created", variant: "success" });
     },
-    onError: (e) => {
-      const msg = (e && (e.message || e.error || e.Message)) ?? "Failed to create screen";
-      toast({ title: "Error", description: String(msg), variant: "destructive" });
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: getToastErrorMessage(error, "Failed to create screen"),
+        variant: "destructive",
+      });
     },
   });
 

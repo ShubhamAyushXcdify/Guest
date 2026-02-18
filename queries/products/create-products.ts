@@ -1,26 +1,23 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 const createProduct = async (data: any) => {
-  try {
-    const url = `/api/products`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+  const url = `/api/products`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw result;
-    }
-    return result;
-  } catch (error) {
-    throw error;
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to create product');
+    throw new Error(message);
   }
-}
+  return result;
+};
 
 export const useCreateProduct = ({ onSuccess, onError }: {
   onSuccess?: () => void;
@@ -30,6 +27,7 @@ export const useCreateProduct = ({ onSuccess, onError }: {
   
   return useMutation({
     mutationFn: createProduct,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       queryClient.invalidateQueries({ queryKey: ['product'] })

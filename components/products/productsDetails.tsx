@@ -13,7 +13,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "../ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Combobox } from "../ui/combobox";
-import { useToast } from "@/hooks/use-toast"; 
+import { useToast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -156,8 +157,8 @@ useEffect(() => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while updating the product.",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to update product"),
+        variant: "destructive",
       });
     }
   };

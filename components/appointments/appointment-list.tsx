@@ -13,6 +13,7 @@ import { useDeleteAppointment } from "@/queries/appointment/delete-appointment"
 import { DeleteConfirmationDialog } from "@/components/ui/delete-confirmation-dialog"
 import { CancelConfirmationDialog } from "@/components/ui/cancel-confirmation-dialog"
 import { toast } from "@/hooks/use-toast"
+import { getToastErrorMessage } from "@/utils/apiErrorHandler"
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useUpdateAppointment } from "@/queries/appointment/update-appointment"
 import useAppointmentFilter from "./hooks/useAppointmentFilter"
@@ -291,10 +292,10 @@ export default function AppointmentList({
         description: "Appointment deleted successfully",
       })
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete appointment",
+        description: getToastErrorMessage(error, "Failed to delete appointment"),
         variant: "destructive",
       })
     }
@@ -308,10 +309,10 @@ export default function AppointmentList({
         description: "Appointment status updated successfully",
       })
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update appointment status",
+        description: getToastErrorMessage(error, "Failed to update appointment status"),
         variant: "destructive",
       })
     }
@@ -762,7 +763,7 @@ export default function AppointmentList({
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete appointment",
+        description: getToastErrorMessage(error, "Failed to delete appointment"),
         variant: "destructive",
       })
     }
@@ -795,7 +796,7 @@ export default function AppointmentList({
   } catch (error) {
     toast({
       title: "Error",
-      description: "Failed to cancel appointment",
+      description: getToastErrorMessage(error, "Failed to cancel appointment"),
       variant: "destructive",
     });
   } finally {

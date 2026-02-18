@@ -5,6 +5,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useCreateSupplier } from "@/queries/suppliers/create-supplier";
 import { useToast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useGetClinic } from "@/queries/clinic/get-clinic";
@@ -41,8 +42,8 @@ export default function NewSupplier({ onSuccess }: NewSupplierProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "An unexpected error occurred while creating the supplier.",
-        variant: "error",
+        description: getToastErrorMessage(error, "Failed to create supplier"),
+        variant: "destructive",
       });
     },
   });

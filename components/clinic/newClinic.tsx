@@ -5,6 +5,7 @@ import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { useCreateClinic } from "@/queries/clinic/create-clinic";
 import { toast } from "@/hooks/use-toast";
+import { getToastErrorMessage } from "@/utils/apiErrorHandler";
 import { Clinic } from "./index";
 import { DatePicker } from "../ui/datePicker";
 import AdvancedMap from "../map/advanced-map";
@@ -45,7 +46,7 @@ export default function NewClinic({ onSuccess }: NewClinicProps) {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create clinic",
+        description: getToastErrorMessage(error, "Failed to create clinic"),
         variant: "destructive",
       });
     },

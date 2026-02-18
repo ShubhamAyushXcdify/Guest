@@ -1,25 +1,24 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface DeleteUserParams {
   id: string;
 }
 
 const deleteUser = async ({ id }: DeleteUserParams) => {
-  try {
-    const response = await fetch(`/api/user/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const response = await fetch(`/api/user/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-    if (!response.ok) {
-      throw new Error(`Failed to delete user: ${response.status}`);
-    }
-    return response.json();
-  } catch (error) {
-    throw error;
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    const message = getMessageFromErrorBody(result, 'Failed to delete user');
+    throw new Error(message);
   }
+  return response.json().catch(() => null);
 };
 
 export const useDeleteUser = () => {

@@ -1,25 +1,23 @@
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 const deleteAppointment = async (id: string) => {
-  try {
-    const url = `/api/appointment/${id}`;
-    
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  const url = `/api/appointment/${id}`;
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw result;
-    }
-    return result;
-  } catch (error) {
-    throw error;
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to delete appointment');
+    throw new Error(message);
   }
+  return result;
 }
 
 export const useDeleteAppointment = ({ onSuccess, onError }: {
@@ -27,9 +25,10 @@ export const useDeleteAppointment = ({ onSuccess, onError }: {
   onError?: (error: any) => void;
 }) => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: deleteAppointment,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointment'] })
       onSuccess?.()
@@ -38,4 +37,4 @@ export const useDeleteAppointment = ({ onSuccess, onError }: {
       onError?.(error)
     }
   })
-} 
+}

@@ -1,8 +1,39 @@
 // utils/apiErrorHandler.ts
 // Utility to handle API errors, especially 401 Unauthorized responses
+// and to show backend error messages in frontend toasts
 
 import { getJwtToken, removeJwtToken, removeUserId } from './clientCookie';
 import { isTokenExpired } from './jwtToken';
+
+/** Keys commonly used by backends for error message. */
+const ERROR_KEYS = ['message', 'error', 'title', 'detail'] as const;
+
+/**
+ * Extract error message from parsed API error body (use in queries/mutations after response.json()).
+ * Use this so the same backend message is thrown and shown in toast.
+ */
+export function getMessageFromErrorBody(body: unknown, fallback: string): string {
+  if (body == null || typeof body !== 'object') return fallback;
+  const obj = body as Record<string, unknown>;
+  for (const key of ERROR_KEYS) {
+    const val = obj[key];
+    if (typeof val === 'string' && val.trim()) return val.trim();
+  }
+  return fallback;
+}
+
+/**
+ * Get user-facing error message from any thrown value (Error or object with message).
+ * Use in components: toast({ description: getToastErrorMessage(error, 'Operation failed') }).
+ */
+export function getToastErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message?.trim()) return error.message.trim();
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = (error as { message?: string }).message;
+    if (typeof msg === 'string' && msg.trim()) return msg.trim();
+  }
+  return fallback;
+}
 
 /**
  * Checks if an error response indicates an unauthorized/expired token

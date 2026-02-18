@@ -1,29 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 const updateAppointmentType = async ({ id, data }: { id: string; data: any }) => {
-  try {
-    const url = `/api/appointmentType/${id}`;
-    // Only send name and isActive
-    const payload = {
-      name: data.name,
-      isActive: data.isActive,
-    };
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
+  const url = `/api/appointmentType/${id}`;
+  const payload = {
+    name: data.name,
+    isActive: data.isActive,
+  };
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw result;
-    }
-    return result;
-  } catch (error) {
-    throw error;
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to update appointment type');
+    throw new Error(message);
   }
+  return result;
 }
 
 export const useUpdateAppointmentType = (options: any = {}) => {

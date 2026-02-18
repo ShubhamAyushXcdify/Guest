@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
+import { getMessageFromErrorBody } from "@/utils/apiErrorHandler";
 
 interface UpdateAppointmentData {
   id: string;
@@ -25,26 +26,22 @@ interface UpdateAppointmentData {
   };
 }
 const updateAppointment = async ({ id, data }: UpdateAppointmentData) => {
-  try {
-    const url = `/api/appointment/${id}`;
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+  const url = `/api/appointment/${id}`;
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw result;
-    }
-    return result;
-  } catch (error) {
-    throw error;
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = getMessageFromErrorBody(result, 'Failed to update appointment');
+    throw new Error(message);
   }
-}
+  return result;
+};
 
 export const useUpdateAppointment = ({ onSuccess, onError }: {
   onSuccess?: () => void;
@@ -54,6 +51,7 @@ export const useUpdateAppointment = ({ onSuccess, onError }: {
   
   return useMutation({
     mutationFn: updateAppointment,
+    retry: false,
     onSuccess: () => {
       // Invalidate and refetch all appointment-related queries
       queryClient.invalidateQueries({ queryKey: ['appointment'] })
