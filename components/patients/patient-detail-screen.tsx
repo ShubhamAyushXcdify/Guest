@@ -16,6 +16,7 @@ import PatientBilling from "@/components/patients/patient-billing"
 import PatientFiles from "@/components/patients/files/patient-files"
 import PatientInvoices from "@/components/patients/patient-invoices"
 import { useGetPatientById } from "@/queries/patients/get-patients-by-id"
+import { useGetClientById } from "@/queries/clients/get-client"
 import { formatDate } from "@/lib/utils"
 
 export const PatientDetailScreen = () => {
@@ -52,6 +53,9 @@ export const PatientDetailScreen = () => {
   }
 
   const { data: patient, isLoading, isError } = useGetPatientById(patientId)
+
+  // Fetch client data to check client active status
+  const { data: clientData } = useGetClientById(patient?.clientId || "")
 
   // Handle navigation back to patients list
   const handleBack = () => {
@@ -241,7 +245,7 @@ export const PatientDetailScreen = () => {
   <PatientMedical />
 </TabsContent> */}
         <TabsContent value="visits">
-          <PatientVisits />
+          <PatientVisits isPatientActive={patient.isActive} isClientActive={clientData?.isActive ?? true} />
         </TabsContent>
         {/* <TabsContent value="lab-results">
   <PatientLabResults />
