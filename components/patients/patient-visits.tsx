@@ -18,7 +18,12 @@ import AppointmentDetails from "@/components/appointments/appointment-details"
 import { toast } from "@/components/ui/use-toast"
 import DischargeSummarySheet from "@/components/appointments/discharge-summary-sheet"
 
-export default function PatientVisits() {
+interface PatientVisitsProps {
+  isPatientActive?: boolean;
+  isClientActive?: boolean;
+}
+
+export default function PatientVisits({ isPatientActive = true, isClientActive = true }: PatientVisitsProps) {
   const params = useParams();
   const router = useRouter();
   const patientId = params.id as string;
@@ -127,7 +132,28 @@ export default function PatientVisits() {
         <CardContent className="p-0">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Visits & Appointments</h3>
-            <Button className="theme-button text-white" onClick={() => setShowNewAppointment(true)}>
+            <Button
+              className="theme-button text-white"
+              onClick={() => {
+                if (!isPatientActive) {
+                  toast({
+                    title: "Cannot Book Appointment",
+                    description: "This patient is inactive. Please activate the patient before creating an appointment.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                if (!isClientActive) {
+                  toast({
+                    title: "Cannot Book Appointment",
+                    description: "The owner (client) of this patient is inactive. Please activate the client before creating an appointment.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setShowNewAppointment(true);
+              }}
+            >
               <Plus className="mr-2 h-4 w-4" /> New Appointment
             </Button>
           </div>

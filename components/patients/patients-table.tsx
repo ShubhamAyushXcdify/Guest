@@ -15,6 +15,7 @@ import NewAppointment from "@/components/appointments/newAppointment"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { PatientEditDetails } from "./patient-edit-details"
 import { useToast } from "@/hooks/use-toast"
+import { getClientById } from "@/queries/clients/get-client"
 
 interface PatientsTableProps {
   patients: Patient[]
@@ -83,8 +84,34 @@ export function PatientsTable({
     setShowEditSheet(true)
   }
 
-  const handleBookAppointment = (patientId: string) => {
-    setSelectedPatientId(patientId)
+  const handleBookAppointment = async (patient: Patient) => {
+    if (!patient.isActive) {
+      toast({
+        title: "Cannot Book Appointment",
+        description: "This patient is inactive. Please activate the patient before creating an appointment.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if the patient's client (owner) is inactive
+    if (patient.clientId) {
+      try {
+        const clientData = await getClientById(patient.clientId)
+        if (clientData && clientData.isActive === false) {
+          toast({
+            title: "Cannot Book Appointment",
+            description: "The owner (client) of this patient is inactive. Please activate the client before creating an appointment.",
+            variant: "destructive",
+          })
+          return
+        }
+      } catch (error) {
+        // If client fetch fails, allow proceeding — the form-level check will catch it
+      }
+    }
+
+    setSelectedPatientId(patient.id)
     setShowNewAppointment(true)
   }
 
@@ -150,12 +177,12 @@ export function PatientsTable({
           >
             <Edit className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={(e) => {
               e.stopPropagation();
-              handleBookAppointment(row.original.id);
+              handleBookAppointment(row.original);
             }}
             title="Book Appointment"
           >

@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getToastErrorMessage } from "@/utils/apiErrorHandler"
 import { useGetClinic } from "@/queries/clinic/get-clinic"
 import { useGetPatients, Patient } from "@/queries/patients/get-patients"
-import { useGetClients, Client } from "@/queries/clients/get-client"
+import { useGetClients, Client, useGetClientById, getClientById } from "@/queries/clients/get-client"
 import { useGetRoom, Room } from "@/queries/rooms/get-room"
 import { useGetUsers } from "@/queries/users/get-users"
 import { useGetRole } from "@/queries/roles/get-role";
@@ -50,6 +50,7 @@ interface SearchPatientResult {
   clientLastName?: string;
   clientPhonePrimary?: string;
   microchipNumber?: string; // Added microchipNumber
+  isActive?: boolean;
   client?: {
     id?: string;
     firstName?: string;
@@ -98,7 +99,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     };
   }, [patientSearchQuery, 300]); // Depend on patientSearchQuery
 
-  const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string } | null>(null)
+  const [selectedPatient, setSelectedPatient] = useState<{ id: string, name: string, clientId?: string, isActive?: boolean } | null>(null)
 
   const { data: searchResults, isLoading: isSearching } = useGetPatients(
     1, // pageNumber
@@ -110,6 +111,9 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
 
   // Fetch specific patient by ID when patientId is provided
   const { data: specificPatient } = useGetPatientById(patientId || "");
+
+  // Fetch client data to check client active status
+  const { data: selectedClientData } = useGetClientById(selectedPatient?.clientId || "");
 
   // Fetch appointment by ID when editing
   const { data: appointmentData, isLoading: isLoadingAppointment } = useGetAppointmentById(appointmentId || "");
@@ -366,11 +370,24 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
     // Get client ID - check both possible locations based on API structure
     const clientId = patient.clientId || patient.client?.id;
 
-    // Always select the patient
+    // Check if the patient is inactive
+    if (patient.isActive === false) {
+      toast({
+        title: "Inactive Patient",
+        description: "This patient is inactive. Cannot create appointments for inactive patients.",
+        variant: "destructive",
+      });
+      setPatientSearchQuery("");
+      setIsSearchDropdownOpen(false);
+      return;
+    }
+
+    // Select the patient
     setSelectedPatient({
       id: patient.id,
       name: patientName,
-      clientId: clientId
+      clientId: clientId,
+      isActive: patient.isActive
     });
 
     form.setValue("patientId", patient.id, { shouldValidate: true });
@@ -392,7 +409,7 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
   };
 
   // Handle form validation errors
-  const onSubmit = (data: NewAppointmentFormValues) => {
+  const onSubmit = async (data: NewAppointmentFormValues) => {
     try {
       // appointmentDate is already a Date object now
       if (!data.appointmentDate) {
@@ -412,6 +429,16 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         return;
       }
 
+      // Check if the patient is inactive
+      if (selectedPatient.isActive === false) {
+        toast({
+          title: "Inactive Patient",
+          description: "Cannot create appointments for inactive patients. Please activate the patient first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Try to get client ID from the selected patient
       let clientId = selectedPatient.clientId;
 
@@ -424,10 +451,11 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         if (fullPatientData && fullPatientData.clientId) {
           clientId = fullPatientData.clientId;
 
-          // Update the selected patient with the client ID for future reference
+          // Update the selected patient with the client ID and active status for future reference
           setSelectedPatient({
             ...selectedPatient,
-            clientId: clientId
+            clientId: clientId,
+            isActive: selectedPatient.isActive ?? fullPatientData.isActive
           });
         }
       }
@@ -440,6 +468,20 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
           duration: 800,
         });
         return; // Prevent form submission
+      }
+
+      // Check if the client (owner) is inactive — use hook data if available, otherwise fetch directly
+      const clientData = selectedClientData?.id === clientId
+        ? selectedClientData
+        : await getClientById(clientId);
+
+      if (clientData && clientData.isActive === false) {
+        toast({
+          title: "Inactive Client",
+          description: "Cannot create appointments because the owner (client) is inactive. Please activate the client first.",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Find selected slot details from the availableSlots array
@@ -523,7 +565,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
       setSelectedPatient({
         id: latestPatient.id,
         name: latestPatient.name,
-        clientId: latestPatient.clientId
+        clientId: latestPatient.clientId,
+        isActive: latestPatient.isActive
       });
 
       toast({
@@ -636,7 +679,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
           setSelectedPatient({
             id: specificPatient.id,
             name: specificPatient.name,
-            clientId: specificPatient.clientId
+            clientId: specificPatient.clientId,
+            isActive: specificPatient.isActive
           });
         }
       }, 100);
@@ -675,7 +719,8 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
         setSelectedPatient({
           id: appointmentData.patientId,
           name: appointmentData.patient.name,
-          clientId: appointmentData.clientId
+          clientId: appointmentData.clientId,
+          isActive: appointmentData.patient.isActive
         });
       }
     }
@@ -813,17 +858,25 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                             <div className="flex gap-2">
                               <div className="relative flex-grow">
                                 {selectedPatient ? (
-                                  <div className="flex items-center justify-between p-2 border rounded-md">
-                                    <span>{selectedPatient.name}</span>
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="p-1 h-auto"
-                                      onClick={clearSelectedPatient}
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </Button>
+                                  <div>
+                                    <div className="flex items-center justify-between p-2 border rounded-md">
+                                      <span>{selectedPatient.name}</span>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="p-1 h-auto"
+                                        onClick={clearSelectedPatient}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                    {selectedPatient.isActive === false && (
+                                      <p className="text-sm text-red-600 mt-1 font-medium">Patient is inactive. Appointment cannot be created.</p>
+                                    )}
+                                    {selectedClientData && selectedClientData.isActive === false && (
+                                      <p className="text-sm text-red-600 mt-1 font-medium">Owner (client) is inactive. Appointment cannot be created.</p>
+                                    )}
                                   </div>
                                 ) : (
                                   <>
@@ -891,13 +944,18 @@ function NewAppointment({ isOpen, onClose, patientId, preSelectedClinic, preSele
                                                   : `${patientName}-${clientName}${microchipDisplay}`
                                                 : `${patientName}${microchipDisplay}`;
 
+                                              const isInactive = patient.isActive === false;
+
                                               return (
                                                 <li
                                                   key={patient.id}
-                                                  className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                                                  className={`px-4 py-2 ${isInactive ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer hover:bg-gray-100'}`}
                                                   onClick={() => handlePatientSelect(patient)}
                                                 >
-                                                  <div className="font-medium">{displayName}</div>
+                                                  <div className="font-medium">
+                                                    {displayName}
+                                                    {isInactive && <span className="ml-2 text-xs text-red-600 font-semibold">(Inactive)</span>}
+                                                  </div>
                                                 </li>
                                               );
                                             })}
