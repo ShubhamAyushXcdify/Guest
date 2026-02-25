@@ -1,0 +1,76 @@
+# .NET build output
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.sln.iml
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/
+
+# NuGet
+*.nupkg
+.nuget/
+packages/
+
+# Others
+*.swp
+*.bak
+*.tmp
+
+# Publish output
+publish/
+
+# Secrets (if any)
+secrets.json
+# appsettings.json should not be tracked (contains sensitive data)
+Api/appsettings.json
+# appsettings.Development.json can be tracked (template for development)
+
+# API specific
+Api/Properties/launchSettings.json
+Api/Uploads/ 
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
