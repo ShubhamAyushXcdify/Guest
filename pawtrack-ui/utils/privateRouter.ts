@@ -1,0 +1,111 @@
+"use client";
+import { RootContext } from "@/context/RootContext";
+import { usePathname, useRouter } from "next/navigation";
+import { useContext, useEffect } from "react";
+import React from "react";
+import { RootContextType } from "@/context/RootContext";
+import * as clientCookie from "./clientCookie";
+import { isTokenExpired } from "./jwtToken";
+// import { useHasPermission } from "./auth";
+// import { Resource } from "../components/settings/rbac/rbac";
+
+
+const getResource = (pathname: string) => {
+  switch (pathname.split('/')[1]) {
+    case 'projects':
+      return 'projects';
+    case 'users':
+      return 'users';
+    case 'companies':
+      return 'companies';
+    case 'modules':
+      return 'modules';
+    case 'issues':
+      return 'issues';
+    case 'sprints':
+      return 'sprints';
+    case 'dashboard':
+      return 'dashboard';
+    case 'account':
+      return 'account';
+    case 'feedback':
+      return 'feedback';
+  }
+}
+
+const withAuth = (WrappedComponent: any, Loader?: any) => {
+  const AuthRequired = (props: any) => {
+    const router = useRouter();
+    const pathname = usePathname();
+    const rootContext = useContext(
+      RootContext as React.Context<RootContextType>
+    );
+
+    if (!rootContext) {
+      throw new Error("RootContext must be used within a RootContext");
+    }
+
+    const { authorized, loading } = rootContext as RootContextType;
+
+    // const canAccess = useHasPermission({
+    //   resource: getResource(pathname) as Resource,
+    //   action: 'view'
+    // });
+
+    useEffect(() => {
+      // Only run authentication checks on the client side
+      const jwtToken = clientCookie.getJwtToken();
+      const userId = clientCookie.getUserId();
+
+      // Check if token is expired
+      if (jwtToken && isTokenExpired(jwtToken)) {
+        console.warn('Token expired in privateRouter, logging out...');
+        if (rootContext?.handleLogout) {
+          rootContext.handleLogout();
+        } else {
+          // Fallback: redirect to login if handleLogout is not available
+          const timeout = setTimeout(() => {
+            if (typeof window !== "undefined" && pathname !== "/login") {
+              router.push(`/?redirect=${encodeURIComponent(pathname)}`);
+            }
+          }, 1000);
+          return () => clearTimeout(timeout);
+        }
+        return;
+      }
+
+      if (!jwtToken || !userId) {
+        const timeout = setTimeout(() => {
+
+          if (typeof window !== "undefined" && pathname !== "/login") {
+            router.push(`/?redirect=${encodeURIComponent(pathname)}`);
+          }
+        }, 1000);
+        return () => clearTimeout(timeout);
+      }
+      //if (!loading && (!authorized || canAccess === false)) {
+      if (!loading && !authorized) {
+        const timeout = setTimeout(() => {
+          if (pathname !== "/login") {
+            router.push(`/?redirect=${encodeURIComponent(pathname)}`);
+          }
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+      }
+    }, [authorized, pathname, router, rootContext]);
+
+    if (loading) {
+      if (Loader) {
+        return React.createElement(Loader, props);
+      }
+      return null;
+    }
+
+    return React.createElement(WrappedComponent, props);
+  };
+
+  return AuthRequired;
+};
+
+export default withAuth;

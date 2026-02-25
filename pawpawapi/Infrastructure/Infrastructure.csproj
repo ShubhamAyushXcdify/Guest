@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Core.csproj" />
+  </ItemGroup>
+	<ItemGroup>
+		<None Remove="Data\Scripts\001_AllTableScript.sql" />
+		<None Remove="Data\Scripts\002_AddMissingForeignKeys.sql" />
+	</ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="Data\Scripts\001_AllTableScript.sql" />
+		<EmbeddedResource Include="Data\Scripts\002_AddMissingForeignKeys.sql" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Npgsql" Version="9.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.0.0</Version>
+    <!-- Suppress common nullable warnings for repositories -->
+    <NoWarn>$(NoWarn);CS8618;CS8603;CS8600;CS8601;CS8602;CS8604;CS8619;CS8625;CS8629</NoWarn>
+  </PropertyGroup>
+
+</Project>

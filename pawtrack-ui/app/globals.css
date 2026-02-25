@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Leaflet CSS imports */
+@import 'leaflet/dist/leaflet.css';
+
+body {
+  font-family: var(--font-geist),ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  overflow: hidden;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+    -webkit-overflow-scrolling: touch;
+}
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    /* Theme colors - Green (default) */
+    --theme-primary: #1E3D3D;
+    --theme-secondary: #1E3D3D;
+    --theme-accent: #D2EFEC;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  /* Theme color variables */
+  [data-color-theme="purple"] {
+    --theme-primary: #1E3D3D;
+    --theme-secondary: #1E3D3D;
+    --theme-accent: #D2EFEC;
+  }
+
+  [data-color-theme="teal"] {
+    --theme-primary: #2dd4bf;
+    --theme-secondary: #14b8a6;
+    --theme-accent: #5eead4;
+  }
+
+  [data-color-theme="amber"] {
+    --theme-primary: #fbbf24;
+    --theme-secondary: #f59e0b;
+    --theme-accent: #fcd34d;
+  }
+
+  /* New light color themes */
+  [data-color-theme="lavender"] {
+    --theme-primary: #9d8cd6;
+    --theme-secondary: #7c6cc8;
+    --theme-accent: #b8a9e1;
+  }
+
+  [data-color-theme="mint"] {
+    --theme-primary: #7dd3ae;
+    --theme-secondary: #5ebf97;
+    --theme-accent: #9adfc1;
+  }
+
+  [data-color-theme="coral"] {
+    --theme-primary: #ff9a8b;
+    --theme-secondary: #ff7e6b;
+    --theme-accent: #ffb4a8;
+  }
+}
+
+/* Theme utility classes */
+.theme-accent {
+  color: var(--theme-accent);
+}
+
+.theme-active {
+  background-color: var(--theme-primary);
+}
+
+.theme-button {
+  background-color: var(--theme-primary);
+}
+
+.theme-button:hover {
+  background-color: var(--theme-secondary);
+}
+
+.theme-button-outline {
+  color: var(--theme-primary);
+  border-color: var(--theme-primary);
+}
+
+.theme-button-outline:hover {
+  background-color: color-mix(in srgb, var(--theme-primary) 10%, transparent);
+}
+
+.theme-badge {
+  background-color: var(--theme-primary);
+}
+
+.theme-badge-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgb(30, 64, 175);
+}
+
+.theme-badge-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: rgb(6, 95, 70);
+}
+
+.theme-badge-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: rgb(180, 83, 9);
+}
+
+.theme-badge-neutral {
+  background-color: rgba(156, 163, 175, 0.1);
+  color: rgb(75, 85, 99);
+}
+
+.dark .theme-badge-info {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: rgb(96, 165, 250);
+}
+
+.dark .theme-badge-success {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: rgb(52, 211, 153);
+}
+
+.dark .theme-badge-warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: rgb(251, 191, 36);
+}
+
+.dark .theme-badge-neutral {
+  background-color: rgba(156, 163, 175, 0.2);
+  color: rgb(209, 213, 219);
+}
+
+.theme-text-primary {
+  color: var(--theme-primary);
+}
+
+.theme-text-secondary {
+  color: var(--theme-secondary);
+}
+
+.theme-text-accent {
+  color: var(--theme-primary);
+}
+
+.theme-border {
+  border-color: var(--theme-primary);
+}
+
+.theme-button-secondary {
+  background-color: var(--theme-secondary);
+  color: white;
+}
+
+.theme-button-secondary:hover {
+  background-color: var(--theme-primary);
+}
+
+

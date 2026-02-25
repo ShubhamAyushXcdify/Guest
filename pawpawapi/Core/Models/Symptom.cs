@@ -1,0 +1,15 @@
+using System;
+
+namespace Core.Models
+{
+    public class Symptom
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+        public bool IsComman { get; set; } = false;
+        public string? Breed { get; set; }
+        public DateTimeOffset? CreatedAt { get; set; }
+        public DateTimeOffset? UpdatedAt { get; set; }
+    }
+} 

@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>1.0.0</Version>
+    <!-- Suppress common nullable warnings for DTOs and models -->
+    <NoWarn>$(NoWarn);CS8618;CS8603;CS8600;CS8601;CS8602;CS8604;CS8619;CS8625;CS8629</NoWarn>
+  </PropertyGroup>
+
+</Project>
